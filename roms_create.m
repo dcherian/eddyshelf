@@ -15,8 +15,8 @@ INI_NAME  = 'test_ini_01';
 % Grid Parameters
 S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 
-S.Lm = 46;
-S.Mm = 48;
+S.Lm = 80;
+S.Mm = 80;
 S.N  = 40;
 S.NT = 1; % Number of active tracers
 
@@ -27,13 +27,13 @@ S.theta_b = 2.0;     %  S-coordinate bottom control parameter.
 S.Tcline  = 10.0;    %  S-coordinate surface/bottom stretching width (m)
 
 % Domain Extent (in m)
-X = 100000;
-Y = 150000;
+X = 400000;
+Y = 400000;
 Z = 2000;
 
 % Physical Parameters
 N2    = 1e-5;
-T0    = 24;
+T0    = 14;
 S0    = 35;
 R0    = 1027;
 TCOEF = 1.7e-4;
@@ -198,8 +198,16 @@ ncwrite(INIname,   'Cs_w',        S.Cs_w);
 
 %% Fix grids and bathymetry
 
+% for future use
+xmid = ceil(S.Lm/2);
+ymid = ceil(S.Mm/2);
+zmid = ceil(S.N/2);
+
 % Coriolis
 fnew = f0*ones(size(S.x_rho));
+
+% set beta. f = f0 @ y=ymid
+fnew2 = fnew + beta * (S.y_rho - S.y_rho(1,ymid));
 
 % Bathmetry
 S.h = Z*ones(size(S.h)); % constant depth
@@ -270,24 +278,58 @@ zvmat = z_v;
 
 hrmat = repmat(S.h,[1 1 S.N]);
 
-% for future use
-xmid = ceil(S.Lm/2);
-ymid = ceil(S.Mm/2);
-zmid = ceil(S.N/2);
-
 % set initial tracers
 S.temp = T0*ones(size(S.temp));
 S.salt = S0*ones(size(S.salt));
 
 %% Now set initial conditions - all variables are 0 by default S = S0; T=T0
 
+S.temp = T0*ones(size(S.temp));
 perturb_zeta = 0; % add random perturbation to zeta
 tic
-clear Tx Txv Tz
 
-% Eddy parameters
-eddy_depth = 1000; % depth below which flow is 'compensated'
+% Eddy parameters - all distances in m
+eddy.dia = 25*1000; % in m
+eddy.depth = 500; % depth below which flow is 'compensated'
+eddy.Ncos = 14; % no. of points over which the cosine modulates to zero
+eddy.tamp = 0.25; % controls gradient
+eddy.a = 2;  % alpha in Katsman et al. (2003)
+eddy.cx = X/2; % center of eddy
+eddy.cy = Y/2; %        " 
 
+% temperature field
+r = sqrt( (S.x_rho-eddy.cx).^2 + (S.y_rho-eddy.cy).^2) / eddy.dia/2; % radial location from eddy center
+etemp = eddy.tamp* exp( -(eddy.a -1)/eddy.a .* r.^(eddy.a) ); % in xy plane
+zind = find_approx(zrmat(1,1,:),-1 * eddy.depth,1);
+eddy.zprof = [zeros(zind-eddy.Ncos,1); (1-cos(pi * [0:eddy.Ncos]'/eddy.Ncos))/2; ones(S.N-zind-1,1)];
+
+% check eddy profile (normalized)
+subplot(131)
+pcolorcen(S.x_rho/1000,S.y_rho/1000,etemp); 
+axis('square');colorbar; xlabel('x (km)'); ylabel('y (km)');
+subplot(132)
+plot(S.x_rho(:,1)/1000,etemp(:,ymid));xlabel('x (km)');
+subplot(133)
+plot(eddy.zprof,squeeze(zrmat(1,1,:))); ylabel('z (m)');
+
+% assign initial stratification
+Tz = N2/g/TCOEF * ones(size(zrmat) - [0 0 1]);
+S.temp(1,:,:) = T0;
+for k=2:size(zrmat,3)
+    S.temp(:,:,k) = S.temp(:,:,k-1) + Tz(:,:,k-1).*(zrmat(:,:,k)-zrmat(:,:,k-1));
+end
+
+% add eddy temperature perturbation
+eddy.temp = bsxfun(@times,etemp,S.temp) .* repmat(permute(eddy.zprof,[3 2 1]),[S.Lm+2 S.Mm+2 1]);
+S.temp = S.temp + eddy.temp;
+
+figure;
+contourf(S.x_rho(:,1)/1000,squeeze(z_r(1,1,:)),squeeze(S.temp(:,ymid,:))',20);
+colorbar;
+title('temp');
+xlabel('x (km)'); ylabel('z (m)');
+
+%%
 
 % Add random perturbation
 if perturb_zeta == 1
