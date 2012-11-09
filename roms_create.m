@@ -31,6 +31,11 @@ X = 400000;
 Y = 400000;
 Z = 2000;
 
+% coriolis parameters
+lat_ref = 45;
+f0    = 2 * (2*pi/86400) *sind(lat_ref);
+beta  = 2e-11;
+
 % Physical Parameters
 N2    = 1e-5;
 T0    = 14;
@@ -38,8 +43,6 @@ S0    = 35;
 R0    = 1027;
 TCOEF = 1.7e-4;
 g     = 9.81;
-f0    = 1e-4;
-beta  = 0;2e-11; % not implemented yet - modify fnew
 
 % fix file names
 GRID_NAME = [FOLDER GRID_NAME '.nc'];% '-' num2str(ceil(X/1000)) 'x' num2str(ceil(Y/1000)) '-' num2str(S.Lm) 'x' num2str(S.Mm) 'x' num2str(S.N) '.nc'];[FOLDER GRID_NAME '.nc'];
@@ -284,6 +287,10 @@ S.salt = S0*ones(size(S.salt));
 
 %% Now set initial conditions - all variables are 0 by default S = S0; T=T0
 
+% salt
+S.salt = S0*ones(size(S.salt));
+
+% temperature
 S.temp = T0*ones(size(S.temp));
 perturb_zeta = 0; % add random perturbation to zeta
 use_thermal_wind = 1; % use thermal wind to calculate balance.
@@ -329,16 +336,27 @@ eddy.T0 = max(eddy.temp(:));
 S.temp = S.temp + eddy.temp;
 
 figure;
-subplot(121)
+subplot(221)
 contourf(S.x_rho(:,1)/1000,squeeze(z_r(1,1,:)),squeeze(S.temp(:,ymid,:))',20);
 colorbar;
 title('temp (y=mid)');
 xlabel('x (km)'); ylabel('z (m)');
-subplot(122)
+subplot(222)
 contourf(S.y_rho(1,:)/1000,squeeze(z_r(1,1,:)),squeeze(S.temp(xmid,:,:))',20);
 colorbar;
 title('temp (x=mid)');
 xlabel('y (km)'); ylabel('z (m)');
+subplot(223)
+contourf(S.x_rho(:,1)/1000,squeeze(z_r(1,1,:)),squeeze(eddy.temp(:,ymid,:))',20);
+colorbar;
+title('Eddy temp (y=mid)');
+xlabel('x (km)'); ylabel('z (m)');
+subplot(224)
+contourf(S.y_rho(1,:)/1000,squeeze(z_r(1,1,:)),squeeze(eddy.temp(xmid,:,:))',20);
+colorbar;
+title('Eddy temp (x=mid)');
+xlabel('y (km)'); ylabel('z (m)');
+
 %%
 if use_radial
     %ut = azimuthal, ur = radial
@@ -377,31 +395,26 @@ if use_thermal_wind
     S.u = zeros(size(xumat));
     for i=2:size(xumat,3)
         S.u(:,:,i) = S.u(:,:,i-1) + uz(:,:,i).*(zumat(:,:,i)-zumat(:,:,i-1));
-    end  
+    end
     
-    % zeta
-    S.zeta = zeros([size(xrmat,1) size(xrmat,2)]);
+    %% zeta from dynamic height
+    S.zeta = nan(size(zrmat(:,:,1)));
+    dha = nan(size(zrmat));
+    for mm = 1:size(zrmat,1)
+        % sw_gpan requires matrices as (z,x)
+        s0 = squeeze(S.salt(mm,:,:))';
+        t0 = squeeze(S.temp(mm,:,:))';
+        p0 = abs(squeeze( zrmat(mm,:,:)))';
+        dha(mm,:,:) = sw_gpan(s0,t0,p0)'./g;
+    end
     
-    % use cylindrical co-rodinates
-    [ut1,ur1] = cart2pol(avg1(S.u,2),avg1(S.v,1));
+    % relative to bottom
+    dha = bsxfun(@minus,dha(:,:,1),dha);
     
-%     fvdx = cumtrapz( xvmat(:,1,1), avg1(f,2)/g .* S.v(:,:,end),1);
-%     fudy = cumtrapz( yumat(1,:,1), avg1(f,1)/g .* S.u(:,:,end),2);
-%     
-%     S.zeta(2:end-1,2:end-1) = avg1(avg1( avg1(fvdx,1) - avg1(fudy,2) ,1),2);
-    S.zeta(:,1) = S.zeta(:,2) - ...
-                        (yrmat(:,2,end) - yrmat(:,1,end)).*(S.zeta(:,3)-S.zeta(:,2)) ...
-                            ./(yrmat(:,3,end) - yrmat(:,2,end));
-    S.zeta(:,end) = S.zeta(:,end-1) + ...
-                        (yrmat(:,end,end) - yrmat(:,end-1,end)).*(S.zeta(:,end-1)-S.zeta(:,end-2)) ...
-                               ./(yrmat(:,end-1,end) - yrmat(:,end-2,end));
-    S.zeta(1,:) = S.zeta(2,:) - ...
-                    (xrmat(2,:,end) - xrmat(1,:,end)).*(S.zeta(3,:)-S.zeta(2,:)) ...
-                            ./(xrmat(3,:,end) - xrmat(2,:,end));
-    S.zeta(end,:) = S.zeta(end-1,:) + ...
-                        (xrmat(end,:,end) - xrmat(end-1,:,end)).*(S.zeta(end-1,:)-S.zeta(end-2,:)) ...
-                               ./(xrmat(end-1,:,end) - xrmat(end-2,:,end));
-%     clear fvdx fudy
+    S.zeta = dha(:,:,end);
+    S.zeta = S.zeta - min(S.zeta(:));
+    pcolorcen(S.zeta); colorbar; axis square;
+   % clear dha   
 end
 
 xind = ymid;
@@ -422,9 +435,6 @@ end
 
 % remove mean zeta 
 S.zeta = S.zeta - nanmean(S.zeta(:));
-
-% salt
-S.salt = S0*ones(size(S.salt));
 
 % ubar & vbar
 for ii=1:S.Lm+2
@@ -527,43 +537,44 @@ if make_plot
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Plots to check thermal wind
     
-    % there is problem with where UZ and VZ are being calculated.
-    % fix that first.
-    figure;
-    subplot(221)
-    plot(avg1(xrmat(:,1,1))./fx,diff(zeta0(:,yind))./dx ./ avg1(f(:,yind),1)* g); hold on
-    plot(xvmat(:,1,1)./fx,S.v(:,yind,end),'r');
-    xlim(limx); xlabel(['x' lx]);
-    legend('\zeta_x','v_{z=0}','Location','Best'); 
-    title('Check thermal wind @ surface');
-    
-    %%% FIX THIS ONE
-    subplot(222)
-    plot(avg1(xrmat(:,1,1))./fx,diff(S.temp(:,yind,zind),1,1)./dx ./ avg1(f(:,yind),1) * TCOEF*g);
-    hold on
-    plot(xvmat(:,1,1)./fx,VZ(:,zind-1),'r');
-    plot(xrmat(:,1,1)./fx,Txv(:,yind,zind)* TCOEF*g/f0,'g')
-    plot(xvmat(:,1,1)./fx,squeeze(vz(:,yind,zind)),'k');
-    legend('T_x^{field} * \alpha g/f','v_z','T_x^{imposed} * \alpha g/f_0','v_z (imposed)','Location','Best');
-    xlim(limx); xlabel(['x' lx]);
-    title('Check thermal wind @ mid level');
-    
-    subplot(223)
-    plot(avg1(yrmat(1,:,1),2)./fy,-diff(zeta0(xind,:))./dy./avg1(f(xind,:),2) .* g); hold on
-    plot(yumat(1,:,1)./fy,S.u(xind,:,end),'r');
-    xlim(limy); xlabel(['y' ly]);
-    legend('\zeta_x','u_{z=0}','Location','Best');
-    
-    %%%% FIX THIS ONE
-    subplot(224)
-    plot(avg1(yrmat(1,:,1),2)./fy,-squeeze(diff(S.temp(xind,:,zind,1),1,2))./dy./avg1(f(xind,:),2) * TCOEF*g);
-    hold on
-    plot(yumat(1,:,1)./fy,UZ(:,zind-1),'r');
-    plot(yumat(1,:,1)./fy,-Tyu(xind,:,zind)* TCOEF*g/f0,'g')
-    plot(yumat(1,:,1)./fy,uz(xind,:,zind),'k');
-    legend('-T_y^{field} * \alpha g/f','u_z','-T_y^{imposed} * \alpha g/f_0','u_z (imposed)','Location','Best');
-    xlim(limy); xlabel(['y' ly]);
+    if use_thermal_wind
+        % there is problem with where UZ and VZ are being calculated.
+        % fix that first.
+        figure;
+        subplot(221)
+        plot(avg1(xrmat(:,1,1))./fx,diff(zeta0(:,yind))./dx ./ avg1(f(:,yind),1)* g); hold on
+        plot(xvmat(:,1,1)./fx,S.v(:,yind,end),'r');
+        xlim(limx); xlabel(['x' lx]);
+        legend('\zeta_x','v_{z=0}','Location','Best'); 
+        title('Check thermal wind @ surface');
 
+        %%% FIX THIS ONE
+        subplot(222)
+        plot(avg1(xrmat(:,1,1))./fx,diff(S.temp(:,yind,zind),1,1)./dx ./ avg1(f(:,yind),1) * TCOEF*g);
+        hold on
+        plot(xvmat(:,1,1)./fx,VZ(:,zind-1),'r');
+        plot(xrmat(:,1,1)./fx,Txv(:,yind,zind)* TCOEF*g/f0,'g')
+        plot(xvmat(:,1,1)./fx,squeeze(vz(:,yind,zind)),'k');
+        legend('T_x^{field} * \alpha g/f','v_z','T_x^{imposed} * \alpha g/f_0','v_z (imposed)','Location','NorthEast');
+        xlim(limx); xlabel(['x' lx]);
+        title('Check thermal wind @ mid level');
+
+        subplot(223)
+        plot(avg1(yrmat(1,:,1),2)./fy,-diff(zeta0(xind,:))./dy./avg1(f(xind,:),2) .* g); hold on
+        plot(yumat(1,:,1)./fy,S.u(xind,:,end),'r');
+        xlim(limy); xlabel(['y' ly]);
+        legend('\zeta_x','u_{z=0}','Location','Best');
+
+        %%%% FIX THIS ONE
+        subplot(224)
+        plot(avg1(yrmat(1,:,1),2)./fy,-squeeze(diff(S.temp(xind,:,zind,1),1,2))./dy./avg1(f(xind,:),2) * TCOEF*g);
+        hold on
+        plot(yumat(1,:,1)./fy,UZ(:,zind-1),'r');
+        plot(yumat(1,:,1)./fy,-Tyu(xind,:,zind)* TCOEF*g/f0,'g')
+        plot(yumat(1,:,1)./fy,uz(xind,:,zind),'k');
+        legend('-T_y^{field} * \alpha g/f','u_z','-T_y^{imposed} * \alpha g/f_0','u_z (imposed)','Location','NorthWest');
+        xlim(limy); xlabel(['y' ly]);
+    end
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     figure;
@@ -596,24 +607,28 @@ if make_plot
     colorbar;
     title('u');
     xlabel(['x ' lx]); ylabel(['y ' ly]);
+    axis square;
 
     subplot(246)
     contourf(S.x_v(:,1)./fx,S.y_v(1,:)./fy,squeeze(S.v(:,:,zmid))');
     colorbar;
     title('v');
     xlabel(['x ' lx]); ylabel(['y ' ly]);
+    axis square;
 
     subplot(247)
     contourf(S.x_rho(:,1)./fx,S.y_rho(1,:)./fy,squeeze(S.temp(:,:,zmid))');
     colorbar;
     title('temp');
     xlabel(['x ' lx]); ylabel(['y ' ly]);
+    axis square;
 
     subplot(248)
     contourf(S.x_rho(:,1)./fx,squeeze(S.y_rho(1,:))./fy,squeeze(S.zeta(:,:,1))');
     colorbar;
     title('zeta');
     xlabel(['x ' lx]); ylabel(['y ' ly]);
+    axis square;
 end
 
 %% Write to Grid & IC file
@@ -704,6 +719,31 @@ Cbc7 = 7 * dt * sqrt(1/dx^2 + 1/dy^2);
 fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, \n\n C_bt = %.3f | C_bc = %.3f  | C_bc7 = %.3f\n\n Min. Ri = %.2f\n\n', dt,ndtfast,Cbt,Cbc,Cbc7,min(Ri(:)));
 %fprintf('\n\n (dt)_bt < %.2f s | (dt)_bc < %.2f s\n\n', DX/(sqrt(g*min(S.h(:)))), DX/(sqrt(N2)*min(S.h(:))/pi))
 
+%% old stuff for eddyshelf
+%     load 'runs/spinup.mat'
+%     S.zeta = zeta;
+    
+%     % use cylindrical co-rodinates
+%     [ut1,ur1] = cart2pol(avg1(S.u,2),avg1(S.v,1));
+    
+%     fvdx = cumtrapz( xvmat(:,1,1), avg1(f,2)/g .* S.v(:,:,end),1);
+%     fudy = cumtrapz( yumat(1,:,1), avg1(f,1)/g .* S.u(:,:,end),2);
+%     
+%     S.zeta(2:end-1,2:end-1) = avg1(avg1( avg1(fvdx,1) - avg1(fudy,2) ,1),2);
+%     S.zeta(:,1) = S.zeta(:,2) - ...
+%                         (yrmat(:,2,end) - yrmat(:,1,end)).*(S.zeta(:,3)-S.zeta(:,2)) ...
+%                             ./(yrmat(:,3,end) - yrmat(:,2,end));
+%     S.zeta(:,end) = S.zeta(:,end-1) + ...
+%                         (yrmat(:,end,end) - yrmat(:,end-1,end)).*(S.zeta(:,end-1)-S.zeta(:,end-2)) ...
+%                                ./(yrmat(:,end-1,end) - yrmat(:,end-2,end));
+%     S.zeta(1,:) = S.zeta(2,:) - ...
+%                     (xrmat(2,:,end) - xrmat(1,:,end)).*(S.zeta(3,:)-S.zeta(2,:)) ...
+%                             ./(xrmat(3,:,end) - xrmat(2,:,end));
+%     S.zeta(end,:) = S.zeta(end-1,:) + ...
+%                         (xrmat(end,:,end) - xrmat(end-1,:,end)).*(S.zeta(end-1,:)-S.zeta(end-2,:)) ...
+%                                ./(xrmat(end-1,:,end) - xrmat(end-2,:,end));
+%     clear fvdx fudy
+
 %% geopotential anomaly thermal wind stuff
 
 % % Thermal wind balance. Calculate dynamic height and then integrate.
@@ -749,80 +789,4 @@ fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, \n\n C_bt = %.3f | C_bc = %.3f  
 % for j=1:size(xvmat,2)
 % end
 
-% u
-%S.u = S.u + perturb;
 
-%S.u = S.u;%.*sin(pi*yumat/(Y/2));
-%mask = S.y_u > 6747 & S.y_u < 9038;
-%S.u  = S.u .* repmat(mask,[1 1 S.N]);
-
-% Jones and Thorpe stuff
-%k    = 2*pi/(X/2);
-%mu   = Tz/Tx*k;
-%psi0 = 0.05;
-%S.u  = -psi0*mu*sin(pi*zumat/Z).*sin(k*xumat + mu*zumat);
-
-% zeta
-% S.zeta = 0.02*ones([size(xrmat,1) size(xrmat,2)]);
-% for i=2:size(xrmat,1)
-%     for j = 1:size(xrmat,2)-1
-%         S.zeta(i,j,1) = S.zeta(i-1,j,1) + f0/g * S.v(i,j,end) .* (xrmat(i,j,1) - xrmat(i-1,j,1));
-%         %f0/g*(v0*xrmat + vx.*xrmat.^2/2 + vzr .* hrmat .* xrmat);
-%     end
-% end
-% toc;
-
-%% old stuff
-% % 
-% % boundary: zz = m*xx + c
-% % m = inf;
-% % c = 10000;
-% % c2 = 20000;
-% % 
-% % syms xx zz 
-% % if isinf(m)
-% %     line1 = @(xx,zz) xx - c;
-% % else
-% %     line1 = @(xx,zz) zz - m*xx - c;
-% % end
-% % if isinf(m)
-% %     line2 = @(xx,zz) xx - c2;
-% % else
-% %     line2 = @(xx,zz) zz - m*xx - c2;
-% % end
-% % maskr = line1(xrmat,zrmat) > 0 & line2(xrmat,zrmat) < 0;
-% % 
-% % correct = line2(xrmat,zrmat) < 0;
-% % 
-% % contourf(squeeze(xrmat(:,1,:)),squeeze(zrmat(:,1,:)),squeeze(maskr(:,1,:)))
-% % 
-% % For a horizontal line z = c, (c < 0) Layer 1 is mixed layer, Layer 2 is
-% % thermocline. For other lines, rotate picture clockwise
-% % 
-% % M21 = -4.2e-7;
-% % M22 = -5e-9;
-% % N21 = N2;9e-6;
-% % N22 = N2;9e-6;
-% % delx = 0; delz = 0;
-% % 
-% % if m == 0
-% %     delx = ((N21 - N22)/M21 * c);
-% % elseif isinf(m)
-% %     delz = ((M21-M22)/N22 * c);
-% % else
-% % end
-% % 
-% % temp
-% % Tx = (M22*~maskr + M21*maskr)/g/TCOEF;
-% % Tz = (N22*~maskr + N21*maskr)/g/TCOEF;
-% % Tc = -2;
-% % 
-% % S.temp = T0 + Tx.*(xrmat + delx*~maskr) + Tz.*(zrmat + delz*~maskr) + Tc.*correct;
-% % 
-% % v
-% % 
-% % maskv = line(xvmat,zvmat) > 0;
-% % 
-% % vz  = (M22*~maskv + M21*maskv)/f0;
-% % vzr = (M22*~maskr + M21*maskr)/f0;
-% % S.v = v0 + vx.*(xvmat + delx*~maskv) + vz.*(zvmat+hrmat(:,1:end-1,:) + delz*~maskv);
