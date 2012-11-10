@@ -18,7 +18,7 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 S.Lm = 82;
 S.Mm = 80;
 S.N  = 40;
-S.NT = 1; % Number of active tracers
+S.NT = 2; % Number of active tracers
 
 S.Vtransform = 2;
 S.Vstretching = 4;
@@ -34,7 +34,7 @@ Z = 2000;
 % coriolis parameters
 lat_ref = 45;
 f0    = 2 * (2*pi/86400) *sind(lat_ref);
-beta  = 2e-11;
+beta  = 0;
 
 % Physical Parameters
 N2    = 1e-5;
@@ -309,25 +309,31 @@ S.temp = T0*ones(size(S.temp));
 eddy.dia = 90*1000; % in m
 eddy.depth = 500; % depth below which flow is 'compensated'
 eddy.Ncos = 14; % no. of points over which the cosine modulates to zero
-eddy.tamp = 0.1; % controls gradient
-eddy.a = 2;  % alpha in Katsman et al. (2003)
+eddy.tamp = 100; % controls gradient
+eddy.a = 2;  % ? in Katsman et al. (2003)
 eddy.cx = X/2; % center of eddy
 eddy.cy = Y/2; %        " 
 
 % cylindrical co-ordinates
 r0 = eddy.dia/2;
 [th,r] = cart2pol((S.x_rho-eddy.cx),(S.y_rho-eddy.cy));
-rnorm = r./r0;
+rnorm = r./r0; % normalized radius
 
 % temperature field
-exponent =  (eddy.a -1)/eddy.a .* (rnorm.^(eddy.a)); % needed for radial calculations later
-etemp = eddy.tamp * exp( -1 * exponent ); % in xy plane
+% in xy plane (normalized)
+exponent =  (eddy.a - 1)/eddy.a .* (rnorm.^(eddy.a)); % needed for radial calculations later
+eddy.xyprof = exp( -1 * exponent ); 
+eddy.xyprof = eddy.xyprof./max(eddy.xyprof(:));
+
+% z-profile (normalized)
 zind = find_approx(zrmat(1,1,:),-1 * eddy.depth,1);
 eddy.zprof = [zeros(zind-eddy.Ncos,1); (1-cos(pi * [0:eddy.Ncos]'/eddy.Ncos))/2; ones(S.N-zind-1,1)];
+int_zprof = trapz(squeeze(zrmat(1,1,:)),eddy.zprof);
+eddy.zprof = eddy.zprof./int_zprof;
 
 % check eddy profile (normalized)
 % subplot(131)
-% pcolorcen(S.x_rho/1000,S.y_rho/1000,etemp); 
+% pcolorcen(S.x_rho/1000,S.y_rho/1000,eddy.xyprof); 
 % axis('square');colorbar; xlabel('x (km)'); ylabel('y (km)');
 % subplot(132)
 % plot(S.x_rho(:,1)/1000,etemp(:,ymid),'*-');xlabel('x (km)');
@@ -336,28 +342,29 @@ eddy.zprof = [zeros(zind-eddy.Ncos,1); (1-cos(pi * [0:eddy.Ncos]'/eddy.Ncos))/2;
 
 % assign initial stratification
 Tz = N2/g/TCOEF * ones(size(zwmat) - [0 0 2]); % at w points except top / bottom face
-S.temp(1,:,:) = T0;
+strat = T0.*ones(size(zrmat));
+strat(1,:,:) = T0;
 for k=2:size(zrmat,3)
-    S.temp(:,:,k) = S.temp(:,:,k-1) + Tz(:,:,k-1).*(zrmat(:,:,k)-zrmat(:,:,k-1));
+    strat(:,:,k) = strat(:,:,k-1) + Tz(:,:,k-1).*(zrmat(:,:,k)-zrmat(:,:,k-1));
 end
 
 % add eddy temperature perturbation
-eddy.temp = bsxfun(@times,etemp,S.temp) .* repmat(permute(eddy.zprof,[3 2 1]),[S.Lm+2 S.Mm+2 1]);
+eddy.tz = strat .* repmat(permute(eddy.zprof,[3 2 1]),[S.Lm+2 S.Mm+2 1]);
+eddy.temp = eddy.tamp * bsxfun(@times,eddy.xyprof,eddy.tz);
 eddy.t0 = max(eddy.temp(:));
-S.temp = S.temp + eddy.temp;
+S.temp = strat + eddy.temp;
 
 if use_radial
-    % integrated z profile
-    int_zprof = trapz(squeeze(zrmat(1,1,:)), ...
-        repmat(permute(eddy.zprof,[3 2 1]),[size(S.zeta,1) size(S.zeta,2) 1]),3);
+    % integrated z profile of eddy.temp (HAS to include stratification)
+    int_Tz = trapz(squeeze(zrmat(1,1,:)),eddy.tz,3);
 
-    S.zeta = -TCOEF * eddy.t0 * int_zprof .* (1-exp(-exponent));
+    S.zeta = -TCOEF * eddy.tamp * int_Tz .* (1-exp(-exponent));
     S.zeta = S.zeta + min(S.zeta(:));
     
     zeta1 = -TCOEF;
     
-% CHECK UNITS &  WHY IS PROFILE WEIRD NEAR CENTER. 
-% ANS =  r d(theta)/dt NOT d(theta)/dt
+    % CHECK UNITS &  WHY IS PROFILE WEIRD NEAR CENTER. 
+    % ANS =  r d(theta)/dt NOT d(theta)/dt
 
     % azimuthal velocity = r d(theta)/dt
     rutz = avg1(bsxfun(@times, eddy.temp, ...
@@ -420,6 +427,15 @@ if use_thermal_wind
 end
 
 xind = ymid; yind = ymid; zind = 20;
+
+% other plots
+
+% quiver in (x,y)
+% zind = 15;
+% 
+% quiver(xrmat(2:end-1,2:end-1,zind),yrmat(2:end-1,2:end-1,zind), ...
+%         avg1(S.u(:,2:end-1,zind),1),avg1(S.v(2:end-1,:,zind),2));
+% axis square
 
 %%
 % Add random perturbation
@@ -490,7 +506,7 @@ if max(S.zeta(:)) > 1
     error('Zeta > 1m.');
 end
 
-if min(S.salt(:)) == 0
+if min(S.salt(:)) == 0 && S.NT > 1
     error('Salt set to zero');
 end
 
@@ -508,7 +524,7 @@ else
 end
 
 %% Check plots
-%
+
 make_plot = 1;
 
 if make_plot
@@ -723,8 +739,8 @@ DX = sqrt(min(dx)^2 + min(dy)^2);
 
 % From Utility/metrics.F
 % Barotropic courant number
-dt = 50;
-ndtfast = 25;
+dt = 40;
+ndtfast = 40;
 Cbt = sqrt(g*min(S.h(:))) * dt/ndtfast * sqrt(1/dx^2 + 1/dy^2);
 Cbc = sqrt(N2)*min(S.h(:))/pi * dt * sqrt(1/dx^2 + 1/dy^2);
 Cbc7 = 7 * dt * sqrt(1/dx^2 + 1/dy^2);
@@ -780,26 +796,5 @@ fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, \n\n C_bt = %.3f | C_bc = %.3f  
 % S.zeta(:,2:end-1) = (tmp(:,1:end-1) + tmp(:,2:end))/2;
 % S.zeta(:,1) = S.zeta(:,2) - (yrmat(:,2,end) - yrmat(:,1,end)).*(S.zeta(:,3)-S.zeta(:,2))./(yrmat(:,3,end) - yrmat(:,2,end));
 % S.zeta(:,end) = S.zeta(:,end-1) + (yrmat(:,end,end) - yrmat(:,end-1,end)).*(S.zeta(:,end-1)-S.zeta(:,end-2))./(yrmat(:,end-1,end) - yrmat(:,end-2,end));
-
-%% more old stuff
-
-% v
-% v0  = zeros(size(xvmat));            
-% % vx  = TCOEF * g/f0 *((Tx2-Tx1)/x1 * (xvmat < x1) - (Tx2-Tx1)/x2 * (xvmat > x2) + 0 * ~(xvmat < x1 | xvmat > x2)).*(zvmat+100);
-% vz  = TCOEF * g/f0 * (Tx(:,1:end-1,:,:) + Tx(:,2:end,:,:))/2;
-% % % S.v = 0 .* ones(size(xvmat));
-% % % xref = 0 * (xvmat < x1) + x1 * (xvmat >+ x1 & xvmat < x2) + x2 * (xvmat >=x2);
-% % % S.v = v0 + vx.*(xvmat) + vz.*(zvmat+100);
-% 
-% S.v = zeros(size(xvmat));
-% 
-% % for i=2:size(xvmat,1)  
-% %     S.v(i,:,:) = S.v(i-1,:,:) + (xvmat(i,:,:) - xvmat(i-1,:,:)) .* vx(i,:,:);
-% % end
-% for k=2:size(xvmat,3)
-%     S.v(:,:,k) = S.v(:,:,k-1) + (zvmat(:,:,k)-zvmat(:,:,k-1)) .* vz(:,:,k);
-% end
-% for j=1:size(xvmat,2)
-% end
 
 
