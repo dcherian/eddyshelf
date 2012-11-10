@@ -206,15 +206,6 @@ xmid = ceil(S.Lm/2);
 ymid = ceil(S.Mm/2);
 zmid = ceil(S.N/2);
 
-% Coriolis
-fnew = f0*ones(size(S.x_rho));
-
-% set beta. f = f0 @ y=ymid
-f = fnew + beta * (S.y_rho - S.y_rho(1,ymid));
-
-% Bathmetry
-S.h = Z*ones(size(S.h)); % constant depth
-
 % x,y grids
 dx = X/S.Lm;
 dy = Y/S.Mm;
@@ -230,6 +221,13 @@ S.y_v = repmat([0:dy:Y],[S.Lm+2 1]);
 
 S.x_psi = repmat([0:dx:X]',[1 S.Mm+1]);
 S.y_psi = repmat([0:dy:Y],[S.Lm+1 1]);
+
+% Bathmetry
+S.h = Z*ones(size(S.h)); % constant depth
+
+% Coriolis with beta. f = f0 @ y=ymid
+fnew = f0*ones(size(S.x_rho));
+f = fnew + beta * (S.y_rho - S.y_rho(1,ymid));
 
 % Calculate weird stuff
 [S.pm,S.pn,S.dndx,S.dmde] = grid_metrics(S,false);
@@ -260,8 +258,10 @@ S.lon_psi = S.x_psi;
 [z_v]=set_depth(S.Vtransform, S.Vstretching, ...
                  S.theta_s, S.theta_b, S.hc, S.N, ...
                  4, S.h, S.zeta);
-
-
+[z_w]=set_depth(S.Vtransform, S.Vstretching, ...
+                 S.theta_s, S.theta_b, S.hc, S.N, ...
+                 5, S.h, S.zeta);
+             
 % create grid matrices
 % [xrmat,yrmat,zrmat] = ndgrid(S.x_rho(:,1),S.y_rho(:,1),z_r(1,1,:));
 % [xumat,yumat,zumat] = ndgrid(S.x_u,S.y_u,z_u);
@@ -279,6 +279,10 @@ xvmat = repmat(S.x_v,[1 1 S.N]);
 yvmat = repmat(S.y_v,[1 1 S.N]);
 zvmat = z_v;
 
+zwmat = z_w;
+
+clear z_r z_u z_v z_w
+
 hrmat = repmat(S.h,[1 1 S.N]);
 
 % set initial tracers
@@ -287,15 +291,19 @@ S.salt = S0*ones(size(S.salt));
 
 %% Now set initial conditions - all variables are 0 by default S = S0; T=T0
 
+%%%%%%%%%%%%%%%%% options
+perturb_zeta = 0; % add random perturbation to zeta
+use_thermal_wind = 0; % use thermal wind to calculate balance.
+use_radial = 1; % use radial thermal wind balance
+%%%%%%%%%%%%%%%%%
+
+tic
+
 % salt
 S.salt = S0*ones(size(S.salt));
 
 % temperature
 S.temp = T0*ones(size(S.temp));
-perturb_zeta = 0; % add random perturbation to zeta
-use_thermal_wind = 1; % use thermal wind to calculate balance.
-use_radial = 0; % use radial thermal wind balance
-tic
 
 % Eddy parameters - all distances in m
 eddy.dia = 90*1000; % in m
@@ -306,25 +314,28 @@ eddy.a = 2;  % alpha in Katsman et al. (2003)
 eddy.cx = X/2; % center of eddy
 eddy.cy = Y/2; %        " 
 
-% temperature field
-r = sqrt( (S.x_rho-eddy.cx).^2 + (S.y_rho-eddy.cy).^2); % radial location from eddy center
+% cylindrical co-ordinates
 r0 = eddy.dia/2;
-exponent =  (eddy.a -1)/eddy.a .* (r/r0).^(eddy.a); % needed for radial calculations later
-etemp = eddy.tamp* exp( -1 * exponent ); % in xy plane
+[th,r] = cart2pol((S.x_rho-eddy.cx),(S.y_rho-eddy.cy));
+rnorm = r./r0;
+
+% temperature field
+exponent =  (eddy.a -1)/eddy.a .* (rnorm.^(eddy.a)); % needed for radial calculations later
+etemp = eddy.tamp * exp( -1 * exponent ); % in xy plane
 zind = find_approx(zrmat(1,1,:),-1 * eddy.depth,1);
 eddy.zprof = [zeros(zind-eddy.Ncos,1); (1-cos(pi * [0:eddy.Ncos]'/eddy.Ncos))/2; ones(S.N-zind-1,1)];
 
 % check eddy profile (normalized)
-subplot(131)
-pcolorcen(S.x_rho/1000,S.y_rho/1000,etemp); 
-axis('square');colorbar; xlabel('x (km)'); ylabel('y (km)');
-subplot(132)
-plot(S.x_rho(:,1)/1000,etemp(:,ymid),'*-');xlabel('x (km)');
-subplot(133)
-plot(eddy.zprof,squeeze(zrmat(1,1,:)),'*-'); ylabel('z (m)');
+% subplot(131)
+% pcolorcen(S.x_rho/1000,S.y_rho/1000,etemp); 
+% axis('square');colorbar; xlabel('x (km)'); ylabel('y (km)');
+% subplot(132)
+% plot(S.x_rho(:,1)/1000,etemp(:,ymid),'*-');xlabel('x (km)');
+% subplot(133)
+% plot(eddy.zprof,squeeze(zrmat(1,1,:)),'*-'); ylabel('z (m)');
 
 % assign initial stratification
-Tz = N2/g/TCOEF * ones(size(zrmat) - [0 0 1]);
+Tz = N2/g/TCOEF * ones(size(zwmat) - [0 0 2]); % at w points except top / bottom face
 S.temp(1,:,:) = T0;
 for k=2:size(zrmat,3)
     S.temp(:,:,k) = S.temp(:,:,k-1) + Tz(:,:,k-1).*(zrmat(:,:,k)-zrmat(:,:,k-1));
@@ -332,45 +343,36 @@ end
 
 % add eddy temperature perturbation
 eddy.temp = bsxfun(@times,etemp,S.temp) .* repmat(permute(eddy.zprof,[3 2 1]),[S.Lm+2 S.Mm+2 1]);
-eddy.T0 = max(eddy.temp(:));
+eddy.t0 = max(eddy.temp(:));
 S.temp = S.temp + eddy.temp;
 
-figure;
-subplot(221)
-contourf(S.x_rho(:,1)/1000,squeeze(z_r(1,1,:)),squeeze(S.temp(:,ymid,:))',20);
-colorbar;
-title('temp (y=mid)');
-xlabel('x (km)'); ylabel('z (m)');
-subplot(222)
-contourf(S.y_rho(1,:)/1000,squeeze(z_r(1,1,:)),squeeze(S.temp(xmid,:,:))',20);
-colorbar;
-title('temp (x=mid)');
-xlabel('y (km)'); ylabel('z (m)');
-subplot(223)
-contourf(S.x_rho(:,1)/1000,squeeze(z_r(1,1,:)),squeeze(eddy.temp(:,ymid,:))',20);
-colorbar;
-title('Eddy temp (y=mid)');
-xlabel('x (km)'); ylabel('z (m)');
-subplot(224)
-contourf(S.y_rho(1,:)/1000,squeeze(z_r(1,1,:)),squeeze(eddy.temp(xmid,:,:))',20);
-colorbar;
-title('Eddy temp (x=mid)');
-xlabel('y (km)'); ylabel('z (m)');
-
-%%
 if use_radial
-    %ut = azimuthal, ur = radial
+    % integrated z profile
+    int_zprof = trapz(squeeze(zrmat(1,1,:)), ...
+        repmat(permute(eddy.zprof,[3 2 1]),[size(S.zeta,1) size(S.zeta,2) 1]),3);
+
+    S.zeta = -TCOEF * eddy.t0 * int_zprof .* (1-exp(-exponent));
+    S.zeta = S.zeta + min(S.zeta(:));
     
-    ur = zeros(size(S.temp)); % radially symmetric profile + ur = 0 @ bottom
+    zeta1 = -TCOEF;
     
-    utz = bsxfun(@times,TCOEF*g./f .* exponent.^2 .* eddy.a ./ r,eddy.temp);
-    ut = zeros(size(eddy.temp));
-    for k=2:size(zrmat,3)
-        ut(:,:,k) = ut(:,:,k-1) + utz(:,:,k-1).*(zrmat(:,:,k)-zrmat(:,:,k-1));
+% CHECK UNITS &  WHY IS PROFILE WEIRD NEAR CENTER. 
+% ANS =  r d(theta)/dt NOT d(theta)/dt
+
+    % azimuthal velocity = r d(theta)/dt
+    rutz = avg1(bsxfun(@times, eddy.temp, ...
+                g*TCOEF* 1./f .* (-exponent./r *eddy.a)),3);
+    rut = zeros(size(xrmat));
+    for i=2:size(xrmat,3)
+        rut(:,:,i) = rut(:,:,i-1) + rutz(:,:,i-1).*(zrmat(:,:,i)-zrmat(:,:,i-1));
     end
+            
+    uu = -1 * bsxfun(@times,rut, sin(th));
+    vv = bsxfun(@times, rut, cos(th));
     
-    [u,v] = pol2cart(ut(:,:,end),ur(:,:,end));
-    quiver(xrmat(:,1,1),yrmat(1,:,1),u,v);
+    S.u = avg1(uu,1);
+    S.v = avg1(vv,2);
+         
 end
 
 if use_thermal_wind
@@ -397,32 +399,29 @@ if use_thermal_wind
         S.u(:,:,i) = S.u(:,:,i-1) + uz(:,:,i).*(zumat(:,:,i)-zumat(:,:,i-1));
     end
     
-    %% zeta from dynamic height
-    S.zeta = nan(size(zrmat(:,:,1)));
-    dha = nan(size(zrmat));
-    for mm = 1:size(zrmat,1)
-        % sw_gpan requires matrices as (z,x)
-        s0 = squeeze(S.salt(mm,:,:))';
-        t0 = squeeze(S.temp(mm,:,:))';
-        p0 = abs(squeeze( zrmat(mm,:,:)))';
-        dha(mm,:,:) = sw_gpan(s0,t0,p0)'./g;
-    end
-    
-    % relative to bottom
-    dha = bsxfun(@minus,dha(:,:,1),dha);
-    
-    S.zeta = dha(:,:,end);
-    S.zeta = S.zeta - min(S.zeta(:));
-    pcolorcen(S.zeta); colorbar; axis square;
+    % zeta from dynamic height - does not work
+%     S.zeta = nan(size(zrmat(:,:,1)));
+%     dha = nan(size(zrmat));
+%     for mm = 1:size(zrmat,1)
+%         % sw_gpan requires matrices as (z,x)
+%         s0 = squeeze(S.salt(mm,:,:))';
+%         t0 = squeeze(S.temp(mm,:,:))';
+%         p0 = abs(squeeze( zrmat(mm,:,:)))';
+%         dha(mm,:,:) = sw_gpan(s0,t0,p0)'./g;
+%     end
+%     
+%     % relative to bottom
+%     dha = bsxfun(@minus,dha(:,:,1),dha);
+%     
+%     S.zeta = dha(:,:,end);
+%     S.zeta = S.zeta - min(S.zeta(:));
+%     pcolorcen(S.zeta); colorbar; axis square;
    % clear dha   
 end
 
-xind = ymid;
-yind = ymid;
-zind = 20;
+xind = ymid; yind = ymid; zind = 20;
 
 %%
-
 % Add random perturbation
 zeta0 = S.zeta; % save for thermal wind check later
 if perturb_zeta == 1
@@ -447,13 +446,7 @@ for ii=1:S.Lm+2
         end
     end
 end
-        
-% S.ubar = trapz(squeeze(zumat(1,1,:)),S.u,3) ./ max(hrmat(:));
-% S.ubar = S.ubar(:,:,1);
-% 
-% % vbar
-% S.vbar = trapz(squeeze(zvmat(1,1,:)),S.v,3) ./ max(hrmat(:));
-% S.vbar = S.vbar(:,:,1);
+
 toc;
 
 % these are needed later too
@@ -511,7 +504,7 @@ if min(Ri(:)) <= 0.3
     figure; imagesc(Ri'); title('Ri < 10'); colorbar;
     error('Ri <= 0.3.');
 else
-    fprintf('\n Min. Ri = %.3f\n\n', min(Ri(:)));
+    fprintf('\n Min. Ri = %.3f\n\n', nanmin(Ri(:)));
 end
 
 %% Check plots
@@ -519,7 +512,6 @@ end
 make_plot = 1;
 
 if make_plot
-    
     % change axes to km if needed
     fx = 1; fy = 1; lx = '(m)'; ly = '(m)';
     if max(abs(S.x_u(:))) > 3500
@@ -534,21 +526,41 @@ if make_plot
     dx = diff(xrmat(:,yind,zind));
     dy = squeeze(diff(yrmat(xind,:,zind)));
     
+    
+    % check temperature profile
+    figure;
+    subplot(221)
+    contourf(S.x_rho(:,1)/fx,squeeze(zrmat(1,1,:)),squeeze(S.temp(:,ymid,:))',20);
+    colorbar;
+    title('temp (y=mid)');
+    xlabel(['x' lx]); ylabel('z (m)');
+    subplot(222)
+    contourf(S.y_rho(1,:)/fy,squeeze(zrmat(1,1,:)),squeeze(S.temp(xmid,:,:))',20);
+    colorbar;
+    title('temp (x=mid)');
+    xlabel(['y' ly]); ylabel('z (m)');
+    subplot(223)
+    contourf(S.x_rho(:,1)/fx,squeeze(zrmat(1,1,:)),squeeze(eddy.temp(:,ymid,:))',20);
+    colorbar;
+    title('Eddy temp (y=mid)');
+    xlabel(['x' lx]); ylabel('z (m)');
+    subplot(224)
+    contourf(S.y_rho(1,:)/fy,squeeze(zrmat(1,1,:)),squeeze(eddy.temp(xmid,:,:))',20);
+    colorbar;
+    title('Eddy temp (x=mid)');
+    xlabel(['y' ly]); ylabel('z (m)');
+    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Plots to check thermal wind
-    
-    if use_thermal_wind
-        % there is problem with where UZ and VZ are being calculated.
-        % fix that first.
-        figure;
-        subplot(221)
-        plot(avg1(xrmat(:,1,1))./fx,diff(zeta0(:,yind))./dx ./ avg1(f(:,yind),1)* g); hold on
-        plot(xvmat(:,1,1)./fx,S.v(:,yind,end),'r');
-        xlim(limx); xlabel(['x' lx]);
-        legend('\zeta_x','v_{z=0}','Location','Best'); 
-        title('Check thermal wind @ surface');
+    figure;
+    subplot(221)
+    plot(avg1(xrmat(:,1,1))./fx,diff(zeta0(:,yind))./dx ./ avg1(f(:,yind),1)* g); hold on
+    plot(xvmat(:,1,1)./fx,S.v(:,yind,end),'r');
+    xlim(limx); xlabel(['x' lx]);
+    legend('\zeta_x','v_{z=0}','Location','Best'); 
+    title('Check thermal wind @ surface');
 
-        %%% FIX THIS ONE
+    if use_thermal_wind
         subplot(222)
         plot(avg1(xrmat(:,1,1))./fx,diff(S.temp(:,yind,zind),1,1)./dx ./ avg1(f(:,yind),1) * TCOEF*g);
         hold on
@@ -558,14 +570,7 @@ if make_plot
         legend('T_x^{field} * \alpha g/f','v_z','T_x^{imposed} * \alpha g/f_0','v_z (imposed)','Location','NorthEast');
         xlim(limx); xlabel(['x' lx]);
         title('Check thermal wind @ mid level');
-
-        subplot(223)
-        plot(avg1(yrmat(1,:,1),2)./fy,-diff(zeta0(xind,:))./dy./avg1(f(xind,:),2) .* g); hold on
-        plot(yumat(1,:,1)./fy,S.u(xind,:,end),'r');
-        xlim(limy); xlabel(['y' ly]);
-        legend('\zeta_x','u_{z=0}','Location','Best');
-
-        %%%% FIX THIS ONE
+        
         subplot(224)
         plot(avg1(yrmat(1,:,1),2)./fy,-squeeze(diff(S.temp(xind,:,zind,1),1,2))./dy./avg1(f(xind,:),2) * TCOEF*g);
         hold on
@@ -575,23 +580,31 @@ if make_plot
         legend('-T_y^{field} * \alpha g/f','u_z','-T_y^{imposed} * \alpha g/f_0','u_z (imposed)','Location','NorthWest');
         xlim(limy); xlabel(['y' ly]);
     end
+
+    subplot(223)
+    plot(avg1(yrmat(1,:,1),2)./fy,-diff(zeta0(xind,:))./dy./avg1(f(xind,:),2) .* g); hold on
+    plot(yumat(1,:,1)./fy,S.u(xind,:,end),'r');
+    xlim(limy); xlabel(['y' ly]);
+    legend('\zeta_x','u_{z=0}','Location','Best');
+
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+    % Plot all fields
     figure;
     subplot(241)
-    contourf(S.x_u(:,1)./fx,squeeze(z_u(1,1,:)),squeeze(S.u(:,ymid,:))');
+    contourf(S.x_u(:,1)./fx,squeeze(zumat(1,1,:)),squeeze(S.u(:,ymid,:))');
     colorbar;
     title('u');
     xlabel(['x ' lx]); ylabel('z (m)');
     
     subplot(242)
-    contourf(S.x_v(:,1)./fx,squeeze(z_v(1,1,:)),squeeze(S.v(:,ymid,:))');
+    contourf(S.x_v(:,1)./fx,squeeze(zvmat(1,1,:)),squeeze(S.v(:,ymid,:))');
     colorbar;
     title('v');
     xlabel(['x ' lx]); ylabel('z (m)');
     
     subplot(243)
-    contourf(S.x_rho(:,1)./fx,squeeze(z_r(1,1,:)),squeeze(S.temp(:,ymid,:))',20);
+    contourf(S.x_rho(:,1)./fx,squeeze(zrmat(1,1,:)),squeeze(S.temp(:,ymid,:))',20);
     colorbar;
     title('temp');
     xlabel(['x ' lx]); ylabel('z (m)');
