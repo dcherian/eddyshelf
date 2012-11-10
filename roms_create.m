@@ -57,15 +57,15 @@ GRDname = GRID_NAME;
 c_grid(S.Lm+2,S.Mm+2,GRID_NAME,1);
 
 % Create IC file
-[status]=c_initial(S);
+[~]=c_initial(S);
 
 %  Set attributes for "ocean_time".
 
 avalue='seconds since 0001-01-01 00:00:00';
-[status]=nc_attadd(INIname,'units',avalue,'ocean_time');
+[~]=nc_attadd(INIname,'units',avalue,'ocean_time');
   
 avalue='360.0 days in every year';
-[status]=nc_attadd(INIname,'calendar',avalue,'ocean_time');
+[~]=nc_attadd(INIname,'calendar',avalue,'ocean_time');
 
 
 %---------------------------------------------------------------------------
@@ -85,7 +85,7 @@ if (S.spherical),
   
   S.lon_v   = nc_read(GRDname, 'lon_v');
   S.lat_v   = nc_read(GRDname, 'lat_v');
-else,  
+else  
   S.x_rho   = nc_read(GRDname, 'x_rho');
   S.y_rho   = nc_read(GRDname, 'y_rho');
   
@@ -94,7 +94,7 @@ else,
   
   S.x_v     = nc_read(GRDname, 'x_v');
   S.y_v     = nc_read(GRDname, 'y_v');  
-end,  
+end
 
 %  Read in Land/Sea mask, if appropriate.
 
@@ -207,13 +207,13 @@ dx = X/S.Lm;
 dy = Y/S.Mm;
 
 S.x_rho = repmat([-dx/2:dx:X+dx/2]',[1 S.Mm+2]);
-S.y_rho = repmat([-dy/2:dy:Y+dy/2] ,[S.Lm+2 1]);
+S.y_rho = repmat(-dy/2:dy:Y+dy/2 ,[S.Lm+2 1]);
 
 S.x_u = repmat([0:dx:X]',[1 S.Mm+2]);
-S.y_u = repmat([-dy/2:dy:Y+dy/2],[S.Lm+1 1]);
+S.y_u = repmat(-dy/2:dy:Y+dy/2,[S.Lm+1 1]);
 
-S.x_v = repmat([-dx/2:dx:X+dx/2]',[1 S.Mm+1]);
-S.y_v = repmat([0:dy:Y],[S.Lm+2 1]);
+S.x_v = repmat((-dx/2:dx:X+dx/2)',[1 S.Mm+1]);
+S.y_v = repmat(0:dy:Y,[S.Lm+2 1]);
 
 S.x_psi = repmat([0:dx:X]',[1 S.Mm+1]);
 S.y_psi = repmat([0:dy:Y],[S.Lm+1 1]);
@@ -289,8 +289,12 @@ S.salt = S0*ones(size(S.salt));
 
 %%%%%%%%%%%%%%%%% options
 perturb_zeta = 0; % add random perturbation to zeta
-use_thermal_wind = 1; % use thermal wind to calculate balance.
+use_thermal_wind = 0; % cartesian thermal wind
 use_radial = 1; % use radial thermal wind balance
+
+ubt = 0.05; % m/s barotropic velocity
+localize_jet = 1;% buffer around eddy where velocity should exist
+buffer = 150 * 1000; % if localize_jet = 1, else whole domain has ubt
 %%%%%%%%%%%%%%%%%
 
 tic
@@ -346,7 +350,7 @@ if use_radial
     int_Tz = trapz(squeeze(zrmat(1,1,:)),eddy.tz,3);
 
     S.zeta = -TCOEF * eddy.tamp * int_Tz .* (1-exp(-exponent));
-    S.zeta = S.zeta + min(S.zeta(:));
+    S.zeta = S.zeta - min(S.zeta(:));
     
     % CHECK UNITS &  WHY IS PROFILE WEIRD NEAR CENTER. 
     % ANS =  r d(theta)/dt NOT d(theta)/dt
@@ -393,7 +397,32 @@ end
 
 xind = ymid; yind = ymid; zind = 20;
 
-%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% add barotropic velocity field to advect eddy.
+
+% find appropriate indices
+idz1 = find_approx(squeeze(yrmat(1,:,1)),eddy.cy - eddy.dia/2 - buffer,1);
+idz2 = find_approx(squeeze(yrmat(1,:,1)),eddy.cy + eddy.dia/2 + buffer,1);
+idu1 = find_approx(squeeze(yumat(1,:,1)),eddy.cy - eddy.dia/2 - buffer,1);
+idu2 = find_approx(squeeze(yumat(1,:,1)),eddy.cy + eddy.dia/2 + buffer,1);
+
+% modify velocity and free surface fields
+if localize_jet
+    S.u(:,idu1:idu2,:) = S.u(:,idu1:idu2,:) + ubt;
+    
+    z1 = cumtrapz(squeeze(yrmat(1,:,1)),-f./g * ubt,2);
+    z1 = bsxfun(@minus,z1,z1(:,idz1));
+    S.zeta(:,idz1:idz2) = S.zeta(:,idz1:idz2) + z1(:,idz1:idz2,:);
+    S.zeta(:,idz2+1:end) = repmat(S.zeta(:,idz2),[1 size(S.zeta(:,idz2+1:end),2)]);
+    plot(S.zeta(30,:));
+
+else
+    S.u = S.u + ubt;
+    S.zeta = S.zeta + cumtrapz(squeeze(yrmat(1,:,1)),-f./g * ubt,2);
+end
+
+%% Misc calculations (ubar,vbar) - shouldn't require changes
+
 % Add random perturbation
 zeta0 = S.zeta; % save for thermal wind check later
 if perturb_zeta == 1
@@ -535,7 +564,7 @@ if make_plot
     plot(avg1(yrmat(1,:,1),2)./fy,-diff(zeta0(xind,:))./dy./avg1(f(xind,:),2) .* g); hold on
     plot(yumat(1,:,1)./fy,S.u(xind,:,end),'r');
     xlim(limy); xlabel(['y' ly]);
-    legend('\zeta_x','u_{z=0}','Location','Best');
+    legend('\zeta_y','u_{z=0}','Location','Best');
 
     %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
