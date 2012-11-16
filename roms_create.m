@@ -477,38 +477,50 @@ pvmid = pv(xmid,ymid,zmid);
 
 %% check thermal wind
 
-yind = 15;
-xind = 20;
+xind = 30; yind = 15; zind = 30;
 
 % these are needed later too
 dz = squeeze(diff(zvmat(1,1,:)));
-VZ  = bsxfun(@rdivide,squeeze(diff(S.v(:,yind,:),1,3)),dz');
-UZ  = bsxfun(@rdivide,squeeze(diff(S.u(xind,:,:),1,3)),dz');
-UZy = bsxfun(@rdivide,squeeze(diff(S.u(:,yind,:),1,3)),dz'); % for Ri
+VZ  = bsxfun(@rdivide,squeeze(diff(S.v,1,3)),permute(dz,[3 2 1]));
+UZ  = bsxfun(@rdivide,squeeze(diff(S.u,1,3)),permute(dz,[3 2 1]));
+UZy = bsxfun(@rdivide,squeeze(diff(S.u,1,3)),permute(dz,[3 2 1])); % for Ri
         
-dx = squeeze(diff(xrmat(:,yind,:),1,1));
-dy = squeeze(diff(yrmat(xind,:,:),1,2));
-dTdx = bsxfun(@rdivide,squeeze(diff(S.temp(:,yind,:),1,1))./dx* TCOEF*g,avg1(f(:,yind),1));
-dTdy = bsxfun(@rdivide,squeeze(diff(S.temp(xind,:,:),1,2))./dy* -TCOEF*g,avg1(f(xind,:),2)');
+dx = squeeze(diff(xrmat,1,1));
+dy = squeeze(diff(yrmat,1,2));
 
-dzdx = bsxfun(@rdivide,diff(zeta0,1,1),dx(:,end));
-dzdy = bsxfun(@rdivide,diff(zeta0,1,2),dy(:,end)');
+dTdx = bsxfun(@rdivide, diff(S.temp,1,1)./dx*  TCOEF*g, avg1(f,1));
+dTdy = bsxfun(@rdivide, diff(S.temp,1,2)./dy* -TCOEF*g, avg1(f,2));
+
+dzdx = bsxfun(@rdivide, diff(zeta0,1,1), dx(:,:,end));
+dzdy = bsxfun(@rdivide, diff(zeta0,1,2), dy(:,:,end));
+
+% PERCENTAGE error in thermal wind balance
+diff_u = (avg1(UZ,2) - avg1(avg1(dTdy,1),3))./max(UZ(:)) * 100;
+diff_v = (avg1(VZ,1) - avg1(avg1(dTdx,2),3))./max(VZ(:)) * 100;
+
+figure;
+subplot(211)
+pcolorcen(squeeze(diff_v(:,yind,:))'); colorbar
+title('% error (v_z - dT/dx * \alpha g/f)');
+subplot(212)
+pcolorcen(squeeze(diff_u(xind,:,:))'); colorbar
+title('% error (-u_z - dT/dy * \alpha g/f)/max(u_z)');
 
 figure;
 subplot(221)
-pcolorcen((avg1(VZ,1)-avg1(dTdx,2))'./max(abs(VZ(:)))); colorbar
-title('(v_z - dT/dx * \alpha g/f)/max(v_z) = 0');
+pcolorcen(diff_v(:,:,end)'); colorbar
+title('% error (v_z - dT/dx * \alpha g/f)');
 subplot(222)
-pcolorcen((avg1(UZ,1)-avg1(dTdy,2))'./max(abs(UZ(:)))); colorbar
-title('(-u_z - dT/dy * \alpha g/f)/max(u_z) = 0');
+pcolorcen(squeeze(diff_u(:,:,end))'); colorbar
+title('% error (-u_z - dT/dy * \alpha g/f)');
 subplot(223)
 pcolorcen(((avg1((dzdx ./ avg1(f,1)* g),2)-avg1(S.v(:,:,end),1)))./ ...
-                max(abs(S.v(:)))); colorbar
-title('(g/f d\zeta /dx - v_{z=0})/max(v) = 0');
+                max(abs(S.v(:)))*100); colorbar
+title('% error (g/f d\zeta /dx - v_{z=0})');
 subplot(224)
 pcolorcen((avg1(dzdy ./ avg1(f,2)* g,1) + avg1(S.u(:,:,end),2)) ./ ...
-            max(abs(S.u(:)))); colorbar
-title(' (g/f d\zeta /dy + u_{z=0})/max(u) = 0');
+            max(abs(S.u(:)))*100); colorbar
+title(' % error (g/f d\zeta /dy + u_{z=0})');
 
 %% Sanity Checks
 
