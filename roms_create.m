@@ -43,8 +43,8 @@ g     = 9.81;
 
 % fix file names
 GRID_NAME = [FOLDER GRID_NAME '.nc'];% '-' num2str(ceil(X/1000)) 'x' num2str(ceil(Y/1000)) '-' num2str(S.Lm) 'x' num2str(S.Mm) 'x' num2str(S.N) '.nc'];[FOLDER GRID_NAME '.nc'];
-INI_NAME = [FOLDER INI_NAME '.nc'];% '-' num2str(ceil(X/1000)) 'x' num2str(ceil(Y/1000)) '-' num2str(S.Lm) 'x' num2str(S.Mm) 'x' num2str(S.N) '.nc'];[FOLDER INI_NAME '.nc'];
-BRY_NAME = [FOLDER BRY_NAME '.nc'];
+INI_NAME  = [FOLDER INI_NAME '.nc'];% '-' num2str(ceil(X/1000)) 'x' num2str(ceil(Y/1000)) '-' num2str(S.Lm) 'x' num2str(S.Mm) 'x' num2str(S.N) '.nc'];[FOLDER INI_NAME '.nc'];
+BRY_NAME  = [FOLDER BRY_NAME '.nc'];
     
 %% Create Junk IC & Grid Files
 
@@ -300,6 +300,7 @@ ubt = 0.05; % m/s barotropic velocity
 localize_jet = 0;% buffer around eddy where velocity should exist
 buffer = 150 * 1000; % if localize_jet = 1, else whole domain has ubt
 %%%%%%%%%%%%%%%%%
+
 %% Now set initial conditions - all variables are 0 by default S = S0; T=T0
 
 tic
@@ -561,11 +562,23 @@ if flag_OBC == 1
     VarBry  = {'zeta', 'u', 'v', 'temp', 'salt'};
     VarList = [VarBry, 'ubar', 'vbar'];
     
-    % create junk file
+    % create junk file with proper attributes
     [status] = c_boundary(Sbr);
     
-    % write boundary file
+    % write grid info to boundary file
+    dc_roms_create_bry_file(Sbr);
     
+    ubar_west = S.ubar(1,:)';
+    vbar_west = S.vbar(1,:)';
+    zeta_west = S.zeta(1,:)';
+    
+    bry_time = 0;
+    
+    % modify as needed
+    nc_write(Sbr.ncname,'ubar_west',ubar_west,1);
+    nc_write(Sbr.ncname,'vbar_west',vbar_west,1);
+    nc_write(Sbr.ncname,'zeta_west',zeta_west,1);
+    nc_write(Sbr.ncname,'bry_time',bry_time,1);
     
 end
 
