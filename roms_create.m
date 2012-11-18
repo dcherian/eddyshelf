@@ -7,6 +7,7 @@
 FOLDER    = 'runs\';
 GRID_NAME = 'test_grd_01';
 INI_NAME  = 'test_ini_01';
+BRY_NAME  = 'test_bry_01';
 
 % Grid Parameters
 S.spherical = 0; % 0 - Cartesian, 1 - Spherical
@@ -43,7 +44,8 @@ g     = 9.81;
 % fix file names
 GRID_NAME = [FOLDER GRID_NAME '.nc'];% '-' num2str(ceil(X/1000)) 'x' num2str(ceil(Y/1000)) '-' num2str(S.Lm) 'x' num2str(S.Mm) 'x' num2str(S.N) '.nc'];[FOLDER GRID_NAME '.nc'];
 INI_NAME = [FOLDER INI_NAME '.nc'];% '-' num2str(ceil(X/1000)) 'x' num2str(ceil(Y/1000)) '-' num2str(S.Lm) 'x' num2str(S.Mm) 'x' num2str(S.N) '.nc'];[FOLDER INI_NAME '.nc'];
-
+BRY_NAME = [FOLDER BRY_NAME '.nc'];
+    
 %% Create Junk IC & Grid Files
 
 % Set other variables
@@ -72,8 +74,8 @@ avalue='360.0 days in every year';
 %  Set grid variables.
 %---------------------------------------------------------------------------
 
-[vname,nvars]=nc_vname(GRDname);
-
+V=nc_vnames(GRDname);
+nvars=length(V.Variables);
 %  Horizontal grid variables. Read in for input GRID NetCDF file.
 
 if (S.spherical),
@@ -99,7 +101,7 @@ end
 %  Read in Land/Sea mask, if appropriate.
 
 for n=1:nvars,
-  name=deblank(vname(n,:));
+  name=char(V.Variables(n).Name);
   switch (name),
     case 'mask_rho'
       S.mask_rho = nc_read(GRDname, 'mask_rho');
@@ -285,17 +287,20 @@ hrmat = repmat(S.h,[1 1 S.N]);
 S.temp = T0*ones(size(S.temp));
 S.salt = S0*ones(size(S.salt));
 
-%% Now set initial conditions - all variables are 0 by default S = S0; T=T0
+%% Options
 
 %%%%%%%%%%%%%%%%% options
 perturb_zeta = 0; % add random perturbation to zeta
 use_thermal_wind = 1; % cartesian thermal wind
 use_radial = 1; % use radial thermal wind balance
 
-ubt = 0.0; % m/s barotropic velocity
+flag_OBC = 1;
+
+ubt = 0.05; % m/s barotropic velocity
 localize_jet = 0;% buffer around eddy where velocity should exist
 buffer = 150 * 1000; % if localize_jet = 1, else whole domain has ubt
 %%%%%%%%%%%%%%%%%
+%% Now set initial conditions - all variables are 0 by default S = S0; T=T0
 
 tic
 
@@ -397,7 +402,8 @@ end
 xind = ymid; yind = ymid; zind = 20;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% add barotropic velocity field to advect eddy.
+
+%% add barotopric velocity for advection
 
 % find appropriate indices
 idz1 = find_approx(squeeze(yrmat(1,:,1)),eddy.cy - eddy.dia/2 - buffer,1);
@@ -522,6 +528,47 @@ pcolorcen((avg1(dzdy ./ avg1(f,2)* g,1) + avg1(S.u(:,:,end),2)) ./ ...
             max(abs(S.u(:)))*100); colorbar
 title(' % error (g/f d\zeta /dy + u_{z=0})');
 
+%% Open Boundary Conditions
+
+% modified from arango/d_obc_roms2roms.m
+if flag_OBC == 1
+    % copy from initial conditions structure
+    Sbr = S;
+    
+    Sbr.ncname = BRY_NAME; 
+    %  Set switches for boundary segments to process.
+
+    OBC.west  = true;           % process western  boundary segment
+    OBC.east  = false;           % process eastern  boundary segment
+    OBC.south = false;           % process southern boundary segment
+    OBC.north = false;          % process northern boundary segment
+
+    Sbr.boundary(1) = OBC.west;
+    Sbr.boundary(2) = OBC.east;
+    Sbr.boundary(3) = OBC.south;
+    Sbr.boundary(4) = OBC.north;
+    
+    VarGrd = {'spherical',                                                ...
+          'Vtransform', 'Vstretching',                                ...
+          'theta_s', 'theta_b', 'Tcline', 'hc',                       ...
+          's_rho', 'Cs_r', 's_w', 'Cs_w'};
+    
+    %  ROMS state variables to process.  In 3D applications, the 2D momentum
+    %  components (ubar,vbar) are compouted by vertically integrating
+    %  3D momentum component. Therefore, interpolation of (ubar,vbar) is
+    %  not carried out for efficiency.
+    
+    VarBry  = {'zeta', 'u', 'v', 'temp', 'salt'};
+    VarList = [VarBry, 'ubar', 'vbar'];
+    
+    % create junk file
+    [status] = c_boundary(Sbr);
+    
+    % write boundary file
+    
+    
+end
+
 %% Sanity Checks
 
 if min(S.temp(:)) < 3
@@ -540,7 +587,7 @@ if max(abs(S.v(:))) > 1.0 || max(abs(S.u(:))) > 1.0
     input('Really high velocities. Are you sure?');
 end
 
-Ri = addnan(abs(fillnan(N2./(avg1(VZ.^2,1) + UZy.^2),Inf)),10);
+Ri = 5;%addnan(abs(fillnan(N2./(avg1(VZ.^2,1) + UZy.^2),Inf)),10);
 if min(Ri(:)) <= 0.3
     figure; imagesc(Ri'); title('Ri < 10'); colorbar;
     error('Ri <= 0.3.');
