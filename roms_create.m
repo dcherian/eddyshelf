@@ -5,15 +5,15 @@
 
 % names cannot start with number
 FOLDER    = 'runs\';
-GRID_NAME = 'test_grd_01';
-INI_NAME  = 'test_ini_01';
-BRY_NAME  = 'test_bry_01';
+GRID_NAME = 'f0rad_grd_01';
+INI_NAME  = 'f0rad_ini_01';
+BRY_NAME  = 'f0rad_bry_01';
 
 % Grid Parameters
 S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 
-S.Lm = 82;
-S.Mm = 80;
+S.Lm = 122;
+S.Mm = 120;
 S.N  = 40;
 S.NT = 2; % Number of active tracers
 
@@ -24,14 +24,14 @@ S.theta_b = 2.0;     %  S-coordinate bottom control parameter.
 S.Tcline  = 10.0;    %  S-coordinate surface/bottom stretching width (m)
 
 % Domain Extent (in m)
-X = 400000;
-Y = 400000;
+X = 600000;
+Y = 600000;
 Z = 2000;
 
 % coriolis parameters
 lat_ref = 45;
 f0    = 2 * (2*pi/86400) *sind(lat_ref);
-beta  = 2e-11;
+beta  = 0;2e-11;
 
 % Physical Parameters
 N2    = 1e-5;
@@ -291,8 +291,9 @@ S.salt = S0*ones(size(S.salt));
 
 %%%%%%%%%%%%%%%%% options
 perturb_zeta = 0; % add random perturbation to zeta
-use_thermal_wind = 1; % cartesian thermal wind
+use_cartesian = 0; % cartesian thermal wind
 use_radial = 1; % use radial thermal wind balance
+use_gradient = 1; % use gradient wind balance
 
 flag_OBC = 1;
 
@@ -355,9 +356,13 @@ if use_radial
     int_Tz = trapz(squeeze(zrmat(1,1,:)),eddy.tz,3);
 
     S.zeta = -TCOEF * eddy.tamp * int_Tz .* (1-exp(-exponent));
+    
+    % correct zeta with gradient wind balance
+    if use_gradient
+    end
     S.zeta = S.zeta - min(S.zeta(:));
     
-    % CHECK UNITS &  WHY IS PROFILE WIERD NEAR CENTER. 
+    % CHECK UNITS &  WHY IS PROFILE WEIRD NEAR CENTER. 
     % ANS =  r d(theta)/dt NOT d(theta)/dt
 
     % azimuthal velocity = r d(theta)/dt
@@ -384,7 +389,7 @@ Tyu1 = avg1(avg1(diff(S.temp,1,2)./diff(yrmat,1,2),2),1);
 Tyu = [Tyu1(:,1,:) Tyu1 Tyu1(:,end,:)];
 clear Tyu1;
 
-if use_thermal_wind
+if use_cartesian
     % v field
     vz = avg1(g*TCOEF * bsxfun(@times,avg1(1./f,2),Txv),3);
     S.v = zeros(size(xvmat));
