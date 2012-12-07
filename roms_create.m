@@ -5,15 +5,15 @@
 
 % names cannot start with number
 FOLDER    = 'runs\';
-GRID_NAME = 'topo_grd_01';
-INI_NAME  = 'topo_ini_01';
-BRY_NAME  = 'topo_bry_01';
+GRID_NAME = 'topo_ne_grd_01';
+INI_NAME  = 'topo_ne_ini_01';
+BRY_NAME  = 'topo_ne_bry_01';
 
 % Grid Parameters
 S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 
-S.Lm = 122;
-S.Mm = 120;
+S.Lm = 160;
+S.Mm = 80;
 S.N  = 40;
 S.NT = 2; % Number of active tracers
 
@@ -197,7 +197,7 @@ ncwrite(INIname,   'Cs_w',        S.Cs_w);
 %   
 % end,
 
-%% Fix grids and bathymetry
+%% Fix grids
 
 % for future use
 xmid = ceil(S.Lm/2);
@@ -227,20 +227,20 @@ yumat = repmat(S.y_u,[1 1 S.N]);
 xvmat = repmat(S.x_v,[1 1 S.N]);
 yvmat = repmat(S.y_v,[1 1 S.N]);
 
-%% Bathymetry
+%% Bathymetry + Coriolis + more grid stuff
 H_shelf = 100; % m
 L_shelf = 150 *1000; % m
 L_deep = Y - L_shelf;
 H_deep  = Z; 
-L_entry = X - 300 * 1000; % m - deep water to initialize eddy in
+L_entry = X - 400 * 1000; % m - deep water to initialize eddy in
 
-%S.h = Z*ones(size(S.h)); % constant depth
+S.hflat = Z*ones(size(S.h)); % constant depth
 % y-z profile
 %hy = H_deep + (H_shelf-H_deep)*(1+tanh( ((S.y_rho-L_deep)/20000) ))/2;
 %hx = H_shelf - (H_shelf-H_deep)*(1+tanh( ((S.x_rho-L_entry)/20000) ))/2;
 
-hx = (1-tanh( ((S.x_rho-L_entry)/20000) ))/2;
-hy = (1+tanh( ((S.y_rho-L_deep)/20000) ))/2;
+hx = (1-tanh( ((S.x_rho-L_entry)/30000) ))/2;
+hy = (1+tanh( ((S.y_rho-L_deep)/30000) ))/2;
 S.h = H_deep + (H_shelf-H_deep) * (hx.*hy);
 
 figure;
@@ -282,6 +282,9 @@ S.lon_psi = S.x_psi;
 [z_r]=set_depth(S.Vtransform, S.Vstretching, ...
                 S.theta_s, S.theta_b, S.hc, S.N, ...
                 1, S.h, S.zeta,0);
+[zrmat_flat]=set_depth(S.Vtransform, S.Vstretching, ...
+                S.theta_s, S.theta_b, S.hc, S.N, ...
+                1, S.hflat, S.zeta,0);
 [z_u]=set_depth(S.Vtransform, S.Vstretching, ...
                  S.theta_s, S.theta_b, S.hc, S.N, ...
                  3, S.h, S.zeta);
@@ -291,13 +294,6 @@ S.lon_psi = S.x_psi;
 [z_w]=set_depth(S.Vtransform, S.Vstretching, ...
                  S.theta_s, S.theta_b, S.hc, S.N, ...
                  5, S.h, S.zeta);
-             
-% create grid matrices
-% [xrmat,yrmat,zrmat] = ndgrid(S.x_rho(:,1),S.y_rho(:,1),z_r(1,1,:));
-% [xumat,yumat,zumat] = ndgrid(S.x_u,S.y_u,z_u);
-% [xvmat,yvmat,zvmat] = ndgrid(S.x_v,S.y_v,z_v);
-
-
 zrmat = z_r;
 zumat = z_u;
 zvmat = z_v;
@@ -321,7 +317,8 @@ use_cartesian = 0; % cartesian
 use_radial    = 1; % use radial
 use_gradient  = 0; % use gradient wind balance
 
-ubt = 0.05; % m/s barotropic velocity
+ubt = -0.05; % m/s barotropic velocity
+ubt_initial = 0; % add barotropic velocity to initial condition?
 localize_jet = 0;% buffer around eddy where velocity should exist
 buffer = 150 * 1000; % if localize_jet = 1, else whole domain has ubt
 %%%%%%%%%%%%%%%%%
@@ -341,13 +338,13 @@ S.salt = S0*ones(size(S.salt));
 S.temp = T0*ones(size(S.temp));
 
 % Eddy parameters - all distances in m
-eddy.dia = 80*1000; % in m
+eddy.dia = 0;60*1000; % in m
 eddy.depth = 500; % depth below which flow is 'compensated'
 eddy.Ncos = 16; % no. of points over which the cosine modulates to zero
 eddy.tamp = 70; % controls gradient
 eddy.a = 2;  % ? in Katsman et al. (2003)
-eddy.cx = 400*1000; % center of eddy
-eddy.cy = Y/2; %        " 
+eddy.cx = X - 200*1000; % center of eddy
+eddy.cy = Y/2 + 100*1000; %        " 
 
 % cylindrical co-ordinates
 r0 = eddy.dia/2;
@@ -382,12 +379,17 @@ if ~isnan(eddy.temp)
     S.temp = S.temp + eddy.temp;
 end
 
-if use_radial
-    % integrated z profile of eddy.temp (HAS to include stratification)
-    int_Tz = trapz(squeeze(zrmat(1,1,:)),eddy.tz,3);
+if use_radial && max(~isnan(eddy.temp(:)))
 
+    % integrated z profile of eddy.temp (HAS to include stratification)
+    int_Tz = nan([size(xrmat,1) size(xrmat,2)]);
+    % INTEGRATING WRT FLAT BOTTOM
+    int_Tz = trapz(squeeze(zrmat_flat(1,1,:)),eddy.tz,3);
+
+    % REWRITE THIS AS zeta = trapz (zrmat(i,j,:), XXXXXXXX) ; 
+    % THAT MIGHT WORK BETTER
     S.zeta = -TCOEF * eddy.tamp * int_Tz .* (1-exp(-exponent));
-    
+
     % correct zeta with gradient wind balance
     if use_gradient
     end
@@ -449,25 +451,31 @@ xind = ymid; yind = ymid; zind = 20;
 
 %% add barotropic velocity for advection
 
-% find appropriate indices
-idz1 = find_approx(squeeze(yrmat(1,:,1)),eddy.cy - eddy.dia/2 - buffer,1);
-idz2 = find_approx(squeeze(yrmat(1,:,1)),eddy.cy + eddy.dia/2 + buffer,1);
-idu1 = find_approx(squeeze(yumat(1,:,1)),eddy.cy - eddy.dia/2 - buffer,1);
-idu2 = find_approx(squeeze(yumat(1,:,1)),eddy.cy + eddy.dia/2 + buffer,1);
-
 % modify velocity and free surface fields
-if localize_jet
-    S.u(:,idu1:idu2,:) = S.u(:,idu1:idu2,:) + ubt;
-    
-    z1 = cumtrapz(squeeze(yrmat(1,:,1)),-f./g * ubt,2);
-    z1 = bsxfun(@minus,z1,z1(:,idz1));
-    S.zeta(:,idz1:idz2) = S.zeta(:,idz1:idz2) + z1(:,idz1:idz2,:);
-    S.zeta(:,idz2+1:end) = repmat(S.zeta(:,idz2),[1 size(S.zeta(:,idz2+1:end),2)]);
-    plot(S.zeta(30,:));
+if ubt_initial == 1
+    if localize_jet
+        % find appropriate indices
+        idz1 = find_approx(squeeze(yrmat(1,:,1)),eddy.cy - eddy.dia/2 - buffer,1);
+        idz2 = find_approx(squeeze(yrmat(1,:,1)),eddy.cy + eddy.dia/2 + buffer,1);
+        idu1 = find_approx(squeeze(yumat(1,:,1)),eddy.cy - eddy.dia/2 - buffer,1);
+        idu2 = find_approx(squeeze(yumat(1,:,1)),eddy.cy + eddy.dia/2 + buffer,1);
 
-else
-    S.u = S.u + ubt;
-    S.zeta = S.zeta + cumtrapz(squeeze(yrmat(1,:,1)),-f./g * ubt,2);
+        S.u(:,idu1:idu2,:) = S.u(:,idu1:idu2,:) + ubt;
+
+        z1 = cumtrapz(squeeze(yrmat(1,:,1)),-f./g * ubt,2);
+        z1 = bsxfun(@minus,z1,z1(:,idz1));
+        S.zeta(:,idz1:idz2) = S.zeta(:,idz1:idz2) + z1(:,idz1:idz2,:);
+        S.zeta(:,idz2+1:end) = repmat(S.zeta(:,idz2),[1 size(S.zeta(:,idz2+1:end),2)]);
+        plot(S.zeta(30,:));
+
+    else
+        S.u = S.u + ubt;
+        S.zeta = S.zeta + cumtrapz(squeeze(yrmat(1,:,1)),-f./g * ubt,2);
+    end
+else % ubt_initial
+    S.u(end,:,:) = ubt;
+    S.zeta(end,:) = S.zeta(end,:) + cumtrapz(squeeze(yrmat(1,:,1)),-f(end,:)./g * ubt,2);
+    S.zeta(end,:) = S.zeta(end,:) - nanmean(S.zeta(end,:));
 end
 
 % Misc calculations (ubar,vbar) - shouldn't require changes
@@ -732,7 +740,7 @@ if make_plot
     title('Eddy temp (x=mid)');
     xlabel(['y' ly]); ylabel('z (m)');
 
-    % Plot all fields
+    %% Plot all fields
     figure;
     subplot(241)
     contourf(squeeze(yumat(xmid,:,:))./fx,squeeze(zumat(xmid,:,:)),squeeze(S.u(xmid,:,:)),20);
@@ -856,7 +864,9 @@ ncwrite(INIname, 'v',    S.v);
 ncwrite(INIname, 'temp', S.temp);
 ncwrite(INIname, 'salt', S.salt);
 
-fprintf('\n\n Files %s & %s written.\n\n', GRID_NAME,INI_NAME);
+fprintf('\n\n Files %s | %s ', GRID_NAME,INI_NAME);
+if flag_OBC, fprintf('| %s ',BRY_NAME); end
+fprintf('written.\n\n');
 
 %% Grid and time step information
 
@@ -874,27 +884,32 @@ Cbt = sqrt(g*min(S.h(:))) * dt/ndtfast * sqrt(1/dx^2 + 1/dy^2);
 Cbc = sqrt(N2)*min(S.h(:))/pi * dt * sqrt(1/dx^2 + 1/dy^2);
 Cbc7 = 7 * dt * sqrt(1/dx^2 + 1/dy^2);
 
+% From Utility/stiffness.F
 % beckmann & haidvogel (1993) number 
 r_x0_X = abs(diff(S.h,1,1)./avg1(S.h,1))/2;
 r_x0_Y = abs(diff(S.h,1,2)./avg1(S.h,2))/2;
 r_x0 = max([max(r_x0_X(:)) max(r_x0_Y(:))]);
 
 % haney (1991) number
-ll = 1;
-% for i=2:size(xrmat,1)
-%     for j=1:size(yrmat,2)
-%         for k=2:size(zrmat,3)
-%             r_x1(i,j,k) = (zrmat(i,j,k) - zrmat(i-1,j,k) + zrmat(i,j,k-1) - zrmat(i-1,j,k-1)) ...
-%                         ./ (zrmat(i,j,k) + zrmat(i-1,j,k) - zrmat(i,j,k-1) - zrmat(i-1,j,k-1));
-%             ll = ll+1;
-%         end
-%     end
-% end
+r_x1_x = nan(size(xrmat));
+r_x1_y = nan(size(xrmat));
 
-r_x1 = 0;
+for k=2:size(zrmat,3)
+      for i=2:size(xrmat,1)
+            r_x1_x(i,:,k) = (zrmat(i,:,k) - zrmat(i-1,:,k) + zrmat(i,:,k-1) - zrmat(i-1,:,k-1)) ...
+                        ./ (zrmat(i,:,k) + zrmat(i-1,:,k) - zrmat(i,:,k-1) - zrmat(i-1,:,k-1));
+      end
+      
+      for j=2:size(yrmat,2)
+        r_x1_y(:,i,k) = (zrmat(:,j,k) - zrmat(:,j-1,k) + zrmat(:,j,k-1) - zrmat(:,j-1,k-1)) ...
+                        ./ (zrmat(:,j,k) + zrmat(:,j-1,k) - zrmat(:,j,k-1) - zrmat(:,j-1,k-1));
+      end
+end
+r_x1 = nanmax(abs( [r_x1_x(:);r_x1_y(:)] ));
+clear r_x1_x r_x1_y
 
 % print to screen
-fprintf('\n\n Beckmann & Haidvogel number = %f \n Haney number = %f', r_x0,r_x1);
+fprintf('\n\n Beckmann & Haidvogel number = %f \n \t\t\t\tHaney number = %f', r_x0,r_x1);
 fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, \n\n C_bt = %.3f | C_bc = %.3f  | C_bc7 = %.3f\n\n Min. Ri = %.2f\n\n', dt,ndtfast,Cbt,Cbc,Cbc7,min(Ri(:)));
 %fprintf('\n\n (dt)_bt < %.2f s | (dt)_bc < %.2f s\n\n', DX/(sqrt(g*min(S.h(:)))), DX/(sqrt(N2)*min(S.h(:))/pi))
 
