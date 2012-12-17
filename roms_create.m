@@ -5,9 +5,9 @@
 
 % names cannot start with number
 FOLDER    = 'runs\';
-GRID_NAME = 'topo_ne_grd_01';
-INI_NAME  = 'topo_ne_ini_01';
-BRY_NAME  = 'topo_ne_bry_01';
+GRID_NAME = 'topo_grd_01';
+INI_NAME  = 'topo_ini_01';
+BRY_NAME  = 'topo_bry_01';
 
 % Grid Parameters
 S.spherical = 0; % 0 - Cartesian, 1 - Spherical
@@ -228,20 +228,50 @@ xvmat = repmat(S.x_v,[1 1 S.N]);
 yvmat = repmat(S.y_v,[1 1 S.N]);
 
 %% Bathymetry + Coriolis + more grid stuff
+tanh_bathymetry = 0;
+linear_bathymetry = 1;
+
 H_shelf = 100; % m
 L_shelf = 150 *1000; % m
+L_entry = Inf; - 400 * 1000; % m - deep water to initialize eddy in
+L_slope = 20*1000;
+   
 L_deep = Y - L_shelf;
 H_deep  = Z; 
-L_entry = X - 400 * 1000; % m - deep water to initialize eddy in
 
-S.hflat = Z*ones(size(S.h)); % constant depth
-% y-z profile
-%hy = H_deep + (H_shelf-H_deep)*(1+tanh( ((S.y_rho-L_deep)/20000) ))/2;
-%hx = H_shelf - (H_shelf-H_deep)*(1+tanh( ((S.x_rho-L_entry)/20000) ))/2;
+% linear bathymetry
+if linear_bathymetry == 1
+    sl_shelf = 0.0005;
+    sl_slope = 0.08;
+    
+    S.h = zeros(size(S.y_rho));
+    
+    S.h = (H_shelf + sl_shelf * (Y - S.y_rho)) .* (S.y_rho > (Y-L_shelf));
+    hmax = max(S.h(:)); %subplot(311); plot(S.h(1,:));
+    S.h = S.h + (sl_slope * ((Y-L_shelf) - S.y_rho) + hmax) .* ~(S.y_rho > (Y-L_shelf));  
+    hdeep = hmax + sl_slope * L_slope; %subplot(312); plot(S.h(1,:));
+    S.h = S.h .* ~(S.y_rho < (Y-L_shelf-L_slope)) + hdeep * (S.y_rho < (Y-L_shelf-L_slope));
+   % subplot(313);plot(S.h(1,:));
+    
+    % run smoother    
+    for i=1:15
+        for mm = 1:size(S.h,1);
+            S.h(mm,:) = smooth(S.h(mm,:),5);
+        end
+    end
+end
 
-hx = (1-tanh( ((S.x_rho-L_entry)/30000) ))/2;
-hy = (1+tanh( ((S.y_rho-L_deep)/30000) ))/2;
-S.h = H_deep + (H_shelf-H_deep) * (hx.*hy);
+if tanh_bathymetry == 1
+    scale = 40000;
+    S.hflat = Z*ones(size(S.h)); % constant depth
+    % y-z profile
+    %hy = H_deep + (H_shelf-H_deep)*(1+tanh( ((S.y_rho-L_deep)/20000) ))/2;
+    %hx = H_shelf - (H_shelf-H_deep)*(1+tanh( ((S.x_rho-L_entry)/20000) ))/2;
+
+    hx = (1-tanh( ((S.x_rho-L_entry)/scale) ))/2;
+    hy = (1+tanh( ((S.y_rho-L_deep)/scale) ))/2;
+    S.h = H_deep + (H_shelf-H_deep) * (hx.*hy);
+end
 
 figure;
 surf(S.x_rho/1000,S.y_rho/1000,-S.h);
@@ -282,9 +312,6 @@ S.lon_psi = S.x_psi;
 [z_r]=set_depth(S.Vtransform, S.Vstretching, ...
                 S.theta_s, S.theta_b, S.hc, S.N, ...
                 1, S.h, S.zeta,0);
-[zrmat_flat]=set_depth(S.Vtransform, S.Vstretching, ...
-                S.theta_s, S.theta_b, S.hc, S.N, ...
-                1, S.hflat, S.zeta,0);
 [z_u]=set_depth(S.Vtransform, S.Vstretching, ...
                  S.theta_s, S.theta_b, S.hc, S.N, ...
                  3, S.h, S.zeta);
@@ -318,7 +345,7 @@ use_radial    = 1; % use radial
 use_gradient  = 0; % use gradient wind balance
 
 ubt = -0.05; % m/s barotropic velocity
-ubt_initial = 0; % add barotropic velocity to initial condition?
+ubt_initial = 1; % add barotropic velocity to initial condition?
 localize_jet = 0;% buffer around eddy where velocity should exist
 buffer = 150 * 1000; % if localize_jet = 1, else whole domain has ubt
 %%%%%%%%%%%%%%%%%
@@ -338,13 +365,13 @@ S.salt = S0*ones(size(S.salt));
 S.temp = T0*ones(size(S.temp));
 
 % Eddy parameters - all distances in m
-eddy.dia = 0;60*1000; % in m
+eddy.dia = 60*1000; % in m
 eddy.depth = 500; % depth below which flow is 'compensated'
 eddy.Ncos = 16; % no. of points over which the cosine modulates to zero
 eddy.tamp = 70; % controls gradient
 eddy.a = 2;  % ? in Katsman et al. (2003)
-eddy.cx = X - 200*1000; % center of eddy
-eddy.cy = Y/2 + 100*1000; %        " 
+eddy.cx = 2*X/3; - 200*1000; % center of eddy
+eddy.cy = Y/4 + 100*1000; %        " 
 
 % cylindrical co-ordinates
 r0 = eddy.dia/2;
@@ -383,8 +410,11 @@ if use_radial && max(~isnan(eddy.temp(:)))
 
     % integrated z profile of eddy.temp (HAS to include stratification)
     int_Tz = nan([size(xrmat,1) size(xrmat,2)]);
-    % INTEGRATING WRT FLAT BOTTOM
-    int_Tz = trapz(squeeze(zrmat_flat(1,1,:)),eddy.tz,3);
+    for i=1:size(eddy.tz,1)
+        for j=1:size(eddy.tz,2)
+            int_Tz(i,j) = trapz(squeeze(zrmat(i,j,:)),eddy.tz(i,j,:),3);
+        end
+    end
 
     % REWRITE THIS AS zeta = trapz (zrmat(i,j,:), XXXXXXXX) ; 
     % THAT MIGHT WORK BETTER
@@ -909,7 +939,7 @@ r_x1 = nanmax(abs( [r_x1_x(:);r_x1_y(:)] ));
 clear r_x1_x r_x1_y
 
 % print to screen
-fprintf('\n\n Beckmann & Haidvogel number = %f \n \t\t\t\tHaney number = %f', r_x0,r_x1);
+fprintf('\n\n Beckmann & Haidvogel number = %f (< 0.2 , max 0.4) \n \t\t\t\tHaney number = %f (< 9 , maybe 16)', r_x0,r_x1);
 fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, \n\n C_bt = %.3f | C_bc = %.3f  | C_bc7 = %.3f\n\n Min. Ri = %.2f\n\n', dt,ndtfast,Cbt,Cbc,Cbc7,min(Ri(:)));
 %fprintf('\n\n (dt)_bt < %.2f s | (dt)_bc < %.2f s\n\n', DX/(sqrt(g*min(S.h(:)))), DX/(sqrt(N2)*min(S.h(:))/pi))
 
