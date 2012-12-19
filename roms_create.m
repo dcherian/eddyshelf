@@ -230,67 +230,84 @@ yvmat = repmat(S.y_v,[1 1 S.N]);
 %% Bathymetry + Coriolis + more grid stuff
 tanh_bathymetry = 0;
 linear_bathymetry = 1;
+old_bathy = 0;
 
-B.H_shelf = 100; % m
-B.L_shelf = 175 *1000; % m
-B.L_entry = 400 * 1000; % m - deep water to initialize eddy in
-B.L_slope = 20*1000;
-   
-B.L_deep = Y - B.L_shelf;
-B.H_deep  = Z; 
+% all measurements in m
+B.H_shelf  = 100;
+B.L_shelf  = 175 * 1000;
+B.L_shelf2 =  50 * 1000;
+B.L_entry  = 200 * 1000; % deep water to initialize eddy in
+B.L_slope  =  20 * 1000;
+B.L_tilt   = 200 * 1000;
 
 % linear bathymetry
 if linear_bathymetry == 1
     B.sl_shelf = 0.0005;
     B.sl_slope = 0.08;
-    B.sl_slope2 = B.sl_slope;
     
-    % main shelf
-    [hx,hy,hdeep] = bathy(S.x_rho,S.y_rho,B,X,Y);
+    [S] = bathy2(S,B,X,Y);
     
-    % second section
-    B2 = B;
-    B2.L_entry = 0 *1000;
-    B2.L_shelf = 50*1000;
-    [hx2,hy2,~] = bathy(S.x_rho,S.y_rho,B2,X,Y);
-    
-    h1 = hx.*hy .*~(S.x_rho > (X-B.L_entry-B.L_slope));
-    h2 = hx2 .* (S.y_rho > Y-B2.L_shelf) .*(S.x_rho > (X-B.L_entry-B.L_slope));
-%     subplot(221); imagescnan(hx'); set(gca,'ydir','normal')
-%     subplot(222); imagescnan(hy'); set(gca,'ydir','normal')
-%     subplot(223); imagescnan(hx2');  set(gca,'ydir','normal')
-%     subplot(224); imagescnan(hy2');  set(gca,'ydir','normal')
-    
-    % final bathymetry
-    S.h = h1+h2;
-    S.h(S.h == 0) = hdeep;
+    if old_bathy
+        B.sl_slope2 = B.sl_slope;
 
-    % run smoother   
-    n_points = 3;
-    for i=1:10
-        for mm = 1:size(S.h,1);
-            S.h(mm,:) = smooth(S.h(mm,:),n_points);
-        end
-        for mm = 1:size(S.h,2);
-            S.h(:,mm) = smooth(S.h(:,mm),n_points+2);
-        end
+        % main shelf
+        [hx,hy,hdeep] = bathy(S.x_rho,S.y_rho,B,X,Y);
+
+        % second section
+        B2 = B;
+        B2.L_entry = 0 *1000;
+        B2.L_shelf = 50*1000;
+        [hx2,hy2,~] = bathy(S.x_rho,S.y_rho,B2,X,Y);
+
+        h1 = hx.*hy .*~(S.x_rho > (X-B.L_entry-B.L_slope));
+        h2 = hx2 .* (S.y_rho > Y-B2.L_shelf) .*(S.x_rho > (X-B.L_entry-B.L_slope));
+
+    %     subplot(221); imagescnan(hx'); set(gca,'ydir','normal')
+    %     subplot(222); imagescnan(hy'); set(gca,'ydir','normal')
+    %     subplot(223); imagescnan(hx2');  set(gca,'ydir','normal')
+    %     subplot(224); imagescnan(hy2');  set(gca,'ydir','normal')
+
+        % final bathymetry
+        S.h = h1+h2;
+        S.h(S.h == 0) = hdeep;
     end
     
-%     subplot(211)
-%     plot(S.x_rho/1000,hy(:,40));
-%     contourf(hy');
-%     xlabel('x');
-%     subplot(212)
-%     contourf(S.h');
-     subplot(121)
-     plot(-S.h');
-     subplot(122)
-     contour(S.x_rho/1000,S.y_rho/1000,-S.h,40,'k');
-     xlabel('x'); ylabel('y'); zlabel('z')
+    % run smoother   
+    n_points = 5;
+    
+    ix1 = find_approx(S.x_rho(:,1),X-B.L_entry-B.L_tilt,1);
+    ix2 = find_approx(S.x_rho(:,1),X-B.L_entry,1);
+    iy1 = find_approx(S.y_rho(1,:),Y-B.L_shelf,1);
+    iy2 = find_approx(S.y_rho(1,:),Y-B.L_shelf2,1);
+    
+    kernel = [ 1 2 1];
+    
+    for i=1:6
+        for mm = 1:size(S.h,1);
+            S.h(mm,:) = smooth(S.h(mm,:),n_points);
+            %S.h(mm,:) = filter(kernel,1,S.h(mm,:));
+        end
+        for mm = 1:size(S.h,2);
+            S.h(:,mm) = smooth(S.h(:,mm),n_points);
+        end
+        % smooth corners a little more
+%         for mm=-1*n_points:1*n_points
+%             S.h(ix1+mm,:) = smooth(S.h(ix1+mm,:),n_points);
+%             S.h(ix2+mm,:) = smooth(S.h(ix2+mm,:),n_points);
+%         end
+    end  
+    
+    subplot(121)
+    plot(-S.h');
+    subplot(122)
+    contour(S.x_rho/1000,S.y_rho/1000,-S.h,40,'k');
+    xlabel('x'); ylabel('y'); zlabel('z')
 end
 
 if tanh_bathymetry == 1
-    scale = 20000;
+    scale = 20000;  
+    B.L_deep = Y - B.L_shelf;
+    B.H_deep  = Z; 
     S.hflat = Z*ones(size(S.h)); % constant depth
     % y-z profile
     %hy = H_deep + (H_shelf-H_deep)*(1+tanh( ((S.y_rho-L_deep)/20000) ))/2;
@@ -375,7 +392,7 @@ clear r_x1_x r_x1_y
 bathy_title = sprintf('\n\n Beckmann & Haidvogel number = %f (< 0.2 , max 0.4) \n \t\t\t\tHaney number = %f (< 9 , maybe 16)', r_x0,r_x1);
 
 figure;
-surf(S.x_rho/1000,S.y_rho/1000,-S.h);
+surf(S.x_rho/1000,S.y_rho/1000,-S.h); shading interp
 title(bathy_title);
 xlabel('x'); ylabel('y'); zlabel('z')
 
@@ -396,7 +413,7 @@ use_gradient  = 0; % use gradient wind balance
 
 ubt = -0.05; % m/s barotropic velocity
 ubt_initial = 0; % add barotropic velocity to initial condition?
-ubt_deep = 1; % nudge to ubt only in deep water
+ubt_deep = 0; % nudge to ubt only in deep water
 localize_jet = 0;% buffer around eddy where velocity should exist
 buffer = 150 * 1000; % if localize_jet = 1, else whole domain has ubt
 
@@ -558,7 +575,7 @@ if ubt_initial == 1
         S.u = S.u + ubt;
         S.zeta = S.zeta + cumtrapz(squeeze(yrmat(1,:,1)),-f./g * ubt,2);
     end
-else % ubt_initial
+else % ubt_initial - now ubt only in BC
     if ubt_deep
         idy1 = find(S.h(end,:) == max(S.h(end,:)));
         idy2 = idy1(end);
@@ -567,10 +584,17 @@ else % ubt_initial
        idy1 = 1;
        idy2 = S.Mm+2;
     end
-    S.u(end,idy1:idy2,:) = ubt;
-    S.zeta(end,idy1:idy2) = S.zeta(end,idy1:idy2) + cumtrapz(squeeze(yrmat(1,idy1:idy2,1)), ...
+    ubar_east = zeros(size(S.u(end,:,1)));
+    ubar_east(1,idy1:idy2) = ubt;
+    
+    vbar_east = zeros(size(S.v(end,:,1)));
+    
+    zeta_east = zeros(size(S.zeta(end,:)));
+    
+    %S.u(end,idy1:idy2,:) = ubt;
+    zeta_east(end,idy1:idy2) = zeta_east(1,idy1:idy2) + cumtrapz(squeeze(yrmat(1,idy1:idy2,1)), ...
                                         -f(end,idy1:idy2)./g * ubt,2);
-    S.zeta(end,:) = S.zeta(end,:) - nanmean(S.zeta(end,:));
+    zeta_east = zeta_east - nanmean(zeta_east);
 end
 
 % Misc calculations (ubar,vbar) - shouldn't require changes
@@ -715,9 +739,9 @@ if flag_OBC == 1
     % write grid info to boundary file
     dc_roms_create_bry_file(Sbr);
     
-    ubar_east = S.ubar(end,:)';
-    vbar_east = S.vbar(end,:)';
-    zeta_east = S.zeta(end,:)';
+   % ubar_east = S.ubar(end,:)';
+   % vbar_east = S.vbar(end,:)';
+   % zeta_east = S.zeta(end,:)';
     
     bry_time = 0;
     
