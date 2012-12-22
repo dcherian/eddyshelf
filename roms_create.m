@@ -238,7 +238,7 @@ B.L_shelf  = 175 * 1000;
 B.L_shelf2 =  50 * 1000;
 B.L_entry  = 200 * 1000; % deep water to initialize eddy in
 B.L_slope  =  20 * 1000;
-B.L_tilt   = 200 * 1000;
+B.L_tilt   = 130 * 1000;
 
 % linear bathymetry
 if linear_bathymetry == 1
@@ -423,8 +423,8 @@ eddy.depth = 500; % depth below which flow is 'compensated'
 eddy.Ncos = 16; % no. of points over which the cosine modulates to zero
 eddy.tamp = 70; % controls gradient
 eddy.a = 2;  % ? in Katsman et al. (2003)
-eddy.cx = 2*X/3 + 110*1000; % center of eddy
-eddy.cy = 2*Y/3 - 100*1000; %        " 
+eddy.cx = 650*1000; % center of eddy
+eddy.cy = 200*1000; %        " 
 
 %%%%%%%%%%%%%%%%%
 
@@ -547,9 +547,11 @@ end
 xind = ymid; yind = ymid; zind = 20;
 
 figure;
-contour(xrmat(:,:,1)./1000,yrmat(:,:,1)./1000,S.h,20,'k');
+contourf(xrmat(:,:,1)./1000,yrmat(:,:,1)./1000,S.zeta);
+freezeColors;cbfreeze
 hold on
-contour(xrmat(:,:,1)./1000,yrmat(:,:,1)./1000,S.zeta,20,'r');
+contour(xrmat(:,:,1)./1000,yrmat(:,:,1)./1000,S.h,20,'k');
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% add barotropic velocity for advection
