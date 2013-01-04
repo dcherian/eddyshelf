@@ -15,7 +15,8 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 S.Lm = 160;
 S.Mm = 80;
 S.N  = 40;
-S.NT = 2; % Number of active tracers
+S.NPT = 3; % number of passive tracers
+S.NT = 2+S.NPT; % total number of tracers
 
 S.Vtransform = 2;
 S.Vstretching = 4;
@@ -632,19 +633,19 @@ toc;
 % setup for pv calculation
 grid1.xu = xumat(:,1,1);
 grid1.yu = squeeze(yumat(1,:,1)');
-grid1.zu = squeeze(zumat(1,1,:));
+grid1.zu = zumat;
 
 grid1.xv = xvmat(:,1,1);
 grid1.yv = squeeze(yvmat(1,:,1)');
-grid1.zv = squeeze(zvmat(1,1,:));
+grid1.zv = zvmat;
 
 grid1.xr = xrmat(:,1,1);
 grid1.yr = squeeze(yrmat(1,:,1)');
-grid1.zr = squeeze(zrmat(1,1,:));
+grid1.zr = zrmat;
 
 rho = R0 - TCOEF * (S.temp-T0);
 
-[pv,xpv,ypv,zpv] = pv_cgrid(grid1,S.u,S.v,rho,f0,R0);
+[pv,xpv,ypv,zpv] = pv_cgrid(grid1,S.u,S.v,rho,f,R0);
 
 pvmin = min(pv(:));
 pvmid = pv(xmid,ymid,zmid);
@@ -702,6 +703,29 @@ pcolorcen((avg1(dzdy ./ avg1(f,2)* g,1) + avg1(S.u(:,:,end),2)) ./ ...
             max(abs(S.u(:)))*100); colorbar
 title(' % error (g/f d\zeta /dy + u_{z=0})');
 
+%% Passive Tracers
+
+if S.NPT > 0
+    % create variables first
+    names = {'initial x';'initial y';'initial z'};
+    try
+        dc_roms_passive_tracer(S,names);
+    catch ME
+        warning('Passive tracer variables already created?');
+    end
+    
+    % assign initial condition
+    dye_01 = xrmat;
+    dye_02 = yrmat;
+    dye_03 = zrmat;    
+    
+    % write to file
+    for ii=1:S.NPT
+        vname = sprintf('dye_%02d',ii);
+        eval(['ncwrite(S.ncname,''' vname ''',' vname ');']);
+    end
+end
+
 %% Open Boundary Conditions
 
 % modified from arango/d_obc_roms2roms.m
@@ -738,13 +762,9 @@ if flag_OBC == 1
     % create junk file with proper attributes
     [status] = c_boundary(Sbr);
     
-    % write grid info to boundary file
+    % write grid and passive tracer info to OBC file
     dc_roms_create_bry_file(Sbr);
-    
-   % ubar_east = S.ubar(end,:)';
-   % vbar_east = S.vbar(end,:)';
-   % zeta_east = S.zeta(end,:)';
-    
+        
     bry_time = 0;
     
     % modify as needed
@@ -752,6 +772,17 @@ if flag_OBC == 1
     nc_write(Sbr.ncname,'vbar_east',vbar_east,1);
     nc_write(Sbr.ncname,'zeta_east',zeta_east,1);
     nc_write(Sbr.ncname,'bry_time',bry_time,1);
+    
+    dye_east_01 = dye_01(end,:,:);
+    dye_east_02 = dye_02(end,:,:);
+    dye_east_03 = dye_03(end,:,:);
+    
+    if S.NPT > 0
+       for ii=1:S.NPT
+           varname = sprintf('dye_east_%02d',ii);
+           eval(['nc_write(Sbr.ncname,''' varname ''',' varname ',1);']);
+       end
+    end
     
 end
 
@@ -764,7 +795,7 @@ if max(S.zeta(:)) > 1
     error('Zeta > 1m.');
 end
 
-if min(S.salt(:)) == 0 && S.NT > 1
+if min(S.salt(:)) == 0 && (S.NT-S.NPT) > 1
     error('Salt set to zero');
 end
 
@@ -866,6 +897,7 @@ if make_plot
     xlabel(['y' ly]); ylabel('z (m)');
 
     xmid = xind;
+    
     %% Plot all fields
     figure;
     subplot(241)
@@ -888,7 +920,7 @@ if make_plot
     
     % fix pv script so that it returns proper co-ordinates
     subplot(244)
-    contourf(xpv./fx,zpv,squeeze(pv(:,ymid,:))',20);
+    contourf(repmat(xpv,1,size(pv,3))./fx,squeeze(zpv(:,ymid,:)),squeeze(pv(:,ymid,:)),20);
     colorbar;
     title('PV');
     xlabel(['x ' lx]); ylabel('z (m)');

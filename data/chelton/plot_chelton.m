@@ -18,7 +18,7 @@ function [] = plot_chelton(data,mask)
     
     % plot bathy
     load 'E:\Work\eddyshelf\data\etopo2_extract.mat';
-    levels = [-50 -100 -1000 -2000 -4000];
+    levels = [-50 -100 -1000 -2000 -3000 -4000];
     [c,h] = m_contour(topo.x,topo.y,topo.z',levels,'k-');
     clabel(c,h,'LabelSpacing',500);
     
