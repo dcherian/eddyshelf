@@ -784,6 +784,7 @@ if flag_OBC == 1
        end
     end
     
+    nc_write(Sbr.ncname,'dye_time',bry_time,1);
 end
 
 %% Sanity Checks

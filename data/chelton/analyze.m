@@ -1,4 +1,4 @@
-load chelton_extract.mat
+load E:\Work\eddyshelf\data\chelton\chelton_extract.mat
 
 cyc_mask = fillnan(double(data.cyc == 1),0);
 acyc_mask = fillnan(double(data.cyc == -1),0);
@@ -7,11 +7,21 @@ acyc_mask = fillnan(double(data.cyc == -1),0);
 
 %%
 date_mask = fillnan(double(y == 2002),0);
-r_mask = fillnan(double(data.L >= 70 *1000),0);
+r_mask = ones(size(data.L)); fillnan(double(data.L >= 40 *1000),0);
 n_mask = fillnan(double(data.n >= 3),0);
 
-total_mask = acyc_mask.*date_mask.*n_mask; %.*r_mask;
+% shelf mask
+lon_min = -72; lon_max = -60;
+lat_min =  32; lat_max =  42;
+slope = (lat_max - lat_min)/(lon_max-lon_min);
+cc = (lon_max * lat_min - lon_min * lat_max)/(lat_max-lat_min);
 
-% should make a shelf_mask
+shelf_mask = (data.lat - slope*data.lon - cc) > 0;
 
+% total mask
+total_mask = acyc_mask .* date_mask .* n_mask .* shelf_mask; %.*r_mask;
+
+% make plot
 plot_chelton(data,total_mask);
+maximize;
+export_fig('chelton_test.png');
