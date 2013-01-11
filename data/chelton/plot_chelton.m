@@ -13,7 +13,7 @@ function [] = plot_chelton(data,mask)
     m_coord('geographic');
     
     % plot coast
-    %m_coast('patch',[0 0 0],'edgecolor','none');
+    m_coast('patch',[0 0 0],'edgecolor','none');
     m_grid
     
     % plot bathy
@@ -42,7 +42,7 @@ function [] = plot_chelton(data,mask)
         radius = (data.L .* maski)./100/1000;
         x = bsxfun(@plus,bsxfun(@times,radius,cos(theta)),xCenter);
         y = bsxfun(@plus,bsxfun(@times,radius,sin(theta)),yCenter);
-        m_plot(x, y,'Color',colors(i,:));
+        m_plot(x, y,'.','Color',colors(i,:),'MarkerSize',6);
         
         % plot 'x' at initial position
         m_plot(data.lon(index_first),data.lat(index_first),'*','Color',colors(i,:));
