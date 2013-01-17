@@ -1,4 +1,4 @@
-function [S] = bathy2(S,B,X,Y)
+function [S] = bathy2_x(S,B,X,Y)
 
     ix1 = find_approx(S.x_rho(:,1),X-B.L_entry-B.L_tilt,1);
     ix2 = find_approx(S.x_rho(:,1),X-B.L_entry,1);
@@ -74,6 +74,6 @@ function [S] = bathy2(S,B,X,Y)
     S.h = S.h + repnan(mask_tilt.*(hmaxt + sl_tilt .* ((S.x_rho - xtilt_left))),0);
     
     S.h = repnan(fillnan(S.h,0),hdeep);
-    
+
     imagescnan(-S.h'); colorbar
     

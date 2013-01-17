@@ -237,17 +237,22 @@ old_bathy = 0;
 B.H_shelf  = 100;
 B.L_shelf  = 175 * 1000;
 B.L_shelf2 =  50 * 1000;
-B.L_entry  = 200 * 1000; % deep water to initialize eddy in
+B.L_entry  = 0; 200* 1000; % deep water to initialize eddy in
 B.L_slope  =  20 * 1000;
-B.L_tilt   = 130 * 1000;
+B.L_tilt   = 0;130 * 1000;
 
 % linear bathymetry
 if linear_bathymetry == 1
     B.sl_shelf = 0.0005;
     B.sl_slope = 0.08;
     
-    [S] = bathy2(S,B,X,Y);
-    
+    [S] = bathy_simple(S,B,X,Y,'y');
+   %[S] = bathy2_x(S,B,X,Y);
+%     ix1 = find_approx(S.x_rho(:,1),X-B.L_entry-B.L_tilt,1);
+%     ix2 = find_approx(S.x_rho(:,1),X-B.L_entry,1);
+%     iy1 = find_approx(S.y_rho(1,:),Y-B.L_shelf,1);
+%     iy2 = find_approx(S.y_rho(1,:),Y-B.L_shelf2,1);
+        
     if old_bathy
         B.sl_slope2 = B.sl_slope;
 
@@ -275,13 +280,7 @@ if linear_bathymetry == 1
     
     % run smoother   
     n_points = 5;
-    
-    ix1 = find_approx(S.x_rho(:,1),X-B.L_entry-B.L_tilt,1);
-    ix2 = find_approx(S.x_rho(:,1),X-B.L_entry,1);
-    iy1 = find_approx(S.y_rho(1,:),Y-B.L_shelf,1);
-    iy2 = find_approx(S.y_rho(1,:),Y-B.L_shelf2,1);
-    
-    kernel = [ 1 2 1];
+    kernel = [1 2 1];
     
     for i=1:6
         for mm = 1:size(S.h,1);
