@@ -246,7 +246,7 @@ if linear_bathymetry == 1
     B.sl_shelf = 0.0005;
     B.sl_slope = 0.08;
     
-    [S] = bathy_simple(S,B,X,Y,'y','l');
+    [S] = bathy_simple(S,B,X,Y,'x','l');
 %   [S] = bathy2_x(S,B,X,Y);
 %     ix1 = find_approx(S.x_rho(:,1),X-B.L_entry-B.L_tilt,1);
 %     ix2 = find_approx(S.x_rho(:,1),X-B.L_entry,1);
@@ -405,9 +405,10 @@ S.salt = S0*ones(size(S.salt));
 
 %%%%%%%%%%%%%%%%% options
 flags.perturb_zeta = 0; % add random perturbation to zeta
-flags.spinup = 1; % if spinup, do not initialize ubar/vbar fields.
+flags.spinup = 0; % if spinup, do not initialize ubar/vbar fields.
 
 flags.OBC = 1;  % create OBC file and set open boundaries
+flags.OBC_from_initial = 1; % copy OBC data from initial condition?
 if flags.OBC
     OBC.west  = false;           % process western  boundary segment
     OBC.east  = false;           % process eastern  boundary segment
@@ -422,8 +423,8 @@ flags.use_gradient  = 0; % use gradient wind balance
 
 % barotropic velocity options
 flags.ubt_initial = 1; % add barotropic velocity to initial condition?
-flags.ubt_deep = 0; % nudge to ubt only in deep water
-flags.localize_jet = 0;% buffer around eddy where velocity should exist
+% flags.ubt_deep = 0; % nudge to ubt only in deep water - NOT WORKING
+%flags.localize_jet = 0;% buffer around eddy where velocity should exist - NOT NEEDED
 
 ubt = 0;-0.05; % m/s barotropic velocity
 vbt = -0.05; % m/s barotropic velocity
@@ -471,8 +472,11 @@ end
 r0 = eddy.dia/2;
 [th,r] = cart2pol((S.x_rho-eddy.cx),(S.y_rho-eddy.cy));
 rnorm = r./r0; % normalized radius
-eddy.ix = find_approx(S.x_rho(1,:),eddy.cx,1);
-eddy.iy = find_approx(S.y_rho(:,1),eddy.cy,1);
+eddy.ix = find_approx(S.x_rho(:,1),eddy.cx,1);
+eddy.iy = find_approx(S.y_rho(1,:),eddy.cy,1);
+
+% assume that eddy location is in deep water
+deep_z = squeeze(zrmat(eddy.ix,eddy.iy,:));
 
 % temp. field - in xy plane (normalized)
 exponent =  (eddy.a - 1)/eddy.a .* (rnorm.^(eddy.a)); % needed for radial calculations later
@@ -480,9 +484,9 @@ eddy.xyprof = exp( -1 * exponent );
 eddy.xyprof = eddy.xyprof./max(eddy.xyprof(:));
 
 % temp. field -  z-profile (normalized)
-ind = find_approx(zrmat(eddy.ix,eddy.iy,:), -1 * eddy.depth,1);
+ind = find_approx(deep_z, -1 * eddy.depth,1);
 eddy.zprof = [zeros(ind-eddy.Ncos,1); (1-cos(pi * [0:eddy.Ncos]'/eddy.Ncos))/2; ones(S.N-ind-1,1)];
-int_zprof = trapz(squeeze(zrmat(1,1,:)),eddy.zprof);
+int_zprof = trapz(deep_z,eddy.zprof);
 eddy.zprof = eddy.zprof./int_zprof;
 
 % add eddy temperature perturbation
@@ -569,26 +573,26 @@ contour(xrmat(:,:,1)./1000,yrmat(:,:,1)./1000,S.h,20,'k');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% add barotropic velocity for advection (OBC initial condition also)
+% add barotropic velocity for advection (OBC initial condition also)
 
 % modify velocity and free surface fields
 if flags.ubt_initial == 1
-    if flags.localize_jet
-        % find appropriate indices
-        idz1 = find_approx(squeeze(yrmat(1,:,1)),eddy.cy - eddy.dia/2 - buffer,1);
-        idz2 = find_approx(squeeze(yrmat(1,:,1)),eddy.cy + eddy.dia/2 + buffer,1);
-        idu1 = find_approx(squeeze(yumat(1,:,1)),eddy.cy - eddy.dia/2 - buffer,1);
-        idu2 = find_approx(squeeze(yumat(1,:,1)),eddy.cy + eddy.dia/2 + buffer,1);
-
-        S.u(:,idu1:idu2,:) = S.u(:,idu1:idu2,:) + ubt;
-
-        z1 = cumtrapz(squeeze(yrmat(1,:,1)),-f./g * ubt,2);
-        z1 = bsxfun(@minus,z1,z1(:,idz1));
-        S.zeta(:,idz1:idz2) = S.zeta(:,idz1:idz2) + z1(:,idz1:idz2,:);
-        S.zeta(:,idz2+1:end) = repmat(S.zeta(:,idz2),[1 size(S.zeta(:,idz2+1:end),2)]);
-        plot(S.zeta(30,:));
-
-    else
+%     if flags.localize_jet
+%         % find appropriate indices
+%         idz1 = find_approx(squeeze(yrmat(1,:,1)),eddy.cy - eddy.dia/2 - buffer,1);
+%         idz2 = find_approx(squeeze(yrmat(1,:,1)),eddy.cy + eddy.dia/2 + buffer,1);
+%         idu1 = find_approx(squeeze(yumat(1,:,1)),eddy.cy - eddy.dia/2 - buffer,1);
+%         idu2 = find_approx(squeeze(yumat(1,:,1)),eddy.cy + eddy.dia/2 + buffer,1);
+% 
+%         S.u(:,idu1:idu2,:) = S.u(:,idu1:idu2,:) + ubt;
+% 
+%         z1 = cumtrapz(squeeze(yrmat(1,:,1)),-f./g * ubt,2);
+%         z1 = bsxfun(@minus,z1,z1(:,idz1));
+%         S.zeta(:,idz1:idz2) = S.zeta(:,idz1:idz2) + z1(:,idz1:idz2,:);
+%         S.zeta(:,idz2+1:end) = repmat(S.zeta(:,idz2),[1 size(S.zeta(:,idz2+1:end),2)]);
+%         plot(S.zeta(30,:));
+% 
+%     else
         if ubt ~=0 && vbt ~=0 
             error('Adding both x and y barotropic velocity in initial condition. WILL NOT WORK!');
         end
@@ -598,37 +602,9 @@ if flags.ubt_initial == 1
             S.zeta = S.zeta + cumtrapz(squeeze(yrmat(1,:,1)),-f./g * ubt,2);
         else
             S.v = S.v + vbt; 
-            % FIX THIS
-            S.zeta = S.zeta + cumtrapz(squeeze(yrmat(1,:,1)),-f./g * ubt,2);
+            S.zeta = S.zeta + cumtrapz(squeeze(xrmat(:,1,1)),f./g * vbt,1);
         end
-    end
-else % ubt_initial - now ubt only in BC
-    if flags.ubt_deep
-        idy1_x = find(S.h(end,:) == max(S.h(end,:)));
-        idy2_x = idy1_x(end);
-        idy1_x = idy1_x(1);
-        
-        % ADD for vbar if needed
-    else
-       idy1_x = 1;
-       idy2_x = S.Mm+2;
-       
-       idy1_y = 1;
-       idy2_y = S.Mm+1;
-    end
-    
-    ubar_east = zeros(size(S.u(end,:,1)));
-    ubar_east(1,idy1_x:idy2_x) = ubt;
-    
-    vbar_east = zeros(size(S.v(end,:,1)));
-    vbar_east(1,idy1_y:idy2_y) = vbt;
-    
-    zeta_east = zeros(size(S.zeta(end,:)));
-    
-    %S.u(end,idy1:idy2,:) = ubt;
-    zeta_east(end,idy1_x:idy2_x) = zeta_east(1,idy1_x:idy2_x) + cumtrapz(squeeze(yrmat(1,idy1_x:idy2_x,1)), ...
-                                        -f(end,idy1_x:idy2_x)./g * ubt,2);
-    zeta_east = zeta_east - nanmean(zeta_east);
+%    end
 end
 
 %% Misc calculations (ubar,vbar) - shouldn't require changes
@@ -753,11 +729,11 @@ if S.NPT > 0
     % write to file
     for ii=1:S.NPT
         vname = sprintf('dye_%02d',ii);
-        eval(['ncwrite(S.ncname,''' vname ''',' vname ');']);
+        eval(['nc_write(S.ncname,''' vname ''',' vname ',1);']);
     end
 end
 
-%% Open Boundary Conditions - Writing
+%% Open Boundary Conditions - Initialize and write
 
 % modified from arango/d_obc_roms2roms.m
 if flags.OBC == 1
@@ -781,30 +757,90 @@ if flags.OBC == 1
     %  3D momentum component. Therefore, interpolation of (ubar,vbar) is
     %  not carried out for efficiency.
     
-%     VarBry  = {'zeta', 'u', 'v', 'temp', 'salt'};
-%     VarList = [VarBry, 'ubar', 'vbar'];
-    
+    %     VarBry  = {'zeta', 'u', 'v', 'temp', 'salt'};
+
     % create junk file with proper attributes
     [status] = c_boundary(Sbr);
     
-    % write grid and passive tracer info to OBC file
+    % write OBC data, grid and passive tracer info to OBC file
     dc_roms_create_bry_file(Sbr);
         
     bry_time = 0;
+
+    boundaries = fieldnames(OBC);
+    range   = {'(1,:,:)','(end,:,:)','(:,1,:)','(:,end,:)'};
+    VarList = {'zeta'; 'ubar'; 'vbar'}; % variables to write
     
-    % modify as needed
-    nc_write(Sbr.ncname,'ubar_east',ubar_east,1);
-    nc_write(Sbr.ncname,'vbar_east',vbar_east,1);
-    nc_write(Sbr.ncname,'zeta_east',zeta_east,1);
+    % set boundary condition data
+    if flags.OBC_from_initial
+        % if background flow is in initial condition, copy that to boundary
+        % condition
+        
+        for mm = 1:size(boundaries,1);
+            if OBC.(char(boundaries(mm,:))) % if open boundary
+                for jj = 1:size(VarList,1)
+                    varname = sprintf('%s_%s',char(VarList{jj}),char(boundaries(mm,:)));
+                    eval([varname '=S.' char(VarList{jj}) char(range{mm}) ';']);
+                end
+            end
+        end
+        
+    else % analytically calculate boundary condition
+        % Set boundary condition fields
+        % if flags.ubt_deep
+        %     idy1_x = find(S.h(end,:) == max(S.h(end,:)));
+        %     idy2_x = idy1_x(end);
+        %     idy1_x = idy1_x(1);
+        % 
+        %     % ADD for vbar if needed
+        % else
+        %    idy1_x = 1;
+        %    idy2_x = S.Mm+2;
+        % 
+        %    idy1_y = 1;
+        %    idy2_y = S.Mm+1;
+        % end   
+        if OBC.east
+                ubar_east = zeros(size(S.u(end,:,1)));
+                ubar_east(1,idy1_x:idy2_x) = ubt;
+
+                vbar_east = zeros(size(S.v(end,:,1)));
+
+                zeta_east = zeros(size(S.zeta(end,:)));
+                zeta_east(end,:) = zeta_east(1,:) + cumtrapz(squeeze(yrmat(1,:)), ...
+                                                    -f(end,:)./g * ubt,2);
+                zeta_east = zeta_east - nanmean(zeta_east);
+        end
+
+        if OBC.north
+                ubar_north = zeros(size(S.u(:,end,1)));
+
+                vbar_north = zeros(size(S.v(:,end,1)));
+                vbar_north(1,:) = vbt;
+
+                zeta_north = zeros(size(S.zeta(:,end)));
+                zeta_north(:,end) = zeta_north(:,1) + cumtrapz(squeeze(xrmat(:,end,1)), ...
+                                                    f(:,end)./g * vbt,1);
+                zeta_north = zeta_north - nanmean(zeta_north); 
+        end
+    end
+    
+    % Write boundary conditions to file
+    for mm = 1:size(boundaries,1);
+        if OBC.(char(boundaries(mm,:))) % if open boundary
+            for jj = 1:size(VarList,1)
+                varname = sprintf('%s_%s',char(VarList{jj}),char(boundaries(mm,:)));
+                eval(['nc_write(Sbr.ncname,''' varname ''',' varname ',1);']);
+            end
+        end
+    end
     nc_write(Sbr.ncname,'bry_time',bry_time,1);
-    
-    dye_east_01 = dye_01(end,:,:);
-    dye_east_02 = dye_02(end,:,:);
-    dye_east_03 = dye_03(end,:,:);
-    
+  
+    % set and write passive tracer data boundary conditions
     if S.NPT > 0
        for ii=1:S.NPT
-           varname = sprintf('dye_east_%02d',ii);
+           varname = sprintf('dye_%s_%02d',char(boundaries(mm,:)),ii);
+           eval([varname ' = ' sprintf('dye_%02d',ii) char(range{mm}) ';']);
            eval(['nc_write(Sbr.ncname,''' varname ''',' varname ',1);']);
        end
     end
@@ -898,7 +934,6 @@ if make_plot
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     xind = xmid;
-    xmid = 90;
     % check temperature profile
     figure;
     subplot(221)
