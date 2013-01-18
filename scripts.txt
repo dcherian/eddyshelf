@@ -1,0 +1,10 @@
+eddy.m - test code implementing chelton et al. (2011) method
+
+bathy.m, bathy2.m - these are both scripts that create fancy shaped bathymetry
+bathy_simple.m - creates simple sloping bathymetry
+
+modify_dye.m - script that resets dye concentration in a ROMS restart file
+roms_create.m - create all .nc files required for ROMS run (forward model)
+
+images.m - creates images
+movies.m - creates nice looking movies for presentation

@@ -12,8 +12,8 @@ BRY_NAME  = 'topo_bry_01';
 % Grid Parameters
 S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 
-S.Lm = 160;
-S.Mm = 80;
+S.Lm = 80;
+S.Mm = 160;
 S.N  = 40;
 S.NPT = 3; % number of passive tracers
 S.NT = 2+S.NPT; % total number of tracers
@@ -25,14 +25,14 @@ S.theta_b = 2.0;     %  S-coordinate bottom control parameter.
 S.Tcline  = 10.0;    %  S-coordinate surface/bottom stretching width (m)
 
 % Domain Extent (in m)
-X = 800000;
-Y = 400000;
+X = 400000;
+Y = 800000;
 Z = 2000;
 
 % coriolis parameters
 lat_ref = 45;
-f0    = 2 * (2*pi/86400) *sind(lat_ref);
-beta  = 0;2e-11;
+f0    = 2 * (2*pi/86400) * sind(lat_ref);
+beta  = 2e-11;
 
 % Physical Parameters
 N2    = 1e-5;
@@ -235,7 +235,7 @@ old_bathy = 0;
 
 % all measurements in m
 B.H_shelf  = 100;
-B.L_shelf  = 175 * 1000;
+B.L_shelf  = 100 * 1000;
 B.L_shelf2 =  50 * 1000;
 B.L_entry  = 0; 200* 1000; % deep water to initialize eddy in
 B.L_slope  =  20 * 1000;
@@ -246,8 +246,8 @@ if linear_bathymetry == 1
     B.sl_shelf = 0.0005;
     B.sl_slope = 0.08;
     
-    [S] = bathy_simple(S,B,X,Y,'y');
-   %[S] = bathy2_x(S,B,X,Y);
+    [S] = bathy_simple(S,B,X,Y,'y','l');
+%   [S] = bathy2_x(S,B,X,Y);
 %     ix1 = find_approx(S.x_rho(:,1),X-B.L_entry-B.L_tilt,1);
 %     ix2 = find_approx(S.x_rho(:,1),X-B.L_entry,1);
 %     iy1 = find_approx(S.y_rho(1,:),Y-B.L_shelf,1);
@@ -393,8 +393,9 @@ bathy_title = sprintf('\n\n Beckmann & Haidvogel number = %f (< 0.2 , max 0.4) \
 
 figure;
 surf(S.x_rho/1000,S.y_rho/1000,-S.h); shading interp
-title(bathy_title);
-xlabel('x'); ylabel('y'); zlabel('z')
+title(bathy_title); colorbar;
+xlabel('x'); ylabel('y'); zlabel('z');
+beautify;
 
 % set initial tracers
 S.temp = T0*ones(size(S.temp));
@@ -403,19 +404,32 @@ S.salt = S0*ones(size(S.salt));
 %% Options
 
 %%%%%%%%%%%%%%%%% options
-perturb_zeta = 0; % add random perturbation to zeta
-flag_OBC = 1;  % create OBC file
-spinup = 1; % if spinup, do not initialize ubar/vbar fields.
+flags.perturb_zeta = 0; % add random perturbation to zeta
+flags.spinup = 1; % if spinup, do not initialize ubar/vbar fields.
 
-use_cartesian = 0; % cartesian
-use_radial    = 1; % use radial
-use_gradient  = 0; % use gradient wind balance
+flags.OBC = 1;  % create OBC file and set open boundaries
+if flags.OBC
+    OBC.west  = false;           % process western  boundary segment
+    OBC.east  = false;           % process eastern  boundary segment
+    OBC.south = false;           % process southern boundary segment
+    OBC.north = true;            % process northern boundary segment
+end
 
-ubt = -0.05; % m/s barotropic velocity
-ubt_initial = 0; % add barotropic velocity to initial condition?
-ubt_deep = 0; % nudge to ubt only in deep water
-localize_jet = 0;% buffer around eddy where velocity should exist
-buffer = 150 * 1000; % if localize_jet = 1, else whole domain has ubt
+% momentum balance options
+flags.use_cartesian = 0; % cartesian
+flags.use_radial    = 1; % use radial
+flags.use_gradient  = 0; % use gradient wind balance
+
+% barotropic velocity options
+flags.ubt_initial = 1; % add barotropic velocity to initial condition?
+flags.ubt_deep = 0; % nudge to ubt only in deep water
+flags.localize_jet = 0;% buffer around eddy where velocity should exist
+
+ubt = 0;-0.05; % m/s barotropic velocity
+vbt = -0.05; % m/s barotropic velocity
+
+% BAD IDEA
+% buffer = 150 * 1000; % if localize_jet = 1, else whole domain has ubt -
 
 % Eddy parameters - all distances in m
 eddy.dia = 70*1000; % in m
@@ -423,14 +437,14 @@ eddy.depth = 500; % depth below which flow is 'compensated'
 eddy.Ncos = 16; % no. of points over which the cosine modulates to zero
 eddy.tamp = 70; % controls gradient
 eddy.a = 2;  % ? in Katsman et al. (2003)
-eddy.cx = 650*1000; % center of eddy
-eddy.cy = 200*1000; %        " 
+eddy.cx = X-170*1000; % center of eddy
+eddy.cy = 650*1000; %        " 
 
 %%%%%%%%%%%%%%%%%
 
 %% Now set initial conditions - all variables are 0 by default S = S0; T=T0
 
-if use_cartesian == 1 && use_radial == 1
+if flags.use_cartesian == 1 && flags.use_radial == 1
     error('Both cartesian & radial formulae specified. Correct it!');
 end
 
@@ -442,23 +456,6 @@ S.salt = S0*ones(size(S.salt));
 % temperature
 S.temp = T0*ones(size(S.temp));
 
-% cylindrical co-ordinates
-r0 = eddy.dia/2;
-[th,r] = cart2pol((S.x_rho-eddy.cx),(S.y_rho-eddy.cy));
-rnorm = r./r0; % normalized radius
-
-% temperature field
-% in xy plane (normalized)
-exponent =  (eddy.a - 1)/eddy.a .* (rnorm.^(eddy.a)); % needed for radial calculations later
-eddy.xyprof = exp( -1 * exponent ); 
-eddy.xyprof = eddy.xyprof./max(eddy.xyprof(:));
-
-% z-profile (normalized)
-ind = find_approx(zrmat(1,1,:), -1 * eddy.depth,1);
-eddy.zprof = [zeros(ind-eddy.Ncos,1); (1-cos(pi * [0:eddy.Ncos]'/eddy.Ncos))/2; ones(S.N-ind-1,1)];
-int_zprof = trapz(squeeze(zrmat(1,1,:)),eddy.zprof);
-eddy.zprof = eddy.zprof./int_zprof;
-
 % assign initial stratification
 Tz = N2/g/TCOEF * ones(size(zwmat) - [0 0 2]); % at w points except top / bottom face
 strat = T0.*ones(size(zrmat));
@@ -468,6 +465,25 @@ for k=size(zrmat,3)-1:-1:1
     strat(:,:,k) = strat(:,:,k+1) - Tz(:,:,k).*(zrmat(:,:,k+1)-zrmat(:,:,k));
     strat_flat(:,:,k) = strat_flat(:,:,k+1) - Tz(:,:,k).*(zrflat(:,:,k+1)-zrflat(:,:,k));
 end
+
+% Now create eddy
+% cylindrical co-ordinates
+r0 = eddy.dia/2;
+[th,r] = cart2pol((S.x_rho-eddy.cx),(S.y_rho-eddy.cy));
+rnorm = r./r0; % normalized radius
+eddy.ix = find_approx(S.x_rho(1,:),eddy.cx,1);
+eddy.iy = find_approx(S.y_rho(:,1),eddy.cy,1);
+
+% temp. field - in xy plane (normalized)
+exponent =  (eddy.a - 1)/eddy.a .* (rnorm.^(eddy.a)); % needed for radial calculations later
+eddy.xyprof = exp( -1 * exponent ); 
+eddy.xyprof = eddy.xyprof./max(eddy.xyprof(:));
+
+% temp. field -  z-profile (normalized)
+ind = find_approx(zrmat(eddy.ix,eddy.iy,:), -1 * eddy.depth,1);
+eddy.zprof = [zeros(ind-eddy.Ncos,1); (1-cos(pi * [0:eddy.Ncos]'/eddy.Ncos))/2; ones(S.N-ind-1,1)];
+int_zprof = trapz(squeeze(zrmat(1,1,:)),eddy.zprof);
+eddy.zprof = eddy.zprof./int_zprof;
 
 % add eddy temperature perturbation
 eddy.tz = strat_flat .* repmat(permute(eddy.zprof,[3 2 1]),[S.Lm+2 S.Mm+2 1]);
@@ -486,8 +502,7 @@ Tyu1 = avg1(avg1(diff(S.temp,1,2)./diff(yrmat,1,2),2),1);
 Tyu = [Tyu1(:,1,:) Tyu1 Tyu1(:,end,:)];
 clear Tyu1;
 
-if use_radial && max(~isnan(eddy.temp(:)))
-
+if flags.use_radial && max(~isnan(eddy.temp(:)))
     % integrated z profile of eddy.temp (HAS to include stratification)
     int_Tz = nan([size(xrmat,1) size(xrmat,2)]);
     for i=1:size(eddy.tz,1)
@@ -499,7 +514,7 @@ if use_radial && max(~isnan(eddy.temp(:)))
     S.zeta = -TCOEF * eddy.tamp * int_Tz .* (1-exp(-exponent));
 
     % correct zeta with gradient wind balance
-    if use_gradient
+    if flags.use_gradient
     end
     S.zeta = S.zeta - min(S.zeta(:));
 
@@ -515,7 +530,7 @@ if use_radial && max(~isnan(eddy.temp(:)))
     end
 
     % solve quadratic if gradient wind balance
-    if use_gradient
+    if flags.use_gradient
         rhs = rut;
         rut = bsxfun(@times,(-1 + sqrt( 1 - bsxfun(@times,-rhs, 4./(2*r.*f)) ) ), ...
                         (r.*f));
@@ -528,7 +543,7 @@ if use_radial && max(~isnan(eddy.temp(:)))
     S.v = avg1(vv,2);
 end
 
-if use_cartesian
+if flags.use_cartesian
     % v field
     vz = avg1(g*TCOEF * bsxfun(@times,avg1(1./f,2),Txv),3);
     S.v = zeros(size(xvmat));
@@ -554,11 +569,11 @@ contour(xrmat(:,:,1)./1000,yrmat(:,:,1)./1000,S.h,20,'k');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% add barotropic velocity for advection
+%% add barotropic velocity for advection (OBC initial condition also)
 
 % modify velocity and free surface fields
-if ubt_initial == 1
-    if localize_jet
+if flags.ubt_initial == 1
+    if flags.localize_jet
         % find appropriate indices
         idz1 = find_approx(squeeze(yrmat(1,:,1)),eddy.cy - eddy.dia/2 - buffer,1);
         idz2 = find_approx(squeeze(yrmat(1,:,1)),eddy.cy + eddy.dia/2 + buffer,1);
@@ -574,36 +589,53 @@ if ubt_initial == 1
         plot(S.zeta(30,:));
 
     else
-        S.u = S.u + ubt;
-        S.zeta = S.zeta + cumtrapz(squeeze(yrmat(1,:,1)),-f./g * ubt,2);
+        if ubt ~=0 && vbt ~=0 
+            error('Adding both x and y barotropic velocity in initial condition. WILL NOT WORK!');
+        end
+        
+        if vbt == 0
+            S.u = S.u + ubt;
+            S.zeta = S.zeta + cumtrapz(squeeze(yrmat(1,:,1)),-f./g * ubt,2);
+        else
+            S.v = S.v + vbt; 
+            % FIX THIS
+            S.zeta = S.zeta + cumtrapz(squeeze(yrmat(1,:,1)),-f./g * ubt,2);
+        end
     end
 else % ubt_initial - now ubt only in BC
-    if ubt_deep
-        idy1 = find(S.h(end,:) == max(S.h(end,:)));
-        idy2 = idy1(end);
-        idy1 = idy1(1);
+    if flags.ubt_deep
+        idy1_x = find(S.h(end,:) == max(S.h(end,:)));
+        idy2_x = idy1_x(end);
+        idy1_x = idy1_x(1);
+        
+        % ADD for vbar if needed
     else
-       idy1 = 1;
-       idy2 = S.Mm+2;
+       idy1_x = 1;
+       idy2_x = S.Mm+2;
+       
+       idy1_y = 1;
+       idy2_y = S.Mm+1;
     end
+    
     ubar_east = zeros(size(S.u(end,:,1)));
-    ubar_east(1,idy1:idy2) = ubt;
+    ubar_east(1,idy1_x:idy2_x) = ubt;
     
     vbar_east = zeros(size(S.v(end,:,1)));
+    vbar_east(1,idy1_y:idy2_y) = vbt;
     
     zeta_east = zeros(size(S.zeta(end,:)));
     
     %S.u(end,idy1:idy2,:) = ubt;
-    zeta_east(end,idy1:idy2) = zeta_east(1,idy1:idy2) + cumtrapz(squeeze(yrmat(1,idy1:idy2,1)), ...
-                                        -f(end,idy1:idy2)./g * ubt,2);
+    zeta_east(end,idy1_x:idy2_x) = zeta_east(1,idy1_x:idy2_x) + cumtrapz(squeeze(yrmat(1,idy1_x:idy2_x,1)), ...
+                                        -f(end,idy1_x:idy2_x)./g * ubt,2);
     zeta_east = zeta_east - nanmean(zeta_east);
 end
 
-% Misc calculations (ubar,vbar) - shouldn't require changes
+%% Misc calculations (ubar,vbar) - shouldn't require changes
 
 % Add random perturbation
 zeta0 = S.zeta; % save for thermal wind check later
-if perturb_zeta == 1
+if flags.perturb_zeta == 1
     rng('shuffle');
     perturb = randn(size(S.zeta));
     perturb = perturb./max(abs(perturb(:))) * 10^(-4)*3;
@@ -615,7 +647,7 @@ end
 S.zeta = S.zeta - nanmean(S.zeta(:));
 
 % ubar & vbar
-if ~spinup
+if ~flags.spinup
     for ii=1:S.Lm+2
         for jj=1:S.Mm+2
             if ii~=S.Lm+2
@@ -702,7 +734,7 @@ pcolorcen((avg1(dzdy ./ avg1(f,2)* g,1) + avg1(S.u(:,:,end),2)) ./ ...
             max(abs(S.u(:)))*100); colorbar
 title(' % error (g/f d\zeta /dy + u_{z=0})');
 
-%% Passive Tracers
+%% Passive Tracers - Initial condition + writing
 
 if S.NPT > 0
     % create variables first
@@ -725,21 +757,15 @@ if S.NPT > 0
     end
 end
 
-%% Open Boundary Conditions
+%% Open Boundary Conditions - Writing
 
 % modified from arango/d_obc_roms2roms.m
-if flag_OBC == 1
+if flags.OBC == 1
     % copy from initial conditions structure
     Sbr = S;
     
     Sbr.ncname = BRY_NAME; 
-    %  Set switches for boundary segments to process.
-
-    OBC.west  = false;           % process western  boundary segment
-    OBC.east  = true;           % process eastern  boundary segment
-    OBC.south = false;           % process southern boundary segment
-    OBC.north = false;          % process northern boundary segment
-
+    %  Set switches for boundary segments to process
     Sbr.boundary(1) = OBC.west;
     Sbr.boundary(2) = OBC.east;
     Sbr.boundary(3) = OBC.south;
@@ -1023,7 +1049,7 @@ ncwrite(INIname, 'temp', S.temp);
 ncwrite(INIname, 'salt', S.salt);
 
 fprintf('\n\n Files %s | %s ', GRID_NAME,INI_NAME);
-if flag_OBC, fprintf('| %s ',BRY_NAME); end
+if flags.OBC, fprintf('| %s ',BRY_NAME); end
 fprintf('written.\n\n');
 
 %% Grid and time step information
