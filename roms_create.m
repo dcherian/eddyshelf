@@ -240,13 +240,14 @@ B.L_shelf2 =  50 * 1000;
 B.L_entry  = 0; 200* 1000; % deep water to initialize eddy in
 B.L_slope  =  20 * 1000;
 B.L_tilt   = 0;130 * 1000;
+B.axis = 'x';
 
 % linear bathymetry
 if linear_bathymetry == 1
     B.sl_shelf = 0.0005;
     B.sl_slope = 0.08;
     
-    [S] = bathy_simple(S,B,X,Y,'x','l');
+    [S] = bathy_simple(S,B,X,Y,B.axis,'l');
 %   [S] = bathy2_x(S,B,X,Y);
 %     ix1 = find_approx(S.x_rho(:,1),X-B.L_entry-B.L_tilt,1);
 %     ix2 = find_approx(S.x_rho(:,1),X-B.L_entry,1);
@@ -404,8 +405,12 @@ S.salt = S0*ones(size(S.salt));
 %% Options
 
 %%%%%%%%%%%%%%%%% options
+
 flags.perturb_zeta = 0; % add random perturbation to zeta
 flags.spinup = 0; % if spinup, do not initialize ubar/vbar fields.
+
+flags.front = 1; % create shelfbreak front
+flags.eddy  = 0; % create eddy
 
 flags.OBC = 1;  % create OBC file and set open boundaries
 flags.OBC_from_initial = 1; % copy OBC data from initial condition?
@@ -441,6 +446,10 @@ eddy.a = 2;  % ? in Katsman et al. (2003)
 eddy.cx = X-170*1000; % center of eddy
 eddy.cy = 650*1000; %        " 
 
+% Shelfbreak front parameters
+front.LT = 20 * 1000; % length scale for temperature (m)
+front.Tx0 = 3e-4; % max. magnitude of temperature gradient
+
 %%%%%%%%%%%%%%%%%
 
 %% Now set initial conditions - all variables are 0 by default S = S0; T=T0
@@ -457,6 +466,8 @@ S.salt = S0*ones(size(S.salt));
 % temperature
 S.temp = T0*ones(size(S.temp));
 
+% Create background state (assumes uniform horizontal grid)
+
 % assign initial stratification
 Tz = N2/g/TCOEF * ones(size(zwmat) - [0 0 2]); % at w points except top / bottom face
 strat = T0.*ones(size(zrmat));
@@ -466,110 +477,181 @@ for k=size(zrmat,3)-1:-1:1
     strat(:,:,k) = strat(:,:,k+1) - Tz(:,:,k).*(zrmat(:,:,k+1)-zrmat(:,:,k));
     strat_flat(:,:,k) = strat_flat(:,:,k+1) - Tz(:,:,k).*(zrflat(:,:,k+1)-zrflat(:,:,k));
 end
-
-% Now create eddy
-% cylindrical co-ordinates
-r0 = eddy.dia/2;
-[th,r] = cart2pol((S.x_rho-eddy.cx),(S.y_rho-eddy.cy));
-rnorm = r./r0; % normalized radius
-eddy.ix = find_approx(S.x_rho(:,1),eddy.cx,1);
-eddy.iy = find_approx(S.y_rho(1,:),eddy.cy,1);
-
-% assume that eddy location is in deep water
-deep_z = squeeze(zrmat(eddy.ix,eddy.iy,:));
-
-% temp. field - in xy plane (normalized)
-exponent =  (eddy.a - 1)/eddy.a .* (rnorm.^(eddy.a)); % needed for radial calculations later
-eddy.xyprof = exp( -1 * exponent ); 
-eddy.xyprof = eddy.xyprof./max(eddy.xyprof(:));
-
-% temp. field -  z-profile (normalized)
-ind = find_approx(deep_z, -1 * eddy.depth,1);
-eddy.zprof = [zeros(ind-eddy.Ncos,1); (1-cos(pi * [0:eddy.Ncos]'/eddy.Ncos))/2; ones(S.N-ind-1,1)];
-int_zprof = trapz(deep_z,eddy.zprof);
-eddy.zprof = eddy.zprof./int_zprof;
-
-% add eddy temperature perturbation
-eddy.tz = strat_flat .* repmat(permute(eddy.zprof,[3 2 1]),[S.Lm+2 S.Mm+2 1]);
-eddy.temp = eddy.tamp * bsxfun(@times,eddy.xyprof,eddy.tz);
 S.temp = strat;
-if ~isnan(eddy.temp)
-    S.temp = S.temp + eddy.temp;
+
+% first choose axis
+switch B.axis
+    case 'x'
+        ax = xrmat(:,1,1);
+        axmat = xrmat;
+        ax1 = 1;
+        ax2 = 2; % opposite axis
+        zeta_sign = 1; % for integration of free surface height
+        flip_flag = 0;
+    case 'y'
+        ax = yrmat(1,:,1)';
+        axmat = permute(yrmat,[2 3 1]);
+        ax1 = 2;
+        ax2 = 1; % opposite axis
+        zeta_sign = -1; % for integration of free surface height
+        flip_flag = 1;
 end
 
-% calculate Tx at v points and Ty and u points
-Txv1 = avg1(avg1(diff(S.temp,1,1)./diff(xrmat,1,1),2),1);
-Txv = [Txv1(1,:,:);Txv1;Txv1(end,:,:)];
-clear Txv1
+% then locate shelfbreak
+sbreak = zeros([size(S.h,ax2) 1]);
+for yy = 1:size(S.h,ax2)
+    if ax1 == 1 % vertical isobaths
+        sbreak(yy) = find_approx(S.h(:,yy),B.H_shelf + B.L_shelf * B.sl_shelf,1) ...
+                        + floor(n_points/2);
+    else % horizontal isobaths
+        sbreak(yy) = find_approx(S.h(yy,:),B.H_shelf + B.L_shelf * B.sl_shelf,1) ...
+                        + floor(n_points/2);
+    end
+end
 
-Tyu1 = avg1(avg1(diff(S.temp,1,2)./diff(yrmat,1,2),2),1);
-Tyu = [Tyu1(:,1,:) Tyu1 Tyu1(:,end,:)];
-clear Tyu1;
+% build cosine curve about shelfbreak (do each lat/lon line individually)
+Tx = hor_grad_tracer(S.h,ax,ax1,ax2,sbreak,front);
+if flip_flag, Tx = Tx'; S.h = S.h'; end
+subplot(121)
+plot(ax,1-Tx(:,1)./max(abs(Tx(:,1)))); hold on
+plot(ax,1-S.h(:,1)./max(S.h(:)),'r')
+legend('Temp gradient','bathy');
+if flip_flag, Tx = Tx'; S.h = S.h'; end
 
-if flags.use_radial && max(~isnan(eddy.temp(:)))
-    % integrated z profile of eddy.temp (HAS to include stratification)
-    int_Tz = nan([size(xrmat,1) size(xrmat,2)]);
-    for i=1:size(eddy.tz,1)
-        for j=1:size(eddy.tz,2)
-            int_Tz(i,j) = trapz(squeeze(zrflat(i,j,:)),eddy.tz(i,j,:),3);
+% then integrate to make T front
+% from left to right and then from top to bottom
+if flip_flag, S.temp = permute(S.temp,[2 1 3]); end
+S.temp(1,:,:) = T0;
+% integrate in horizontal dirn.
+for i=2:size(S.h,ax1)
+    S.temp(i,:,1) = S.temp(i-1,:,1) + Tx(i,:).*(axmat(i,:,1)-axmat(i-1,:,1));
+end
+if flip_flag, S.temp = permute(S.temp,[2 1 3]); end
+
+% integrate in z - TOP TO BOTTOM
+for k=size(zrmat,3)-1:-1:1
+    S.temp(:,:,k) = S.temp(:,:,k+1) - Tz(:,:,k).*(zrmat(:,:,k+1)-zrmat(:,:,k));
+end
+
+subplot(122);
+contourf(squeeze(xrmat(:,ymid,:))/1000,squeeze(zrmat(:,ymid,:)),squeeze(S.temp(:,ymid,:)),20);
+
+%%
+
+% calculate velocity field
+
+% then calculate zeta
+S.zeta = nan([size(xrmat,1) size(xrmat,2)]);
+tmp = zeta_factor * f0/g * cumtrapz(xvmat(:,1,1),S.v(:,:,end),1);
+S.zeta(:,2:end-1) = (tmp(:,1:end-1) + tmp(:,2:end))/2;
+S.zeta(:,1) = S.zeta(:,2) - (yrmat(:,2,end) - yrmat(:,1,end)).*(S.zeta(:,3)-S.zeta(:,2))./(yrmat(:,3,end) - yrmat(:,2,end));
+S.zeta(:,end) = S.zeta(:,end-1) + (yrmat(:,end,end) - yrmat(:,end-1,end)).*(S.zeta(:,end-1)-S.zeta(:,end-2))./(yrmat(:,end-1,end) - yrmat(:,end-2,end));
+
+%% Now create eddy
+
+if flags.eddy
+    % cylindrical co-ordinates
+    r0 = eddy.dia/2;
+    [th,r] = cart2pol((S.x_rho-eddy.cx),(S.y_rho-eddy.cy));
+    rnorm = r./r0; % normalized radius
+    eddy.ix = find_approx(S.x_rho(:,1),eddy.cx,1);
+    eddy.iy = find_approx(S.y_rho(1,:),eddy.cy,1);
+
+    % assume that eddy location is in deep water
+    deep_z = squeeze(zrmat(eddy.ix,eddy.iy,:));
+
+    % temp. field - in xy plane (normalized)
+    exponent =  (eddy.a - 1)/eddy.a .* (rnorm.^(eddy.a)); % needed for radial calculations later
+    eddy.xyprof = exp( -1 * exponent ); 
+    eddy.xyprof = eddy.xyprof./max(eddy.xyprof(:));
+
+    % temp. field -  z-profile (normalized)
+    ind = find_approx(deep_z, -1 * eddy.depth,1);
+    eddy.zprof = [zeros(ind-eddy.Ncos,1); (1-cos(pi * [0:eddy.Ncos]'/eddy.Ncos))/2; ones(S.N-ind-1,1)];
+    int_zprof = trapz(deep_z,eddy.zprof);
+    eddy.zprof = eddy.zprof./int_zprof;
+
+    % add eddy temperature perturbation
+    eddy.tz = strat_flat .* repmat(permute(eddy.zprof,[3 2 1]),[S.Lm+2 S.Mm+2 1]);
+    eddy.temp = eddy.tamp * bsxfun(@times,eddy.xyprof,eddy.tz);
+    if ~isnan(eddy.temp)
+        S.temp = S.temp + eddy.temp;
+    end
+
+    % calculate Tx at v points and Ty and u points
+    Txv1 = avg1(avg1(diff(S.temp,1,1)./diff(xrmat,1,1),2),1);
+    Txv = [Txv1(1,:,:);Txv1;Txv1(end,:,:)];
+    clear Txv1
+
+    Tyu1 = avg1(avg1(diff(S.temp,1,2)./diff(yrmat,1,2),2),1);
+    Tyu = [Tyu1(:,1,:) Tyu1 Tyu1(:,end,:)];
+    clear Tyu1;
+
+    if flags.use_radial && max(~isnan(eddy.temp(:)))
+        % integrated z profile of eddy.temp (HAS to include stratification)
+        int_Tz = nan([size(xrmat,1) size(xrmat,2)]);
+        for i=1:size(eddy.tz,1)
+            for j=1:size(eddy.tz,2)
+                int_Tz(i,j) = trapz(squeeze(zrflat(i,j,:)),eddy.tz(i,j,:),3);
+            end
         end
+
+        S.zeta = S.zeta + -TCOEF * eddy.tamp * int_Tz .* (1-exp(-exponent));
+
+        % correct zeta with gradient wind balance
+        if flags.use_gradient
+        end
+        S.zeta = S.zeta - min(S.zeta(:));
+
+        % CHECK UNITS &  WHY IS PROFILE WEIRD NEAR CENTER. 
+        % ANS =  r d(theta)/dt NOT d(theta)/dt
+
+        % azimuthal velocity = r d(theta)/dt
+        rutz = avg1(bsxfun(@times, eddy.temp, ...
+                    g*TCOEF* 1./f .* (-exponent./r *eddy.a)),3);
+        rut = zeros(size(xrmat));
+        for i=2:size(xrmat,3)
+            rut(:,:,i) = rut(:,:,i-1) + rutz(:,:,i-1).*(zrmat(:,:,i)-zrmat(:,:,i-1));
+        end
+
+        % solve quadratic if gradient wind balance
+        if flags.use_gradient
+            rhs = rut;
+            rut = bsxfun(@times,(-1 + sqrt( 1 - bsxfun(@times,-rhs, 4./(2*r.*f)) ) ), ...
+                            (r.*f));
+        end
+
+        uu = -1 * bsxfun(@times,rut, sin(th));
+        vv = bsxfun(@times, rut, cos(th));
+
+        S.u = S.u + avg1(uu,1);
+        S.v = S.v + avg1(vv,2);
     end
 
-    S.zeta = -TCOEF * eddy.tamp * int_Tz .* (1-exp(-exponent));
+    if flags.use_cartesian % FIX FOR BACKGROUND STATE
+        % v field
+        vz = avg1(g*TCOEF * bsxfun(@times,avg1(1./f,2),Txv),3);
+        S.v = zeros(size(xvmat));
+        for i=2:size(xvmat,3)
+            S.v(:,:,i) = S.v(:,:,i-1) + vz(:,:,i-1).*(zvmat(:,:,i)-zvmat(:,:,i-1));
+        end
 
-    % correct zeta with gradient wind balance
-    if flags.use_gradient
-    end
-    S.zeta = S.zeta - min(S.zeta(:));
-
-    % CHECK UNITS &  WHY IS PROFILE WEIRD NEAR CENTER. 
-    % ANS =  r d(theta)/dt NOT d(theta)/dt
-
-    % azimuthal velocity = r d(theta)/dt
-    rutz = avg1(bsxfun(@times, eddy.temp, ...
-                g*TCOEF* 1./f .* (-exponent./r *eddy.a)),3);
-    rut = zeros(size(xrmat));
-    for i=2:size(xrmat,3)
-        rut(:,:,i) = rut(:,:,i-1) + rutz(:,:,i-1).*(zrmat(:,:,i)-zrmat(:,:,i-1));
+        % u field
+        uz = avg1(-g*TCOEF * bsxfun(@times,avg1(1./f,1),Tyu),3);
+        S.u = zeros(size(xumat));
+        for i=2:size(xumat,3)
+            S.u(:,:,i) = S.u(:,:,i-1) + uz(:,:,i-1).*(zumat(:,:,i)-zumat(:,:,i-1));
+        end 
     end
 
-    % solve quadratic if gradient wind balance
-    if flags.use_gradient
-        rhs = rut;
-        rut = bsxfun(@times,(-1 + sqrt( 1 - bsxfun(@times,-rhs, 4./(2*r.*f)) ) ), ...
-                        (r.*f));
-    end
+    xind = ymid; yind = ymid; zind = 20;
 
-    uu = -1 * bsxfun(@times,rut, sin(th));
-    vv = bsxfun(@times, rut, cos(th));
-
-    S.u = avg1(uu,1);
-    S.v = avg1(vv,2);
+    figure;
+    contourf(xrmat(:,:,1)./1000,yrmat(:,:,1)./1000,S.zeta);
+    freezeColors;cbfreeze
+    hold on
+    contour(xrmat(:,:,1)./1000,yrmat(:,:,1)./1000,S.h,20,'k');
 end
-
-if flags.use_cartesian
-    % v field
-    vz = avg1(g*TCOEF * bsxfun(@times,avg1(1./f,2),Txv),3);
-    S.v = zeros(size(xvmat));
-    for i=2:size(xvmat,3)
-        S.v(:,:,i) = S.v(:,:,i-1) + vz(:,:,i-1).*(zvmat(:,:,i)-zvmat(:,:,i-1));
-    end
-
-    % u field
-    uz = avg1(-g*TCOEF * bsxfun(@times,avg1(1./f,1),Tyu),3);
-    S.u = zeros(size(xumat));
-    for i=2:size(xumat,3)
-        S.u(:,:,i) = S.u(:,:,i-1) + uz(:,:,i-1).*(zumat(:,:,i)-zumat(:,:,i-1));
-    end 
-end
-
-xind = ymid; yind = ymid; zind = 20;
-
-figure;
-contourf(xrmat(:,:,1)./1000,yrmat(:,:,1)./1000,S.zeta);
-freezeColors;cbfreeze
-hold on
-contour(xrmat(:,:,1)./1000,yrmat(:,:,1)./1000,S.h,20,'k');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

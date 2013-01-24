@@ -1,13 +1,13 @@
 
-mm_instance = mm_setup;
-mm_instance.pixelSize = [1600 900];
-mm_instance.outputFile = 'mm_initial-pt-05.avi';
-mm_instance.ffmpegArgs = '-q:v 1 -g 1';
-mm_instance.InputFrameRate = 3;
-mm_instance.frameRate = 3;
+% mm_instance = mm_setup;
+% mm_instance.pixelSize = [1600 900];
+% mm_instance.outputFile = 'mm_initial-pt-05.avi';
+% mm_instance.ffmpegArgs = '-q:v 1 -g 1';
+% mm_instance.InputFrameRate = 3;
+% mm_instance.frameRate = 3;
 
-dirname = 'runs/runte-05-rst/';
-varname = 'dye_02';
+dirname = 'runs/runte-07/';
+varname = 'zeta';
 fnames  = ls([dirname '/*his*.nc']);
 
 caxis_zeta = [-0.15 0.15];
@@ -50,8 +50,8 @@ for ff = 1:size(fnames,1)
         
         title([varname ' | t = ' num2str(time(i)/86400) ' days']);
         beautify([14 14 16]);
-        mm_addFrame(mm_instance,gcf);
+        %mm_addFrame(mm_instance,gcf);
     end
 end
 
-mm_render(mm_instance)
+%mm_render(mm_instance)
