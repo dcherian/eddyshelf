@@ -2,7 +2,6 @@
 % Modified from Arango's d_initial.m
 
 %% Parameters
-
 % names cannot start with number
 FOLDER    = 'runs\';
 GRID_NAME = 'topo_grd_01';
@@ -197,6 +196,12 @@ ncwrite(INIname,   'Cs_w',        S.Cs_w);
 %   end,
 %   
 % end,
+
+% salt
+S.salt = S0*ones(size(S.salt));
+
+% temperature
+S.temp = T0*ones(size(S.temp));
 
 %% Fix grids
 
@@ -447,27 +452,17 @@ eddy.cx = X-170*1000; % center of eddy
 eddy.cy = 650*1000; %        " 
 
 % Shelfbreak front parameters
-front.LT = 20 * 1000; % length scale for temperature (m)
-front.Tx0 = 3e-4; % max. magnitude of temperature gradient
+front.LTleft = 30 * 1000; % length scale for temperature (m) - onshore
+front.LTright = 20*1000; % length scale - offshore
+front.Tx0 = -2e-5; % max. magnitude of temperature gradient
 
 %%%%%%%%%%%%%%%%%
 
 %% Now set initial conditions - all variables are 0 by default S = S0; T=T0
 
-if flags.use_cartesian == 1 && flags.use_radial == 1
-    error('Both cartesian & radial formulae specified. Correct it!');
-end
-
 tic
 
-% salt
-S.salt = S0*ones(size(S.salt));
-
-% temperature
-S.temp = T0*ones(size(S.temp));
-
 % Create background state (assumes uniform horizontal grid)
-
 % assign initial stratification
 Tz = N2/g/TCOEF * ones(size(zwmat) - [0 0 2]); % at w points except top / bottom face
 strat = T0.*ones(size(zrmat));
@@ -486,15 +481,23 @@ switch B.axis
         axmat = xrmat;
         ax1 = 1;
         ax2 = 2; % opposite axis
-        zeta_sign = 1; % for integration of free surface height
+        zeta_sign = 1; % for free surface height thermal wind
+         % uv_sign = 1; % for u/v thermal wind - SAME SIGN?
         flip_flag = 0;
+        
+        vel = 'v';
+        velzmat = zvmat;
     case 'y'
         ax = yrmat(1,:,1)';
         axmat = permute(yrmat,[2 3 1]);
         ax1 = 2;
         ax2 = 1; % opposite axis
         zeta_sign = -1; % for integration of free surface height
+          %uv_sign = -1; % for u/v thermal wind
         flip_flag = 1;
+        
+        vel = 'u';
+        velzmat = zumat;
 end
 
 % then locate shelfbreak
@@ -510,39 +513,56 @@ for yy = 1:size(S.h,ax2)
 end
 
 % build cosine curve about shelfbreak (do each lat/lon line individually)
-Tx = hor_grad_tracer(S.h,ax,ax1,ax2,sbreak,front);
-if flip_flag, Tx = Tx'; S.h = S.h'; end
+S.Tx = hor_grad_tracer(axmat,ax,ax1,ax2,sbreak,front);
+S = flip_vars(flip_flag,S);
 subplot(121)
-plot(ax,1-Tx(:,1)./max(abs(Tx(:,1)))); hold on
+plot(ax,1+S.Tx(:,1)./max(abs(S.Tx(:,1)))); hold on
 plot(ax,1-S.h(:,1)./max(S.h(:)),'r')
 legend('Temp gradient','bathy');
-if flip_flag, Tx = Tx'; S.h = S.h'; end
+S = flip_vars(flip_flag,S);
 
 % then integrate to make T front
 % from left to right and then from top to bottom
-if flip_flag, S.temp = permute(S.temp,[2 1 3]); end
+S = flip_vars(flip_flag,S,axmat);
 S.temp(1,:,:) = T0;
-% integrate in horizontal dirn.
+% integrate in horizontal dirn. @ surface
 for i=2:size(S.h,ax1)
-    S.temp(i,:,1) = S.temp(i-1,:,1) + Tx(i,:).*(axmat(i,:,1)-axmat(i-1,:,1));
+    S.temp(i,:,end) = S.temp(i-1,:,end) + S.Tx(i,:).*(axmat(i,:,end)-axmat(i-1,:,end));
 end
-if flip_flag, S.temp = permute(S.temp,[2 1 3]); end
-
-% integrate in z - TOP TO BOTTOM
+S = flip_vars(flip_flag,S);
 for k=size(zrmat,3)-1:-1:1
     S.temp(:,:,k) = S.temp(:,:,k+1) - Tz(:,:,k).*(zrmat(:,:,k+1)-zrmat(:,:,k));
 end
-
 subplot(122);
-contourf(squeeze(xrmat(:,ymid,:))/1000,squeeze(zrmat(:,ymid,:)),squeeze(S.temp(:,ymid,:)),20);
-
-%%
+contourf(squeeze(xrmat(:,ymid,:))/1000,squeeze(zrmat(:,ymid,:)),squeeze(S.temp(:,ymid,:)),40);
 
 % calculate velocity field
+% first re-calculate temperature (density) gradient - Z GRID VARIES - THIS
+% DOESNT WORK!
+Tgrad = avg1(diff(S.temp,1,ax1) ./ diff(axmat,1,ax1),ax2);
+
+if flip_flag, Tgrad = permute(Tgrad, [2 1 3]); end
+Tgrad(size(Tgrad,1)+1,:,:) = Tgrad(size(Tgrad,1),:,:);
+if flip_flag, Tgrad = permute(Tgrad, [2 1 3]); end
+
+vel_shear = zeta_sign * g*TCOEF .* bsxfun(@rdivide,Tgrad,avg1(f,ax2));
+vmat = zeros(size(velzmat));
+for ii=2:size(velzmat,3)
+    vmat(:,:,ii) = vmat(:,:,ii-1) + vel_shear(:,:,ii).*(velzmat(:,:,ii)-velzmat(:,:,ii-1));
+end
+eval(['S.' vel '=vmat;']);
+
+figure
+subplot(121)
+contourf(squeeze(xvmat(:,ymid,:))./fx,squeeze(zvmat(:,ymid,:)),squeeze(S.v(:,ymid,:)));
+colorbar; title('velocity');
+subplot(122)
+contourf(squeeze(xvmat(:,ymid,:))./fx,squeeze(zvmat(:,ymid,:)),squeeze(vel_shear(:,ymid,:)));
+colorbar; title('velocity shear');
 
 % then calculate zeta
-S.zeta = nan([size(xrmat,1) size(xrmat,2)]);
-tmp = zeta_factor * f0/g * cumtrapz(xvmat(:,1,1),S.v(:,:,end),1);
+S.zeta = nan([size(S.h,1) size(S.h,2)]);
+tmp = zeta_sign * f0/g * cumtrapz(xvmat(:,1,1),S.v(:,:,end),1);
 S.zeta(:,2:end-1) = (tmp(:,1:end-1) + tmp(:,2:end))/2;
 S.zeta(:,1) = S.zeta(:,2) - (yrmat(:,2,end) - yrmat(:,1,end)).*(S.zeta(:,3)-S.zeta(:,2))./(yrmat(:,3,end) - yrmat(:,2,end));
 S.zeta(:,end) = S.zeta(:,end-1) + (yrmat(:,end,end) - yrmat(:,end-1,end)).*(S.zeta(:,end-1)-S.zeta(:,end-2))./(yrmat(:,end-1,end) - yrmat(:,end-2,end));
@@ -550,6 +570,10 @@ S.zeta(:,end) = S.zeta(:,end-1) + (yrmat(:,end,end) - yrmat(:,end-1,end)).*(S.ze
 %% Now create eddy
 
 if flags.eddy
+    if flags.use_cartesian == 1 && flags.use_radial == 1
+        error('Both cartesian & radial formulae specified. Correct it!');
+    end
+
     % cylindrical co-ordinates
     r0 = eddy.dia/2;
     [th,r] = cart2pol((S.x_rho-eddy.cx),(S.y_rho-eddy.cy));
@@ -974,8 +998,7 @@ if make_plot
     limy = [min(yrmat(1,:,1)) max(yrmat(1,:,1))]./fy;
 %     dx = diff(xrmat(:,yind,zind));
 %     dy = squeeze(diff(yrmat(xind,:,zind)));
-    xmid = find_approx(xrmat(:,1,1),eddy.cx,1);
-    ymid = find_approx(yrmat(1,:,1),eddy.cy,1);
+    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
 %     zind = 19; % Plots to check thermal wind
@@ -1015,29 +1038,33 @@ if make_plot
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    xind = xmid;
-    % check temperature profile
-    figure;
-    subplot(221)
-    contourf(squeeze(xrmat(:,ymid,:))/fx,squeeze(zrmat(:,ymid,:)),squeeze(S.temp(:,ymid,:)),20);
-    colorbar;
-    title('temp (y=mid)');
-    xlabel(['x' lx]); ylabel('z (m)');
-    subplot(222)
-    contourf(squeeze(yrmat(xmid,:,:))/fy,squeeze(zrmat(xmid,:,:)),squeeze(S.temp(xmid,:,:)),20);
-    colorbar;
-    title('temp (x=mid)');
-    xlabel(['y' ly]); ylabel('z (m)');
-    subplot(223)
-    contourf(squeeze(xrmat(:,ymid,:))/fx,squeeze(zrmat(:,ymid,:)),squeeze(eddy.temp(:,ymid,:)),20);
-    colorbar;
-    title('Eddy temp (y=mid)');
-    xlabel(['x' lx]); ylabel('z (m)');
-    subplot(224)
-    contourf(squeeze(yrmat(xmid,:,:))/fy,squeeze(zrmat(xmid,:,:)),squeeze(eddy.temp(xmid,:,:)),20);
-    colorbar;
-    title('Eddy temp (x=mid)');
-    xlabel(['y' ly]); ylabel('z (m)');
+    if flags.eddy
+        xmid = find_approx(xrmat(:,1,1),eddy.cx,1);
+        ymid = find_approx(yrmat(1,:,1),eddy.cy,1);
+        xind = xmid;
+        % check temperature profile
+        figure;
+        subplot(221)
+        contourf(squeeze(xrmat(:,ymid,:))/fx,squeeze(zrmat(:,ymid,:)),squeeze(S.temp(:,ymid,:)),20);
+        colorbar;
+        title('temp (y=mid)');
+        xlabel(['x' lx]); ylabel('z (m)');
+        subplot(222)
+        contourf(squeeze(yrmat(xmid,:,:))/fy,squeeze(zrmat(xmid,:,:)),squeeze(S.temp(xmid,:,:)),20);
+        colorbar;
+        title('temp (x=mid)');
+        xlabel(['y' ly]); ylabel('z (m)');
+        subplot(223)
+        contourf(squeeze(xrmat(:,ymid,:))/fx,squeeze(zrmat(:,ymid,:)),squeeze(eddy.temp(:,ymid,:)),20);
+        colorbar;
+        title('Eddy temp (y=mid)');
+        xlabel(['x' lx]); ylabel('z (m)');
+        subplot(224)
+        contourf(squeeze(yrmat(xmid,:,:))/fy,squeeze(zrmat(xmid,:,:)),squeeze(eddy.temp(xmid,:,:)),20);
+        colorbar;
+        title('Eddy temp (x=mid)');
+        xlabel(['y' ly]); ylabel('z (m)');
+    end
 
     xmid = xind;
     
