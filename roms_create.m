@@ -14,7 +14,7 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 S.Lm = 80;
 S.Mm = 160;
 S.N  = 40;
-S.NPT = 3; % number of passive tracers
+S.NPT = 0; % number of passive tracers
 S.NT = 2+S.NPT; % total number of tracers
 
 S.Vtransform = 2;
@@ -31,7 +31,7 @@ Z = 2000;
 % coriolis parameters
 lat_ref = 45;
 f0    = 2 * (2*pi/86400) * sind(lat_ref);
-beta  = 2e-11;
+beta  = 0;2e-11;
 
 % Physical Parameters
 N2    = 1e-5;
@@ -118,14 +118,14 @@ end,
 S.h = nc_read(GRDname, 'h');
 
 %  Set vertical grid variables.
-
+report = 0;
 [S.s_rho, S.Cs_r]=stretching(S.Vstretching, ...
                              S.theta_s, S.theta_b, S.hc, S.N, ...
-			     0, 1);
+			     0, 0);
 
 [S.s_w,   S.Cs_w]=stretching(S.Vstretching, ...
                              S.theta_s, S.theta_b, S.hc, S.N, ...
-			     1, 1);
+			     1, 0);
 
 %---------------------------------------------------------------------------
 %  Set zero initial conditions.
@@ -245,14 +245,15 @@ B.L_shelf2 =  50 * 1000;
 B.L_entry  = 0; 200* 1000; % deep water to initialize eddy in
 B.L_slope  =  20 * 1000;
 B.L_tilt   = 0;130 * 1000;
-B.axis = 'x';
+B.axis = 'y';
+B.loc  = 'h'; % h - high end of axis; l - low end
 
 % linear bathymetry
 if linear_bathymetry == 1
     B.sl_shelf = 0.0005;
     B.sl_slope = 0.08;
     
-    [S] = bathy_simple(S,B,X,Y,B.axis,'l');
+    [S] = bathy_simple(S,B,X,Y,B.axis,B.loc);
 %   [S] = bathy2_x(S,B,X,Y);
 %     ix1 = find_approx(S.x_rho(:,1),X-B.L_entry-B.L_tilt,1);
 %     ix2 = find_approx(S.x_rho(:,1),X-B.L_entry,1);
@@ -356,13 +357,13 @@ S.lon_psi = S.x_psi;
     1, max(S.h(:)).*ones(size(S.h)), S.zeta,0);
 [z_u]=set_depth(S.Vtransform, S.Vstretching, ...
                  S.theta_s, S.theta_b, S.hc, S.N, ...
-                 3, S.h, S.zeta);
+                 3, S.h, S.zeta,0);
 [z_v]=set_depth(S.Vtransform, S.Vstretching, ...
                  S.theta_s, S.theta_b, S.hc, S.N, ...
-                 4, S.h, S.zeta);
+                 4, S.h, S.zeta,0);
 [z_w]=set_depth(S.Vtransform, S.Vstretching, ...
                  S.theta_s, S.theta_b, S.hc, S.N, ...
-                 5, S.h, S.zeta);
+                 5, S.h, S.zeta,0);
 zrmat = z_r;
 zumat = z_u;
 zvmat = z_v;
@@ -452,9 +453,9 @@ eddy.cx = X-170*1000; % center of eddy
 eddy.cy = 650*1000; %        " 
 
 % Shelfbreak front parameters
-front.LTleft = 30 * 1000; % length scale for temperature (m) - onshore
-front.LTright = 20*1000; % length scale - offshore
-front.Tx0 = -2e-5; % max. magnitude of temperature gradient
+front.LTleft = 20 * 1000; % length scale for temperature (m) - onshore
+front.LTright = 10*1000; % length scale - offshore
+front.Tx0 = -3e-5; % max. magnitude of temperature gradient
 
 %%%%%%%%%%%%%%%%%
 
@@ -486,7 +487,9 @@ switch B.axis
         flip_flag = 0;
         
         vel = 'v';
+        
         velzmat = zvmat;
+        zetahax = xvmat(:,1,end);
     case 'y'
         ax = yrmat(1,:,1)';
         axmat = permute(yrmat,[2 3 1]);
@@ -498,6 +501,7 @@ switch B.axis
         
         vel = 'u';
         velzmat = zumat;
+        zetahax = yumat(1,:,end);
 end
 
 % then locate shelfbreak
@@ -537,35 +541,47 @@ subplot(122);
 contourf(squeeze(xrmat(:,ymid,:))/1000,squeeze(zrmat(:,ymid,:)),squeeze(S.temp(:,ymid,:)),40);
 
 % calculate velocity field
-% first re-calculate temperature (density) gradient - Z GRID VARIES - THIS
-% DOESNT WORK!
-Tgrad = avg1(diff(S.temp,1,ax1) ./ diff(axmat,1,ax1),ax2);
+% first re-calculate temperature (density) gradient
+tgrid.xmat = xrmat; tgrid.ymat = yrmat; tgrid.zmat = zrmat; tgrid.s = S.s_rho;
+rgrid.z_w = permute(zwmat,[3 2 1]); rgrid.s_w = S.s_w;
 
-if flip_flag, Tgrad = permute(Tgrad, [2 1 3]); end
-Tgrad(size(Tgrad,1)+1,:,:) = Tgrad(size(Tgrad,1),:,:);
+Tgrad1 = avg1(avg1(horgrad_cgrid(rgrid,tgrid,S.temp,ax1),ax1),ax2);
+if flip_flag, Tgrad1 = permute(Tgrad1, [2 1 3]); end
+% % add values at end
+Tgrad1(size(Tgrad1,1)+1,:,:) = Tgrad1(size(Tgrad1,1),:,:);
+Tgrad = nan(size(velzmat));
+Tgrad(1,:,:) = Tgrad1(2,:,:);
+Tgrad(2:end,:,:) = Tgrad1;
+clear Tgrad1
 if flip_flag, Tgrad = permute(Tgrad, [2 1 3]); end
 
 vel_shear = zeta_sign * g*TCOEF .* bsxfun(@rdivide,Tgrad,avg1(f,ax2));
 vmat = zeros(size(velzmat));
-for ii=2:size(velzmat,3)
+for ii=2:size(velzmat,3) % bottom to top
     vmat(:,:,ii) = vmat(:,:,ii-1) + vel_shear(:,:,ii).*(velzmat(:,:,ii)-velzmat(:,:,ii-1));
 end
 eval(['S.' vel '=vmat;']);
 
+% generalize this plotting section
 figure
 subplot(121)
-contourf(squeeze(xvmat(:,ymid,:))./fx,squeeze(zvmat(:,ymid,:)),squeeze(S.v(:,ymid,:)));
+contourf(squeeze(xvmat(:,ymid,:))./1000,squeeze(zvmat(:,ymid,:)),squeeze(S.v(:,ymid,:)));
 colorbar; title('velocity');
 subplot(122)
-contourf(squeeze(xvmat(:,ymid,:))./fx,squeeze(zvmat(:,ymid,:)),squeeze(vel_shear(:,ymid,:)));
+contourf(squeeze(xvmat(:,ymid,:))./1000,squeeze(zvmat(:,ymid,:)),squeeze(vel_shear(:,ymid,:)));
 colorbar; title('velocity shear');
 
 % then calculate zeta
 S.zeta = nan([size(S.h,1) size(S.h,2)]);
-tmp = zeta_sign * f0/g * cumtrapz(xvmat(:,1,1),S.v(:,:,end),1);
+tmp = zeta_sign * f0/g * cumtrapz(zetahax,vmat(:,:,end),ax1);
+if ~flip_flag, S.zeta = S.zeta'; end
 S.zeta(:,2:end-1) = (tmp(:,1:end-1) + tmp(:,2:end))/2;
-S.zeta(:,1) = S.zeta(:,2) - (yrmat(:,2,end) - yrmat(:,1,end)).*(S.zeta(:,3)-S.zeta(:,2))./(yrmat(:,3,end) - yrmat(:,2,end));
-S.zeta(:,end) = S.zeta(:,end-1) + (yrmat(:,end,end) - yrmat(:,end-1,end)).*(S.zeta(:,end-1)-S.zeta(:,end-2))./(yrmat(:,end-1,end) - yrmat(:,end-2,end));
+S.zeta(:,1) = S.zeta(:,2) - (yrmat(:,2,end) - yrmat(:,1,end)).* ...
+            (S.zeta(:,3)-S.zeta(:,2))./(yrmat(:,3,end) - yrmat(:,2,end));
+S.zeta(:,end) = S.zeta(:,end-1) + ...
+            (yrmat(:,end,end) - yrmat(:,end-1,end)).* ...
+                (S.zeta(:,end-1)-S.zeta(:,end-2))./(yrmat(:,end-1,end) - yrmat(:,end-2,end));
+if ~flip_flag, S.zeta = S.zeta'; end
 
 %% Now create eddy
 
@@ -949,9 +965,8 @@ if flags.OBC == 1
            eval([varname ' = ' sprintf('dye_%02d',ii) char(range{mm}) ';']);
            eval(['nc_write(Sbr.ncname,''' varname ''',' varname ',1);']);
        end
+       nc_write(Sbr.ncname,'dye_time',bry_time,1);
     end
-    
-    nc_write(Sbr.ncname,'dye_time',bry_time,1);
 end
 
 %% Sanity Checks
@@ -1066,7 +1081,7 @@ if make_plot
         xlabel(['y' ly]); ylabel('z (m)');
     end
 
-    xmid = xind;
+    xind = xmid;
     
     %% Plot all fields
     figure;
