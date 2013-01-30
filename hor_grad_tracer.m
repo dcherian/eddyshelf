@@ -1,12 +1,37 @@
 % create horizontal gradient of tracer about shelfbreak
-function [Tx] = hor_grad_tracer(axmat,ax,ax1,ax2,sbreak,front)
+function [Tx] = hor_grad_tracer(axmat,ax,ax1,ax2,front,B)
 
     Tx = nan([size(axmat,1) size(axmat,2)]);
     Tx0 = front.Tx0;
     
     scale = (front.LTleft + front.LTright );
     
-    for jj = 1:size(axmat,ax2)
+    % code below works if slope is at low end of ax
+    % need to flip if high end
+    if B.loc == 'h'
+        B.h = flipdim(B.h,ax1);
+    end
+    
+    n_points = 3;
+    
+    % first locate shelfbreak
+    sbreak = zeros([size(B.h,ax2) 1]);
+    for yy = 1:size(B.h,ax2)
+        if ax1 == 1 % vertical isobaths
+            sbreak(yy) = find_approx(B.h(:,yy),B.H_shelf + B.L_shelf * B.sl_shelf,1) ...
+                            + floor(n_points/2);
+        else % horizontal isobaths
+            sbreak(yy) = find_approx(B.h(yy,:),B.H_shelf + B.L_shelf * B.sl_shelf,1) ...
+                            + floor(n_points/2);
+        end
+    end
+    
+    if ax1 == 2
+        Tx = Tx';
+    end
+    
+    % build gradient
+    for jj = 1:length(sbreak)
         for ii = 1:size(axmat,ax1)        
             Lleft = ax(sbreak(jj)) - front.LTleft;
             Lright = ax(sbreak(jj)) + front.LTright;
@@ -21,4 +46,9 @@ function [Tx] = hor_grad_tracer(axmat,ax,ax1,ax2,sbreak,front)
         end
     end
 
-    if size(Tx,1) ~= size(ax,1), Tx = Tx'; end
+    if size(Tx,1) ~= size(axmat,1), Tx = Tx'; end
+    
+    % flip back if flipped earlier
+    if B.loc == 'h'
+        Tx = flipdim(Tx,ax1);
+    end

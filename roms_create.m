@@ -457,6 +457,8 @@ front.LTleft = 20 * 1000; % length scale for temperature (m) - onshore
 front.LTright = 10*1000; % length scale - offshore
 front.Tx0 = -3e-5; % max. magnitude of temperature gradient
 
+% save for later use
+B.h = S.h;
 %%%%%%%%%%%%%%%%%
 
 %% Now set initial conditions - all variables are 0 by default S = S0; T=T0
@@ -492,7 +494,7 @@ switch B.axis
         zetahax = xvmat(:,1,end);
     case 'y'
         ax = yrmat(1,:,1)';
-        axmat = permute(yrmat,[2 3 1]);
+        axmat = yrmat; permute(yrmat,[2 1 3]);
         ax1 = 2;
         ax2 = 1; % opposite axis
         zeta_sign = -1; % for integration of free surface height
@@ -504,52 +506,57 @@ switch B.axis
         zetahax = yumat(1,:,end);
 end
 
-% then locate shelfbreak
-sbreak = zeros([size(S.h,ax2) 1]);
-for yy = 1:size(S.h,ax2)
-    if ax1 == 1 % vertical isobaths
-        sbreak(yy) = find_approx(S.h(:,yy),B.H_shelf + B.L_shelf * B.sl_shelf,1) ...
-                        + floor(n_points/2);
-    else % horizontal isobaths
-        sbreak(yy) = find_approx(S.h(yy,:),B.H_shelf + B.L_shelf * B.sl_shelf,1) ...
-                        + floor(n_points/2);
-    end
-end
-
 % build cosine curve about shelfbreak (do each lat/lon line individually)
-S.Tx = hor_grad_tracer(axmat,ax,ax1,ax2,sbreak,front);
+S.Tx = hor_grad_tracer(axmat,ax,ax1,ax2,front,B);
+S = reset_flip(S);
 S = flip_vars(flip_flag,S);
 subplot(121)
 plot(ax,1+S.Tx(:,1)./max(abs(S.Tx(:,1)))); hold on
 plot(ax,1-S.h(:,1)./max(S.h(:)),'r')
-legend('Temp gradient','bathy');
+legend('Temp gradient','bathy')
 S = flip_vars(flip_flag,S);
 
 % then integrate to make T front
 % from left to right and then from top to bottom
-S = flip_vars(flip_flag,S,axmat);
-S.temp(1,:,:) = T0;
+[S,axmat] = reset_flip(S,axmat);
+[S,axmat] = flip_vars(flip_flag,S,axmat);
+
 % integrate in horizontal dirn. @ surface
-for i=2:size(S.h,ax1)
-    S.temp(i,:,end) = S.temp(i-1,:,end) + S.Tx(i,:).*(axmat(i,:,end)-axmat(i-1,:,end));
+if B.loc == 'h'
+    S.temp(end,:,:) = T0;
+    for i=size(S.temp,1)-1:-1:1
+        S.temp(i,:,end) = S.temp(i+1,:,end) + S.Tx(i,:).*(axmat(i+1,:,end)-axmat(i,:,end));
+    end
+else
+    S.temp(1,:,:) = T0;
+    for i=2:size(S.temp,1)
+        S.temp(i,:,end) = S.temp(i-1,:,end) + S.Tx(i,:).*(axmat(i,:,end)-axmat(i-1,:,end));
+    end
 end
+
 S = flip_vars(flip_flag,S);
 for k=size(zrmat,3)-1:-1:1
     S.temp(:,:,k) = S.temp(:,:,k+1) - Tz(:,:,k).*(zrmat(:,:,k+1)-zrmat(:,:,k));
 end
-subplot(122);
-contourf(squeeze(xrmat(:,ymid,:))/1000,squeeze(zrmat(:,ymid,:)),squeeze(S.temp(:,ymid,:)),40);
 
-% calculate velocity field
+% generalize plot
+subplot(122);
+contourf(squeeze(yrmat(xmid,:,:))/1000,squeeze(zrmat(xmid,:,:)),squeeze(S.temp(xmid,:,:)),40);
+contourf(xrmat(:,:,end)/1000,yrmat(:,:,end)/1000, S.temp(:,:,end),40);
+
+%% calculate velocity field
 % first re-calculate temperature (density) gradient
 tgrid.xmat = xrmat; tgrid.ymat = yrmat; tgrid.zmat = zrmat; tgrid.s = S.s_rho;
 rgrid.z_w = permute(zwmat,[3 2 1]); rgrid.s_w = S.s_w;
 
 Tgrad1 = avg1(avg1(horgrad_cgrid(rgrid,tgrid,S.temp,ax1),ax1),ax2);
-if flip_flag, Tgrad1 = permute(Tgrad1, [2 1 3]); end
+Tgrad = nan(size(velzmat));
+if flip_flag
+    Tgrad1 = permute(Tgrad1, [2 1 3]); 
+    Tgrad = permute(Tgrad, [2 1 3]);  
+end
 % % add values at end
 Tgrad1(size(Tgrad1,1)+1,:,:) = Tgrad1(size(Tgrad1,1),:,:);
-Tgrad = nan(size(velzmat));
 Tgrad(1,:,:) = Tgrad1(2,:,:);
 Tgrad(2:end,:,:) = Tgrad1;
 clear Tgrad1
