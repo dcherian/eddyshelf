@@ -492,6 +492,8 @@ switch B.axis
         
         velzmat = zvmat;
         zetahax = xvmat(:,1,end);
+        zetahax2 = yrmat(:,:,end); % interpolation at edges of zeta field
+        
     case 'y'
         ax = yrmat(1,:,1)';
         axmat = yrmat; permute(yrmat,[2 1 3]);
@@ -504,6 +506,7 @@ switch B.axis
         vel = 'u';
         velzmat = zumat;
         zetahax = yumat(1,:,end);
+        zetahax2 = xrmat(:,:,end); % interpolation at edges of zeta field
 end
 
 % build cosine curve about shelfbreak (do each lat/lon line individually)
@@ -547,7 +550,7 @@ contourf(xrmat(:,:,end)/1000,yrmat(:,:,end)/1000, S.temp(:,:,end),40);
 %% calculate velocity field
 % first re-calculate temperature (density) gradient
 tgrid.xmat = xrmat; tgrid.ymat = yrmat; tgrid.zmat = zrmat; tgrid.s = S.s_rho;
-rgrid.z_w = permute(zwmat,[3 2 1]); rgrid.s_w = S.s_w;
+rgrid.zw = permute(zwmat,[3 2 1]); rgrid.s_w = S.s_w;
 
 Tgrad1 = avg1(avg1(horgrad_cgrid(rgrid,tgrid,S.temp,ax1),ax1),ax2);
 Tgrad = nan(size(velzmat));
@@ -581,14 +584,22 @@ colorbar; title('velocity shear');
 % then calculate zeta
 S.zeta = nan([size(S.h,1) size(S.h,2)]);
 tmp = zeta_sign * f0/g * cumtrapz(zetahax,vmat(:,:,end),ax1);
-if ~flip_flag, S.zeta = S.zeta'; end
+if flip_flag, 
+    S.zeta = S.zeta';
+    tmp = tmp';
+    zetahax2 = zetahax2';
+end
 S.zeta(:,2:end-1) = (tmp(:,1:end-1) + tmp(:,2:end))/2;
-S.zeta(:,1) = S.zeta(:,2) - (yrmat(:,2,end) - yrmat(:,1,end)).* ...
-            (S.zeta(:,3)-S.zeta(:,2))./(yrmat(:,3,end) - yrmat(:,2,end));
+S.zeta(:,1) = S.zeta(:,2) - (zetahax2(:,2) - zetahax2(:,1)).* ...
+            (S.zeta(:,3)-S.zeta(:,2))./(zetahax2(:,3) - zetahax2(:,2));
 S.zeta(:,end) = S.zeta(:,end-1) + ...
-            (yrmat(:,end,end) - yrmat(:,end-1,end)).* ...
-                (S.zeta(:,end-1)-S.zeta(:,end-2))./(yrmat(:,end-1,end) - yrmat(:,end-2,end));
-if ~flip_flag, S.zeta = S.zeta'; end
+            (zetahax2(:,end) - zetahax2(:,end-1)).* ...
+                (S.zeta(:,end-1)-S.zeta(:,end-2))./(zetahax2(:,end-1) - zetahax2(:,end-2));
+if flip_flag, % flip everything just in case
+    S.zeta = S.zeta';
+    tmp = tmp';
+    zetahax2 = zetahax2';
+end
 
 %% Now create eddy
 
@@ -767,17 +778,20 @@ end
 toc;
 
 % setup for pv calculation
-grid1.xu = xumat(:,1,1);
-grid1.yu = squeeze(yumat(1,:,1)');
+grid1.xu = xumat;
+grid1.yu = yumat;
 grid1.zu = zumat;
 
-grid1.xv = xvmat(:,1,1);
-grid1.yv = squeeze(yvmat(1,:,1)');
+grid1.xv = xvmat;
+grid1.yv = yvmat;
 grid1.zv = zvmat;
 
-grid1.xr = xrmat(:,1,1);
-grid1.yr = squeeze(yrmat(1,:,1)');
+grid1.xr = xrmat;
+grid1.yr = yrmat;
 grid1.zr = zrmat;
+grid1.zw = zwmat; 
+
+grid1.s_w = S.s_w; grid1.s_rho = S.s_rho;
 
 rho = R0 - TCOEF * (S.temp-T0);
 
