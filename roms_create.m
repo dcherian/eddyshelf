@@ -11,8 +11,8 @@ BRY_NAME  = 'topo_bry_01';
 % Grid Parameters
 S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 
-S.Lm = 80;
-S.Mm = 160;
+S.Lm = 150;
+S.Mm = 80;
 S.N  = 40;
 S.NPT = 0; % number of passive tracers
 S.NT = 2+S.NPT; % total number of tracers
@@ -24,8 +24,8 @@ S.theta_b = 2.0;     %  S-coordinate bottom control parameter.
 S.Tcline  = 10.0;    %  S-coordinate surface/bottom stretching width (m)
 
 % Domain Extent (in m)
-X = 400000;
-Y = 800000;
+X = 100000;
+Y = 100000;
 Z = 2000;
 
 % coriolis parameters
@@ -240,18 +240,18 @@ old_bathy = 0;
 
 % all measurements in m
 B.H_shelf  = 100;
-B.L_shelf  = 100 * 1000;
-B.L_shelf2 =  50 * 1000;
+B.L_shelf  = 60 * 1000;
+B.L_shelf2 =  0 * 1000;
 B.L_entry  = 0; 200* 1000; % deep water to initialize eddy in
 B.L_slope  =  20 * 1000;
 B.L_tilt   = 0;130 * 1000;
-B.axis = 'y';
-B.loc  = 'h'; % h - high end of axis; l - low end
+B.axis = 'x'; % CROSS SHELF AXIS
+B.loc  = 'l'; % h - high end of axis; l - low end
+B.sl_shelf = 0.0005;
+B.sl_slope = 0.08;
 
 % linear bathymetry
 if linear_bathymetry == 1
-    B.sl_shelf = 0.0005;
-    B.sl_slope = 0.08;
     
     [S] = bathy_simple(S,B,X,Y,B.axis,B.loc);
 %   [S] = bathy2_x(S,B,X,Y);
@@ -418,44 +418,43 @@ flags.spinup = 0; % if spinup, do not initialize ubar/vbar fields.
 flags.front = 1; % create shelfbreak front
 flags.eddy  = 0; % create eddy
 
-flags.OBC = 1;  % create OBC file and set open boundaries
-flags.OBC_from_initial = 1; % copy OBC data from initial condition?
-if flags.OBC
-    OBC.west  = false;           % process western  boundary segment
-    OBC.east  = false;           % process eastern  boundary segment
-    OBC.south = false;           % process southern boundary segment
-    OBC.north = true;            % process northern boundary segment
-end
-
 % momentum balance options
 flags.use_cartesian = 0; % cartesian
 flags.use_radial    = 1; % use radial
 flags.use_gradient  = 0; % use gradient wind balance
 
-% barotropic velocity options
+% OBC + barotropic velocity options
+flags.OBC = 1;  % create OBC file and set open boundaries
+flags.OBC_from_initial = 1; % copy OBC data from initial condition?
+if flags.OBC
+    OBC.west  = false;           % process western  boundary segment
+    OBC.east  = true;            % process eastern  boundary segment
+    OBC.south = false;           % process southern boundary segment
+    OBC.north = false;           % process northern boundary segment
+end
 flags.ubt_initial = 1; % add barotropic velocity to initial condition?
 % flags.ubt_deep = 0; % nudge to ubt only in deep water - NOT WORKING
 %flags.localize_jet = 0;% buffer around eddy where velocity should exist - NOT NEEDED
+ubt = -0.05; % m/s barotropic velocity
+vbt = 0;-0.05; % m/s barotropic velocity
 
-ubt = 0;-0.05; % m/s barotropic velocity
-vbt = -0.05; % m/s barotropic velocity
-
-% BAD IDEA
+% BAD IDEA  
 % buffer = 150 * 1000; % if localize_jet = 1, else whole domain has ubt -
 
 % Eddy parameters - all distances in m
-eddy.dia = 70*1000; % in m
+eddy.dia   = 70*1000; % in m
 eddy.depth = 500; % depth below which flow is 'compensated'
-eddy.Ncos = 16; % no. of points over which the cosine modulates to zero
-eddy.tamp = 70; % controls gradient
-eddy.a = 2;  % ? in Katsman et al. (2003)
-eddy.cx = X-170*1000; % center of eddy
-eddy.cy = 650*1000; %        " 
+eddy.Ncos  = 16; % no. of points over which the cosine modulates to zero
+eddy.tamp  = 70; % controls gradient
+eddy.a     = 2;  % ? in Katsman et al. (2003)
+eddy.cx    = X-170*1000; % center of eddy
+eddy.cy    = 650*1000; %        " 
 
 % Shelfbreak front parameters
-front.LTleft = 20 * 1000; % length scale for temperature (m) - onshore
-front.LTright = 10*1000; % length scale - offshore
-front.Tx0 = -3e-5; % max. magnitude of temperature gradient
+front.LTleft  = 5 * 1000; % length scale for temperature (m) - onshore
+front.LTright = 4*1000; % length scale - offshore
+front.slope   = 0; % non-dimensional
+front.Tx0     = -3e-5; % max. magnitude of temperature gradient
 
 % save for later use
 B.h = S.h;
@@ -480,10 +479,11 @@ S.temp = strat;
 % first choose axis
 switch B.axis
     case 'x'
-        ax = xrmat(:,1,1);
+        ax_cs = xrmat(:,1,1);
         axmat = xrmat;
-        ax1 = 1;
-        ax2 = 2; % opposite axis
+        ax_as = yrmat(1,:,1)'; % cross-shelf axis
+        i_cs = 1; % cross shelf axis
+        i_as = 2; % along shelf axis
         zeta_sign = 1; % for free surface height thermal wind
          % uv_sign = 1; % for u/v thermal wind - SAME SIGN?
         flip_flag = 0;
@@ -495,10 +495,11 @@ switch B.axis
         zetahax2 = yrmat(:,:,end); % interpolation at edges of zeta field
         
     case 'y'
-        ax = yrmat(1,:,1)';
-        axmat = yrmat; permute(yrmat,[2 1 3]);
-        ax1 = 2;
-        ax2 = 1; % opposite axis
+        ax_cs = yrmat(1,:,1)'; % cross-shelf axis
+        axmat = yrmat; 
+        ax_as = xrmat(:,1,1); % along shelf axis
+        i_cs = 2; % along shelf axis
+        i_as = 1; % cross-shelf axis
         zeta_sign = -1; % for integration of free surface height
           %uv_sign = -1; % for u/v thermal wind
         flip_flag = 1;
@@ -510,21 +511,23 @@ switch B.axis
 end
 
 % build cosine curve about shelfbreak (do each lat/lon line individually)
-S.Tx = hor_grad_tracer(axmat,ax,ax1,ax2,front,B);
+S.Tx = hor_grad_tracer(axmat,ax_as,ax_cs,i_cs,i_as,front,B);
 S = reset_flip(S);
 S = flip_vars(flip_flag,S);
-subplot(121)
-plot(ax,1+S.Tx(:,1)./max(abs(S.Tx(:,1)))); hold on
-plot(ax,1-S.h(:,1)./max(S.h(:)),'r')
+subplot(131)
+plot(ax_cs/1000,1+S.Tx(:,1)./max(abs(S.Tx(:,1)))); hold on
+plot(ax_cs/1000,1-S.h(:,1)./max(S.h(:)),'r')
+xlabel('cross shelf axis (km)');
 legend('Temp gradient','bathy')
 S = flip_vars(flip_flag,S);
 
 % then integrate to make T front
-% from left to right and then from top to bottom
+% first, from top to bottom
+
+
+% integrate in horizontal dirn. @ surface from left to right
 [S,axmat] = reset_flip(S,axmat);
 [S,axmat] = flip_vars(flip_flag,S,axmat);
-
-% integrate in horizontal dirn. @ surface
 if B.loc == 'h'
     S.temp(end,:,:) = T0;
     for i=size(S.temp,1)-1:-1:1
@@ -536,23 +539,30 @@ else
         S.temp(i,:,end) = S.temp(i-1,:,end) + S.Tx(i,:).*(axmat(i,:,end)-axmat(i-1,:,end));
     end
 end
-
 S = flip_vars(flip_flag,S);
 for k=size(zrmat,3)-1:-1:1
     S.temp(:,:,k) = S.temp(:,:,k+1) - Tz(:,:,k).*(zrmat(:,:,k+1)-zrmat(:,:,k));
 end
 
 % generalize plot
-subplot(122);
-contourf(squeeze(yrmat(xmid,:,:))/1000,squeeze(zrmat(xmid,:,:)),squeeze(S.temp(xmid,:,:)),40);
+subplot(132);
+if B.axis == 'x'
+    contourf(squeeze(xrmat(:,ymid,:))/1000,squeeze(zrmat(:,ymid,:)),squeeze(S.temp(:,ymid,:)),40);
+    xlabel('x (km)'); ylabel('z (m)'); title('Temperature');
+else
+    contourf(squeeze(yrmat(xmid,:,:))/1000,squeeze(zrmat(xmid,:,:)),squeeze(S.temp(xmid,:,:)),40);
+    xlabel('y (km)'); ylabel('z (m)'); title('Temperature');
+end
+subplot(133)
 contourf(xrmat(:,:,end)/1000,yrmat(:,:,end)/1000, S.temp(:,:,end),40);
+xlabel('x (km)'); ylabel('y (km)'); title('Temperature');
 
 %% calculate velocity field
 % first re-calculate temperature (density) gradient
 tgrid.xmat = xrmat; tgrid.ymat = yrmat; tgrid.zmat = zrmat; tgrid.s = S.s_rho;
 rgrid.zw = permute(zwmat,[3 2 1]); rgrid.s_w = S.s_w;
 
-Tgrad1 = avg1(avg1(horgrad_cgrid(rgrid,tgrid,S.temp,ax1),ax1),ax2);
+Tgrad1 = avg1(avg1(horgrad_cgrid(rgrid,tgrid,S.temp,i_cs),i_cs),i_as);
 Tgrad = nan(size(velzmat));
 if flip_flag
     Tgrad1 = permute(Tgrad1, [2 1 3]); 
@@ -565,7 +575,7 @@ Tgrad(2:end,:,:) = Tgrad1;
 clear Tgrad1
 if flip_flag, Tgrad = permute(Tgrad, [2 1 3]); end
 
-vel_shear = zeta_sign * g*TCOEF .* bsxfun(@rdivide,Tgrad,avg1(f,ax2));
+vel_shear = zeta_sign * g*TCOEF .* bsxfun(@rdivide,Tgrad,avg1(f,i_as));
 vmat = zeros(size(velzmat));
 for ii=2:size(velzmat,3) % bottom to top
     vmat(:,:,ii) = vmat(:,:,ii-1) + vel_shear(:,:,ii).*(velzmat(:,:,ii)-velzmat(:,:,ii-1));
@@ -574,16 +584,25 @@ eval(['S.' vel '=vmat;']);
 
 % generalize this plotting section
 figure
-subplot(121)
-contourf(squeeze(xvmat(:,ymid,:))./1000,squeeze(zvmat(:,ymid,:)),squeeze(S.v(:,ymid,:)));
-colorbar; title('velocity');
-subplot(122)
-contourf(squeeze(xvmat(:,ymid,:))./1000,squeeze(zvmat(:,ymid,:)),squeeze(vel_shear(:,ymid,:)));
-colorbar; title('velocity shear');
+if B.axis == 'x'
+    subplot(121)
+    contourf(squeeze(xvmat(:,ymid,:))./1000,squeeze(zvmat(:,ymid,:)),squeeze(S.v(:,ymid,:)));
+    colorbar; title('velocity'); xlabel('x (km)'); ylabel('z (m)');
+    subplot(122)
+    contourf(squeeze(xvmat(:,ymid,:))./1000,squeeze(zvmat(:,ymid,:)),squeeze(vel_shear(:,ymid,:)));
+    colorbar; title('velocity shear'); xlabel('x (km)'); ylabel('z (m)');
+else
+    subplot(121)
+    contourf(squeeze(yvmat(xmid,:,:))./1000,squeeze(zvmat(xmid,:,:)),squeeze(S.v(xmid,:,:)));
+    colorbar; title('velocity'); xlabel('y (km)'); ylabel('z (m)');
+    subplot(122)
+    contourf(squeeze(yvmat(xmid,:,:))./1000,squeeze(zvmat(xmid,:,:)),squeeze(vel_shear(xmid,:,:)));
+    colorbar; title('velocity shear'); xlabel('y (km)'); ylabel('z (m)');
+end
 
 % then calculate zeta
 S.zeta = nan([size(S.h,1) size(S.h,2)]);
-tmp = zeta_sign * f0/g * cumtrapz(zetahax,vmat(:,:,end),ax1);
+tmp = zeta_sign * f0/g * cumtrapz(zetahax,vmat(:,:,end),i_cs);
 if flip_flag, 
     S.zeta = S.zeta';
     tmp = tmp';
@@ -1126,7 +1145,7 @@ if make_plot
     
     % fix pv script so that it returns proper co-ordinates
     subplot(244)
-    contourf(repmat(xpv,1,size(pv,3))./fx,squeeze(zpv(:,ymid,:)),squeeze(pv(:,ymid,:)),20);
+    contourf(repmat(xpv(:,1),1,size(pv,3))./fx,squeeze(zpv(:,ymid,:)),squeeze(pv(:,ymid,:)),20);
     colorbar;
     title('PV');
     xlabel(['x ' lx]); ylabel('z (m)');
