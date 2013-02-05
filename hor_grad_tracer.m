@@ -9,10 +9,7 @@ function [Tx] = hor_grad_tracer(axmat_as,ax_as,ax_cs,i_cs,i_as,front,B)
     
     scale = (front.LTleft + front.LTright );
     sign  = 1;
-    
-    % cross-shelf 'axis'
-    % ax_cs = [1:size(axmat_as,ax2)]';
-    
+        
     n_points = 4; % maybe account for smoothing on shelfbreak 
     
     % code below works if slope is at low end of ax
@@ -34,7 +31,7 @@ function [Tx] = hor_grad_tracer(axmat_as,ax_as,ax_cs,i_cs,i_as,front,B)
                             + floor(n_points/2));
         end
     end
-        
+    
     if i_cs == 2
         Tx = permute(Tx,[2 1 3]);
     end
@@ -42,12 +39,10 @@ function [Tx] = hor_grad_tracer(axmat_as,ax_as,ax_cs,i_cs,i_as,front,B)
     % build gradient
     for jj = 1:length(ax_as)
         for ii = 1:length(ax_cs)
-            %for kk=1:size(sbreak,2)
-                % introduce frontal slope as varying reference 'shelfbreak' in depth
-                % also convert sbreak to distance
-%                sbreak(jj,kk) = 
-                Lleft  = sbreak(jj) - front.LTleft;
-                Lright = sbreak(jj) + front.LTright;
+            %for kk=1:size(axmat_as,3)
+                % introduce frontal slope as varying reference 'shelfbreak' in depth                % also convert sbreak to distance
+                Lleft  = sbreak(jj) - front.LTleft  + sign * 0;
+                Lright = sbreak(jj) + front.LTright + sign * 0;
                 if ax_cs(ii) <= Lleft || ax_cs(ii) >= Lright
                     Tx(ii,jj) = 0;
                 else if ax_cs(ii) > Lleft && ax_cs(ii) < Lright

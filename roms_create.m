@@ -451,8 +451,8 @@ eddy.cx    = X-170*1000; % center of eddy
 eddy.cy    = 650*1000; %        " 
 
 % Shelfbreak front parameters
-front.LTleft  = 5 * 1000; % length scale for temperature (m) - onshore
-front.LTright = 4*1000; % length scale - offshore
+front.LTleft  = 10 * 1000; % length scale for temperature (m) - onshore
+front.LTright = 10*1000; % length scale - offshore
 front.slope   = 0; % non-dimensional
 front.Tx0     = -3e-5; % max. magnitude of temperature gradient
 
@@ -474,7 +474,7 @@ for k=size(zrmat,3)-1:-1:1
     strat(:,:,k) = strat(:,:,k+1) - Tz(:,:,k).*(zrmat(:,:,k+1)-zrmat(:,:,k));
     strat_flat(:,:,k) = strat_flat(:,:,k+1) - Tz(:,:,k).*(zrflat(:,:,k+1)-zrflat(:,:,k));
 end
-S.temp = strat;
+% S.temp = strat;
 
 % first choose axis
 switch B.axis
@@ -511,7 +511,14 @@ switch B.axis
 end
 
 % build cosine curve about shelfbreak (do each lat/lon line individually)
+% this gets gradient on a Z level
 S.Tx = hor_grad_tracer(axmat,ax_as,ax_cs,i_cs,i_as,front,B);
+S.Tx = repmat(S.Tx,[1 1 S.N]);
+% use chain rule to get gradient on SIGMA LEVEL
+dzdx_s = diff(zrmat,1,i_cs)./diff(axmat,1,i_cs);
+Tz = N2/g/TCOEF * ones(size(zwmat) - [0 0 1]);
+S.Tx_sig = avg1(S.Tx,i_cs) + dzdx_s .* avg1(Tz,i_cs);
+
 S = reset_flip(S);
 S = flip_vars(flip_flag,S);
 subplot(131)
@@ -523,26 +530,22 @@ S = flip_vars(flip_flag,S);
 
 % then integrate to make T front
 % first, from top to bottom
-
-
-% integrate in horizontal dirn. @ surface from left to right
-[S,axmat] = reset_flip(S,axmat);
-[S,axmat] = flip_vars(flip_flag,S,axmat);
-if B.loc == 'h'
-    S.temp(end,:,:) = T0;
-    for i=size(S.temp,1)-1:-1:1
-        S.temp(i,:,end) = S.temp(i+1,:,end) + S.Tx(i,:).*(axmat(i+1,:,end)-axmat(i,:,end));
-    end
-else
-    S.temp(1,:,:) = T0;
-    for i=2:size(S.temp,1)
-        S.temp(i,:,end) = S.temp(i-1,:,end) + S.Tx(i,:).*(axmat(i,:,end)-axmat(i-1,:,end));
-    end
-end
-S = flip_vars(flip_flag,S);
 for k=size(zrmat,3)-1:-1:1
     S.temp(:,:,k) = S.temp(:,:,k+1) - Tz(:,:,k).*(zrmat(:,:,k+1)-zrmat(:,:,k));
 end
+% integrate in horizontal dirn.from left to right using gradients on SIGMA LEVEL
+[S,axmat] = reset_flip(S,axmat);
+[S,axmat] = flip_vars(flip_flag,S,axmat);
+if B.loc == 'h'
+    for i=size(S.temp,1)-1:-1:1
+        S.temp(i,:,:) = S.temp(i+1,:,:) + S.Tx_sig(i,:,:).*(axmat(i+1,:,:)-axmat(i,:,:));
+    end
+else
+    for i=2:size(S.temp,1)
+        S.temp(i,:,:) = S.temp(i-1,:,:) + S.Tx_sig(i-1,:,:).*(axmat(i,:,:)-axmat(i-1,:,:));
+    end
+end
+S = flip_vars(flip_flag,S);
 
 % generalize plot
 subplot(132);
