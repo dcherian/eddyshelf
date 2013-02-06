@@ -11,8 +11,8 @@ BRY_NAME  = 'topo_bry_01';
 % Grid Parameters
 S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 
-S.Lm = 300;
-S.Mm = 80;
+S.Lm = 200;
+S.Mm = 200;
 S.N  = 40;
 S.NPT = 0; % number of passive tracers
 S.NT = 2+S.NPT; % total number of tracers
@@ -428,15 +428,15 @@ flags.OBC = 1;  % create OBC file and set open boundaries
 flags.OBC_from_initial = 1; % copy OBC data from initial condition?
 if flags.OBC
     OBC.west  = false;           % process western  boundary segment
-    OBC.east  = true;            % process eastern  boundary segment
+    OBC.east  = false;            % process eastern  boundary segment
     OBC.south = false;           % process southern boundary segment
-    OBC.north = false;           % process northern boundary segment
+    OBC.north = true;           % process northern boundary segment
 end
 flags.ubt_initial = 1; % add barotropic velocity to initial condition?
 % flags.ubt_deep = 0; % nudge to ubt only in deep water - NOT WORKING
 %flags.localize_jet = 0;% buffer around eddy where velocity should exist - NOT NEEDED
-ubt = -0.05; % m/s barotropic velocity
-vbt = 0;-0.05; % m/s barotropic velocity
+ubt = 0;0.05; % m/s barotropic velocity
+vbt = -0.05; % m/s barotropic velocity
 
 % BAD IDEA  
 % buffer = 150 * 1000; % if localize_jet = 1, else whole domain has ubt -
@@ -460,7 +460,7 @@ front.Tx0     = -5e-5; % max. magnitude of temperature gradient
 B.h = S.h;
 %%%%%%%%%%%%%%%%%
 
-% Now set initial conditions - all variables are 0 by default S = S0; T=T0
+%% Now set initial conditions - all variables are 0 by default S = S0; T=T0
 
 tic
 
@@ -567,7 +567,7 @@ subplot(144)
 contourf(xrmat(:,:,end)/1000,yrmat(:,:,end)/1000, S.temp(:,:,end),40);
 xlabel('x (km)'); ylabel('y (km)'); title('Temperature');
 
-%% calculate velocity field
+% calculate velocity field
 % first re-calculate temperature (density) gradient
 % tgrid.xmat = xrmat; tgrid.ymat = yrmat; tgrid.zmat = zrmat; tgrid.s = S.s_rho;
 % rgrid.zw = permute(zwmat,[3 2 1]); rgrid.s_w = S.s_w;
@@ -743,7 +743,7 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% add barotropic velocity for advection (OBC initial condition also)
+%% add barotropic velocity for advection (OBC initial condition also)
 
 % modify velocity and free surface fields
 if flags.ubt_initial == 1
@@ -942,7 +942,7 @@ if flags.OBC == 1
 
     boundaries = fieldnames(OBC);
     range   = {'(1,:,:)','(end,:,:)','(:,1,:)','(:,end,:)'};
-    VarList = {'zeta'; 'ubar'; 'vbar'}; % variables to write
+    VarList = {'zeta'; 'ubar'; 'vbar';'temp'}; % variables to write
     
     % set boundary condition data
     if flags.OBC_from_initial
@@ -953,7 +953,7 @@ if flags.OBC == 1
             if OBC.(char(boundaries(mm,:))) % if open boundary
                 for jj = 1:size(VarList,1)
                     varname = sprintf('%s_%s',char(VarList{jj}),char(boundaries(mm,:)));
-                    eval([varname '=S.' char(VarList{jj}) char(range{mm}) ';']);
+                    eval([varname '= squeeze(S.' char(VarList{jj}) char(range{mm}) ');']);
                 end
             end
         end
@@ -994,7 +994,7 @@ if flags.OBC == 1
                 zeta_north = zeros(size(S.zeta(:,end)));
                 zeta_north(:,end) = zeta_north(:,1) + cumtrapz(squeeze(xrmat(:,end,1)), ...
                                                     f(:,end)./g * vbt,1);
-                zeta_north = zeta_north - nanmean(zeta_north); 
+                zeta_north = zeta_north - nanmean(zeta_north);
         end
     end
     
