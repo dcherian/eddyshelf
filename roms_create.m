@@ -11,7 +11,7 @@ BRY_NAME  = 'topo_bry_01';
 % Grid Parameters
 S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 
-S.Lm = 150;
+S.Lm = 300;
 S.Mm = 80;
 S.N  = 40;
 S.NPT = 0; % number of passive tracers
@@ -240,7 +240,7 @@ old_bathy = 0;
 
 % all measurements in m
 B.H_shelf  = 100;
-B.L_shelf  = 60 * 1000;
+B.L_shelf  = 30 * 1000;
 B.L_shelf2 =  0 * 1000;
 B.L_entry  = 0; 200* 1000; % deep water to initialize eddy in
 B.L_slope  =  20 * 1000;
@@ -453,14 +453,14 @@ eddy.cy    = 650*1000; %        "
 % Shelfbreak front parameters
 front.LTleft  = 10 * 1000; % length scale for temperature (m) - onshore
 front.LTright = 10*1000; % length scale - offshore
-front.slope   = 0; % non-dimensional
-front.Tx0     = -3e-5; % max. magnitude of temperature gradient
+front.slope   = 100/4000; % non-dimensional
+front.Tx0     = -5e-5; % max. magnitude of temperature gradient
 
 % save for later use
 B.h = S.h;
 %%%%%%%%%%%%%%%%%
 
-%% Now set initial conditions - all variables are 0 by default S = S0; T=T0
+% Now set initial conditions - all variables are 0 by default S = S0; T=T0
 
 tic
 
@@ -474,7 +474,6 @@ for k=size(zrmat,3)-1:-1:1
     strat(:,:,k) = strat(:,:,k+1) - Tz(:,:,k).*(zrmat(:,:,k+1)-zrmat(:,:,k));
     strat_flat(:,:,k) = strat_flat(:,:,k+1) - Tz(:,:,k).*(zrflat(:,:,k+1)-zrflat(:,:,k));
 end
-% S.temp = strat;
 
 % first choose axis
 switch B.axis
@@ -512,21 +511,12 @@ end
 
 % build cosine curve about shelfbreak (do each lat/lon line individually)
 % this gets gradient on a Z level
-S.Tx = hor_grad_tracer(axmat,ax_as,ax_cs,i_cs,i_as,front,B);
-S.Tx = repmat(S.Tx,[1 1 S.N]);
+S.Tx = hor_grad_tracer(axmat,ax_as,ax_cs,zrmat,i_cs,i_as,front,B);
+
 % use chain rule to get gradient on SIGMA LEVEL
 dzdx_s = diff(zrmat,1,i_cs)./diff(axmat,1,i_cs);
 Tz = N2/g/TCOEF * ones(size(zwmat) - [0 0 1]);
 S.Tx_sig = avg1(S.Tx,i_cs) + dzdx_s .* avg1(Tz,i_cs);
-
-S = reset_flip(S);
-S = flip_vars(flip_flag,S);
-subplot(131)
-plot(ax_cs/1000,1+S.Tx(:,1)./max(abs(S.Tx(:,1)))); hold on
-plot(ax_cs/1000,1-S.h(:,1)./max(S.h(:)),'r')
-xlabel('cross shelf axis (km)');
-legend('Temp gradient','bathy')
-S = flip_vars(flip_flag,S);
 
 % then integrate to make T front
 % first, from top to bottom
@@ -547,38 +537,55 @@ else
 end
 S = flip_vars(flip_flag,S);
 
-% generalize plot
-subplot(132);
+% Make plots to check temperature field
+figure;
+S = reset_flip(S);
+S = flip_vars(flip_flag,S);
+subplot(141)
+plot(ax_cs/1000,1+S.Tx(:,1)./max(abs(S.Tx(:,1)))); hold on
+plot(ax_cs/1000,1-S.h(:,1)./max(S.h(:)),'r')
+xlabel('cross shelf axis (km)');
+legend('Temp gradient','bathy')
+S = flip_vars(flip_flag,S);
+
 if B.axis == 'x'
+    subplot(142);
     contourf(squeeze(xrmat(:,ymid,:))/1000,squeeze(zrmat(:,ymid,:)),squeeze(S.temp(:,ymid,:)),40);
-    xlabel('x (km)'); ylabel('z (m)'); title('Temperature');
+    xlabel('x (km)'); ylabel('z (m)'); title('Temperature'); 
+    subplot(143);
+    contourf(squeeze(xrmat(:,ymid,:))/1000,squeeze(zrmat(:,ymid,:)),squeeze(S.Tx(:,ymid,:)),40);
+    xlabel('x (km)'); ylabel('z (m)'); title('Temperature Gradient');
 else
+    subplot(142);
+    contourf(squeeze(yrmat(xmid,:,:))/1000,squeeze(zrmat(xmid,:,:)),squeeze(S.temp(xmid,:,:)),40);
+    xlabel('y (km)'); ylabel('z (m)'); title('Temperature');
+    subplot(143);
     contourf(squeeze(yrmat(xmid,:,:))/1000,squeeze(zrmat(xmid,:,:)),squeeze(S.temp(xmid,:,:)),40);
     xlabel('y (km)'); ylabel('z (m)'); title('Temperature');
 end
-subplot(133)
+subplot(144)
 contourf(xrmat(:,:,end)/1000,yrmat(:,:,end)/1000, S.temp(:,:,end),40);
 xlabel('x (km)'); ylabel('y (km)'); title('Temperature');
 
 %% calculate velocity field
 % first re-calculate temperature (density) gradient
-tgrid.xmat = xrmat; tgrid.ymat = yrmat; tgrid.zmat = zrmat; tgrid.s = S.s_rho;
-rgrid.zw = permute(zwmat,[3 2 1]); rgrid.s_w = S.s_w;
+% tgrid.xmat = xrmat; tgrid.ymat = yrmat; tgrid.zmat = zrmat; tgrid.s = S.s_rho;
+% rgrid.zw = permute(zwmat,[3 2 1]); rgrid.s_w = S.s_w;
+% 
+% Tgrad1 = avg1(avg1(horgrad_cgrid(rgrid,tgrid,S.temp,i_cs),i_cs),i_as);
+% Tgrad = nan(size(velzmat));
+% if flip_flag
+%     Tgrad1 = permute(Tgrad1, [2 1 3]); 
+%     Tgrad = permute(Tgrad, [2 1 3]);  
+% end
+% % % add values at end
+% Tgrad1(size(Tgrad1,1)+1,:,:) = Tgrad1(size(Tgrad1,1),:,:);
+% Tgrad(1,:,:) = Tgrad1(2,:,:);
+% Tgrad(2:end,:,:) = Tgrad1;
+% clear Tgrad1
+% if flip_flag, Tgrad = permute(Tgrad, [2 1 3]); end
 
-Tgrad1 = avg1(avg1(horgrad_cgrid(rgrid,tgrid,S.temp,i_cs),i_cs),i_as);
-Tgrad = nan(size(velzmat));
-if flip_flag
-    Tgrad1 = permute(Tgrad1, [2 1 3]); 
-    Tgrad = permute(Tgrad, [2 1 3]);  
-end
-% % add values at end
-Tgrad1(size(Tgrad1,1)+1,:,:) = Tgrad1(size(Tgrad1,1),:,:);
-Tgrad(1,:,:) = Tgrad1(2,:,:);
-Tgrad(2:end,:,:) = Tgrad1;
-clear Tgrad1
-if flip_flag, Tgrad = permute(Tgrad, [2 1 3]); end
-
-vel_shear = zeta_sign * g*TCOEF .* bsxfun(@rdivide,Tgrad,avg1(f,i_as));
+vel_shear = zeta_sign * g*TCOEF .* bsxfun(@rdivide,avg1(S.Tx,i_as),avg1(f,i_as));
 vmat = zeros(size(velzmat));
 for ii=2:size(velzmat,3) % bottom to top
     vmat(:,:,ii) = vmat(:,:,ii-1) + vel_shear(:,:,ii).*(velzmat(:,:,ii)-velzmat(:,:,ii-1));
@@ -588,20 +595,21 @@ eval(['S.' vel '=vmat;']);
 % generalize this plotting section
 figure
 if B.axis == 'x'
-    subplot(121)
+    ax(1) = subplot(121);
     contourf(squeeze(xvmat(:,ymid,:))./1000,squeeze(zvmat(:,ymid,:)),squeeze(S.v(:,ymid,:)));
     colorbar; title('velocity'); xlabel('x (km)'); ylabel('z (m)');
-    subplot(122)
+    ax(2) = subplot(122);
     contourf(squeeze(xvmat(:,ymid,:))./1000,squeeze(zvmat(:,ymid,:)),squeeze(vel_shear(:,ymid,:)));
     colorbar; title('velocity shear'); xlabel('x (km)'); ylabel('z (m)');
 else
-    subplot(121)
+    ax(1) = subplot(121);
     contourf(squeeze(yvmat(xmid,:,:))./1000,squeeze(zvmat(xmid,:,:)),squeeze(S.v(xmid,:,:)));
     colorbar; title('velocity'); xlabel('y (km)'); ylabel('z (m)');
-    subplot(122)
+    ax(2) = subplot(122);
     contourf(squeeze(yvmat(xmid,:,:))./1000,squeeze(zvmat(xmid,:,:)),squeeze(vel_shear(xmid,:,:)));
     colorbar; title('velocity shear'); xlabel('y (km)'); ylabel('z (m)');
 end
+linkaxes(ax,'xy');
 
 % then calculate zeta
 S.zeta = nan([size(S.h,1) size(S.h,2)]);
