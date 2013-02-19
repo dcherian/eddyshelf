@@ -48,7 +48,7 @@ function [Tx] = hor_grad_tracer(axmat_as,ax_as,ax_cs,zrmat,i_cs,i_as,front,B)
     end
     
     % move front away from boundary if flat bottom
-    if (S.h / max(S.h(:)) == ones(size(S.h)))
+    if (B.h / max(B.h(:)) == ones(size(B.h)))
         npoints = 60;
         sbreak = ax_cs(npoints * ones(size(sbreak)));
     end
