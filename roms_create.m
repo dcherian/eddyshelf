@@ -24,8 +24,8 @@ S.theta_b = 2.0;     %  S-coordinate bottom control parameter.
 S.Tcline  = 10.0;    %  S-coordinate surface/bottom stretching width (m)
 
 % Domain Extent (in m)
-X = 100000;
-Y = 100000;
+X = 50000;
+Y = 50000;
 Z = 2000;
 
 % coriolis parameters
@@ -239,16 +239,16 @@ linear_bathymetry = 1;
 old_bathy = 0;
 
 % all measurements in m
-B.H_shelf  = 100;
-B.L_shelf  = 30 * 1000;
+B.H_shelf  = 1000;
+B.L_shelf  = 0;20 * 1000;
 B.L_shelf2 =  0 * 1000;
 B.L_entry  = 0; 200* 1000; % deep water to initialize eddy in
 B.L_slope  =  20 * 1000;
 B.L_tilt   = 0;130 * 1000;
 B.axis = 'x'; % CROSS SHELF AXIS
 B.loc  = 'l'; % h - high end of axis; l - low end
-B.sl_shelf = 0.0005;
-B.sl_slope = 0.08;
+B.sl_shelf = 0;0.0005;
+B.sl_slope = 0;0.08;
 
 % linear bathymetry
 if linear_bathymetry == 1
@@ -304,9 +304,9 @@ if linear_bathymetry == 1
 %         end
     end  
     
-    subplot(121)
+    subplot(131)
     plot(-S.h');
-    subplot(122)
+    subplot(132)
     contour(S.x_rho/1000,S.y_rho/1000,-S.h,40,'k');
     xlabel('x'); ylabel('y'); zlabel('z')
 end
@@ -398,6 +398,12 @@ r_x1 = nanmax(abs( [r_x1_x(:);r_x1_y(:)] ));
 clear r_x1_x r_x1_y
 bathy_title = sprintf('\n\n Beckmann & Haidvogel number = %f (< 0.2 , max 0.4) \n \t\t\t\tHaney number = %f (< 9 , maybe 16)', r_x0,r_x1);
 
+subplot(133)
+ind = S.Mm/2;
+pcolorcen(squeeze(xrmat(:,ind,:)),squeeze(zrmat(:,ind,:)),squeeze(zeros(size(xrmat(:,ind,:)))));
+shading faceted
+beautify;
+
 figure;
 surf(S.x_rho/1000,S.y_rho/1000,-S.h); shading interp
 title(bathy_title); colorbar;
@@ -428,18 +434,15 @@ flags.OBC = 1;  % create OBC file and set open boundaries
 flags.OBC_from_initial = 1; % copy OBC data from initial condition?
 if flags.OBC
     OBC.west  = false;           % process western  boundary segment
-    OBC.east  = false;            % process eastern  boundary segment
+    OBC.east  = false;           % process eastern  boundary segment
     OBC.south = false;           % process southern boundary segment
-    OBC.north = true;           % process northern boundary segment
+    OBC.north = true;            % process northern boundary segment
 end
 flags.ubt_initial = 1; % add barotropic velocity to initial condition?
 % flags.ubt_deep = 0; % nudge to ubt only in deep water - NOT WORKING
 %flags.localize_jet = 0;% buffer around eddy where velocity should exist - NOT NEEDED
 ubt = 0;0.05; % m/s barotropic velocity
-vbt = -0.05; % m/s barotropic velocity
-
-% BAD IDEA  
-% buffer = 150 * 1000; % if localize_jet = 1, else whole domain has ubt -
+vbt = 0;-0.05; % m/s barotropic velocity
 
 % Eddy parameters - all distances in m
 eddy.dia   = 70*1000; % in m
@@ -451,9 +454,9 @@ eddy.cx    = X-170*1000; % center of eddy
 eddy.cy    = 650*1000; %        " 
 
 % Shelfbreak front parameters
-front.LTleft  = 10 * 1000; % length scale for temperature (m) - onshore
-front.LTright = 10*1000; % length scale - offshore
-front.slope   = 100/4000; % non-dimensional
+front.LTleft  = 5 * 1000; % length scale for temperature (m) - onshore
+front.LTright = 5*1000; % length scale - offshore
+front.slope   = 500/4000; % non-dimensional
 front.Tx0     = -5e-5; % max. magnitude of temperature gradient
 
 % save for later use
@@ -549,50 +552,36 @@ legend('Temp gradient','bathy')
 S = flip_vars(flip_flag,S);
 
 if B.axis == 'x'
-    subplot(142);
+    axt(1) = subplot(142);
     contourf(squeeze(xrmat(:,ymid,:))/1000,squeeze(zrmat(:,ymid,:)),squeeze(S.temp(:,ymid,:)),40);
     xlabel('x (km)'); ylabel('z (m)'); title('Temperature'); 
-    subplot(143);
+    axt(2) = subplot(143);
     contourf(squeeze(xrmat(:,ymid,:))/1000,squeeze(zrmat(:,ymid,:)),squeeze(S.Tx(:,ymid,:)),40);
     xlabel('x (km)'); ylabel('z (m)'); title('Temperature Gradient');
 else
-    subplot(142);
+    axt(1) = subplot(142);
     contourf(squeeze(yrmat(xmid,:,:))/1000,squeeze(zrmat(xmid,:,:)),squeeze(S.temp(xmid,:,:)),40);
     xlabel('y (km)'); ylabel('z (m)'); title('Temperature');
-    subplot(143);
+    axt(2) = subplot(143);
     contourf(squeeze(yrmat(xmid,:,:))/1000,squeeze(zrmat(xmid,:,:)),squeeze(S.temp(xmid,:,:)),40);
     xlabel('y (km)'); ylabel('z (m)'); title('Temperature');
 end
-subplot(144)
+axt(3) = subplot(144);
 contourf(xrmat(:,:,end)/1000,yrmat(:,:,end)/1000, S.temp(:,:,end),40);
 xlabel('x (km)'); ylabel('y (km)'); title('Temperature');
+% link axes
+linkaxes(axt,'x');
+linkaxes([axt(1) axt(2)],'xy');
 
 % calculate velocity field
-% first re-calculate temperature (density) gradient
-% tgrid.xmat = xrmat; tgrid.ymat = yrmat; tgrid.zmat = zrmat; tgrid.s = S.s_rho;
-% rgrid.zw = permute(zwmat,[3 2 1]); rgrid.s_w = S.s_w;
-% 
-% Tgrad1 = avg1(avg1(horgrad_cgrid(rgrid,tgrid,S.temp,i_cs),i_cs),i_as);
-% Tgrad = nan(size(velzmat));
-% if flip_flag
-%     Tgrad1 = permute(Tgrad1, [2 1 3]); 
-%     Tgrad = permute(Tgrad, [2 1 3]);  
-% end
-% % % add values at end
-% Tgrad1(size(Tgrad1,1)+1,:,:) = Tgrad1(size(Tgrad1,1),:,:);
-% Tgrad(1,:,:) = Tgrad1(2,:,:);
-% Tgrad(2:end,:,:) = Tgrad1;
-% clear Tgrad1
-% if flip_flag, Tgrad = permute(Tgrad, [2 1 3]); end
-
 vel_shear = zeta_sign * g*TCOEF .* bsxfun(@rdivide,avg1(S.Tx,i_as),avg1(f,i_as));
-vmat = zeros(size(velzmat));
+vmat = zeros(size(velzmat)); % zero vel. at bottom
 for ii=2:size(velzmat,3) % bottom to top
     vmat(:,:,ii) = vmat(:,:,ii-1) + vel_shear(:,:,ii).*(velzmat(:,:,ii)-velzmat(:,:,ii-1));
 end
 eval(['S.' vel '=vmat;']);
 
-% generalize this plotting section
+% plot velocity
 figure
 if B.axis == 'x'
     ax(1) = subplot(121);
@@ -777,7 +766,7 @@ if flags.ubt_initial == 1
 %    end
 end
 
-%% Misc calculations (ubar,vbar) - shouldn't require changes
+%% Misc calculations (ubar,vbar,pv) - shouldn't require changes
 
 % Add random perturbation
 zeta0 = S.zeta; % save for thermal wind check later
@@ -841,39 +830,42 @@ pvmid = pv(xmid,ymid,zmid);
 xind = 30; yind = 15; zind = 30;
 
 % these are needed later too
-dz = squeeze(diff(zvmat(1,1,:)));
-VZ  = bsxfun(@rdivide,squeeze(diff(S.v,1,3)),permute(dz,[3 2 1]));
-UZ  = bsxfun(@rdivide,squeeze(diff(S.u,1,3)),permute(dz,[3 2 1]));
-UZy = bsxfun(@rdivide,squeeze(diff(S.u,1,3)),permute(dz,[3 2 1])); % for Ri
+VZ  = diff(S.v,1,3) ./ diff(zvmat,1,3);
+UZ  = diff(S.u,1,3) ./ diff(zumat,1,3);
+UZy = UZ;%bsxfun(@rdivide,squeeze(diff(S.u,1,3)),permute(dz,[3 2 1])); % for Ri
         
 dx = squeeze(diff(xrmat,1,1));
 dy = squeeze(diff(yrmat,1,2));
 
-dTdx = bsxfun(@rdivide, diff(S.temp,1,1)./dx*  TCOEF*g, avg1(f,1));
-dTdy = bsxfun(@rdivide, diff(S.temp,1,2)./dy* -TCOEF*g, avg1(f,2));
+tgrid.zw = permute(zwmat,[3 2 1]); tgrid.s_w = S.s_w;
+tgrid.xmat = xrmat; tgrid.ymat = yrmat; tgrid.zmat = zrmat;
+tgrid.s = S.s_rho;
+
+dTdx = bsxfun(@rdivide, diff_cgrid(tgrid,S.temp,1) *  TCOEF*g, avg1(f,1));
+dTdy = bsxfun(@rdivide, diff_cgrid(tgrid,S.temp,2) * -TCOEF*g, avg1(f,2));
 
 dzdx = bsxfun(@rdivide, diff(zeta0,1,1), dx(:,:,end));
 dzdy = bsxfun(@rdivide, diff(zeta0,1,2), dy(:,:,end));
 
 % PERCENTAGE error in thermal wind balance
-diff_u = (avg1(UZ,2) - avg1(avg1(dTdy,1),3))./max(UZ(:)) * 100;
-diff_v = (avg1(VZ,1) - avg1(avg1(dTdx,2),3))./max(VZ(:)) * 100;
-
-figure;
-subplot(211)
-pcolorcen(squeeze(diff_v(:,yind,:))'); colorbar
-title('% error (v_z - dT/dx * \alpha g/f)');
-subplot(212)
-pcolorcen(squeeze(diff_u(xind,:,:))'); colorbar
-title('% error (-u_z - dT/dy * \alpha g/f)/max(u_z)');
+diff_u = (avg1(UZ,2) - avg1(avg1(dTdy,1),3))./max(abs(UZ(:))) * 100;
+diff_v = (avg1(VZ,1) - avg1(avg1(dTdx,2),3))./max(abs(VZ(:))) * 100;
+% 
+% figure;
+% subplot(211)
+% pcolorcen(squeeze(diff_v(:,yind,:))'); colorbar
+% title('% error (v_z - dT/dx * \alpha g/f)');
+% subplot(212)
+% pcolorcen(squeeze(diff_u(xind,:,:))'); colorbar
+% title('% error (-u_z - dT/dy * \alpha g/f)/max(u_z)');
 
 figure;
 subplot(221)
 pcolorcen(diff_v(:,:,end)'); colorbar
-title('% error (v_z - dT/dx * \alpha g/f)');
+title('% error (v_z - dT/dx * \alpha g/f)|_{z=0}');
 subplot(222)
 pcolorcen(squeeze(diff_u(:,:,end))'); colorbar
-title('% error (-u_z - dT/dy * \alpha g/f)');
+title('% error (-u_z - dT/dy * \alpha g/f)|_{z=0}');
 subplot(223)
 pcolorcen(((avg1((dzdx ./ avg1(f,1)* g),2)-avg1(S.v(:,:,end),1)))./ ...
                 max(abs(S.v(:)))*100); colorbar
@@ -1062,47 +1054,6 @@ if make_plot
     
     limx = [min(xrmat(:,1,1)) max(xrmat(:,1,1))]./fx;
     limy = [min(yrmat(1,:,1)) max(yrmat(1,:,1))]./fy;
-%     dx = diff(xrmat(:,yind,zind));
-%     dy = squeeze(diff(yrmat(xind,:,zind)));
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
-%     zind = 19; % Plots to check thermal wind
-%     figure;
-%     subplot(221)
-%     plot(avg1(xrmat(:,1,1))./fx,diff(zeta0(:,yind))./dx(:,end) ./ avg1(f(:,yind),1)* g); hold on
-%     plot(xvmat(:,1,1)./fx,S.v(:,yind,end),'r');
-%     xlim(limx); xlabel(['x' lx]);
-%     legend('\zeta_x','v_{z=0}','Location','Best'); 
-%     title('Check thermal wind @ surface');
-%     
-%     subplot(222)
-%     plot(avg1(xrmat(:,1,1))./fx,diff(S.temp(:,yind,zind),1,1)./dx(:,zind) ./ avg1(f(:,yind),1) * TCOEF*g);
-%     hold on
-%     plot(xvmat(:,1,1)./fx,(VZ(:,zind-1) + VZ(:,zind))/2,'r');
-%     plot(xrmat(:,1,1)./fx,Txv(:,yind,zind)* TCOEF*g/f0,'g')
-%     %plot(xvmat(:,1,1)./fx,squeeze(vz(:,yind,zind)),'k');
-%     legend('T_x^{field} * \alpha g/f','v_z','T_x^{imposed} * \alpha g/f_0','v_z (imposed)','Location','NorthEast');
-%     xlim(limx); xlabel(['x' lx]);
-%     title(['Check thermal wind @ z=' num2str(zrmat(xind,yind,zind)) ' m']);
-%         
-%     subplot(223)
-%     plot(avg1(yrmat(1,:,1),2)./fy,-diff(zeta0(xind,:))'./dy(:,end)./avg1(f(xind,:),2)' .* g); hold on
-%     plot(yumat(1,:,1)./fy,S.u(xind,:,end),'r');
-%     xlim(limy); xlabel(['y' ly]);
-%     legend('\zeta_y','u_{z=0}','Location','Best');
-%     
-%     subplot(224)
-%     plot(avg1(yrmat(1,:,1),2)./fy,-squeeze(diff(S.temp(xind,:,zind,1),1,2))'./dy(:,zind) ...
-%                             ./avg1(f(xind,:),2)' * TCOEF*g);
-%     hold on
-%     plot(yumat(1,:,1)./fy,(UZ(:,zind-1) + UZ(:,zind))/2,'r');
-%     plot(yumat(1,:,1)./fy,-Tyu(xind,:,zind)* TCOEF*g/f0,'g')
-%     %plot(yumat(1,:,1)./fy,uz(xind,:,zind),'k');
-%     legend('-T_y^{field} * \alpha g/f','u_z','-T_y^{imposed} * \alpha g/f_0','u_z (imposed)','Location','NorthWest');
-%     xlim(limy); xlabel(['y' ly]);
-
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     if flags.eddy
         xmid = find_approx(xrmat(:,1,1),eddy.cx,1);
@@ -1163,30 +1114,30 @@ if make_plot
     
     % need to interpolate to constant z - surface
     subplot(245)
-    contourf(xumat(:,:,zmid)./fx,yumat(:,:,zmid)./fy,squeeze(S.u(:,:,zmid)));
+    contourf(xumat(:,:,end)./fx,yumat(:,:,end)./fy,squeeze(S.u(:,:,end)));
     colorbar;
-    title('u');
+    title('surface u');
     xlabel(['x ' lx]); ylabel(['y ' ly]);
     axis square;
 
     subplot(246)
-    contourf(xvmat(:,:,zmid)./fx,yvmat(:,:,zmid)./fy,squeeze(S.v(:,:,zmid)));
+    contourf(xvmat(:,:,end)./fx,yvmat(:,:,end)./fy,squeeze(S.v(:,:,end)));
     colorbar;
-    title('v');
+    title('surface v');
     xlabel(['x ' lx]); ylabel(['y ' ly]);
     axis square;
 
     subplot(247)
-    contourf(xrmat(:,:,zmid)./fx,yrmat(:,:,zmid)./fy,squeeze(S.temp(:,:,zmid)));
+    contourf(xrmat(:,:,end)./fx,yrmat(:,:,end)./fy,squeeze(S.temp(:,:,end)));
     colorbar;
-    title('temp');
+    title('SST');
     xlabel(['x ' lx]); ylabel(['y ' ly]);
     axis square;
 
     subplot(248)
     contourf(S.x_rho(:,1)./fx,squeeze(S.y_rho(1,:))./fy,squeeze(S.zeta(:,:,1))');
     colorbar;
-    title('zeta');
+    title('SSH (zeta)');
     xlabel(['x ' lx]); ylabel(['y ' ly]);
     axis square;
 end
@@ -1284,6 +1235,24 @@ fprintf('\n\n Beckmann & Haidvogel number = %f (< 0.2 , max 0.4) \n \t\t\t\tHane
 fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, \n\n C_bt = %.3f | C_bc = %.3f  | C_bc7 = %.3f\n\n Min. Ri = %.2f\n\n', dt,ndtfast,Cbt,Cbc,Cbc7,min(Ri(:)));
 %fprintf('\n\n (dt)_bt < %.2f s | (dt)_bc < %.2f s\n\n', DX/(sqrt(g*min(S.h(:)))), DX/(sqrt(N2)*min(S.h(:))/pi))
 
+%% old calculate velocity field
+% first re-calculate temperature (density) gradient
+% tgrid.xmat = xrmat; tgrid.ymat = yrmat; tgrid.zmat = zrmat; tgrid.s = S.s_rho;
+% rgrid.zw = permute(zwmat,[3 2 1]); rgrid.s_w = S.s_w;
+% 
+% Tgrad1 = avg1(avg1(horgrad_cgrid(rgrid,tgrid,S.temp,i_cs),i_cs),i_as);
+% Tgrad = nan(size(velzmat));
+% if flip_flag
+%     Tgrad1 = permute(Tgrad1, [2 1 3]); 
+%     Tgrad = permute(Tgrad, [2 1 3]);  
+% end
+% % % add values at end
+% Tgrad1(size(Tgrad1,1)+1,:,:) = Tgrad1(size(Tgrad1,1),:,:);
+% Tgrad(1,:,:) = Tgrad1(2,:,:);
+% Tgrad(2:end,:,:) = Tgrad1;
+% clear Tgrad1
+% if flip_flag, Tgrad = permute(Tgrad, [2 1 3]); end
+
 %% check eddy profile (normalized)
 % subplot(131)
 % pcolorcen(S.x_rho/1000,S.y_rho/1000,eddy.xyprof); 
@@ -1360,5 +1329,3 @@ fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, \n\n C_bt = %.3f | C_bc = %.3f  
 % S.zeta(:,2:end-1) = (tmp(:,1:end-1) + tmp(:,2:end))/2;
 % S.zeta(:,1) = S.zeta(:,2) - (yrmat(:,2,end) - yrmat(:,1,end)).*(S.zeta(:,3)-S.zeta(:,2))./(yrmat(:,3,end) - yrmat(:,2,end));
 % S.zeta(:,end) = S.zeta(:,end-1) + (yrmat(:,end,end) - yrmat(:,end-1,end)).*(S.zeta(:,end-1)-S.zeta(:,end-2))./(yrmat(:,end-1,end) - yrmat(:,end-2,end));
-
-
