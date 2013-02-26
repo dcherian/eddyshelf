@@ -11,8 +11,8 @@ BRY_NAME  = 'topo_bry_01';
 % Grid Parameters
 S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 
-S.Lm = 200;
-S.Mm = 200;
+S.Lm = 100;
+S.Mm = 100;
 S.N  = 40;
 S.NPT = 0; % number of passive tracers
 S.NT = 2+S.NPT; % total number of tracers
@@ -239,16 +239,16 @@ linear_bathymetry = 1;
 old_bathy = 0;
 
 % all measurements in m
-B.H_shelf  = 1000;
-B.L_shelf  = 0;20 * 1000;
+B.H_shelf  = 100;
+B.L_shelf  = 20 * 1000;
 B.L_shelf2 =  0 * 1000;
 B.L_entry  = 0; 200* 1000; % deep water to initialize eddy in
 B.L_slope  =  20 * 1000;
 B.L_tilt   = 0;130 * 1000;
 B.axis = 'x'; % CROSS SHELF AXIS
 B.loc  = 'l'; % h - high end of axis; l - low end
-B.sl_shelf = 0;0.0005;
-B.sl_slope = 0;0.08;
+B.sl_shelf = 0.0005;
+B.sl_slope = 0.08;
 
 % linear bathymetry
 if linear_bathymetry == 1
@@ -442,7 +442,7 @@ flags.ubt_initial = 1; % add barotropic velocity to initial condition?
 % flags.ubt_deep = 0; % nudge to ubt only in deep water - NOT WORKING
 %flags.localize_jet = 0;% buffer around eddy where velocity should exist - NOT NEEDED
 ubt = 0;0.05; % m/s barotropic velocity
-vbt = 0;-0.05; % m/s barotropic velocity
+vbt = -0.05; % m/s barotropic velocity
 
 % Eddy parameters - all distances in m
 eddy.dia   = 70*1000; % in m
@@ -454,10 +454,10 @@ eddy.cx    = X-170*1000; % center of eddy
 eddy.cy    = 650*1000; %        " 
 
 % Shelfbreak front parameters
-front.LTleft  = 5 * 1000; % length scale for temperature (m) - onshore
-front.LTright = 5*1000; % length scale - offshore
+front.LTleft  = 12.5 * 1000; % length scale for temperature (m) - onshore
+front.LTright = 10*1000; % length scale - offshore
 front.slope   = 500/4000; % non-dimensional
-front.Tx0     = -5e-5; % max. magnitude of temperature gradient
+front.Tx0     = -1e-4; % max. magnitude of temperature gradient
 
 % save for later use
 B.h = S.h;
@@ -517,12 +517,17 @@ end
 S.Tx = hor_grad_tracer(axmat,ax_as,ax_cs,zrmat,i_cs,i_as,front,B);
 
 % use chain rule to get gradient on SIGMA LEVEL
+tgrid.zw = permute(zwmat,[3 2 1]); tgrid.s_w = S.s_w;
+tgrid.xmat = xrmat; tgrid.ymat = yrmat; tgrid.zmat = zrmat;
+tgrid.s = S.s_rho;
+
 dzdx_s = diff(zrmat,1,i_cs)./diff(axmat,1,i_cs);
 Tz = N2/g/TCOEF * ones(size(zwmat) - [0 0 1]);
 S.Tx_sig = avg1(S.Tx,i_cs) + dzdx_s .* avg1(Tz,i_cs);
 
 % then integrate to make T front
 % first, from top to bottom
+S.temp = T0*ones(size(S.temp));
 for k=size(zrmat,3)-1:-1:1
     S.temp(:,:,k) = S.temp(:,:,k+1) - Tz(:,:,k).*(zrmat(:,:,k+1)-zrmat(:,:,k));
 end
@@ -531,7 +536,7 @@ end
 [S,axmat] = flip_vars(flip_flag,S,axmat);
 if B.loc == 'h'
     for i=size(S.temp,1)-1:-1:1
-        S.temp(i,:,:) = S.temp(i+1,:,:) + S.Tx_sig(i,:,:).*(axmat(i+1,:,:)-axmat(i,:,:));
+        S.temp(i,:,:) = S.temp(i+1,:,:) + S.Tx_sig(i,:,:)  .*(axmat(i+1,:,:)-axmat(i,:,:));
     end
 else
     for i=2:size(S.temp,1)
@@ -575,6 +580,7 @@ linkaxes([axt(1) axt(2)],'xy');
 
 % calculate velocity field
 vel_shear = zeta_sign * g*TCOEF .* bsxfun(@rdivide,avg1(S.Tx,i_as),avg1(f,i_as));
+%vel_shear = zeta_sign * g*TCOEF .* bsxfun(@rdivide,Tgrad,avg1(f,i_as));
 vmat = zeros(size(velzmat)); % zero vel. at bottom
 for ii=2:size(velzmat,3) % bottom to top
     vmat(:,:,ii) = vmat(:,:,ii-1) + vel_shear(:,:,ii).*(velzmat(:,:,ii)-velzmat(:,:,ii-1));
@@ -837,10 +843,6 @@ UZy = UZ;%bsxfun(@rdivide,squeeze(diff(S.u,1,3)),permute(dz,[3 2 1])); % for Ri
 dx = squeeze(diff(xrmat,1,1));
 dy = squeeze(diff(yrmat,1,2));
 
-tgrid.zw = permute(zwmat,[3 2 1]); tgrid.s_w = S.s_w;
-tgrid.xmat = xrmat; tgrid.ymat = yrmat; tgrid.zmat = zrmat;
-tgrid.s = S.s_rho;
-
 dTdx = bsxfun(@rdivide, diff_cgrid(tgrid,S.temp,1) *  TCOEF*g, avg1(f,1));
 dTdy = bsxfun(@rdivide, diff_cgrid(tgrid,S.temp,2) * -TCOEF*g, avg1(f,2));
 
@@ -861,11 +863,11 @@ diff_v = (avg1(VZ,1) - avg1(avg1(dTdx,2),3))./max(abs(VZ(:))) * 100;
 
 figure;
 subplot(221)
-pcolorcen(diff_v(:,:,end)'); colorbar
-title('% error (v_z - dT/dx * \alpha g/f)|_{z=0}');
+pcolorcen(diff_v(:,:,S.N/2)'); colorbar
+title('% error (v_z - dT/dx * \alpha g/f)|_{z=mid}');
 subplot(222)
-pcolorcen(squeeze(diff_u(:,:,end))'); colorbar
-title('% error (-u_z - dT/dy * \alpha g/f)|_{z=0}');
+pcolorcen(squeeze(diff_u(:,:,S.N/2))'); colorbar
+title('% error (-u_z - dT/dy * \alpha g/f)|_{z=mid}');
 subplot(223)
 pcolorcen(((avg1((dzdx ./ avg1(f,1)* g),2)-avg1(S.v(:,:,end),1)))./ ...
                 max(abs(S.v(:)))*100); colorbar
@@ -934,7 +936,7 @@ if flags.OBC == 1
 
     boundaries = fieldnames(OBC);
     range   = {'(1,:,:)','(end,:,:)','(:,1,:)','(:,end,:)'};
-    VarList = {'zeta'; 'ubar'; 'vbar';'temp'}; % variables to write
+    VarList = {'zeta'; 'ubar'; 'vbar';'temp';'salt'}; % variables to write
     
     % set boundary condition data
     if flags.OBC_from_initial
@@ -1252,6 +1254,42 @@ fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, \n\n C_bt = %.3f | C_bc = %.3f  
 % Tgrad(2:end,:,:) = Tgrad1;
 % clear Tgrad1
 % if flip_flag, Tgrad = permute(Tgrad, [2 1 3]); end
+
+%% check gradient calculation
+
+tgrid.xmat = xrmat; tgrid.ymat = yrmat; tgrid.zmat = zrmat; tgrid.s = S.s_rho;
+rgrid.zw = permute(zwmat,[3 2 1]); rgrid.s_w = S.s_w;
+
+Tgrad1 = avg1(avg1(diff_cgrid(tgrid,S.temp,i_cs),i_cs),i_as);
+Tgrad = nan(size(velzmat));
+if flip_flag
+    Tgrad1 = permute(Tgrad1, [2 1 3]); 
+    Tgrad = permute(Tgrad, [2 1 3]);  
+end
+% % add values at end
+Tgrad1(size(Tgrad1,1)+1,:,:) = Tgrad1(size(Tgrad1,1),:,:);
+Tgrad(1,:,:) = Tgrad1(2,:,:);
+Tgrad(2:end,:,:) = Tgrad1;
+clear Tgrad1
+if flip_flag, Tgrad = permute(Tgrad, [2 1 3]); end
+
+
+dT = abs(Tgrad-avg1(S.Tx,i_as))./max(abs(S.Tx(:))) * 100;
+yind = S.Mm/2;
+figure
+ax(1) = subplot(131);
+contourf(squeeze(xrmat(:,yind,:)), squeeze(zrmat(:,yind,:)), squeeze(S.Tx(:,yind,:)));
+title('imposed T_x');
+colorbar; clim = caxis;
+ax(2) = subplot(132);
+contourf(squeeze(xrmat(:,yind,:)), squeeze(zrmat(:,yind,:)), squeeze(Tgrad(:,yind,:)));
+title('Calculated T_x');
+caxis(clim); colorbar
+ax(3) = subplot(133);
+contourf(squeeze(xrmat(:,yind,:)), squeeze(zrmat(:,yind,:)), squeeze(dT(:,yind,:)));
+title('% error');
+colorbar
+linkaxes(ax,'xy');
 
 %% check eddy profile (normalized)
 % subplot(131)
