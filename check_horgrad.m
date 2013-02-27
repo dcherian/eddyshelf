@@ -23,15 +23,16 @@ linkaxes(h,'xy');
 
 % check Hz calculation with vertical derivatives
 Tgradz = avg1(diff_cgrid(tgrid,S.temp,3),3);
-Tz0 = avg1(Tz,3); diff(S.temp,1,3)./diff(zrmat,1,3);
+Tz0 = diff(S.temp,1,3)./diff(zrmat,1,3);
 
 Tgradz = squeeze(Tgradz(:,1,:));
 Tz0 = squeeze(Tz0(:,1,:));
 dTz = abs(Tgradz - Tz0);
 
+figure
 h(1) = subplot(131);
 contourf(avg1(squeeze(xrmat(:,1,:)),2)/1000,avg1(squeeze(zrmat(:,1,:)),2),Tgradz,20);
-title('diff_cgrid'); colorbar; cx = caxis;
+title('diff\_cgrid'); colorbar; cx = caxis;
 
 h(2) = subplot(132);
 contourf(avg1(squeeze(xrmat(:,1,:)),2)/1000,avg1(squeeze(zrmat(:,1,:)),2),Tz0,20);
