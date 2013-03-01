@@ -10,7 +10,7 @@ function [Tx] = hor_grad_tracer(axmat_as,ax_as,ax_cs,zrmat,i_cs,i_as,front,B)
     scale = (front.LTleft + front.LTright );
     sign  = 1;
         
-    n_points = 4; % maybe account for smoothing on shelfbreak 
+    n_points = 0;4; % maybe account for smoothing on shelfbreak 
     
     % code below works if slope is at low end of ax
     % need to flip if high end

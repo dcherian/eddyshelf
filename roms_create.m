@@ -12,13 +12,13 @@ BRY_NAME  = 'topo_bry_01';
 S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 
 % grid information
-S.Lm = 260;
-S.Mm = 270;
+S.Lm = 100;
+S.Mm = 100;
 S.N  = 40;
 
 % Domain Extent (in m)
-X = 220000;
-Y = 250000;
+X = 130000;
+Y = 200000;
 Z = 2000;
 
 % tracers
@@ -61,7 +61,7 @@ flags.old_bathy = 0;
 flags.perturb_zeta = 0; % add random perturbation to zeta
 flags.spinup = 0; % if spinup, do not initialize ubar/vbar fields.
 
-flags.front = 1; % create shelfbreak front
+flags.front = 0; % create shelfbreak front
 flags.eddy  = 1; % create eddy
 
 % momentum balance options
@@ -84,12 +84,12 @@ flags.ubt_initial = 1; % add barotropic velocity to initial condition?
 
 % Barotropic background flow parameters
 ubt = 0;0.05; % m/s barotropic velocity
-vbt = -0.05; % m/s barotropic velocity
+vbt = -0.02; % m/s barotropic velocity
 
 % Bathymetry parameters - all measurements in m
 bathy.H_shelf  = 100;
-bathy.L_shelf  = 50 * 1000;
-bathy.L_slope  =  20 * 1000;
+bathy.L_shelf  = 20 * 1000;
+bathy.L_slope  =  10 * 1000;
 bathy.axis = 'x'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
 bathy.sl_shelf = 0.0005;
@@ -101,19 +101,19 @@ bathy.L_entry  = 0; %200* 1000; % deep water to initialize eddy in
 bathy.L_tilt   = 0; %130 * 1000;
 
 % Eddy parameters - all distances in m
-eddy.dia   = 80*1000/2; % in m
-eddy.depth = 500; % depth below which flow is 'compensated'
-eddy.Ncos  = 16; % no. of points over which the cosine modulates to zero
+eddy.dia   = 40*1000/2; % in m
+eddy.depth = 300; % depth below which flow is 'compensated'
+eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero
 eddy.tamp  = 50; % controls gradient
 eddy.a     = 2;  % ? in Katsman et al. (2003)
-eddy.cx    = X-eddy.dia-60000; % center of eddy
+eddy.cx    = X-eddy.dia-15000; % center of eddy
 eddy.cy    = Y-eddy.dia-20000; %        " 
 
 % Shelfbreak front parameters
 front.LTleft  = 12.5 * 1000; % length scale for temperature (m) - onshore
-front.LTright = 10*1000; % length scale - offshore
+front.LTright = 8*1000; % length scale - offshore
 front.slope   = 500/4000; % non-dimensional
-front.Tx0     = -1e-4; % max. magnitude of temperature gradient
+front.Tx0     = -2e-4; % max. magnitude of temperature gradient
 
 %%%%%%%%%%%%%%%%%
     
@@ -318,7 +318,7 @@ end
 % linear bathymetry
 if flags.linear_bathymetry == 1
     
-    [S] = bathy_simple(S,B,X,Y,bathy.axis,bathy.loc);
+    [S] = bathy_simple(S,bathy,X,Y,bathy.axis);
 %   [S] = bathy2_x(S,B,X,Y);
 %     ix1 = find_approx(S.x_rho(:,1),X-bathy.L_entry-bathy.L_tilt,1);
 %     ix2 = find_approx(S.x_rho(:,1),X-bathy.L_entry,1);
@@ -468,6 +468,11 @@ tic
 S.temp = T0*ones(size(S.temp));
 S.salt = S0*ones(size(S.salt));
 
+% setup variables for diff_cgrid used later
+tgrid.zw = permute(zwmat,[3 2 1]); tgrid.s_w = S.s_w;
+tgrid.xmat = xrmat; tgrid.ymat = yrmat; tgrid.zmat = zrmat;
+tgrid.s = S.s_rho;
+
 % Create background state (assumes uniform horizontal grid)
 % assign initial stratification
 Tz = N2/g/TCOEF * ones(size(zwmat) - [0 0 2]); % at w points except top / bottom face
@@ -479,7 +484,9 @@ for k=size(zrmat,3)-1:-1:1
     strat_flat(:,:,k) = strat_flat(:,:,k+1) - Tz(:,:,k).*(zrflat(:,:,k+1)-zrflat(:,:,k));
 end
 
-% first choose axis + assign appropriate variables
+S.temp = strat;
+
+% choose axis + assign appropriate variables
 switch bathy.axis
     case 'x'
         ax_cs = xrmat(:,1,1);
@@ -490,13 +497,13 @@ switch bathy.axis
         zeta_sign = 1; % for free surface height thermal wind
          % uv_sign = 1; % for u/v thermal wind - SAME SIGN?
         flip_flag = 0;
-        
+
         vel = 'v';
-        
+
         velzmat = zvmat;
         zetahax = xvmat(:,1,end);
         zetahax2 = yrmat(:,:,end); % interpolation at edges of zeta field
-        
+
     case 'y'
         ax_cs = yrmat(1,:,1)'; % cross-shelf axis
         axmat = yrmat; 
@@ -506,135 +513,131 @@ switch bathy.axis
         zeta_sign = -1; % for integration of free surface height
           %uv_sign = -1; % for u/v thermal wind
         flip_flag = 1;
-        
+
         vel = 'u';
         velzmat = zumat;
         zetahax = yumat(1,:,end);
         zetahax2 = xrmat(:,:,end); % interpolation at edges of zeta field
 end
 
-% build cosine curve about shelfbreak (do each lat/lon line individually)
-% this gets gradient on a Z level
-S.Tx = hor_grad_tracer(axmat,ax_as,ax_cs,zrmat,i_cs,i_as,front,B);
-S.Tz = N2/g/TCOEF * ones(size(zwmat) - [0 0 1]);
+% create front if needed
+if flags.front
 
-% use chain rule to get gradient on SIGMA LEVEL
-tgrid.zw = permute(zwmat,[3 2 1]); tgrid.s_w = S.s_w;
-tgrid.xmat = xrmat; tgrid.ymat = yrmat; tgrid.zmat = zrmat;
-tgrid.s = S.s_rho;
+    % build cosine curve about shelfbreak (do each lat/lon line individually)
+    % this gets gradient on a Z level
+    S.Tx = hor_grad_tracer(axmat,ax_as,ax_cs,zrmat,i_cs,i_as,front,bathy);
+    S.Tz = N2/g/TCOEF * ones(size(zwmat) - [0 0 1]);
 
-dzdx_s = diff(zrmat,1,i_cs)./diff(axmat,1,i_cs);
-S.Tx_sig = avg1(S.Tx,i_cs) + dzdx_s .* avg1(S.Tz,i_cs);
+    % use chain rule to get gradient on SIGMA LEVEL
+    dzdx_s = diff(zrmat,1,i_cs)./diff(axmat,1,i_cs);
+    S.Tx_sig = avg1(S.Tx,i_cs) + dzdx_s .* avg1(S.Tz,i_cs);
 
-% then integrate to make T front
-% first, from top to bottom
-S.temp = T0*ones(size(S.temp));
-for k=size(zrmat,3)-1:-1:1
-    S.temp(:,:,k) = S.temp(:,:,k+1) - S.Tz(:,:,k).*(zrmat(:,:,k+1)-zrmat(:,:,k));
-end
-    
-% integrate in horizontal dirn.from left to right using gradients on SIGMA LEVEL
-[S,axmat] = reset_flip(S,axmat);
-[S,axmat] = flip_vars(flip_flag,S,axmat);
-if bathy.loc == 'h'
-    for i=size(S.temp,1)-1:-1:1
-        S.temp(i,:,:) = S.temp(i+1,:,:) + S.Tx_sig(i,:,:)  .*(axmat(i+1,:,:)-axmat(i,:,:));
+    % then integrate to make T front
+    % top to bottom integration done earlier
+
+    % integrate in horizontal dirn.from left to right using gradients on SIGMA LEVEL
+    [S,axmat] = reset_flip(S,axmat);
+    [S,axmat] = flip_vars(flip_flag,S,axmat);
+    if bathy.loc == 'h'
+        for i=size(S.temp,1)-1:-1:1
+            S.temp(i,:,:) = S.temp(i+1,:,:) + S.Tx_sig(i,:,:)  .*(axmat(i+1,:,:)-axmat(i,:,:));
+        end
+    else
+        for i=2:size(S.temp,1)
+            S.temp(i,:,:) = S.temp(i-1,:,:) + S.Tx_sig(i-1,:,:).*(axmat(i,:,:)-axmat(i-1,:,:));
+        end
     end
-else
-    for i=2:size(S.temp,1)
-        S.temp(i,:,:) = S.temp(i-1,:,:) + S.Tx_sig(i-1,:,:).*(axmat(i,:,:)-axmat(i-1,:,:));
+    S = flip_vars(flip_flag,S);
+
+    % Make plots to check temperature field
+    h_check = figure;
+    S = reset_flip(S);
+    S = flip_vars(flip_flag,S);
+    axt(3) = subplot(243);
+    plot(ax_cs/1000,1+S.Tx(:,1)./max(abs(S.Tx(:,1)))); hold on
+    plot(ax_cs/1000,1-S.h(:,1)./max(S.h(:)),'r')
+    xlabel('cross shelf axis (km)'); 
+    legend('Temp gradient','bathy')
+    S = flip_vars(flip_flag,S);
+
+    dsst = max(S.temp(:,:,end))-min(S.temp(:,:,end));
+    ssttitle = sprintf('SST | \\Delta SST = %.2f C', mean(dsst(:)));
+
+    if bathy.axis == 'x'
+        axt(1) = subplot(241);
+        contourf(squeeze(xrmat(:,ymid,:))/1000,squeeze(zrmat(:,ymid,:)),squeeze(S.temp(:,ymid,:)),40);
+        xlabel('x (km)'); ylabel('z (m)'); title('Temperature');  colorbar
+        axt(2) = subplot(242);
+        contourf(squeeze(xrmat(:,ymid,:))/1000,squeeze(zrmat(:,ymid,:)),squeeze(S.Tx(:,ymid,:)),40);
+        xlabel('x (km)'); ylabel('z (m)'); title('Temperature Gradient'); colorbar
+    else
+        axt(1) = subplot(241);
+        contourf(squeeze(yrmat(xmid,:,:))/1000,squeeze(zrmat(xmid,:,:)),squeeze(S.temp(xmid,:,:)),40);
+        xlabel('y (km)'); ylabel('z (m)'); title('Temperature'); colorbar
+        axt(2) = subplot(242);
+        contourf(squeeze(yrmat(xmid,:,:))/1000,squeeze(zrmat(xmid,:,:)),squeeze(S.temp(xmid,:,:)),40);
+        xlabel('y (km)'); ylabel('z (m)'); title('Temperature'); colorbar
     end
-end
-S = flip_vars(flip_flag,S);
+    axt(4) = subplot(244);
+    contourf(xrmat(:,:,end)/1000,yrmat(:,:,end)/1000, S.temp(:,:,end),40);
+    xlabel('x (km)'); ylabel('y (km)'); title(ssttitle); colorbar
 
-% Make plots to check temperature field
-h_check = figure;
-S = reset_flip(S);
-S = flip_vars(flip_flag,S);
-axt(3) = subplot(243);
-plot(ax_cs/1000,1+S.Tx(:,1)./max(abs(S.Tx(:,1)))); hold on
-plot(ax_cs/1000,1-S.h(:,1)./max(S.h(:)),'r')
-xlabel('cross shelf axis (km)'); 
-legend('Temp gradient','bathy')
-S = flip_vars(flip_flag,S);
+    % calculate velocity field
+    vel_shear = zeta_sign * g*TCOEF .* bsxfun(@rdivide,avg1(S.Tx,i_as),avg1(f,i_as));
+    vmat = zeros(size(velzmat)); % zero vel. at bottom
+    for ii=2:size(velzmat,3) % bottom to top
+        vmat(:,:,ii) = vmat(:,:,ii-1) + vel_shear(:,:,ii).*(velzmat(:,:,ii)-velzmat(:,:,ii-1));
+    end
+    eval(['S.' vel '=vmat;']);
 
-dsst = max(S.temp(:,:,end))-min(S.temp(:,:,end));
-ssttitle = sprintf('SST | \\Delta SST = %.2f C', mean(dsst(:)));
+    figure(h_check)
+    % plot velocity
+    if bathy.axis == 'x'
+        axt(5) = subplot(245);
+        contourf(squeeze(xvmat(:,ymid,:))./fx,squeeze(zvmat(:,ymid,:)),squeeze(S.v(:,ymid,:)));
+        colorbar; title('velocity'); xlabel('x (km)'); ylabel('z (m)');
+        axt(6) = subplot(246);
+        contourf(squeeze(xvmat(:,ymid,:))./fx,squeeze(zvmat(:,ymid,:)),squeeze(vel_shear(:,ymid,:)));
+        colorbar; title('velocity shear'); xlabel('x (km)'); ylabel('z (m)');
+    else
+        axt(5) = subplot(245);
+        contourf(squeeze(yvmat(xmid,:,:))./fy,squeeze(zvmat(xmid,:,:)),squeeze(S.v(xmid,:,:)));
+        colorbar; title('velocity'); xlabel('y (km)'); ylabel('z (m)');
+        axt(6) = subplot(246);
+        contourf(squeeze(yvmat(xmid,:,:))./fy,squeeze(zvmat(xmid,:,:)),squeeze(vel_shear(xmid,:,:)));
+        colorbar; title('velocity shear'); xlabel('y (km)'); ylabel('z (m)');
+    end
 
-if bathy.axis == 'x'
-    axt(1) = subplot(241);
-    contourf(squeeze(xrmat(:,ymid,:))/1000,squeeze(zrmat(:,ymid,:)),squeeze(S.temp(:,ymid,:)),40);
-    xlabel('x (km)'); ylabel('z (m)'); title('Temperature');  colorbar
-    axt(2) = subplot(242);
-    contourf(squeeze(xrmat(:,ymid,:))/1000,squeeze(zrmat(:,ymid,:)),squeeze(S.Tx(:,ymid,:)),40);
-    xlabel('x (km)'); ylabel('z (m)'); title('Temperature Gradient'); colorbar
-else
-    axt(1) = subplot(241);
-    contourf(squeeze(yrmat(xmid,:,:))/1000,squeeze(zrmat(xmid,:,:)),squeeze(S.temp(xmid,:,:)),40);
-    xlabel('y (km)'); ylabel('z (m)'); title('Temperature'); colorbar
-    axt(2) = subplot(242);
-    contourf(squeeze(yrmat(xmid,:,:))/1000,squeeze(zrmat(xmid,:,:)),squeeze(S.temp(xmid,:,:)),40);
-    xlabel('y (km)'); ylabel('z (m)'); title('Temperature'); colorbar
-end
-axt(4) = subplot(244);
-contourf(xrmat(:,:,end)/1000,yrmat(:,:,end)/1000, S.temp(:,:,end),40);
-xlabel('x (km)'); ylabel('y (km)'); title(ssttitle); colorbar
+    % then calculate zeta
+    S.zeta = nan([size(S.h,1) size(S.h,2)]);
+    tmp = zeta_sign * f0/g * cumtrapz(zetahax,vmat(:,:,end),i_cs);
+    if flip_flag, 
+        S.zeta = S.zeta';
+        tmp = tmp';
+        zetahax2 = zetahax2';
+    end
+    S.zeta(:,2:end-1) = (tmp(:,1:end-1) + tmp(:,2:end))/2;
+    S.zeta(:,1) = S.zeta(:,2) - (zetahax2(:,2) - zetahax2(:,1)).* ...
+                (S.zeta(:,3)-S.zeta(:,2))./(zetahax2(:,3) - zetahax2(:,2));
+    S.zeta(:,end) = S.zeta(:,end-1) + ...
+                (zetahax2(:,end) - zetahax2(:,end-1)).* ...
+                    (S.zeta(:,end-1)-S.zeta(:,end-2))./(zetahax2(:,end-1) - zetahax2(:,end-2));
+    if flip_flag, % flip everything just in case
+        S.zeta = S.zeta';
+        tmp = tmp';
+        zetahax2 = zetahax2';
+    end
 
-% calculate velocity field
-vel_shear = zeta_sign * g*TCOEF .* bsxfun(@rdivide,avg1(S.Tx,i_as),avg1(f,i_as));
-vmat = zeros(size(velzmat)); % zero vel. at bottom
-for ii=2:size(velzmat,3) % bottom to top
-    vmat(:,:,ii) = vmat(:,:,ii-1) + vel_shear(:,:,ii).*(velzmat(:,:,ii)-velzmat(:,:,ii-1));
-end
-eval(['S.' vel '=vmat;']);
+    figure(h_check)
+    axt(7) = subplot(247);
+    contourf(xrmat(:,:,end)./fx,yrmat(:,:,end)./fy,S.zeta);
+    colorbar; title('zeta (front only)');
 
-figure(h_check)
-% plot velocity
-if bathy.axis == 'x'
-    axt(5) = subplot(245);
-    contourf(squeeze(xvmat(:,ymid,:))./fx,squeeze(zvmat(:,ymid,:)),squeeze(S.v(:,ymid,:)));
-    colorbar; title('velocity'); xlabel('x (km)'); ylabel('z (m)');
-    axt(6) = subplot(246);
-    contourf(squeeze(xvmat(:,ymid,:))./fx,squeeze(zvmat(:,ymid,:)),squeeze(vel_shear(:,ymid,:)));
-    colorbar; title('velocity shear'); xlabel('x (km)'); ylabel('z (m)');
-else
-    axt(5) = subplot(245);
-    contourf(squeeze(yvmat(xmid,:,:))./fy,squeeze(zvmat(xmid,:,:)),squeeze(S.v(xmid,:,:)));
-    colorbar; title('velocity'); xlabel('y (km)'); ylabel('z (m)');
-    axt(6) = subplot(246);
-    contourf(squeeze(yvmat(xmid,:,:))./fy,squeeze(zvmat(xmid,:,:)),squeeze(vel_shear(xmid,:,:)));
-    colorbar; title('velocity shear'); xlabel('y (km)'); ylabel('z (m)');
-end
-
-% then calculate zeta
-S.zeta = nan([size(S.h,1) size(S.h,2)]);
-tmp = zeta_sign * f0/g * cumtrapz(zetahax,vmat(:,:,end),i_cs);
-if flip_flag, 
-    S.zeta = S.zeta';
-    tmp = tmp';
-    zetahax2 = zetahax2';
-end
-S.zeta(:,2:end-1) = (tmp(:,1:end-1) + tmp(:,2:end))/2;
-S.zeta(:,1) = S.zeta(:,2) - (zetahax2(:,2) - zetahax2(:,1)).* ...
-            (S.zeta(:,3)-S.zeta(:,2))./(zetahax2(:,3) - zetahax2(:,2));
-S.zeta(:,end) = S.zeta(:,end-1) + ...
-            (zetahax2(:,end) - zetahax2(:,end-1)).* ...
-                (S.zeta(:,end-1)-S.zeta(:,end-2))./(zetahax2(:,end-1) - zetahax2(:,end-2));
-if flip_flag, % flip everything just in case
-    S.zeta = S.zeta';
-    tmp = tmp';
-    zetahax2 = zetahax2';
-end
-
-figure(h_check)
-axt(7) = subplot(247);
-contourf(xrmat(:,:,end)./fx,yrmat(:,:,end)./fy,S.zeta);
-colorbar; title('zeta (front only)');
-
-% link appropriate axes
-linkaxes(axt,'x');
-linkaxes([axt(1) axt(2) axt(5) axt(6)],'xy');
-linkaxes([axt(4) axt(7)],'xy');
+    % link appropriate axes
+    linkaxes(axt,'x');
+    linkaxes([axt(1) axt(2) axt(5) axt(6)],'xy');
+    linkaxes([axt(4) axt(7)],'xy');
+end % if shelfbreak front
 
 %% Now create eddy
 
@@ -654,7 +657,7 @@ if flags.eddy
     deep_z = squeeze(zrmat(eddy.ix,eddy.iy,:));
 
     % temp. field - in xy plane (normalized)
-    exponent =  (eddy.a - 1)/eddy.a .* (rnorm.^(eddy.a)); % needed for radial calculations later
+    exponent = (eddy.a - 1)/eddy.a .* (rnorm.^(eddy.a)); % needed for radial calculations later
     eddy.xyprof = exp( -1 * exponent ); 
     eddy.xyprof = eddy.xyprof./max(eddy.xyprof(:));
 
@@ -739,8 +742,12 @@ if flags.eddy
 
     xind = ymid; yind = ymid; zind = 20;
 
-    figure(h_check);
-    subplot(248);
+    if flags.front
+        figure(h_check);
+        axt(8) = subplot(248);
+    else
+        figure
+    end
     contourf(xrmat(:,:,1)./fx,yrmat(:,:,1)./fy,S.zeta,20); shading flat;
     colorbar
     %freezeColors;cbfreeze
@@ -748,7 +755,10 @@ if flags.eddy
     %[C,h] = contour(xrmat(:,:,1)./fx,yrmat(:,:,1)./fy,S.h,5,'k');
     %clabel(C,h);
     title('Zeta with eddy');
-    linkaxes([axt(4) axt(7) axt(8)],'xy');
+    axis image;
+    if flags.front
+        linkaxes([axt(4) axt(7) axt(8)],'xy');
+    end
     
     xedd = find_approx(xrmat(:,1,1),eddy.cx,1);
     yedd = find_approx(yrmat(1,:,1),eddy.cy,1);
@@ -1227,9 +1237,9 @@ DX = sqrt(min(dx)^2 + min(dy)^2);
 
 % From Utility/metrics.F
 % Barotropic courant number
-dt = 90;
-ndtfast = 25;
-Cbt = sqrt(g*min(S.h(:))) * dt/ndtfast * sqrt(1/dx^2 + 1/dy^2);
+dt = 120;
+ndtfast = 35;
+Cbt = sqrt(g*max(S.h(:))) * dt/ndtfast * sqrt(1/dx^2 + 1/dy^2);
 Cbc = sqrt(N2)*min(S.h(:))/pi * dt * sqrt(1/dx^2 + 1/dy^2);
 Cbc7 = 7 * dt * sqrt(1/dx^2 + 1/dy^2);
 
@@ -1257,40 +1267,42 @@ fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, \n\n C_bt = %.3f | C_bc = %.3f  
 % if flip_flag, Tgrad = permute(Tgrad, [2 1 3]); end
 
 %% check gradient calculation
+% 
+% tgrid.xmat = xrmat; tgrid.ymat = yrmat; tgrid.zmat = zrmat; tgrid.s = S.s_rho;
+% rgrid.zw = permute(zwmat,[3 2 1]); rgrid.s_w = S.s_w;
 
-tgrid.xmat = xrmat; tgrid.ymat = yrmat; tgrid.zmat = zrmat; tgrid.s = S.s_rho;
-rgrid.zw = permute(zwmat,[3 2 1]); rgrid.s_w = S.s_w;
+if flags.front
+    Tgrad1 = avg1(avg1(diff_cgrid(tgrid,S.temp,i_cs),i_cs),i_as);
+    Tgrad = nan(size(velzmat));
+    if flip_flag
+        Tgrad1 = permute(Tgrad1, [2 1 3]); 
+        Tgrad = permute(Tgrad, [2 1 3]);  
+    end
+    % % add values at end
+    Tgrad1(size(Tgrad1,1)+1,:,:) = Tgrad1(size(Tgrad1,1),:,:);
+    Tgrad(1,:,:) = Tgrad1(2,:,:);
+    Tgrad(2:end,:,:) = Tgrad1;
+    clear Tgrad1
+    if flip_flag, Tgrad = permute(Tgrad, [2 1 3]); end
 
-Tgrad1 = avg1(avg1(diff_cgrid(tgrid,S.temp,i_cs),i_cs),i_as);
-Tgrad = nan(size(velzmat));
-if flip_flag
-    Tgrad1 = permute(Tgrad1, [2 1 3]); 
-    Tgrad = permute(Tgrad, [2 1 3]);  
+
+    dT = abs(Tgrad-avg1(S.Tx,i_as))./max(abs(S.Tx(:))) * 100;
+    yind = S.Mm/2;
+    figure
+    ax(1) = subplot(131);
+    contourf(squeeze(xrmat(:,yind,:)), squeeze(zrmat(:,yind,:)), squeeze(S.Tx(:,yind,:)));
+    title('imposed T_x');
+    colorbar; clim = caxis;
+    ax(2) = subplot(132);
+    contourf(squeeze(xrmat(:,yind,:)), squeeze(zrmat(:,yind,:)), squeeze(Tgrad(:,yind,:)));
+    title('Calculated T_x');
+    caxis(clim); colorbar
+    ax(3) = subplot(133);
+    contourf(squeeze(xrmat(:,yind,:)), squeeze(zrmat(:,yind,:)), squeeze(dT(:,yind,:)));
+    title('% error');
+    colorbar
+    linkaxes(ax,'xy');
 end
-% % add values at end
-Tgrad1(size(Tgrad1,1)+1,:,:) = Tgrad1(size(Tgrad1,1),:,:);
-Tgrad(1,:,:) = Tgrad1(2,:,:);
-Tgrad(2:end,:,:) = Tgrad1;
-clear Tgrad1
-if flip_flag, Tgrad = permute(Tgrad, [2 1 3]); end
-
-
-dT = abs(Tgrad-avg1(S.Tx,i_as))./max(abs(S.Tx(:))) * 100;
-yind = S.Mm/2;
-figure
-ax(1) = subplot(131);
-contourf(squeeze(xrmat(:,yind,:)), squeeze(zrmat(:,yind,:)), squeeze(S.Tx(:,yind,:)));
-title('imposed T_x');
-colorbar; clim = caxis;
-ax(2) = subplot(132);
-contourf(squeeze(xrmat(:,yind,:)), squeeze(zrmat(:,yind,:)), squeeze(Tgrad(:,yind,:)));
-title('Calculated T_x');
-caxis(clim); colorbar
-ax(3) = subplot(133);
-contourf(squeeze(xrmat(:,yind,:)), squeeze(zrmat(:,yind,:)), squeeze(dT(:,yind,:)));
-title('% error');
-colorbar
-linkaxes(ax,'xy');
 
 %% check eddy profile (normalized)
 % subplot(131)

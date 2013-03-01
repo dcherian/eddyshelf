@@ -5,7 +5,7 @@
 %               loc  = h - coast where axis = high
 %                      l - coast where axis = low
 
-function [S] = bathy_simple(S,B,X,Y,axis,loc)
+function [S] = bathy_simple(S,B,X,Y,axis)
 
     switch axis
         case 'x'
@@ -22,7 +22,7 @@ function [S] = bathy_simple(S,B,X,Y,axis,loc)
             error('invalid axis label provided to bathy_simple_y.m');
     end
 
-    switch loc
+    switch B.loc
         case 'h' % coast at high end of axis
             mask_shelf = (ax > (L-B.L_shelf));
             mask_deep  = (ax < (L-B.L_shelf-B.L_slope));
