@@ -17,7 +17,7 @@ S.Mm = 100;
 S.N  = 40;
 
 % Domain Extent (in m)
-X = 130000;
+X = 150000;
 Y = 200000;
 Z = 2000;
 
@@ -29,8 +29,8 @@ S.NT = 2+S.NPT; % total number of tracers
 S.Vtransform = 2;
 S.Vstretching = 4;
 S.theta_s = 1.0;     %  S-coordinate surface control parameter.
-S.theta_b = 3.0;     %  S-coordinate bottom control parameter.
-S.Tcline  = 100.0;    %  S-coordinate surface/bottom stretching width (m)
+S.theta_b = 2.0;     %  S-coordinate bottom  control parameter.
+S.Tcline  = 10.0;    %  S-coordinate surface/bottom stretching width (m)
 
 % coriolis parameters
 lat_ref = 45;
@@ -72,24 +72,26 @@ flags.use_gradient  = 0; % use gradient wind balance
 % OBC + barotropic velocity options
 flags.OBC = 1;  % create OBC file and set open boundaries
 flags.OBC_from_initial = 1; % copy OBC data from initial condition?
+flags.ubt_initial = 0; % add barotropic velocity to initial condition?
+
 if flags.OBC
     OBC.west  = false;           % process western  boundary segment
     OBC.east  = false;           % process eastern  boundary segment
     OBC.south = false;           % process southern boundary segment
     OBC.north = true;            % process northern boundary segment
 end
-flags.ubt_initial = 1; % add barotropic velocity to initial condition?
+
 % flags.ubt_deep = 0; % nudge to ubt only in deep water - NOT WORKING
 %flags.localize_jet = 0;% buffer around eddy where velocity should exist - NOT NEEDED
 
 % Barotropic background flow parameters
 ubt = 0;0.05; % m/s barotropic velocity
-vbt = -0.02; % m/s barotropic velocity
+vbt = -0.05; % m/s barotropic velocity
 
 % Bathymetry parameters - all measurements in m
 bathy.H_shelf  = 100;
 bathy.L_shelf  = 20 * 1000;
-bathy.L_slope  =  10 * 1000;
+bathy.L_slope  =  20 * 1000;
 bathy.axis = 'x'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
 bathy.sl_shelf = 0.0005;
@@ -101,19 +103,19 @@ bathy.L_entry  = 0; %200* 1000; % deep water to initialize eddy in
 bathy.L_tilt   = 0; %130 * 1000;
 
 % Eddy parameters - all distances in m
-eddy.dia   = 40*1000/2; % in m
-eddy.depth = 300; % depth below which flow is 'compensated'
+eddy.dia   = 60*1000/2; % in m
+eddy.depth = 500; % depth below which flow is 'compensated'
 eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero
 eddy.tamp  = 50; % controls gradient
 eddy.a     = 2;  % ? in Katsman et al. (2003)
-eddy.cx    = X-eddy.dia-15000; % center of eddy
-eddy.cy    = Y-eddy.dia-20000; %        " 
+eddy.cx    = X-eddy.dia-25000; % center of eddy
+eddy.cy    = Y-eddy.dia-25000; %        " 
 
 % Shelfbreak front parameters
 front.LTleft  = 12.5 * 1000; % length scale for temperature (m) - onshore
 front.LTright = 8*1000; % length scale - offshore
 front.slope   = 500/4000; % non-dimensional
-front.Tx0     = -2e-4; % max. magnitude of temperature gradient
+front.Tx0     = -1e-4; % max. magnitude of temperature gradient
 
 %%%%%%%%%%%%%%%%%
     
@@ -522,7 +524,6 @@ end
 
 % create front if needed
 if flags.front
-
     % build cosine curve about shelfbreak (do each lat/lon line individually)
     % this gets gradient on a Z level
     S.Tx = hor_grad_tracer(axmat,ax_as,ax_cs,zrmat,i_cs,i_as,front,bathy);
@@ -945,9 +946,9 @@ if max(abs(S.v(:))) > 1.0 || max(abs(S.u(:))) > 1.0
     input('Really high velocities. Are you sure?');
 end
 
-Ri = addnan(abs(fillnan(N2./(avg1(VZ.^2,1) + avg1(UZ.^2,2)),Inf)),10);
+Ri = abs(fillnan(N2./(avg1(VZ.^2,1) + avg1(UZ.^2,2)),Inf));
 if min(Ri(:)) <= 0.3
-    figure; imagesc(Ri'); title('Ri < 10'); colorbar;
+    figure; imagesc(addnan(Ri',10)); title('Ri < 10'); colorbar;
     error('Ri <= 0.3.');
 else
     fprintf('\n Min. Ri = %.3f\n\n', nanmin(Ri(:)));
@@ -1231,7 +1232,7 @@ fprintf('written.\n\n');
 dx = min(dx(:)); dy = min(dy(:));
 
 fprintf('\n\n X = %.2f | Y = %.2f | Z = %.2f | dx = %.2f m | dy = %.2f m', ...
-                max(xrmat(:)), max(yrmat(:)), max(zrmat(:)),dx, dy);
+                max(xrmat(:)), max(yrmat(:)), max(abs(zrmat(:))),dx, dy);
 
 DX = sqrt(min(dx)^2 + min(dy)^2);
 
@@ -1271,38 +1272,38 @@ fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, \n\n C_bt = %.3f | C_bc = %.3f  
 % tgrid.xmat = xrmat; tgrid.ymat = yrmat; tgrid.zmat = zrmat; tgrid.s = S.s_rho;
 % rgrid.zw = permute(zwmat,[3 2 1]); rgrid.s_w = S.s_w;
 
-if flags.front
-    Tgrad1 = avg1(avg1(diff_cgrid(tgrid,S.temp,i_cs),i_cs),i_as);
-    Tgrad = nan(size(velzmat));
-    if flip_flag
-        Tgrad1 = permute(Tgrad1, [2 1 3]); 
-        Tgrad = permute(Tgrad, [2 1 3]);  
-    end
-    % % add values at end
-    Tgrad1(size(Tgrad1,1)+1,:,:) = Tgrad1(size(Tgrad1,1),:,:);
-    Tgrad(1,:,:) = Tgrad1(2,:,:);
-    Tgrad(2:end,:,:) = Tgrad1;
-    clear Tgrad1
-    if flip_flag, Tgrad = permute(Tgrad, [2 1 3]); end
-
-
-    dT = abs(Tgrad-avg1(S.Tx,i_as))./max(abs(S.Tx(:))) * 100;
-    yind = S.Mm/2;
-    figure
-    ax(1) = subplot(131);
-    contourf(squeeze(xrmat(:,yind,:)), squeeze(zrmat(:,yind,:)), squeeze(S.Tx(:,yind,:)));
-    title('imposed T_x');
-    colorbar; clim = caxis;
-    ax(2) = subplot(132);
-    contourf(squeeze(xrmat(:,yind,:)), squeeze(zrmat(:,yind,:)), squeeze(Tgrad(:,yind,:)));
-    title('Calculated T_x');
-    caxis(clim); colorbar
-    ax(3) = subplot(133);
-    contourf(squeeze(xrmat(:,yind,:)), squeeze(zrmat(:,yind,:)), squeeze(dT(:,yind,:)));
-    title('% error');
-    colorbar
-    linkaxes(ax,'xy');
-end
+% if flags.front
+%     Tgrad1 = avg1(avg1(diff_cgrid(tgrid,S.temp,i_cs),i_cs),i_as);
+%     Tgrad = nan(size(velzmat));
+%     if flip_flag
+%         Tgrad1 = permute(Tgrad1, [2 1 3]); 
+%         Tgrad = permute(Tgrad, [2 1 3]);  
+%     end
+%     % % add values at end
+%     Tgrad1(size(Tgrad1,1)+1,:,:) = Tgrad1(size(Tgrad1,1),:,:);
+%     Tgrad(1,:,:) = Tgrad1(2,:,:);
+%     Tgrad(2:end,:,:) = Tgrad1;
+%     clear Tgrad1
+%     if flip_flag, Tgrad = permute(Tgrad, [2 1 3]); end
+% 
+% 
+%     dT = abs(Tgrad-avg1(S.Tx,i_as))./max(abs(S.Tx(:))) * 100;
+%     yind = S.Mm/2;
+%     figure
+%     ax(1) = subplot(131);
+%     contourf(squeeze(xrmat(:,yind,:)), squeeze(zrmat(:,yind,:)), squeeze(S.Tx(:,yind,:)));
+%     title('imposed T_x');
+%     colorbar; clim = caxis;
+%     ax(2) = subplot(132);
+%     contourf(squeeze(xrmat(:,yind,:)), squeeze(zrmat(:,yind,:)), squeeze(Tgrad(:,yind,:)));
+%     title('Calculated T_x');
+%     caxis(clim); colorbar
+%     ax(3) = subplot(133);
+%     contourf(squeeze(xrmat(:,yind,:)), squeeze(zrmat(:,yind,:)), squeeze(dT(:,yind,:)));
+%     title('% error');
+%     colorbar
+%     linkaxes(ax,'xy');
+% end
 
 %% check eddy profile (normalized)
 % subplot(131)
