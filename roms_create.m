@@ -12,7 +12,7 @@ BRY_NAME  = 'topo_bry_01';
 S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 
 % grid information
-S.Lm = 100;
+S.Lm = 102;
 S.Mm = 100;
 S.N  = 40;
 
@@ -29,8 +29,8 @@ S.NT = 2+S.NPT; % total number of tracers
 S.Vtransform = 2;
 S.Vstretching = 4;
 S.theta_s = 1.0;     %  S-coordinate surface control parameter.
-S.theta_b = 2.0;     %  S-coordinate bottom  control parameter.
-S.Tcline  = 10.0;    %  S-coordinate surface/bottom stretching width (m)
+S.theta_b = 3.0;     %  S-coordinate bottom  control parameter.
+S.Tcline  = 100.0;    %  S-coordinate surface/bottom stretching width (m)
 
 % coriolis parameters
 lat_ref = 45;
@@ -106,7 +106,7 @@ bathy.L_tilt   = 0; %130 * 1000;
 eddy.dia   = 60*1000/2; % in m
 eddy.depth = 500; % depth below which flow is 'compensated'
 eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero
-eddy.tamp  = 50; % controls gradient
+eddy.tamp  = 20; % controls gradient
 eddy.a     = 2;  % ? in Katsman et al. (2003)
 eddy.cx    = X-eddy.dia-25000; % center of eddy
 eddy.cy    = Y-eddy.dia-25000; %        " 
@@ -119,7 +119,7 @@ front.Tx0     = -1e-4; % max. magnitude of temperature gradient
 
 %%%%%%%%%%%%%%%%%
     
-%% Create Junk IC & Grid Files
+%% Create Junk IC & Grid Files + set vars to zero
 
 % Set other variables
 S.hc = S.Tcline;
@@ -675,15 +675,7 @@ if flags.eddy
         S.temp = S.temp + eddy.temp;
     end
 
-    % calculate Tx at v points and Ty and u points
-    Txv1 = avg1(avg1(diff(S.temp,1,1)./diff(xrmat,1,1),2),1);
-    Txv = [Txv1(1,:,:);Txv1;Txv1(end,:,:)];
-    clear Txv1
-
-    Tyu1 = avg1(avg1(diff(S.temp,1,2)./diff(yrmat,1,2),2),1);
-    Tyu = [Tyu1(:,1,:) Tyu1 Tyu1(:,end,:)];
-    clear Tyu1;
-
+    % Radial
     if flags.use_radial && max(~isnan(eddy.temp(:)))
         % integrated z profile of eddy.temp (HAS to include stratification)
         int_Tz = nan([size(xrmat,1) size(xrmat,2)]);
@@ -718,14 +710,23 @@ if flags.eddy
                             (r.*f));
         end
 
-        uu = -1 * bsxfun(@times,rut, sin(th));
-        vv = bsxfun(@times, rut, cos(th));
+        eddy.u = -1 * bsxfun(@times,rut, sin(th));
+        eddy.v = bsxfun(@times, rut, cos(th));
 
-        S.u = S.u + avg1(uu,1);
-        S.v = S.v + avg1(vv,2);
+        S.u = S.u + avg1(eddy.u,1);
+        S.v = S.v + avg1(eddy.v,2);
     end
 
     if flags.use_cartesian % FIX FOR BACKGROUND STATE
+        % calculate Tx at v points and Ty and u points
+        Txv1 = avg1(avg1(diff(S.temp,1,1)./diff(xrmat,1,1),2),1);
+        Txv = [Txv1(1,:,:);Txv1;Txv1(end,:,:)];
+        clear Txv1
+
+        Tyu1 = avg1(avg1(diff(S.temp,1,2)./diff(yrmat,1,2),2),1);
+        Tyu = [Tyu1(:,1,:) Tyu1 Tyu1(:,end,:)];
+        clear Tyu1;
+        
         % v field
         vz = avg1(g*TCOEF * bsxfun(@times,avg1(1./f,2),Txv),3);
         S.v = zeros(size(xvmat));
@@ -741,6 +742,7 @@ if flags.eddy
         end 
     end
 
+    % check plots
     xind = ymid; yind = ymid; zind = 20;
 
     if flags.front
@@ -766,26 +768,28 @@ if flags.eddy
     
     % check temperature profile
     figure;
-    subplot(221)
+    axe(1) = subplot(221);
     contourf(squeeze(xrmat(:,yedd,:))/fx,squeeze(zrmat(:,yedd,:)),squeeze(S.temp(:,yedd,:)),20);
     colorbar;
     title('temp (y=mid)');
     xlabel(['x' lx]); ylabel('z (m)');
-    subplot(222)
+    axe(2) = subplot(222);
     contourf(squeeze(yrmat(xedd,:,:))/fy,squeeze(zrmat(xedd,:,:)),squeeze(S.temp(xedd,:,:)),20);
     colorbar;
     title('temp (x=mid)');
     xlabel(['y' ly]); ylabel('z (m)');
-    subplot(223)
+    axe(3) = subplot(223);
     contourf(squeeze(xrmat(:,yedd,:))/fx,squeeze(zrmat(:,yedd,:)),squeeze(eddy.temp(:,yedd,:)),20);
     colorbar;
     title('Eddy temp (y=mid)');
     xlabel(['x' lx]); ylabel('z (m)');
-    subplot(224)
+    axe(4) = subplot(224);
     contourf(squeeze(yrmat(xedd,:,:))/fy,squeeze(zrmat(xedd,:,:)),squeeze(eddy.temp(xedd,:,:)),20);
     colorbar;
     title('Eddy temp (x=mid)');
     xlabel(['y' ly]); ylabel('z (m)');
+    linkaxes([axe(1) axe(3)],'xy');
+    linkaxes([axe(2) axe(4)],'xy');
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -839,18 +843,14 @@ end
 % remove mean zeta 
 S.zeta = S.zeta - nanmean(S.zeta(:));
 
-% ubar & vbar
+% ubar & vbar - use arango's uv_barotropic - works faster
 if ~flags.spinup
-    for ii=1:S.Lm+2
-        for jj=1:S.Mm+2
-            if ii~=S.Lm+2
-                S.ubar(ii,jj) = trapz(squeeze(zumat(ii,jj,:)),S.u(ii,jj,:),3)./hrmat(ii,jj);
-            end
-            if jj~=S.Mm+2
-                S.vbar(ii,jj) = trapz(squeeze(zvmat(ii,jj,:)),S.v(ii,jj,:),3)./hrmat(ii,jj);
-            end
-        end
-    end
+    % recalculate to account for zeta stretching grid
+    [z_w]=set_depth(S.Vtransform, S.Vstretching, ...
+                     S.theta_s, S.theta_b, S.hc, S.N, ...
+                     5, S.h, S.zeta,0);
+    Hz = diff(z_w,1,3);
+    [S.ubar,S.vbar] = uv_barotropic(S.u,S.v,Hz);
 end
 toc;
 
@@ -1313,6 +1313,18 @@ fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, \n\n C_bt = %.3f | C_bc = %.3f  
 % plot(S.x_rho(:,1)/1000,eddy.xyprof(:,ymid),'*-');xlabel('x (km)');
 % subplot(133)
 % plot(eddy.zprof,squeeze(zrmat(1,1,:)),'*-'); ylabel('z (m)');
+
+%% old ubar,vbar integration
+%     for ii=1:S.Lm+2
+%         for jj=1:S.Mm+2
+%             if ii~=S.Lm+2
+%                 S.ubar(ii,jj) = trapz(squeeze(zumat(ii,jj,:)),S.u(ii,jj,:),3)./hrmat(ii,jj);
+%             end
+%             if jj~=S.Mm+2
+%                 S.vbar(ii,jj) = trapz(squeeze(zvmat(ii,jj,:)),S.v(ii,jj,:),3)./hrmat(ii,jj);
+%             end
+%         end
+%     end
 
 %% zeta from dynamic height - does not work
 %     S.zeta = nan(size(zrmat(:,:,1)));
