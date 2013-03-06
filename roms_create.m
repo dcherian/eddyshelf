@@ -684,12 +684,9 @@ if flags.eddy
                 int_Tz(i,j) = trapz(squeeze(zrflat(i,j,:)),eddy.tz(i,j,:),3);
             end
         end
-
+        
+        % SSH calculation is same for gradient wind & geostrophic balance?
         S.zeta = S.zeta + -TCOEF * eddy.tamp * int_Tz .* (1-exp(-exponent));
-
-        % correct zeta with gradient wind balance
-        if flags.use_gradient
-        end
         S.zeta = S.zeta - min(S.zeta(:));
 
         % CHECK UNITS &  WHY IS PROFILE WEIRD NEAR CENTER. 
@@ -703,13 +700,15 @@ if flags.eddy
             rut(:,:,i) = rut(:,:,i-1) + rutz(:,:,i-1).*(zrmat(:,:,i)-zrmat(:,:,i-1));
         end
 
-        % solve quadratic if gradient wind balance
+        % solve quadratic for vel. if gradient wind balance
         if flags.use_gradient
             rhs = rut;
-            rut = bsxfun(@times,(-1 + sqrt( 1 - bsxfun(@times,-rhs, 4./(2*r.*f)) ) ), ...
-                            (r.*f));
+            rfb2 = r.*f ./ 2;            
+            sdisc = sqrt(1 + bsxfun(@times,rhs,2./rfb2));% sqrt(discriminant)
+            rut = bsxfun(@times,(-1 + sdisc), rfb2);
+            if ~isreal(rut), error('gradient wind calculated complex v!!!'); end         
         end
-
+        
         eddy.u = -1 * bsxfun(@times,rut, sin(th));
         eddy.v = bsxfun(@times, rut, cos(th));
 
@@ -768,28 +767,53 @@ if flags.eddy
     
     % check temperature profile
     figure;
-    axe(1) = subplot(221);
+    axe(1) = subplot(241);
     contourf(squeeze(xrmat(:,yedd,:))/fx,squeeze(zrmat(:,yedd,:)),squeeze(S.temp(:,yedd,:)),20);
     colorbar;
     title('temp (y=mid)');
     xlabel(['x' lx]); ylabel('z (m)');
-    axe(2) = subplot(222);
+    axe(2) = subplot(242);
     contourf(squeeze(yrmat(xedd,:,:))/fy,squeeze(zrmat(xedd,:,:)),squeeze(S.temp(xedd,:,:)),20);
     colorbar;
     title('temp (x=mid)');
     xlabel(['y' ly]); ylabel('z (m)');
-    axe(3) = subplot(223);
+    
+    axe(3) = subplot(243);
+    contourf(squeeze(xvmat(:,yedd,:))/fx,squeeze(zvmat(:,yedd,:)),squeeze(S.v(:,yedd,:)),20);
+    colorbar;
+    title('u (y=mid)');
+    xlabel(['x' lx]); ylabel('z (m)');
+    axe(4) = subplot(244);
+    contourf(squeeze(yumat(xedd,:,:))/fy,squeeze(zumat(xedd,:,:)),squeeze(S.u(xedd,:,:)),20);
+    colorbar;
+    title('v (x=mid)');
+    xlabel(['y' ly]); ylabel('z (m)');
+    
+    
+    axe(5) = subplot(245);
     contourf(squeeze(xrmat(:,yedd,:))/fx,squeeze(zrmat(:,yedd,:)),squeeze(eddy.temp(:,yedd,:)),20);
     colorbar;
     title('Eddy temp (y=mid)');
     xlabel(['x' lx]); ylabel('z (m)');
-    axe(4) = subplot(224);
+    axe(6) = subplot(246);
     contourf(squeeze(yrmat(xedd,:,:))/fy,squeeze(zrmat(xedd,:,:)),squeeze(eddy.temp(xedd,:,:)),20);
     colorbar;
     title('Eddy temp (x=mid)');
     xlabel(['y' ly]); ylabel('z (m)');
-    linkaxes([axe(1) axe(3)],'xy');
-    linkaxes([axe(2) axe(4)],'xy');
+    
+    axe(7) = subplot(247);
+    contourf(squeeze(xvmat(:,yedd,:))/fx,squeeze(zvmat(:,yedd,:)),squeeze(eddy.v(:,yedd,:)),20);
+    colorbar;
+    title('eddy u (y=mid)');
+    xlabel(['x' lx]); ylabel('z (m)');
+    axe(8) = subplot(248);
+    contourf(squeeze(yumat(xedd,:,:))/fy,squeeze(zumat(xedd,:,:)),squeeze(eddy.u(xedd,:,:)),20);
+    colorbar;
+    title('eddy v (x=mid)');
+    xlabel(['y' ly]); ylabel('z (m)');
+    
+    linkaxes([axe(1) axe(3) axe(5) axe(7)],'xy');
+    linkaxes([axe(2) axe(4) axe(6) axe(8)],'xy');
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
