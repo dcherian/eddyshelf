@@ -28,8 +28,8 @@ S.NT = 2+S.NPT; % total number of tracers
 % vertical stretching
 S.Vtransform = 2;
 S.Vstretching = 4;
-S.theta_s = 1.0;     %  S-coordinate surface control parameter.
-S.theta_b = 3.0;     %  S-coordinate bottom  control parameter.
+S.theta_s = 3.0;     %  S-coordinate surface control parameter.
+S.theta_b = 2.0;     %  S-coordinate bottom  control parameter.
 S.Tcline  = 100.0;    %  S-coordinate surface/bottom stretching width (m)
 
 % coriolis parameters
@@ -41,9 +41,11 @@ beta  = 2e-11;
 N2    = 1e-5;
 T0    = 20;
 S0    = 35;
-R0    = 1027;
+R0    = 1027; % only for EOS purposes
 TCOEF = 1.7e-4;
+SCOEF = 7.6e-4;
 g     = 9.81;
+rho0  = 1025; % Boussinesq
 
 % fix file names
 GRID_NAME = [FOLDER GRID_NAME '.nc'];% '-' num2str(ceil(X/1000)) 'x' num2str(ceil(Y/1000)) '-' num2str(S.Lm) 'x' num2str(S.Mm) 'x' num2str(S.N) '.nc'];[FOLDER GRID_NAME '.nc'];
@@ -51,8 +53,6 @@ INI_NAME  = [FOLDER INI_NAME '.nc'];% '-' num2str(ceil(X/1000)) 'x' num2str(ceil
 BRY_NAME  = [FOLDER BRY_NAME '.nc'];
 
 %% Options
-
-%%%%%%%%%%%%%%%%% options
 
 flags.tanh_bathymetry = 0;
 flags.linear_bathymetry = 1;
@@ -62,17 +62,17 @@ flags.perturb_zeta = 0; % add random perturbation to zeta
 flags.spinup = 0; % if spinup, do not initialize ubar/vbar fields.
 
 flags.front = 0; % create shelfbreak front
-flags.eddy  = 1; % create eddy
+flags.eddy  = 0; % create eddy
+flags.ubt_initial = 0; % add barotropic velocity to initial condition?
 
 % momentum balance options
 flags.use_cartesian = 0; % cartesian
 flags.use_radial    = 1; % use radial
-flags.use_gradient  = 0; % use gradient wind balance
+flags.use_gradient  = 1; % use gradient wind balance
 
 % OBC + barotropic velocity options
 flags.OBC = 1;  % create OBC file and set open boundaries
 flags.OBC_from_initial = 1; % copy OBC data from initial condition?
-flags.ubt_initial = 0; % add barotropic velocity to initial condition?
 
 if flags.OBC
     OBC.west  = false;           % process western  boundary segment
@@ -105,10 +105,10 @@ bathy.L_tilt   = 0; %130 * 1000;
 % Eddy parameters - all distances in m
 eddy.dia   = 60*1000/2; % in m
 eddy.depth = 500; % depth below which flow is 'compensated'
-eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero
+%eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero
 eddy.tamp  = 20; % controls gradient
 eddy.a     = 2;  % ? in Katsman et al. (2003)
-eddy.cx    = X-eddy.dia-25000; % center of eddy
+eddy.cx    = X-eddy.dia-20000; % center of eddy
 eddy.cy    = Y-eddy.dia-25000; %        " 
 
 % Shelfbreak front parameters
@@ -353,16 +353,18 @@ if flags.linear_bathymetry == 1
     end
     
     % run smoother   
-    n_points = 5;
-    kernel = [1 2 1];
+%    kernel = [1 2 1];
+
+bathy.smoother.n_points = 4;
+bathy.smoother.n_passes = 2;
     
-    for i=1:6
+    for i=1:bathy.smoother.n_passes
         for mm = 1:size(S.h,1);
-            S.h(mm,:) = smooth(S.h(mm,:),n_points);
+            S.h(mm,:) = smooth(S.h(mm,:),bathy.smoother.n_points);
             %S.h(mm,:) = filter(kernel,1,S.h(mm,:));
         end
         for mm = 1:size(S.h,2);
-            S.h(:,mm) = smooth(S.h(:,mm),n_points);
+            S.h(:,mm) = smooth(S.h(:,mm),bathy.smoother.n_points);
         end
         % smooth corners a little more
 %         for mm=-1*n_points:1*n_points
@@ -439,6 +441,7 @@ zwmat = z_w;
 clear z_r z_u z_v z_w
 
 hrmat = repmat(S.h,[1 1 S.N]);
+Hz = diff(zwmat,1,3); bsxfun(@rdivide,diff(zwmat,1,3),permute(diff(S.s_w',1,1),[3 2 1]));
 Z  = abs(max(S.h(:)));
 
 [rx0,rx1] = stiffness(S.h,zrmat);
@@ -535,7 +538,6 @@ if flags.front
 
     % then integrate to make T front
     % top to bottom integration done earlier
-
     % integrate in horizontal dirn.from left to right using gradients on SIGMA LEVEL
     [S,axmat] = reset_flip(S,axmat);
     [S,axmat] = flip_vars(flip_flag,S,axmat);
@@ -564,6 +566,7 @@ if flags.front
     dsst = max(S.temp(:,:,end))-min(S.temp(:,:,end));
     ssttitle = sprintf('SST | \\Delta SST = %.2f C', mean(dsst(:)));
 
+    % check front plots
     if bathy.axis == 'x'
         axt(1) = subplot(241);
         contourf(squeeze(xrmat(:,ymid,:))/1000,squeeze(zrmat(:,ymid,:)),squeeze(S.temp(:,ymid,:)),40);
@@ -629,6 +632,7 @@ if flags.front
         zetahax2 = zetahax2';
     end
 
+    % plot zeta
     figure(h_check)
     axt(7) = subplot(247);
     contourf(xrmat(:,:,end)./fx,yrmat(:,:,end)./fy,S.zeta);
@@ -655,7 +659,7 @@ if flags.eddy
     eddy.iy = find_approx(S.y_rho(1,:),eddy.cy,1);
 
     % assume that eddy location is in deep water
-    deep_z = squeeze(zrmat(eddy.ix,eddy.iy,:));
+    eddy.z = squeeze(zrmat(eddy.ix,eddy.iy,:));
 
     % temp. field - in xy plane (normalized)
     exponent = (eddy.a - 1)/eddy.a .* (rnorm.^(eddy.a)); % needed for radial calculations later
@@ -663,9 +667,12 @@ if flags.eddy
     eddy.xyprof = eddy.xyprof./max(eddy.xyprof(:));
 
     % temp. field -  z-profile (normalized)
-    ind = find_approx(deep_z, -1 * eddy.depth,1);
-    eddy.zprof = [zeros(ind-eddy.Ncos,1); (1-cos(pi * [0:eddy.Ncos]'/eddy.Ncos))/2; ones(S.N-ind-1,1)];
-    int_zprof = trapz(deep_z,eddy.zprof);
+%    % cos profile
+%     ind = find_approx(deep_z, -1 * eddy.depth,1);
+%     eddy.zprof = [zeros(ind-eddy.Ncos,1); (1-cos(pi * [0:eddy.Ncos]'/eddy.Ncos))/2; ones(S.N-ind-1,1)];
+    % use half-Gaussian profile
+    eddy.zprof = exp(-(eddy.z ./ eddy.depth) .^ 2);    
+    int_zprof = trapz(deep_z,eddy.zprof); % for normalization
     eddy.zprof = eddy.zprof./int_zprof;
 
     % add eddy temperature perturbation
@@ -706,11 +713,16 @@ if flags.eddy
             rfb2 = r.*f ./ 2;            
             sdisc = sqrt(1 + bsxfun(@times,rhs,2./rfb2));% sqrt(discriminant)
             rut = bsxfun(@times,(-1 + sdisc), rfb2);
-            if ~isreal(rut), error('gradient wind calculated complex v!!!'); end         
+            if ~isreal(rut)
+                warning(['gradient wind calculated complex v! - ' ...
+                         'shifting to cyclostrophic balance']);
+                rut = -sqrt(bsxfun(@times,rhs,-2*rfb2)); % need -r for real solutions
+                fprintf('\n max. Ro = %.2f \n', max(abs(rut(:)))./f0./r0);
+            end
         end
         
         eddy.u = -1 * bsxfun(@times,rut, sin(th));
-        eddy.v = bsxfun(@times, rut, cos(th));
+        eddy.v =      bsxfun(@times,rut, cos(th));
 
         S.u = S.u + avg1(eddy.u,1);
         S.v = S.v + avg1(eddy.v,2);
@@ -781,12 +793,12 @@ if flags.eddy
     axe(3) = subplot(243);
     contourf(squeeze(xvmat(:,yedd,:))/fx,squeeze(zvmat(:,yedd,:)),squeeze(S.v(:,yedd,:)),20);
     colorbar;
-    title('u (y=mid)');
+    title('v (y=mid)');
     xlabel(['x' lx]); ylabel('z (m)');
     axe(4) = subplot(244);
     contourf(squeeze(yumat(xedd,:,:))/fy,squeeze(zumat(xedd,:,:)),squeeze(S.u(xedd,:,:)),20);
     colorbar;
-    title('v (x=mid)');
+    title('u (x=mid)');
     xlabel(['y' ly]); ylabel('z (m)');
     
     
@@ -804,18 +816,17 @@ if flags.eddy
     axe(7) = subplot(247);
     contourf(squeeze(xvmat(:,yedd,:))/fx,squeeze(zvmat(:,yedd,:)),squeeze(eddy.v(:,yedd,:)),20);
     colorbar;
-    title('eddy u (y=mid)');
+    title('eddy v (y=mid)');
     xlabel(['x' lx]); ylabel('z (m)');
     axe(8) = subplot(248);
     contourf(squeeze(yumat(xedd,:,:))/fy,squeeze(zumat(xedd,:,:)),squeeze(eddy.u(xedd,:,:)),20);
     colorbar;
-    title('eddy v (x=mid)');
+    title('eddy u (x=mid)');
     xlabel(['y' ly]); ylabel('z (m)');
     
     linkaxes([axe(1) axe(3) axe(5) axe(7)],'xy');
     linkaxes([axe(2) axe(4) axe(6) axe(8)],'xy');
 end
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% add barotropic velocity for advection (OBC initial condition also)
@@ -873,7 +884,6 @@ if ~flags.spinup
     [z_w]=set_depth(S.Vtransform, S.Vstretching, ...
                      S.theta_s, S.theta_b, S.hc, S.N, ...
                      5, S.h, S.zeta,0);
-    Hz = diff(z_w,1,3);
     [S.ubar,S.vbar] = uv_barotropic(S.u,S.v,Hz);
 end
 toc;
@@ -1117,8 +1127,13 @@ if make_plot
     limx = [min(xrmat(:,1,1)) max(xrmat(:,1,1))]./fx;
     limy = [min(yrmat(1,:,1)) max(yrmat(1,:,1))]./fy;
 
-    xind = xedd;
-    yind = yedd;
+    if flags.eddy
+        xind = xedd;
+        yind = yedd;
+    else
+        xind = xmid;
+        yind = ymid;
+    end
     
     %% Plot all fields
     figure;
@@ -1273,6 +1288,33 @@ fprintf('\n\n Beckmann & Haidvogel number = %f (< 0.2 , max 0.4) \n \t\t\t\tHane
 fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, \n\n C_bt = %.3f | C_bc = %.3f  | C_bc7 = %.3f\n\n Min. Ri = %.2f\n\n', dt,ndtfast,Cbt,Cbc,Cbc7,min(Ri(:)));
 %fprintf('\n\n (dt)_bt < %.2f s | (dt)_bc < %.2f s\n\n', DX/(sqrt(g*min(S.h(:)))), DX/(sqrt(N2)*min(S.h(:))/pi))
 
+%% using Hernan's balance operator code (with prsgd31 algo)
+
+% K.Lm = S.Lm;
+% K.Mm = S.Mm;
+% K.N = S.N;
+% K.LNM_depth = 0; % integrate from bottom for FS
+% K.g = 9.81;
+% K.rho0 = 1025;
+% K.alpha = TCOEF * ones(size(S.temp,1),size(S.temp,2));
+% K.beta  = SCOEF * ones(size(S.temp,1),size(S.temp,2));
+% 
+% K.f = f;
+% K.pm = S.pm;
+% K.pn = S.pn;
+% K.pmon_u = avg1(S.pm ./ S.pn , 1);
+% K.pnom_v = avg1(S.pn ./ S.pm , 2);
+% K.rmask = S.mask_rho;
+% K.umask = S.mask_u;
+% K.vmask = S.mask_v;
+% K.Hz = Hz;
+% K.Zr = zrmat;
+% K.Zw = zwmat;
+% 
+% drho = rho_balance(K,S.temp-T0,S.salt-S0);
+% [u,v,zeta_rhs] = uv_balance(K,drho);
+% [zeta,~] = zeta_balance(K,0,drho);
+
 %% old calculate velocity field
 % first re-calculate temperature (density) gradient
 % tgrid.xmat = xrmat; tgrid.ymat = yrmat; tgrid.zmat = zrmat; tgrid.s = S.s_rho;
@@ -1342,10 +1384,10 @@ fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, \n\n C_bt = %.3f | C_bc = %.3f  
 %     for ii=1:S.Lm+2
 %         for jj=1:S.Mm+2
 %             if ii~=S.Lm+2
-%                 S.ubar(ii,jj) = trapz(squeeze(zumat(ii,jj,:)),S.u(ii,jj,:),3)./hrmat(ii,jj);
+%                 ubar(ii,jj) = trapz(squeeze(zumat(ii,jj,:)),S.u(ii,jj,:),3)./hrmat(ii,jj);
 %             end
 %             if jj~=S.Mm+2
-%                 S.vbar(ii,jj) = trapz(squeeze(zvmat(ii,jj,:)),S.v(ii,jj,:),3)./hrmat(ii,jj);
+%                 vbar(ii,jj) = trapz(squeeze(zvmat(ii,jj,:)),S.v(ii,jj,:),3)./hrmat(ii,jj);
 %             end
 %         end
 %     end
