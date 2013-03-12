@@ -1,6 +1,6 @@
 eddy.m - test code implementing chelton et al. (2011) method
 
-bathy.m, bathy2.m - these are both scripts that create fancy shaped bathymetry
+bathy_crooked.m, bathy2.m - these are both scripts that create fancy shaped bathymetry
 bathy_simple.m - creates simple sloping bathymetry
 
 modify_dye.m - script that resets dye concentration in a ROMS restart file

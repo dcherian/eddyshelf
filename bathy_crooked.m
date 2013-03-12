@@ -1,4 +1,4 @@
-function [hx,hy,hdeep] = bathy(x_rho,y_rho,B,X,Y)
+function [hx,hy,hdeep] = bathy_crooked(x_rho,y_rho,B,X,Y)
 
     hx = nan(size(y_rho));
     hy = hx;

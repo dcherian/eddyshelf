@@ -29,7 +29,7 @@ S.NT = 2+S.NPT; % total number of tracers
 S.Vtransform = 2;
 S.Vstretching = 4;
 S.theta_s = 3.0;     %  S-coordinate surface control parameter.
-S.theta_b = 2.0;     %  S-coordinate bottom  control parameter.
+S.theta_b = 3.0;     %  S-coordinate bottom  control parameter.
 S.Tcline  = 100.0;    %  S-coordinate surface/bottom stretching width (m)
 
 % coriolis parameters
@@ -57,18 +57,20 @@ BRY_NAME  = [FOLDER BRY_NAME '.nc'];
 flags.tanh_bathymetry = 0;
 flags.linear_bathymetry = 1;
 flags.old_bathy = 0;
+flags.crooked_bathy = 0;
 
 flags.perturb_zeta = 0; % add random perturbation to zeta
 flags.spinup = 0; % if spinup, do not initialize ubar/vbar fields.
 
 flags.front = 0; % create shelfbreak front
-flags.eddy  = 0; % create eddy
+flags.eddy  = 1; % create eddy
 flags.ubt_initial = 0; % add barotropic velocity to initial condition?
 
-% momentum balance options
+% eddy momentum balance options
 flags.use_cartesian = 0; % cartesian
 flags.use_radial    = 1; % use radial
 flags.use_gradient  = 1; % use gradient wind balance
+flags.solidbody     = 1;
 
 % OBC + barotropic velocity options
 flags.OBC = 1;  % create OBC file and set open boundaries
@@ -76,17 +78,17 @@ flags.OBC_from_initial = 1; % copy OBC data from initial condition?
 
 if flags.OBC
     OBC.west  = false;           % process western  boundary segment
-    OBC.east  = false;           % process eastern  boundary segment
+    OBC.east  = true;           % process eastern  boundary segment
     OBC.south = false;           % process southern boundary segment
-    OBC.north = true;            % process northern boundary segment
+    OBC.north = false;            % process northern boundary segment
 end
 
 % flags.ubt_deep = 0; % nudge to ubt only in deep water - NOT WORKING
 %flags.localize_jet = 0;% buffer around eddy where velocity should exist - NOT NEEDED
 
 % Barotropic background flow parameters
-ubt = 0;0.05; % m/s barotropic velocity
-vbt = -0.05; % m/s barotropic velocity
+ubt = -0.05; % m/s barotropic velocity
+vbt = 0;-0.05; % m/s barotropic velocity
 
 % Bathymetry parameters - all measurements in m
 bathy.H_shelf  = 100;
@@ -97,19 +99,23 @@ bathy.loc  = 'l'; % h - high end of axis; l - low end
 bathy.sl_shelf = 0.0005;
 bathy.sl_slope = 0.05;
 
+% bathymetry smoothing options
+bathy.smoother.n_points = 4;
+bathy.smoother.n_passes = 6;
+
 % curved bathymetry
-bathy.L_shelf2 =  0 * 1000;
-bathy.L_entry  = 0; %200* 1000; % deep water to initialize eddy in
-bathy.L_tilt   = 0; %130 * 1000;
+bathy.L_shelf2 =  30 * 1000;
+bathy.L_entry  = 30 * 1000; %200* 1000; % deep water to initialize eddy in
+bathy.L_tilt   = 20 * 1000; %130 * 1000;
 
 % Eddy parameters - all distances in m
-eddy.dia   = 60*1000/2; % in m
+eddy.dia   = 80*1000; % in m
 eddy.depth = 500; % depth below which flow is 'compensated'
 %eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero
-eddy.tamp  = 20; % controls gradient
-eddy.a     = 2;  % ? in Katsman et al. (2003)
-eddy.cx    = X-eddy.dia-20000; % center of eddy
-eddy.cy    = Y-eddy.dia-25000; %        " 
+eddy.tamp  = 40; % controls gradient
+eddy.a     = 3;  % ? in Katsman et al. (2003)
+eddy.cx    = X-eddy.dia/2-20000; % center of eddy
+eddy.cy    = Y-eddy.dia/2-15000; %        " 
 
 % Shelfbreak front parameters
 front.LTleft  = 12.5 * 1000; % length scale for temperature (m) - onshore
@@ -320,8 +326,11 @@ end
 % linear bathymetry
 if flags.linear_bathymetry == 1
     
-    [S] = bathy_simple(S,bathy,X,Y,bathy.axis);
-%   [S] = bathy2_x(S,B,X,Y);
+    if flags.crooked_bathy
+        [S] = bathy2_x(S,bathy,X,Y);
+    else
+        [S] = bathy_simple(S,bathy,X,Y,bathy.axis);
+    end
 %     ix1 = find_approx(S.x_rho(:,1),X-bathy.L_entry-bathy.L_tilt,1);
 %     ix2 = find_approx(S.x_rho(:,1),X-bathy.L_entry,1);
 %     iy1 = find_approx(S.y_rho(1,:),Y-bathy.L_shelf,1);
@@ -331,13 +340,13 @@ if flags.linear_bathymetry == 1
         bathy.sl_slope2 = bathy.sl_slope;
 
         % main shelf
-        [hx,hy,hdeep] = bathy(S.x_rho,S.y_rho,B,X,Y);
+        [hx,hy,hdeep] = bathy_crooked(S.x_rho,S.y_rho,bathy,X,Y);
 
         % second section
-        B2 = B;
+        B2 = bathy;
         B2.L_entry = 0 *1000;
         B2.L_shelf = 50*1000;
-        [hx2,hy2,~] = bathy(S.x_rho,S.y_rho,B2,X,Y);
+        [hx2,hy2,~] = bathy_crooked(S.x_rho,S.y_rho,B2,X,Y);
 
         h1 = hx.*hy .*~(S.x_rho > (X-bathy.L_entry-bathy.L_slope));
         h2 = hx2 .* (S.y_rho > Y-B2.L_shelf) .*(S.x_rho > (X-bathy.L_entry-bathy.L_slope));
@@ -354,9 +363,6 @@ if flags.linear_bathymetry == 1
     
     % run smoother   
 %    kernel = [1 2 1];
-
-bathy.smoother.n_points = 4;
-bathy.smoother.n_passes = 2;
     
     for i=1:bathy.smoother.n_passes
         for mm = 1:size(S.h,1);
@@ -366,18 +372,8 @@ bathy.smoother.n_passes = 2;
         for mm = 1:size(S.h,2);
             S.h(:,mm) = smooth(S.h(:,mm),bathy.smoother.n_points);
         end
-        % smooth corners a little more
-%         for mm=-1*n_points:1*n_points
-%             S.h(ix1+mm,:) = smooth(S.h(ix1+mm,:),n_points);
-%             S.h(ix2+mm,:) = smooth(S.h(ix2+mm,:),n_points);
-%         end
     end  
     
-%     subplot(131)
-%     plot(-S.h');
-%     subplot(132)
-%     contour(S.x_rho/1000,S.y_rho/1000,-S.h,40,'k');
-%     xlabel('x'); ylabel('y'); zlabel('z')
 end
 
 if flags.tanh_bathymetry == 1
@@ -650,29 +646,54 @@ if flags.eddy
     if flags.use_cartesian == 1 && flags.use_radial == 1
         error('Both cartesian & radial formulae specified. Correct it!');
     end
+    
+    % reset in case I'm debugging
+    if ~flags.front
+        S.temp = strat; 
+        S.u = zeros(size(S.u));        
+        S.v = zeros(size(S.v));        
+        S.zeta = zeros(size(S.zeta));               
+    end
 
     % cylindrical co-ordinates
-    r0 = eddy.dia/2;
+    r0 = eddy.dia/4; % This is required to account for exponential decay
     [th,r] = cart2pol((S.x_rho-eddy.cx),(S.y_rho-eddy.cy));
-    rnorm = r./r0; % normalized radius
+    rnorm  = r./r0; % normalized radius
     eddy.ix = find_approx(S.x_rho(:,1),eddy.cx,1);
     eddy.iy = find_approx(S.y_rho(1,:),eddy.cy,1);
 
     % assume that eddy location is in deep water
     eddy.z = squeeze(zrmat(eddy.ix,eddy.iy,:));
 
-    % temp. field - in xy plane (normalized)
-    exponent = (eddy.a - 1)/eddy.a .* (rnorm.^(eddy.a)); % needed for radial calculations later
-    eddy.xyprof = exp( -1 * exponent ); 
+    % eddy temp. field - xy profile - Reference: Katsman et al. (2003)
+    if flags.solidbody % solid body rotation
+        if eddy.a <= 2
+            error('eddy.a > 2 for solid body profiles! See Katsman et al. (2003)');
+        end
+       %rnorm = rnorm .* 2;
+        % normalized rm = rm_tilde in Katsman et al. (2003)
+        rmnorm = nthroot( (eddy.a-2)/(eddy.a-1) , eddy.a);
+        gamma = -2 * (eddy.a-2)./eddy.a ./ (rmnorm)^2;
+        
+        exponent = (eddy.a - 1)/eddy.a .* (rnorm.^(eddy.a) - rmnorm.^(eddy.a));        
+        eddy.xyprof = zeros(size(rnorm));
+        eddy.xyprof = (gamma/2 * rnorm.^2 + 1) .* (rnorm <= rmnorm) ...
+                       + (gamma/2 *rmnorm^2 + 1) .* exp( -1 * exponent ) .* ...
+                                                           (rnorm > rmnorm);
+    else %  gaussian in xy plane (normalized)
+        exponent = (eddy.a - 1)/eddy.a .* (rnorm.^(eddy.a)); % needed for radial calculations later
+        eddy.xyprof = exp( -1 * exponent ); 
+    end
     eddy.xyprof = eddy.xyprof./max(eddy.xyprof(:));
 
     % temp. field -  z-profile (normalized)
 %    % cos profile
 %     ind = find_approx(deep_z, -1 * eddy.depth,1);
 %     eddy.zprof = [zeros(ind-eddy.Ncos,1); (1-cos(pi * [0:eddy.Ncos]'/eddy.Ncos))/2; ones(S.N-ind-1,1)];
+    
     % use half-Gaussian profile
     eddy.zprof = exp(-(eddy.z ./ eddy.depth) .^ 2);    
-    int_zprof = trapz(deep_z,eddy.zprof); % for normalization
+    int_zprof  = trapz(eddy.z,eddy.zprof); % for normalization
     eddy.zprof = eddy.zprof./int_zprof;
 
     % add eddy temperature perturbation
@@ -693,30 +714,53 @@ if flags.eddy
         end
         
         % SSH calculation is same for gradient wind & geostrophic balance?
-        S.zeta = S.zeta + -TCOEF * eddy.tamp * int_Tz .* (1-exp(-exponent));
-        S.zeta = S.zeta - min(S.zeta(:));
+        if flags.solidbody
+            expo = 1- exp( -1 * exponent );
+            expo = expo./max(expo(:));
+            z1 = (gamma/2 * rnorm.^2 + 1) .* (rnorm <= rmnorm);
+            z2 = (gamma/2 *rmnorm^2 + 1) .* -(expo) .* (rnorm > rmnorm);
+            
+            % hack in matching at boundary - THIS SHOULD NOT BE NEEDED
+            z1 = (z1 - nanmin(fillnan(z1(:),0)) .* (z1 ~= 0));           
+            S.zeta = S.zeta + TCOEF*eddy.tamp * int_Tz .* (z1 + z2);                      
+%             z12 = z1+z2;
+%             plot(z1(:,80)); hold on; 
+%             plot(z2(:,80),'r'); 
+%             plot(z12(:,80),'c'); 
+%             plot(S.zeta(:,80),'k');
+%             legend('z1','z2','z12','zeta');
 
-        % CHECK UNITS &  WHY IS PROFILE WEIRD NEAR CENTER. 
-        % ANS =  r d(theta)/dt NOT d(theta)/dt
-
-        % azimuthal velocity = r d(theta)/dt
-        rutz = avg1(bsxfun(@times, eddy.temp, ...
+            % Calculate azimuthal velocity shear (r d(theta)/dt)_z using geostrophic balance
+            dTdr = gamma * rnorm ./ r0 .* (rnorm <= rmnorm) ...
+                    + (gamma/2 .* rmnorm^2 + 1) .*  (-(eddy.a-1) ./ r0 .* rnorm.^(eddy.a-1)) ...
+                               .* exp(-exponent) .* (rnorm > rmnorm);
+            rutz = eddy.tamp *(TCOEF*g) .* bsxfun(@times,eddy.tz,dTdr./f);
+        else % gaussian eddy
+            S.zeta = S.zeta + -TCOEF * eddy.tamp * int_Tz .* (1-eddy.xyprof);
+            % Calculate azimuthal velocity shear (r d(theta)/dt)_z using geostrophic balance
+            rutz = avg1(bsxfun(@times, eddy.temp, ...
                     g*TCOEF* 1./f .* (-exponent./r *eddy.a)),3);
+        end
+        S.zeta = S.zeta - min(S.zeta(:));
+        
+        % azimuthal velocity = r d(theta)/dt
         rut = zeros(size(xrmat));
         for i=2:size(xrmat,3)
             rut(:,:,i) = rut(:,:,i-1) + rutz(:,:,i-1).*(zrmat(:,:,i)-zrmat(:,:,i-1));
         end
 
         % solve quadratic for vel. if gradient wind balance
+        vgeo = rut;
         if flags.use_gradient
-            rhs = rut;
             rfb2 = r.*f ./ 2;            
-            sdisc = sqrt(1 + bsxfun(@times,rhs,2./rfb2));% sqrt(discriminant)
-            rut = bsxfun(@times,(-1 + sdisc), rfb2);
-            if ~isreal(rut)
-                warning(['gradient wind calculated complex v! - ' ...
+            sdisc = sqrt(1 + bsxfun(@times,vgeo,2./rfb2));% sqrt(discriminant)
+            if isreal(sdisc) % gradient wind doesn't always work with anticyclones
+                rut = bsxfun(@times,(-1 + sdisc), rfb2);
+            else
+                % cyclostrophic balance doesn't work yet
+                error(['gradient wind calculated complex v! - ' ...
                          'shifting to cyclostrophic balance']);
-                rut = -sqrt(bsxfun(@times,rhs,-2*rfb2)); % need -r for real solutions
+                rut = -sqrt(bsxfun(@times,vgeo,-2*rfb2)); % need -r for real solutions
                 fprintf('\n max. Ro = %.2f \n', max(abs(rut(:)))./f0./r0);
             end
         end
@@ -800,7 +844,6 @@ if flags.eddy
     colorbar;
     title('u (x=mid)');
     xlabel(['y' ly]); ylabel('z (m)');
-    
     
     axe(5) = subplot(245);
     contourf(squeeze(xrmat(:,yedd,:))/fx,squeeze(zrmat(:,yedd,:)),squeeze(eddy.temp(:,yedd,:)),20);
@@ -923,8 +966,8 @@ pvmid = pv(xmid,ymid,zmid);
 xind = 30; yind = 15; zind = 30;
 
 % these are needed later too
-VZ  = diff(S.v,1,3) ./ diff(zvmat,1,3);
-UZ  = diff(S.u,1,3) ./ diff(zumat,1,3);
+VZ  = diff(     avg1(bsxfun(@times,vgeo, cos(th)),2),1,3) ./ diff(zvmat,1,3);
+UZ  = diff(-1 * avg1(bsxfun(@times,vgeo, sin(th)),1),1,3) ./ diff(zumat,1,3);
         
 dx = squeeze(diff(xrmat,1,1));
 dy = squeeze(diff(yrmat,1,2));
