@@ -11,14 +11,16 @@ BRY_NAME  = 'topo_bry_01';
 % Grid Parameters
 S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 
-% grid information
-S.Lm = 102;
-S.Mm = 100;
+% WikiROMS - Note that there are Lm by Mm computational points. 
+% If you want to create a grid that's neatly divisible by powers of 2, 
+% make sure Lm and Mm have those factors.
+S.Lm = 96;
+S.Mm = 64;
 S.N  = 40;
 
 % Domain Extent (in m)
-X = 150000;
-Y = 200000;
+X = 100000;
+Y = 100000;
 Z = 2000;
 
 % tracers
@@ -35,7 +37,7 @@ S.Tcline  = 100.0;    %  S-coordinate surface/bottom stretching width (m)
 % coriolis parameters
 lat_ref = 45;
 f0    = 2 * (2*pi/86400) * sind(lat_ref);
-beta  = 2e-11;
+beta  = 0;2e-11;
 
 % Physical Parameters
 N2    = 1e-5;
@@ -62,33 +64,34 @@ flags.crooked_bathy = 0;
 flags.perturb_zeta = 0; % add random perturbation to zeta
 flags.spinup = 0; % if spinup, do not initialize ubar/vbar fields.
 
-flags.front = 0; % create shelfbreak front
-flags.eddy  = 1; % create eddy
-flags.ubt_initial = 0; % add barotropic velocity to initial condition?
+flags.front = 1; % create shelfbreak front
+flags.eddy  = 0; % create eddy
+flags.ubt_initial = 1; % add barotropic velocity to initial condition?
 
 % eddy momentum balance options
 flags.use_cartesian = 0; % cartesian
 flags.use_radial    = 1; % use radial
 flags.use_gradient  = 1; % use gradient wind balance
-flags.solidbody     = 1;
+flags.solidbody     = 0;
 
 % OBC + barotropic velocity options
 flags.OBC = 1;  % create OBC file and set open boundaries
 flags.OBC_from_initial = 1; % copy OBC data from initial condition?
 
+% DO NOT CHANGE THIS ORDER
 if flags.OBC
     OBC.west  = false;           % process western  boundary segment
-    OBC.east  = true;           % process eastern  boundary segment
+    OBC.east  = false;           % process eastern  boundary segment
     OBC.south = false;           % process southern boundary segment
-    OBC.north = false;            % process northern boundary segment
+    OBC.north = true;            % process northern boundary segment
 end
 
 % flags.ubt_deep = 0; % nudge to ubt only in deep water - NOT WORKING
 %flags.localize_jet = 0;% buffer around eddy where velocity should exist - NOT NEEDED
 
 % Barotropic background flow parameters
-ubt = -0.05; % m/s barotropic velocity
-vbt = 0;-0.05; % m/s barotropic velocity
+ubt = 0;-0.05; % m/s barotropic velocity
+vbt = -0.05; % m/s barotropic velocity
 
 % Bathymetry parameters - all measurements in m
 bathy.H_shelf  = 100;
@@ -109,17 +112,18 @@ bathy.L_entry  = 30 * 1000; %200* 1000; % deep water to initialize eddy in
 bathy.L_tilt   = 20 * 1000; %130 * 1000;
 
 % Eddy parameters - all distances in m
-eddy.dia   = 80*1000; % in m
+eddy.dia   = 60*1000; % in m
 eddy.depth = 500; % depth below which flow is 'compensated'
 %eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero
-eddy.tamp  = 40; % controls gradient
-eddy.a     = 3;  % ? in Katsman et al. (2003)
+eddy.tamp  = 25; % controls gradient
+eddy.a     = 2;  % ? in Katsman et al. (2003)
 eddy.cx    = X-eddy.dia/2-20000; % center of eddy
 eddy.cy    = Y-eddy.dia/2-15000; %        " 
 
 % Shelfbreak front parameters
 front.LTleft  = 12.5 * 1000; % length scale for temperature (m) - onshore
 front.LTright = 8*1000; % length scale - offshore
+front.LTz     = 100; % Gaussian decay scale in the vertical for temperature
 front.slope   = 500/4000; % non-dimensional
 front.Tx0     = -1e-4; % max. magnitude of temperature gradient
 
@@ -525,8 +529,12 @@ end
 if flags.front
     % build cosine curve about shelfbreak (do each lat/lon line individually)
     % this gets gradient on a Z level
-    S.Tx = hor_grad_tracer(axmat,ax_as,ax_cs,zrmat,i_cs,i_as,front,bathy);
-    S.Tz = N2/g/TCOEF * ones(size(zwmat) - [0 0 1]);
+    % for this to work Tx must be independent of z!
+    [S.Tx,mask_z] = hor_grad_tracer(axmat,ax_as,ax_cs,zrmat,i_cs,i_as,front,bathy);
+%     S.Tz = mask_z .* exp(-(zrmat./front.LTz).^2);
+%     S.Tz = S.Tz ./ nanmax(S.Tz(:));
+%     S.Tz = N2/g/TCOEF .* (repnan(S.Tz,1));
+    S.Tz = N2/g/TCOEF .* ones(size(zrmat));
 
     % use chain rule to get gradient on SIGMA LEVEL
     dzdx_s = diff(zrmat,1,i_cs)./diff(axmat,1,i_cs);
@@ -565,22 +573,24 @@ if flags.front
     % check front plots
     if bathy.axis == 'x'
         axt(1) = subplot(241);
-        contourf(squeeze(xrmat(:,ymid,:))/1000,squeeze(zrmat(:,ymid,:)),squeeze(S.temp(:,ymid,:)),40);
+        contourf(squeeze(xrmat(:,ymid,:))/1000,squeeze(zrmat(:,ymid,:)),squeeze(S.temp(:,ymid,:)),20);
         xlabel('x (km)'); ylabel('z (m)'); title('Temperature');  colorbar
         axt(2) = subplot(242);
-        contourf(squeeze(xrmat(:,ymid,:))/1000,squeeze(zrmat(:,ymid,:)),squeeze(S.Tx(:,ymid,:)),40);
+        contourf(squeeze(xrmat(:,ymid,:))/1000,squeeze(zrmat(:,ymid,:)),squeeze(S.Tx(:,ymid,:)),20);
         xlabel('x (km)'); ylabel('z (m)'); title('Temperature Gradient'); colorbar
     else
         axt(1) = subplot(241);
-        contourf(squeeze(yrmat(xmid,:,:))/1000,squeeze(zrmat(xmid,:,:)),squeeze(S.temp(xmid,:,:)),40);
+        contourf(squeeze(yrmat(xmid,:,:))/1000,squeeze(zrmat(xmid,:,:)),squeeze(S.temp(xmid,:,:)),20);
         xlabel('y (km)'); ylabel('z (m)'); title('Temperature'); colorbar
         axt(2) = subplot(242);
-        contourf(squeeze(yrmat(xmid,:,:))/1000,squeeze(zrmat(xmid,:,:)),squeeze(S.temp(xmid,:,:)),40);
+        contourf(squeeze(yrmat(xmid,:,:))/1000,squeeze(zrmat(xmid,:,:)),squeeze(S.temp(xmid,:,:)),20);
         xlabel('y (km)'); ylabel('z (m)'); title('Temperature'); colorbar
     end
     axt(4) = subplot(244);
     contourf(xrmat(:,:,end)/1000,yrmat(:,:,end)/1000, S.temp(:,:,end),40);
     xlabel('x (km)'); ylabel('y (km)'); title(ssttitle); colorbar
+    
+    %fig;pcolorcen(squeeze(avg1(xrmat(:,ymid,:),1))/1000,squeeze(avg1(zrmat(:,ymid,:))),squeeze(S.Tx_sig(:,ymid,:)));
 
     % calculate velocity field
     vel_shear = zeta_sign * g*TCOEF .* bsxfun(@rdivide,avg1(S.Tx,i_as),avg1(f,i_as));
@@ -638,6 +648,27 @@ if flags.front
     linkaxes(axt,'x');
     linkaxes([axt(1) axt(2) axt(5) axt(6)],'xy');
     linkaxes([axt(4) axt(7)],'xy');
+    
+    % calculate diagnostics
+    % define horizontal and vertical scales of jet  as half the core velocity 
+    % like in Fratantoni et al (2001) & Linder & Gawarkiewicz (1998)
+    if bathy.axis == 'x'
+        vsurf = vmat(:,S.Mm/2,end);
+        vvert = squeeze(vmat(:,S.Mm/2,:));
+    else
+        vsurf = vmat(S.Lm/2,:,end)';
+        vvert = squeeze(vmat(S.Lm/2,:,:));
+    end
+    [vm,imax] = max(abs(vsurf));
+    ind = find_approx(abs(vsurf),vm/2,2);
+    front.hscale = ax_cs(ind(2))-ax_cs(ind(1));
+    vvert = vvert(imax,:);
+    ind = find_approx(abs(vvert),vm/2,1);
+    if bathy.axis == 'x'
+        front.vscale = abs(zrmat(imax,S.Mm/2,ind));
+    else
+        front.vscale = abs(zrmat(S.Lm/2,imax,ind));
+    end
 end % if shelfbreak front
 
 %% Now create eddy
@@ -650,8 +681,8 @@ if flags.eddy
     % reset in case I'm debugging
     if ~flags.front
         S.temp = strat; 
-        S.u = zeros(size(S.u));        
-        S.v = zeros(size(S.v));        
+        S.u = zeros(size(S.u));
+        S.v = zeros(size(S.v));
         S.zeta = zeros(size(S.zeta));               
     end
 
@@ -670,8 +701,10 @@ if flags.eddy
         if eddy.a <= 2
             error('eddy.a > 2 for solid body profiles! See Katsman et al. (2003)');
         end
-       %rnorm = rnorm .* 2;
+        % rnorm = rnorm .* 2;
         % normalized rm = rm_tilde in Katsman et al. (2003)
+        % values determined by matching first and second derivatives of
+        % temp. profile at rm - see paper for details
         rmnorm = nthroot( (eddy.a-2)/(eddy.a-1) , eddy.a);
         gamma = -2 * (eddy.a-2)./eddy.a ./ (rmnorm)^2;
         
@@ -691,10 +724,9 @@ if flags.eddy
 %     ind = find_approx(deep_z, -1 * eddy.depth,1);
 %     eddy.zprof = [zeros(ind-eddy.Ncos,1); (1-cos(pi * [0:eddy.Ncos]'/eddy.Ncos))/2; ones(S.N-ind-1,1)];
     
-    % use half-Gaussian profile
+    % use half-Gaussian profile & normalize
     eddy.zprof = exp(-(eddy.z ./ eddy.depth) .^ 2);    
-    int_zprof  = trapz(eddy.z,eddy.zprof); % for normalization
-    eddy.zprof = eddy.zprof./int_zprof;
+    eddy.zprof = eddy.zprof./trapz(eddy.z,eddy.zprof);
 
     % add eddy temperature perturbation
     eddy.tz = strat_flat .* repmat(permute(eddy.zprof,[3 2 1]),[S.Lm+2 S.Mm+2 1]);
@@ -706,6 +738,7 @@ if flags.eddy
     % Radial
     if flags.use_radial && max(~isnan(eddy.temp(:)))
         % integrated z profile of eddy.temp (HAS to include stratification)
+        % needed for zeta calculation
         int_Tz = nan([size(xrmat,1) size(xrmat,2)]);
         for i=1:size(eddy.tz,1)
             for j=1:size(eddy.tz,2)
@@ -756,14 +789,17 @@ if flags.eddy
             sdisc = sqrt(1 + bsxfun(@times,vgeo,2./rfb2));% sqrt(discriminant)
             if isreal(sdisc) % gradient wind doesn't always work with anticyclones
                 rut = bsxfun(@times,(-1 + sdisc), rfb2);
+                warning('Using gradient wind balance.');
             else
                 % cyclostrophic balance doesn't work yet
-                error(['gradient wind calculated complex v! - ' ...
-                         'shifting to cyclostrophic balance']);
-                rut = -sqrt(bsxfun(@times,vgeo,-2*rfb2)); % need -r for real solutions
-                fprintf('\n max. Ro = %.2f \n', max(abs(rut(:)))./f0./r0);
+                warning(['gradient wind calculated complex v! - ' ...
+                         'shifting to geostrophic balance']);       
+                %rut = -sqrt(bsxfun(@times,vgeo,-2*rfb2)); % need -r for real solutions
             end
         end
+        
+        Ro = max(abs(rut(:)))./f0./r0;
+        fprintf('\n max. Ro = %.2f \n', Ro);
         
         eddy.u = -1 * bsxfun(@times,rut, sin(th));
         eddy.v =      bsxfun(@times,rut, cos(th));
@@ -965,9 +1001,13 @@ pvmid = pv(xmid,ymid,zmid);
 % calculate % error in thermal wind balance
 xind = 30; yind = 15; zind = 30;
 
-% these are needed later too
-VZ  = diff(     avg1(bsxfun(@times,vgeo, cos(th)),2),1,3) ./ diff(zvmat,1,3);
-UZ  = diff(-1 * avg1(bsxfun(@times,vgeo, sin(th)),1),1,3) ./ diff(zumat,1,3);
+% these are needed later too - calculated for geostrophic component of
+% % velocity
+% VZ  = diff(     avg1(bsxfun(@times,vgeo, cos(th)),2),1,3) ./ diff(zvmat,1,3);
+% UZ  = diff(-1 * avg1(bsxfun(@times,vgeo, sin(th)),1),1,3) ./ diff(zumat,1,3);
+
+VZ  = diff(S.v,1,3) ./ diff(zvmat,1,3);
+UZ  = diff(S.u,1,3) ./ diff(zumat,1,3);
         
 dx = squeeze(diff(xrmat,1,1));
 dy = squeeze(diff(yrmat,1,2));
@@ -1083,7 +1123,7 @@ if flags.OBC == 1
 
     boundaries = fieldnames(OBC);
     range   = {'(1,:,:)','(end,:,:)','(:,1,:)','(:,end,:)'};
-    VarList = {'zeta'; 'ubar'; 'vbar';'temp';'salt'}; % variables to write
+    VarList = {'zeta'; 'v'; 'vbar';'temp';'salt'}; % variables to write
     
     % set boundary condition data
     if flags.OBC_from_initial
@@ -1193,7 +1233,7 @@ if make_plot
     xlabel(['y ' lx]); ylabel('z (m)');
     
     ax(3) = subplot(243);
-    contourf(squeeze(yrmat(xmid,:,:))./fx,squeeze(zrmat(xmid,:,:)),squeeze(S.temp(xmid,:,:)),20);
+    contourf(squeeze(yrmat(xmid,:,:))./fy,squeeze(zrmat(xmid,:,:)),squeeze(S.temp(xmid,:,:)),20);
     colorbar;
     title('temp');
     xlabel(['y ' lx]); ylabel('z (m)');
@@ -1328,7 +1368,9 @@ Cbc7 = 7 * dt * sqrt(1/dx^2 + 1/dy^2);
 
 % print to screen
 fprintf('\n\n Beckmann & Haidvogel number = %f (< 0.2 , max 0.4) \n \t\t\t\tHaney number = %f (< 9 , maybe 16)', rx0,rx1);
-fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, \n\n C_bt = %.3f | C_bc = %.3f  | C_bc7 = %.3f\n\n Min. Ri = %.2f\n\n', dt,ndtfast,Cbt,Cbc,Cbc7,min(Ri(:)));
+fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, \n\n C_bt = %.3f | C_bc = %.3f  | C_bc7 = %.3f\n\n Min. Ri = %.2f', dt,ndtfast,Cbt,Cbc,Cbc7,min(Ri(:)));
+if exist('Ro','var'), fprintf(' | Max. Ro = %.2f', Ro); end
+fprintf('\n\n');
 %fprintf('\n\n (dt)_bt < %.2f s | (dt)_bc < %.2f s\n\n', DX/(sqrt(g*min(S.h(:)))), DX/(sqrt(N2)*min(S.h(:))/pi))
 
 %% using Hernan's balance operator code (with prsgd31 algo)

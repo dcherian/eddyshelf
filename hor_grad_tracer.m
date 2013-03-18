@@ -2,7 +2,7 @@
 % ax_as = axis along slope
 % ax_cs = axis cross slope
 
-function [Tx] = hor_grad_tracer(axmat_as,ax_as,ax_cs,zrmat,i_cs,i_as,front,B)
+function [Tx,mask_z] = hor_grad_tracer(axmat_as,ax_as,ax_cs,zrmat,i_cs,i_as,front,B)
 
     Tx  = nan(size(axmat_as)); %nan([size(axmat_as,1) size(axmat_as,2)]);
     Tx0 = front.Tx0;
@@ -68,9 +68,11 @@ function [Tx] = hor_grad_tracer(axmat_as,ax_as,ax_cs,zrmat,i_cs,i_as,front,B)
                 Lright = center + front.LTright;
                 if ax_cs(ii) <= Lleft || ax_cs(ii) >= Lright
                     Tx(ii,jj,kk) = 0;
+                    mask_z(ii,jj,kk) = nan;
                 else if ax_cs(ii) > Lleft && ax_cs(ii) < Lright
                         %Tx(ii,jj,kk) = Tx0/2 + Tx0/2*cos(pi*(ax_cs(ii)-center)/scale);
-                        Tx(ii,jj,kk) = Tx0*sech((ax_cs(ii)-center)/scale*5).^2;
+                        Tx(ii,jj,kk) = Tx0 *sech((ax_cs(ii)-center)/scale*5).^2;
+                        mask_z(ii,jj,kk) = 1;
                     else
                         Tx(ii,jj,kk) = nan;
                     end
