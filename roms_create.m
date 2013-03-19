@@ -4,9 +4,9 @@
 %% Parameters
 % names cannot start with number
 FOLDER    = 'runs\';
-GRID_NAME = 'topo_grd_01';
-INI_NAME  = 'topo_ini_01';
-BRY_NAME  = 'topo_bry_01';
+GRID_NAME = 'front_grd';
+INI_NAME  = 'front_ini';
+BRY_NAME  = 'front_bry';
 
 % Grid Parameters
 S.spherical = 0; % 0 - Cartesian, 1 - Spherical
@@ -15,7 +15,7 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
 S.Lm = 96;
-S.Mm = 64;
+S.Mm = 96;
 S.N  = 40;
 
 % Domain Extent (in m)

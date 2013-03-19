@@ -1,7 +1,7 @@
 % detects eddes using an obuko-weiss parameter threshold
 
 %% read data
-fname = 'runs/runte-11/ocean_his_0001.nc';
+fname = 'runs/runte-11/ocean_his_0008.nc';
 
 start = [1 1 40 1];
 count = [Inf Inf 1 10];
@@ -34,7 +34,15 @@ vy = vy(2:end-1,:,:);
 
 % obuko weiss parameter
 w = 4 * (vx.*uy - ux.*vy) + (ux+vy).^2;
-mask = fillnan(w < thresh,0);
+vor = vx-uy;
+thresh = 0.2 * std(std(w)); % Isern-Fontanet et al. (2006)
+
+for i=1:size(w,3)
+    w(:,:,i) = smooth2a(w(:,:,i),3,3);
+end
+zmean = mean(mean(zeta,1),2);
+mask = fillnan(bsxfun(@lt,w,thresh) & (vor<0) & ...
+        (bsxfun(@minus,zeta,zmean) > 0),0);
 
 % find centroid in km
 zmasked = repnan(zeta .* mask,0);
@@ -43,12 +51,12 @@ xc = squeeze(nanmean(trapz(xr(:,1),bsxfun(@times,zmasked,xr),1) ...
 yc = squeeze(nanmean(trapz(yr(1,:),bsxfun(@times,zmasked,yr),2) ...
             ./ trapz(yr(1,:),zmasked,2),1)) ./ 1000;
 
-% get radius (in km)
+% get radius (in km)   
+dx = xr(2,1)-xr(1,1);
+dy = yr(1,2)-yr(1,1);
 for i = 1:size(mask,3)
     mask1 = mask(:,:,i);
     npoints = sum(~isnan(mask1(:)));
-    dx = xr(2,1)-xr(1,1);
-    dy = yr(1,2)-yr(1,1);
     area = npoints * dx * dy;
     radius(i) = sqrt(area./pi)/1000;
 end

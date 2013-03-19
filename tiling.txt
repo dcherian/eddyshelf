@@ -7,3 +7,14 @@ time in seconds (per core) for 20 iterations
  2 x 32 = 25.437
  4 x 32 = 25.765
 16 x 64 = 34.376
+
+
+Ken's machine: 96x96 = 1.042 km resolution in x,y - 200 iterations
+
+ 2 x 12 = 15
+ 1 x 12 = 15.149
+ 1 x 24 = 17.107
+ 4 x  6 = 14.765
+ 6 x  4 = 15.709
+12 x  1 = 21.52
+ 1 x  8 = 18.5
