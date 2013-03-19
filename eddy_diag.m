@@ -1,45 +1,86 @@
 % Calculates eddy diagnostics as in Chelton et al. (2011)
+% doesn't support multiple eddies yet
 
-function [] = eddy_diag()
+function [eddy] = eddy_diag(zeta,dx,dy)
 
-    load zeta0.mat % in m
-    zeta = zeta - mean(zeta(:));
-    [L,M,N] = size(zeta);
+%     zeta = 0;
+%     load zeta0.mat % in m
+     
+%     [L,M,N] = size(zeta);
+%     
+%     dx = 1000;
+%     dy = 1000;
 
-    thresh_loop = [-100:0]; % in m
-    low_n = 10;        % minimum number of pixels in eddy
-    high_n = 1000;     % maximum number of pixels in eddy
+    zeta = zeta - min(zeta(:));
+    
+    % algorithm options
     amp_thresh = 0.01; % Amplitude threshold (in m)
+    thresh_loop = linspace(amp_thresh,max(zeta(:)),100); % in m
+    low_n = 15;        % minimum number of pixels in eddy
+    high_n = 1300;     % maximum number of pixels in eddy
+    connectivity = 8;  % either 4 or 8
+    max_dist = 400*1000;
 
     for ii=1:length(thresh_loop)
         threshold = thresh_loop(ii);
         
+        % Criterion 1 - first get everything above threshold
+        mask = zeta > threshold;
+        imagesc(mask');
+        
         % first find simply connected regions
-        % somehow use bwconncomp
+        regions = bwconncomp(mask,connectivity);
         
         % loop over these regions and apply the criteria
-        
-        for jj=1:1
-
-            % Criterion 1 - first get everything above threshold - is this needed?
-            mask = (fillnan(double(zeta > threshold),0));
-
+        for jj=1:regions.NumObjects
             % Criterion 2 - either too big or too small
-            n = sum(isnan(mask(:)));
+            n = length(regions.PixelIdxList{jj});
             if n < low_n || n > high_n, continue; end
 
+            % reconstruct zeta for identified region
+            maskreg = zeros(regions.ImageSize);
+            maskreg(regions.PixelIdxList{jj}) = 1;
+            zreg   = zeta .* maskreg; % zeta in region
+            zperim = zeta .* bwmorph(maskreg,'remove'); % zeta in perimeter
+            
             % Criterion 3 - need local maximum in the region
-            if ~local_maximum(z1), continue; end
+            if imregionalmax(zreg) == zeros(size(zreg)), continue; end
 
             % Criterion 4 - amplitude is at least > amp_thresh
+            if min(fillnan(zreg(:),0)) < amp_thresh, continue; end
             
             % Criterion 5 - distance between any pair of points must be
             % less than a specified maximum
-        
+            % first find convex hull vertices
+            chull = regionprops(maskreg,'ConvexHull');
+            chull = chull.ConvexHull;
+            chull = bsxfun(@times,chull,[dx dy]);
+            if maximumCaliperDiameter(chull) > max_dist, continue; end
+            
+            % I have an eddy!!!
+            fprintf('Eddy found with threshold %.2f \n', threshold);
+            
+            flag_found = 1;
+            
+            % Calculate properties
+            c = regionprops(maskreg,zeta,'WeightedCentroid');
+            eddy.cx   = c.WeightedCentroid(2) * dx;
+            eddy.cy   = c.WeightedCentroid(1) * dy;
+            eddy.amp  = max(zreg(:)) - mean(zperim(:));
+            eddy.dia  = regionprops(maskreg,'EquivDiameter');
+            eddy.dia  = eddy.dia.EquivDiameter * sqrt(dx*dy);
+            eddy.mask = maskreg;
+            
+            % stop when eddy is found
+            break;
         end
+        if exist('flag_found','var') && flag_found == 1, break; end
+    end 
+    
+    if ~exist('eddy','var')
+        eddy.cx   = NaN;
+        eddy.cy   = NaN;
+        eddy.amp  = NaN;
+        eddy.dia  = NaN;
+        eddy.mask = NaN;
     end
-    
-    
-function [] = local_maximum(zeta)
-    
-    return 1
