@@ -43,7 +43,8 @@ function [eddy] = eddy_diag(zeta,dx,dy)
             zreg   = zeta .* maskreg; % zeta in region
             zperim = zeta .* bwmorph(maskreg,'remove'); % zeta in perimeter
             
-            % Criterion 3 - need local maximum in the region
+            % Criterion 3 - need local maximum in the 
+            % see http://stackoverflow.com/questions/1856197/how-can-i-find-local-maxima-in-an-image-in-matlab
             if imregionalmax(zreg) == zeros(size(zreg)), continue; end
 
             % Criterion 4 - amplitude is at least > amp_thresh

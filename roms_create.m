@@ -4,9 +4,14 @@
 %% Parameters
 % names cannot start with number
 FOLDER    = 'runs\';
-GRID_NAME = 'front_grd';
-INI_NAME  = 'front_ini';
-BRY_NAME  = 'front_bry';
+GRID_NAME = 'eddy_grd';
+INI_NAME  = 'eddy_ini';
+BRY_NAME  = 'eddy_bry';
+
+% fix file names
+GRID_NAME = [FOLDER GRID_NAME '.nc'];% '-' num2str(ceil(X/1000)) 'x' num2str(ceil(Y/1000)) '-' num2str(S.Lm) 'x' num2str(S.Mm) 'x' num2str(S.N) '.nc'];[FOLDER GRID_NAME '.nc'];
+INI_NAME  = [FOLDER INI_NAME  '.nc'];% '-' num2str(ceil(X/1000)) 'x' num2str(ceil(Y/1000)) '-' num2str(S.Lm) 'x' num2str(S.Mm) 'x' num2str(S.N) '.nc'];[FOLDER INI_NAME '.nc'];
+BRY_NAME  = [FOLDER BRY_NAME  '.nc'];
 
 % Grid Parameters
 S.spherical = 0; % 0 - Cartesian, 1 - Spherical
@@ -14,13 +19,13 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 96;
-S.Mm = 96;
+S.Lm = 192;
+S.Mm = 420;
 S.N  = 40;
 
 % Domain Extent (in m)
-X = 100000;
-Y = 100000;
+X = 192000;
+Y = 420000;
 Z = 2000;
 
 % tracers
@@ -49,11 +54,6 @@ SCOEF = 7.6e-4;
 g     = 9.81;
 rho0  = 1025; % Boussinesq
 
-% fix file names
-GRID_NAME = [FOLDER GRID_NAME '.nc'];% '-' num2str(ceil(X/1000)) 'x' num2str(ceil(Y/1000)) '-' num2str(S.Lm) 'x' num2str(S.Mm) 'x' num2str(S.N) '.nc'];[FOLDER GRID_NAME '.nc'];
-INI_NAME  = [FOLDER INI_NAME '.nc'];% '-' num2str(ceil(X/1000)) 'x' num2str(ceil(Y/1000)) '-' num2str(S.Lm) 'x' num2str(S.Mm) 'x' num2str(S.N) '.nc'];[FOLDER INI_NAME '.nc'];
-BRY_NAME  = [FOLDER BRY_NAME '.nc'];
-
 %% Options
 
 flags.tanh_bathymetry = 0;
@@ -64,19 +64,26 @@ flags.crooked_bathy = 0;
 flags.perturb_zeta = 0; % add random perturbation to zeta
 flags.spinup = 0; % if spinup, do not initialize ubar/vbar fields.
 
-flags.front = 1; % create shelfbreak front
-flags.eddy  = 0; % create eddy
+flags.front = 0; % create shelfbreak front
+flags.eddy  = 1; % create eddy
 flags.ubt_initial = 1; % add barotropic velocity to initial condition?
 
 % eddy momentum balance options
-flags.use_cartesian = 0; % cartesian
+flags.use_cartesian = 0; % use cartesian forumlation
 flags.use_radial    = 1; % use radial
-flags.use_gradient  = 1; % use gradient wind balance
-flags.solidbody     = 0;
+flags.use_gradient  = 1; % use gradient wind balance instead of geostrophic
+flags.solidbody     = 1; % solid body core profile?
 
 % OBC + barotropic velocity options
 flags.OBC = 1;  % create OBC file and set open boundaries
 flags.OBC_from_initial = 1; % copy OBC data from initial condition?
+
+flags.comment = ['solidbody = solid body core profile for eddy | ' ...
+    'OBC_from_initial = copy OBC data from IC? | use_gradient = gradient ' ...
+    'wind balance instead of geostrophic | use_radial = use expression in' ...
+    ' radial instead of cartesian co-ordinates | perturb_zeta = add random' ...
+    ' perturbation to initial free surface field | ubt_initial = add background' ...
+    ' barotropic velocity field'];
 
 % DO NOT CHANGE THIS ORDER
 if flags.OBC
@@ -91,11 +98,11 @@ end
 
 % Barotropic background flow parameters
 ubt = 0;-0.05; % m/s barotropic velocity
-vbt = -0.05; % m/s barotropic velocity
+vbt = -0.04; % m/s barotropic velocity
 
 % Bathymetry parameters - all measurements in m
 bathy.H_shelf  = 100;
-bathy.L_shelf  = 20 * 1000;
+bathy.L_shelf  = 30 * 1000;
 bathy.L_slope  =  20 * 1000;
 bathy.axis = 'x'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
@@ -103,22 +110,34 @@ bathy.sl_shelf = 0.0005;
 bathy.sl_slope = 0.05;
 
 % bathymetry smoothing options
-bathy.smoother.n_points = 4;
-bathy.smoother.n_passes = 6;
+bathy.n_points = 4;
+bathy.n_passes = 6;
 
 % curved bathymetry
 bathy.L_shelf2 =  30 * 1000;
 bathy.L_entry  = 30 * 1000; %200* 1000; % deep water to initialize eddy in
 bathy.L_tilt   = 20 * 1000; %130 * 1000;
 
+bathy.comment = ['H_shelf = depth at coast | L_shelf = shelf width | ' ...
+                 'L_slope = slope width | axis = cross-shelf axis for bathy ' ...
+                 ' | loc = High/Low end of axis | sl_* = slope of shelf/slope' ...
+                 ' L_shelf2 = width for smaller shelf (crooked isobaths) | ' ...
+                 ' L_tile = length over which shelf width changes | ' ...
+                 ' L_entry = length of smaller shelf | n_points = number ' ...
+                 ' of points to smooth over | n_passes = number of smoothing' ...
+                 ' passes'];
+
 % Eddy parameters - all distances in m
-eddy.dia   = 60*1000; % in m
+eddy.dia   = 50*1000; % in m
 eddy.depth = 500; % depth below which flow is 'compensated'
-%eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero
 eddy.tamp  = 25; % controls gradient
-eddy.a     = 2;  % ? in Katsman et al. (2003)
-eddy.cx    = X-eddy.dia/2-20000; % center of eddy
-eddy.cy    = Y-eddy.dia/2-15000; %        " 
+eddy.a     = 3;  % ? in Katsman et al. (2003)
+eddy.cx    = X-eddy.dia/2-40000; % center of eddy
+eddy.cy    = Y-eddy.dia/2-40000; %    "
+%eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero 
+eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
+                ' of temp. perturbation | a = alpha in Katsman et al. (2003)' ...
+                ' | (cx,cy) = (x,y) location of center | (ix,iy) = indices of center'];
 
 % Shelfbreak front parameters
 front.LTleft  = 12.5 * 1000; % length scale for temperature (m) - onshore
@@ -126,8 +145,13 @@ front.LTright = 8*1000; % length scale - offshore
 front.LTz     = 100; % Gaussian decay scale in the vertical for temperature
 front.slope   = 500/4000; % non-dimensional
 front.Tx0     = -1e-4; % max. magnitude of temperature gradient
+front.comment = ['LTleft = onshore length scale | LTright = offshore length scale' ...
+                 ' LTz = vertical scale | slope = frontal slope | Tx0 = amplitude' ...
+                 ' of gradient'];
 
 %%%%%%%%%%%%%%%%%
+
+% write parameters to initial conditions .nc file - AT THE END
     
 %% Create Junk IC & Grid Files + set vars to zero
 
@@ -368,13 +392,13 @@ if flags.linear_bathymetry == 1
     % run smoother   
 %    kernel = [1 2 1];
     
-    for i=1:bathy.smoother.n_passes
+    for i=1:bathy.n_passes
         for mm = 1:size(S.h,1);
-            S.h(mm,:) = smooth(S.h(mm,:),bathy.smoother.n_points);
+            S.h(mm,:) = smooth(S.h(mm,:),bathy.n_points);
             %S.h(mm,:) = filter(kernel,1,S.h(mm,:));
         end
         for mm = 1:size(S.h,2);
-            S.h(:,mm) = smooth(S.h(:,mm),bathy.smoother.n_points);
+            S.h(:,mm) = smooth(S.h(:,mm),bathy.n_points);
         end
     end  
     
@@ -687,7 +711,7 @@ if flags.eddy
     end
 
     % cylindrical co-ordinates
-    r0 = eddy.dia/4; % This is required to account for exponential decay
+    r0 = eddy.dia/2; % This is required to account for exponential decay
     [th,r] = cart2pol((S.x_rho-eddy.cx),(S.y_rho-eddy.cy));
     rnorm  = r./r0; % normalized radius
     eddy.ix = find_approx(S.x_rho(:,1),eddy.cx,1);
@@ -844,10 +868,11 @@ if flags.eddy
     end
     contourf(xrmat(:,:,1)./fx,yrmat(:,:,1)./fy,S.zeta,20); shading flat;
     colorbar
-    %freezeColors;cbfreeze
-    %hold on
-    %[C,h] = contour(xrmat(:,:,1)./fx,yrmat(:,:,1)./fy,S.h,5,'k');
-    %clabel(C,h);
+    freezeColors;cbfreeze
+    hold on
+    [C,h] = contour(xrmat(:,:,1)./fx,yrmat(:,:,1)./fy,S.h,...
+                floor(linspace(min(S.h(:)),max(S.h(:)),5)),'k');
+    clabel(C,h);
     title('Zeta with eddy');
     axis image;
     if flags.front
@@ -1344,6 +1369,14 @@ ncwrite(INIname, 'u',    S.u);
 ncwrite(INIname, 'v',    S.v);
 ncwrite(INIname, 'temp', S.temp);
 ncwrite(INIname, 'salt', S.salt);
+
+% write parameters to IC file
+write_params_to_ini(INI_NAME,flags);
+write_params_to_ini(INI_NAME,bathy);
+write_params_to_ini(INI_NAME,ubt,'u_background_barotropic');
+write_params_to_ini(INI_NAME,vbt,'v_background_barotropic');
+if flags.front, write_params_to_ini(INI_NAME,front); end
+if flags.eddy,  write_params_to_ini(INI_NAME,eddy); end
 
 fprintf('\n\n Files %s | %s ', GRID_NAME,INI_NAME);
 if flags.OBC, fprintf('| %s ',BRY_NAME); end
