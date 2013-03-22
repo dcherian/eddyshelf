@@ -1,22 +1,15 @@
 % Calculates eddy diagnostics as in Chelton et al. (2011)
 % doesn't support multiple eddies yet
+% only finds anticyclonic eddies
 
 function [eddy] = eddy_diag(zeta,dx,dy)
-
-%     zeta = 0;
-%     load zeta0.mat % in m
-     
-%     [L,M,N] = size(zeta);
-%     
-%     dx = 1000;
-%     dy = 1000;
 
     zeta = zeta - min(zeta(:));
     
     % algorithm options
     amp_thresh = 0.01; % Amplitude threshold (in m)
     thresh_loop = linspace(amp_thresh,max(zeta(:)),100); % in m
-    low_n = 15;        % minimum number of pixels in eddy
+    low_n  = 15;       % minimum number of pixels in eddy
     high_n = 1300;     % maximum number of pixels in eddy
     connectivity = 8;  % either 4 or 8
     max_dist = 400*1000;
@@ -26,7 +19,7 @@ function [eddy] = eddy_diag(zeta,dx,dy)
         
         % Criterion 1 - first get everything above threshold
         mask = zeta > threshold;
-        imagesc(mask');
+        %imagesc(mask');
         
         % first find simply connected regions
         regions = bwconncomp(mask,connectivity);

@@ -19,12 +19,12 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 192;
-S.Mm = 420;
+S.Lm = 128;
+S.Mm = 280;
 S.N  = 40;
 
 % Domain Extent (in m)
-X = 192000;
+X = 160000;
 Y = 420000;
 Z = 2000;
 
@@ -132,7 +132,7 @@ eddy.dia   = 50*1000; % in m
 eddy.depth = 500; % depth below which flow is 'compensated'
 eddy.tamp  = 25; % controls gradient
 eddy.a     = 3;  % ? in Katsman et al. (2003)
-eddy.cx    = X-eddy.dia/2-40000; % center of eddy
+eddy.cx    = X-eddy.dia/2-34000; % center of eddy
 eddy.cy    = Y-eddy.dia/2-40000; %    "
 %eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero 
 eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
@@ -148,9 +148,7 @@ front.Tx0     = -1e-4; % max. magnitude of temperature gradient
 front.comment = ['LTleft = onshore length scale | LTright = offshore length scale' ...
                  ' LTz = vertical scale | slope = frontal slope | Tx0 = amplitude' ...
                  ' of gradient'];
-
-%%%%%%%%%%%%%%%%%
-
+             
 % write parameters to initial conditions .nc file - AT THE END
     
 %% Create Junk IC & Grid Files + set vars to zero

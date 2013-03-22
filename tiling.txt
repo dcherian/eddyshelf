@@ -1,4 +1,4 @@
-time in seconds (per core) for 20 iterations
+poison: time in seconds (per core) for 20 iterations
 
  1 x  8 = 27.297
  1 x 16 = 24.079
@@ -9,7 +9,7 @@ time in seconds (per core) for 20 iterations
 16 x 64 = 34.376
 
 
-Ken's machine: 96x96 = 1.042 km resolution in x,y - 200 iterations
+mohawk: 96x96 = 1.042 km resolution in x,y - 200 iterations
 
  2 x 12 = 15
  1 x 12 = 15.149
@@ -18,3 +18,17 @@ Ken's machine: 96x96 = 1.042 km resolution in x,y - 200 iterations
  6 x  4 = 15.709
 12 x  1 = 21.52
  1 x  8 = 18.5
+ 
+mohawk: 192x512 = 1 km res - 50 iterations
+
+ 1 x 24 = 46
+ 2 x 12 = 44
+ 3 x  8 = 45.37
+ 4 x  6 = 45.7
+ 
+ mohawk: 192x420 = 1 km res - 50 iterations
+
+ 1 x 24 = 36.64
+ 2 x 12 = 35.0
+ 3 x  8 = 37.35
+ 4 x  6 = 36.7
