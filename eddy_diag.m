@@ -4,13 +4,11 @@
 
 function [eddy] = eddy_diag(zeta,dx,dy)
 
-    zeta = zeta - min(zeta(:));
-    
     % algorithm options
-    amp_thresh = 0.01; % Amplitude threshold (in m)
+    amp_thresh = 0.02; % Amplitude threshold (in m)
     thresh_loop = linspace(amp_thresh,max(zeta(:)),100); % in m
-    low_n  = 15;       % minimum number of pixels in eddy
-    high_n = 1300;     % maximum number of pixels in eddy
+    low_n  = 100;       % minimum number of pixels in eddy
+    high_n = 2000;     % maximum number of pixels in eddy
     connectivity = 8;  % either 4 or 8
     max_dist = 400*1000;
 
@@ -53,6 +51,7 @@ function [eddy] = eddy_diag(zeta,dx,dy)
             
             % I have an eddy!!!
             fprintf('Eddy found with threshold %.2f \n', threshold);
+            %imagesc(zreg'); pause
             
             flag_found = 1;
             
@@ -64,6 +63,7 @@ function [eddy] = eddy_diag(zeta,dx,dy)
             eddy.dia  = regionprops(maskreg,'EquivDiameter');
             eddy.dia  = eddy.dia.EquivDiameter * sqrt(dx*dy);
             eddy.mask = maskreg;
+            eddy.n    = n; % number of points
             
             % stop when eddy is found
             break;

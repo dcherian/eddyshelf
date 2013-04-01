@@ -1,8 +1,8 @@
 % detects eddes using an obuko-weiss parameter threshold
 
 %% read data
-dir = 'runs/runte-11/';
-fname = [dir 'ocean_his_0001.nc'];
+dir = 'runs/runeddy-01-1his/';
+fname = [dir 'ocean_his.nc'];
 
 start = [1 1 40 1];
 count = [Inf Inf 1 10];
@@ -10,18 +10,10 @@ count = [Inf Inf 1 10];
 %thresh = -2e-12;
 
 % search region for tracking eddies (in addition to detected diameter)
-limit_x = 10*1000;
-limit_y = 10*1000;
-
-% u = double(squeeze(ncread(fname,'u',start,count)));
-% v = double(squeeze(ncread(fname,'v',start,count)));
-
-%zeta = double(squeeze(ncread(fname,'zeta',[start(1) start(2) start(4)], ...
-%                        [count(1) count(2) count(4)])));
+limit_x = 20*1000;
+limit_y = 20*1000;
                                       
 zeta = roms_read_data(dir,'zeta');
-% [xu,yu,~,~,~,~] = roms_var_grid(fname,'u');
-% [xv,yv,~,~,~,~] = roms_var_grid(fname,'v');
 [xr,yr,~,~,~,~] = roms_var_grid(fname,'zeta');
 h = ncread(fname,'h');
 t = ncread(fname,'ocean_time');
@@ -39,7 +31,7 @@ sz = size(zeta(:,:,1));
 for tt=1:size(zeta,3)
     if tt == 1,
         mask = ones(sz);
-    else % 
+    else 
         mask = zeros(sz);
         lx = eddy.dia(tt-1)/2 + limit_x;
         ly = eddy.dia(tt-1)/2 + limit_y;
@@ -57,6 +49,7 @@ for tt=1:size(zeta,3)
     eddy.amp(tt) = temp.amp;
     eddy.dia(tt) = temp.dia;
     eddy.mask(:,:,tt) = temp.mask;
+    eddy.n(tt) = temp.n;
 end
 
 %% movie
@@ -67,13 +60,15 @@ for tt=1:size(zeta,3)
     pcolorcen(xr./1000,yr./1000,zeta(:,:,tt));% .* eddy.mask(:,:,tt));
     shading flat;
     hold on
-    caxis([0 0.05]); colorbar
+    caxis([0 nanmax(zeta(:))]); colorbar
     freezeColors; cbfreeze
     [C,hc] = contour(xr./1000,yr./1000,h(2:end-1,2:end-1),[200 500 750 1100],'k');
     clabel(C,hc);
     plot(eddy.cx(tt)./1000,eddy.cy(tt)./1000,'x','MarkerSize',16);
     plot(eddy.cx(1:tt)./1000,eddy.cy(1:tt)./1000,'k-');
-    title(['zeta (color, meter), t =' num2str(tt*dt/86400) ' days']);
-    beautify; axis image; xlabel('X (km)'); ylabel('Y (km)');
+    contour(xr./1000,yr./1000,eddy.mask(:,:,tt),'k');
+    title(['zeta (color, meter), t =' num2str((tt-1)*dt/86400) ' days']);
+    beautify; xlabel('X (km)'); ylabel('Y (km)');
+    axis image
     pause(0.01)
 end

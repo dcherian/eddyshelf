@@ -19,13 +19,13 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 128;
-S.Mm = 280;
+S.Lm = 100;
+S.Mm = 100;
 S.N  = 40;
 
 % Domain Extent (in m)
-X = 160000;
-Y = 420000;
+X = 125000;
+Y = 150000;
 Z = 2000;
 
 % tracers
@@ -101,13 +101,13 @@ ubt = 0;-0.05; % m/s barotropic velocity
 vbt = -0.04; % m/s barotropic velocity
 
 % Bathymetry parameters - all measurements in m
-bathy.H_shelf  = 100;
+bathy.H_shelf  = 1700;
 bathy.L_shelf  = 30 * 1000;
 bathy.L_slope  =  20 * 1000;
 bathy.axis = 'x'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
-bathy.sl_shelf = 0.0005;
-bathy.sl_slope = 0.05;
+bathy.sl_shelf = 0;0.0005;
+bathy.sl_slope = 0;0.05;
 
 % bathymetry smoothing options
 bathy.n_points = 4;
@@ -770,21 +770,7 @@ if flags.eddy
         
         % SSH calculation is same for gradient wind & geostrophic balance?
         if flags.solidbody
-            expo = 1- exp( -1 * exponent );
-            expo = expo./max(expo(:));
-            z1 = (gamma/2 * rnorm.^2 + 1) .* (rnorm <= rmnorm);
-            z2 = (gamma/2 *rmnorm^2 + 1) .* -(expo) .* (rnorm > rmnorm);
-            
-            % hack in matching at boundary - THIS SHOULD NOT BE NEEDED
-            z1 = (z1 - nanmin(fillnan(z1(:),0)) .* (z1 ~= 0));           
-            S.zeta = S.zeta + TCOEF*eddy.tamp * int_Tz .* (z1 + z2);                      
-%             z12 = z1+z2;
-%             plot(z1(:,80)); hold on; 
-%             plot(z2(:,80),'r'); 
-%             plot(z12(:,80),'c'); 
-%             plot(S.zeta(:,80),'k');
-%             legend('z1','z2','z12','zeta');
-
+            S.zeta = S.zeta + TCOEF*eddy.tamp * int_Tz .* eddy.xyprof;                      
             % Calculate azimuthal velocity shear (r d(theta)/dt)_z using geostrophic balance
             dTdr = gamma * rnorm ./ r0 .* (rnorm <= rmnorm) ...
                     + (gamma/2 .* rmnorm^2 + 1) .*  (-(eddy.a-1) ./ r0 .* rnorm.^(eddy.a-1)) ...
@@ -1430,6 +1416,22 @@ fprintf('\n\n');
 % drho = rho_balance(K,S.temp-T0,S.salt-S0);
 % [u,v,zeta_rhs] = uv_balance(K,drho);
 % [zeta,~] = zeta_balance(K,0,drho);
+
+%% old solid body profile - zeta
+%             expo = exp( -1 * exponent );
+%             z1 = (gamma/2 * rnorm.^2 + 1) .* (rnorm <= rmnorm);
+%             z2 = (gamma/2 *rmnorm.^2 + 1) .* expo .* (rnorm > rmnorm);
+            
+            % hack in matching at boundary - THIS SHOULD NOT BE NEEDED
+            %z1 = (z1 - nanmin(fillnan(z1(:),0)) .* (z1 ~= 0));
+            % S.zeta = S.zeta + TCOEF*eddy.tamp * int_Tz .* (z1 + z2);      
+%             z12 = z1+z2;
+%             idx = 250;
+%             plot(z1(:,idx)); hold on; 
+%             plot(z2(:,idx),'r'); 
+%             plot(z12(:,idx),'c'); 
+%             plot(S.zeta(:,idx),'k');
+%             legend('z1','z2','z12','zeta');
 
 %% old calculate velocity field
 % first re-calculate temperature (density) gradient
