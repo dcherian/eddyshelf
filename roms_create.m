@@ -19,13 +19,13 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 100;
-S.Mm = 100;
+S.Lm = 128;
+S.Mm = 280;
 S.N  = 40;
 
 % Domain Extent (in m)
-X = 125000;
-Y = 150000;
+X = 160000;
+Y = 420000;
 Z = 2000;
 
 % tracers
@@ -101,13 +101,13 @@ ubt = 0;-0.05; % m/s barotropic velocity
 vbt = -0.04; % m/s barotropic velocity
 
 % Bathymetry parameters - all measurements in m
-bathy.H_shelf  = 1700;
+bathy.H_shelf  = 100;
 bathy.L_shelf  = 30 * 1000;
 bathy.L_slope  =  20 * 1000;
 bathy.axis = 'x'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
-bathy.sl_shelf = 0;0.0005;
-bathy.sl_slope = 0;0.05;
+bathy.sl_shelf = 0.0005;
+bathy.sl_slope = 0.05;
 
 % bathymetry smoothing options
 bathy.n_points = 4;
@@ -132,8 +132,8 @@ eddy.dia   = 50*1000; % in m
 eddy.depth = 500; % depth below which flow is 'compensated'
 eddy.tamp  = 25; % controls gradient
 eddy.a     = 3;  % ? in Katsman et al. (2003)
-eddy.cx    = X-eddy.dia/2-34000; % center of eddy
-eddy.cy    = Y-eddy.dia/2-40000; %    "
+eddy.cx    = 103000; X-eddy.dia/2-34000; % center of eddy
+eddy.cy    = 357000; Y-eddy.dia/2-40000; %    "
 %eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero 
 eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
                 ' of temp. perturbation | a = alpha in Katsman et al. (2003)' ...
@@ -142,7 +142,7 @@ eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
 % Shelfbreak front parameters
 front.LTleft  = 12.5 * 1000; % length scale for temperature (m) - onshore
 front.LTright = 8*1000; % length scale - offshore
-front.LTz     = 100; % Gaussian decay scale in the vertical for temperature
+front.LTz     = 100; % Gaussian decay scale in t he vertical for temperature
 front.slope   = 500/4000; % non-dimensional
 front.Tx0     = -1e-4; % max. magnitude of temperature gradient
 front.comment = ['LTleft = onshore length scale | LTright = offshore length scale' ...
@@ -731,7 +731,7 @@ if flags.eddy
         gamma = -2 * (eddy.a-2)./eddy.a ./ (rmnorm)^2;
         
         exponent = (eddy.a - 1)/eddy.a .* (rnorm.^(eddy.a) - rmnorm.^(eddy.a));        
-        eddy.xyprof = zeros(size(rnorm));
+        eddy.xyprof = nan(size(rnorm));
         eddy.xyprof = (gamma/2 * rnorm.^2 + 1) .* (rnorm <= rmnorm) ...
                        + (gamma/2 *rmnorm^2 + 1) .* exp( -1 * exponent ) .* ...
                                                            (rnorm > rmnorm);
@@ -747,7 +747,7 @@ if flags.eddy
 %     eddy.zprof = [zeros(ind-eddy.Ncos,1); (1-cos(pi * [0:eddy.Ncos]'/eddy.Ncos))/2; ones(S.N-ind-1,1)];
     
     % use half-Gaussian profile & normalize
-    eddy.zprof = exp(-(eddy.z ./ eddy.depth) .^ 2);    
+    eddy.zprof = exp(-(eddy.z ./ eddy.depth) .^ 2);
     eddy.zprof = eddy.zprof./trapz(eddy.z,eddy.zprof);
 
     % add eddy temperature perturbation

@@ -1,7 +1,7 @@
 % detects eddes using an obuko-weiss parameter threshold
 
 %% read data
-fname = 'runs/runte-11/ocean_his_0008.nc';
+fname = 'runs/runte-11/ocean_his.nc';
 
 start = [1 1 40 1];
 count = [Inf Inf 1 10];
