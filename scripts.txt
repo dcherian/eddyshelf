@@ -8,3 +8,8 @@ roms_create.m - create all .nc files required for ROMS run (forward model)
 
 images.m - creates images
 movies.m - creates nice looking movies for presentation
+
+eddy_diag.m - eddy diagnostics from Chelton et al. (2011)
+eddy_obuko.m - obuko-weiss diagnostic based tracking
+
+ltrans_read.m - reads LTRANS netcdf output

@@ -1,153 +1,202 @@
-% detects eddes using an obuko-weiss parameter threshold
+function [eddy] = track_eddy(dir)
 
-%% read data
-dir = 'runs/runeddy-02-1his/';
-fname = [dir 'ocean_his.nc'];
+    fname = [dir ls([dir '/*his*.nc'])];
 
-start = [1 1 40 1];
-count = [Inf Inf 1 Inf];
+    % search region for tracking eddies (in addition to detected diameter)
+    limit_x = 40*1000;
+    limit_y = 40*1000;
 
-%% calculate Obuko-Weiss parameter & relative vorticity
+    zeta = roms_read_data(dir,'zeta');
+    [xr,yr,~,~,~,~] = roms_var_grid(fname,'zeta');
+    h = ncread(fname,'h');
+    t = ncread(fname,'ocean_time');
+    dt = t(2)-t(1);
 
-u = double(squeeze(ncread(fname,'u',start,count)));
-v = double(squeeze(ncread(fname,'v',start,count)));
+    zeta = zeta(2:end-1,2:end-1,:);
+    xr = xr(2:end-1,2:end-1);
+    yr = yr(2:end-1,2:end-1);
 
-[xu,yu,~,~,~,~] = roms_var_grid(fname,'u');
-[xv,yv,~,~,~,~] = roms_var_grid(fname,'v');
+    dx = xr(2,1)-xr(1,1);
+    dy = yr(1,2)-yr(1,1);
 
-% calculate required derivatives and average to interior rho points
-ux = bsxfun(@rdivide,diff(u,1,1),diff(xu,1,1));
-uy = avg1(avg1(bsxfun(@rdivide,diff(u,1,2),diff(yu,1,2)),1),2);
-vx = avg1(avg1(bsxfun(@rdivide,diff(v,1,1),diff(xv,1,1)),1),2);
-vy = bsxfun(@rdivide,diff(v,1,2),diff(yv,1,2));
+    sz = size(zeta(:,:,1));
 
-ux = ux(:,2:end-1,:);
-vy = vy(2:end-1,:,:);
+    % detect shelfbreak
+    sbreak = find_shelfbreak(fname);
 
-% obuko weiss parameter
-w = 4 * (vx.*uy - ux.*vy) + (ux+vy).^2;
-vor = vx-uy;
-thresh = 0.2 * std(std(w)); % Isern-Fontanet et al. (2006)
+    % remove background flow contribution to zeta
+    zeta_bg = zeta(:,end,1);
 
-%% SSH threshold detection
+    tic;
+    for tt=1:size(zeta,3)
+        if tt == 1,
+            mask = ones(sz);
+            d_sbreak = Inf;
+        else 
+            mask = nan*ones(sz);
+            lx = eddy.dia(tt-1)/2 + limit_x;
+            ly = eddy.dia(tt-1)/2 + limit_y;
+            ix1 = find_approx(xr(:,1),eddy.cx(tt-1)-lx,1);
+            ix2 = find_approx(xr(:,1),eddy.cx(tt-1)+lx,1);
+            iy1 = find_approx(yr(1,:),eddy.cy(tt-1)-ly,1);
+            iy2 = find_approx(yr(1,:),eddy.cy(tt-1)+ly,1);
 
-% search region for tracking eddies (in addition to detected diameter)
-limit_x = 40*1000;
-limit_y = 40*1000;
-                                      
-zeta = roms_read_data(dir,'zeta');
-[xr,yr,~,~,~,~] = roms_var_grid(fname,'zeta');
-h = ncread(fname,'h');
-t = ncread(fname,'ocean_time');
-dt = t(2)-t(1);
+            mask(ix1:ix2,iy1:iy2) = 1;
 
-zeta = zeta(2:end-1,2:end-1,:);
-xr = xr(2:end-1,2:end-1);
-yr = yr(2:end-1,2:end-1);
+            d_sbreak = eddy.cx-sbreak;
+        end
+        temp = eddy_diag(bsxfun(@minus,zeta(:,:,tt),zeta_bg) .* mask, ...
+                            dx,dy,sbreak); %w(:,:,tt));
 
-dx = xr(2,1)-xr(1,1);
-dy = yr(1,2)-yr(1,1);
-
-sz = size(zeta(:,:,1));
-
-% detect shelfbreak
-h = ncread(fname,'h');
-dhdx = diff(h(:,1),1,1)./dx;
-[~,ind] = max(dhdx);
-sbreak = xr(ind,1);
-
-% remove background flow contribution to zeta
-zeta_bg = zeta(:,end,1);
-
-tic;
-for tt=1:size(zeta,3)
-    if tt == 1,
-        mask = ones(sz);
-        d_sbreak = Inf;
-    else 
-        mask = nan*ones(sz);
-        lx = eddy.dia(tt-1)/2 + limit_x;
-        ly = eddy.dia(tt-1)/2 + limit_y;
-        ix1 = find_approx(xr(:,1),eddy.cx(tt-1)-lx,1);
-        ix2 = find_approx(xr(:,1),eddy.cx(tt-1)+lx,1);
-        iy1 = find_approx(yr(1,:),eddy.cy(tt-1)-ly,1);
-        iy2 = find_approx(yr(1,:),eddy.cy(tt-1)+ly,1);
-        
-        mask(ix1:ix2,iy1:iy2) = 1;
-        
-        d_sbreak = eddy.cx-sbreak;
+        % [cx,cy] = location of weighted center (first moment)
+        eddy.cx(tt)  = temp.cx;
+        eddy.cy(tt)  = temp.cy;
+        % [mx,my] = location of maximum closest to shelfbreak
+        eddy.mx(tt)  = temp.mx;
+        eddy.my(tt)  = temp.my;
+        % amplitude defined as max - mean amplitude around perimeter
+        eddy.amp(tt) = temp.amp;
+        % diameter of circle with same area
+        eddy.dia(tt) = temp.dia;
+        % mask for diagnostic purposes
+        eddy.mask(:,:,tt) = temp.mask;
+        % number of pixels in eddy
+        eddy.n(tt) = temp.n;
     end
-    temp = eddy_diag(bsxfun(@minus,zeta(:,:,tt),zeta_bg) .* mask, ...
-                        dx,dy,sbreak,w(:,:,tt));
+    toc;
+    disp('Done.');
+
+% Calculates eddy diagnostics as in Chelton et al. (2011)
+% doesn't support multiple eddies yet
+% only finds anticyclonic eddies
+
+% this routine is called at every timestep
+function [eddy] = eddy_diag(zeta,dx,dy,sbreak,w)
+
+    % algorithm options
+    amp_thresh = 0.01; % Amplitude threshold (in m)
+    thresh_loop = nanmin(zeta(:)):0.01:nanmax(zeta(:)); % in m
+    low_n  = 400;       % minimum number of pixels in eddy
+    high_n = 2500;     % maximum number of pixels in eddy
+    connectivity = 8;  % either 4 or 8
+    max_dist = 400*1000;
+
+    for ii=1:length(thresh_loop)
+        threshold = thresh_loop(ii);
+        
+        % Criterion 1 - first get everything above threshold
+        mask = zeta > threshold;
+        %(mask');
+        
+        % first find simply connected regions
+        regions = bwconncomp(mask,connectivity);
+        
+        % loop over these regions and apply the criteria
+        for jj=1:regions.NumObjects
+            % Criterion 2 - either too big or too small
+            n = length(regions.PixelIdxList{jj});
+            if n < low_n || n > high_n, continue; end
+
+            % reconstruct zeta for identified region
+            maskreg = zeros(regions.ImageSize);
+            maskreg(regions.PixelIdxList{jj}) = 1;
+            zreg   = repnan(zeta .* maskreg,0); % zeta in region
+            zperim = zeta .* bwmorph(maskreg,'remove'); % zeta in perimeter
+            
+            % Criterion 3 - need local maximum in the 
+            % see http://stackoverflow.com/questions/1856197/how-can-i-find-local-maxima-in-an-image-in-matlab
+            local_max = imregionalmax(zreg);
+            if local_max == zeros(size(zreg)), continue; end
+            %if sum(local_max(:)) > 1, continue; end % skip if more than one maximum
+            
+            % Criterion 4 - amplitude is at least > amp_thresh
+            amp = max(zreg(:)) - mean(zperim(:));
+            if amp < amp_thresh, continue; end
+            
+            % Criterion 5 - distance between any pair of points must be
+            % less than a specified maximum
+            % first find convex hull vertices
+            chull = regionprops(maskreg,'ConvexHull');
+            chull = chull.ConvexHull;
+            chull = bsxfun(@times,chull,[dx dy]);
+            if maximumCaliperDiameter(chull) > max_dist, continue; end
+            
+            % Criterion 6 - Obuko-Weiss parameter must make sense
+            if exist('w','var')
+                thresh = 0.2 * std(w(:)); % see Isern-Fontanet et al. (2006)
+                wreg = w .* maskreg;
+                if mean(wreg(:)) > thresh
+                    break
+                end
+            end
+            
+            % Calculate properties of region
+            c = regionprops(maskreg,zeta,'WeightedCentroid');
+            
+            % Criterion 7 - if multiple regions (eddies), only store the one
+            % closest to shelfbreak
+            cx = c.WeightedCentroid(2) * dx;
+            cy = c.WeightedCentroid(1) * dy;
+
+            if exist('eddy','var') 
+                if (cx-sbreak) > (eddy.cx-sbreak)
+                    continue
+                else
+                    % current eddy is closer but could be bigger than we want
+                    % mask out the eddy that is farther away and
+                    % recursively call this function
+%                     mask = ones(regions.ImageSize);
+%                     mask(regions.PixelIdxList{eddy.jj}) = 0; 
+%                     eddy = eddy_diag(zeta .* mask,dx,dy,sbreak,w);
+%                     return
                     
-    % [cx,cy] = location of weighted center (first moment)
-    eddy.cx(tt)  = temp.cx;
-    eddy.cy(tt)  = temp.cy;
-    % [mx,my] = location of maximum closest to shelfbreak
-    eddy.mx(tt)  = temp.mx;
-    eddy.my(tt)  = temp.my;
-    % amplitude defined as max - mean amplitude around perimeter
-    eddy.amp(tt) = temp.amp;
-    % diameter of circle with same area
-    eddy.dia(tt) = temp.dia;
-    % mask for diagnostic purposes
-    eddy.mask(:,:,tt) = temp.mask;
-    % number of pixels in eddy
-    eddy.n(tt) = temp.n;
-end
-toc;
-disp('Done.');
+                end
+            end
 
-%%
-figure;
-[C,hc] = contour(xr./1000,yr./1000,h(2:end-1,2:end-1),[200 500 750 1100],'k');
-clabel(C,hc); hold on
-plot(eddy.cx/1000,eddy.cy/1000,'b',eddy.mx/1000,eddy.my/1000,'r'); 
-legend('Bathy','Weighted Center','Maximum');
-
-%% movie
-
-hfig = figure;
-
-%var = zeta;
-var = double(squeeze(ncread(fname,'temp',[1 1 40 1],[Inf Inf 1 Inf])));
-var = var(2:end-1,2:end-1,:); varname = 'temp';
-%var = vor; varname = 'surface rel. vor.';
-
-for tt=60:size(var,3)
-    clf
-    subplot(131);
-    pcolorcen(xr./1000,yr./1000,zeta(:,:,tt));% .* eddy.mask(:,:,tt));
-    shading flat;
-    hold on
-    caxis([nanmin(zeta(:)) nanmax(zeta(:))]); colorbar
-    freezeColors; cbfreeze;   
-    [C,hc] = contour(xr./1000,yr./1000,h(2:end-1,2:end-1),[200 500 750 1100],'k');
-    clabel(C,hc);
-    plot(eddy.cx(tt)./1000,eddy.cy(tt)./1000,'x','MarkerSize',16);
-    plot(eddy.mx(tt)./1000,eddy.my(tt)./1000,'bo','MarkerSize',16);
-    plot(eddy.cx(1:tt)./1000,eddy.cy(1:tt)./1000,'k-');
-    contour(xr./1000,yr./1000,eddy.mask(:,:,tt),'k');
-    title(['zeta | t =' num2str((tt-1)*dt/86400) ' days']);
-    beautify; xlabel('X (km)'); ylabel('Y (km)');
-    axis image
+            % I have an eddy!!!
+            flag_found = 1;
+            fprintf('Eddy found with threshold %.3f \n', threshold);
+            %imagesc(zreg'); pause
+            
+            % find location of maximum that is closest to shelfbreak
+            % ASSUMES ISOBATHS ARE NORTH-SOUTH
+            ix = bsxfun(@times,ones(size(local_max)),[1:size(local_max,1)]');
+            iy = bsxfun(@times,ones(size(local_max)),[1:size(local_max,2)]);
+            indx = nanmin(nanmin(fillnan(local_max.*ix,0)));
+            [~,indy] = max(local_max(indx,:));
+            
+            % store eddy properties for return
+            eddy.cx   = cx; % weighted center
+            eddy.cy   = cy; %     "
+            eddy.mx   = ix(indx,indy) * dx; % maximum
+            eddy.my   = iy(indx,indy) * dy; % "
+            eddy.amp  = amp;
+            eddy.dia  = regionprops(maskreg,'EquivDiameter');
+            eddy.dia  = eddy.dia.EquivDiameter * sqrt(dx*dy);
+            eddy.mask = maskreg;
+            eddy.n    = n; % number of points
+            eddy.jj   = jj;
+            
+%             imagesc(zreg');
+%             linex(cx./dx); liney(cy./dy);
+%             linex(indx,[],'r'); liney(indy,[],'r');
+            
+            % stop when eddy is found
+            %break;
+        end
+        if exist('flag_found','var') && flag_found == 1, break; end
+    end 
     
-    subplot(132)
-    pcolorcen(xr./1000,yr./1000,var(:,:,tt));
-    shading flat;
-    hold on
-    caxis([nanmin(var(:)) nanmax(var(:))]); colorbar
-    freezeColors; cbfreeze
-    [C,hc] = contour(xr./1000,yr./1000,h(2:end-1,2:end-1),[200 500 750 1100],'k');
-    clabel(C,hc);
-    plot(eddy.cx(tt)./1000,eddy.cy(tt)./1000,'x','MarkerSize',16);
-    plot(eddy.cx(1:tt)./1000,eddy.cy(1:tt)./1000,'k-');
-    contour(xr./1000,yr./1000,eddy.mask(:,:,tt),'k');
-    title([varname ' | t =' num2str((tt-1)*dt/86400) ' days']);
-    beautify; xlabel('X (km)'); ylabel('Y (km)');
-    axis image
+    if ~exist('eddy','var')
+        eddy.cx   = NaN;
+        eddy.cy   = NaN;
+        eddy.amp  = NaN;
+        eddy.dia  = NaN;
+        eddy.mask = NaN;
+        eddy.n    = NaN;
+    end
     
-    subplot(133)
-    
-    pause(0.01)
-end
+    try
+        rmfield(eddy,'jj');
+    catch ME
+    end
