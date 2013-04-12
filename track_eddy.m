@@ -62,6 +62,11 @@ function [eddy] = track_eddy(dir)
         eddy.mask(:,:,tt) = temp.mask;
         % number of pixels in eddy
         eddy.n(tt) = temp.n;
+        % north, south, west & east edges
+        eddy.we(tt) = temp.we;
+        eddy.ee(tt) = temp.ee;
+        eddy.ne(tt) = temp.ne;
+        eddy.se(tt) = temp.se;
     end
     toc;
     disp('Done.');
@@ -165,11 +170,18 @@ function [eddy] = eddy_diag(zeta,dx,dy,sbreak,w)
             indx = nanmin(nanmin(fillnan(local_max.*ix,0)));
             [~,indy] = max(local_max(indx,:));
             
+            xmax = ix(logical(maskreg(:,indy)),1);
+            ymax = iy(1,logical(maskreg(indx,:)));
+            
             % store eddy properties for return
             eddy.cx   = cx; % weighted center
             eddy.cy   = cy; %     "
             eddy.mx   = ix(indx,indy) * dx; % maximum
-            eddy.my   = iy(indx,indy) * dy; % "
+            eddy.my   = iy(indx,indy) * dy; %    "
+            eddy.we   = min(xmax) * dx; % west edge
+            eddy.ee   = max(xmax) * dx; % east edge
+            eddy.ne   = min(ymax) * dy; % south edge
+            eddy.se   = max(ymax) * dy; % north edge
             eddy.amp  = amp;
             eddy.dia  = regionprops(maskreg,'EquivDiameter');
             eddy.dia  = eddy.dia.EquivDiameter * sqrt(dx*dy);
