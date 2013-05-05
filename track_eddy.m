@@ -1,6 +1,9 @@
 function [eddy] = track_eddy(dir)
 
     fname = [dir ls([dir '/*his*.nc'])];
+    if isempty(ls([dir '/*his*.nc']))
+        fname = [dir ls([dir '/*avg*.nc'])];
+    end
 
     % search region for tracking eddies (in addition to detected diameter)
     limit_x = 40*1000;
@@ -9,7 +12,7 @@ function [eddy] = track_eddy(dir)
     zeta = roms_read_data(dir,'zeta');
     [xr,yr,~,~,~,~] = roms_var_grid(fname,'zeta');
     h = ncread(fname,'h');
-    t = ncread(fname,'ocean_time');
+    t = ncread(fname,'ocean_time'); % required only for dt
     dt = t(2)-t(1);
 
     zeta = zeta(2:end-1,2:end-1,:);
@@ -67,7 +70,17 @@ function [eddy] = track_eddy(dir)
         eddy.ee(tt) = temp.ee;
         eddy.ne(tt) = temp.ne;
         eddy.se(tt) = temp.se;
+        % calculate center velocity
+        if tt == 1
+            eddy.mvx(1) = NaN;
+            eddy.mvy(1) = NaN;
+        else
+            eddy.mvx(tt) = (eddy.mx(tt) - eddy.mx(tt-1))./dt;
+            eddy.mvy(tt) = (eddy.my(tt) - eddy.my(tt-1))./dt;
+        end
     end
+    eddy.xr = xr;
+    eddy.yr = yr;
     toc;
     disp('Done.');
 

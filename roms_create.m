@@ -19,17 +19,17 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 100;128;
-S.Mm = 100;280;
+S.Lm = 144;
+S.Mm = 300;
 S.N  = 40;
 
 % Domain Extent (in m)
-X = 125000;160000;
-Y = 125000;420000;
+X = 180000;
+Y = 660000;
 Z = 2000;
 
 % tracers
-S.NPT = 0; % number of passive tracers
+S.NPT = 3; % number of passive tracers
 S.NT = 2+S.NPT; % total number of tracers
 
 % vertical stretching
@@ -98,16 +98,16 @@ end
 
 % Barotropic background flow parameters
 ubt = 0;-0.05; % m/s barotropic velocity
-vbt = 0;-0.04; % m/s barotropic velocity
+vbt = -0.04; % m/s barotropic velocity
 
 % Bathymetry parameters - all measurements in m
-bathy.H_shelf  = 1200;100;
+bathy.H_shelf  = 100;
 bathy.L_shelf  = 30 * 1000;
 bathy.L_slope  =  20 * 1000;
 bathy.axis = 'x'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
-bathy.sl_shelf = 0;0.0005;
-bathy.sl_slope = 0;0.05;
+bathy.sl_shelf = 0.0005;
+bathy.sl_slope = 0.05;
 
 % bathymetry smoothing options
 bathy.n_points = 4;
@@ -115,8 +115,8 @@ bathy.n_passes = 6;
 
 % curved bathymetry
 bathy.L_shelf2 =  30 * 1000;
-bathy.L_entry  = 30 * 1000; %200* 1000; % deep water to initialize eddy in
-bathy.L_tilt   = 20 * 1000; %130 * 1000;
+bathy.L_entry  = 200* 1000; % deep water to initialize eddy in
+bathy.L_tilt   = 130 * 1000;
 
 bathy.comment = ['H_shelf = depth at coast | L_shelf = shelf width | ' ...
                  'L_slope = slope width | axis = cross-shelf axis for bathy ' ...
@@ -128,12 +128,12 @@ bathy.comment = ['H_shelf = depth at coast | L_shelf = shelf width | ' ...
                  ' passes'];
 
 % Eddy parameters - all distances in m
-eddy.dia   = 40*1000; % in m
+eddy.dia   = 50*1000; % in m
 eddy.depth = 500; % depth below which flow is 'compensated'
 eddy.tamp  = 25; % controls gradient
 eddy.a     = 3;  % ? in Katsman et al. (2003)
-eddy.cx    = X/2;X-eddy.dia/2-20000; % center of eddy
-eddy.cy    = Y/2;Y-eddy.dia/2-20000; %    "
+eddy.cx    = 103000; % center of eddy
+eddy.cy    = 597000; %    "
 %eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero 
 eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
                 ' of temp. perturbation | a = alpha in Katsman et al. (2003)' ...

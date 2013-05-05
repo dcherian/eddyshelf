@@ -119,9 +119,10 @@ xuz = repmat(xu(:,1), [1 size(zu,3)]);
 xrz = repmat(xr(:,1), [1 size(zu,3)]);
 
 %%
-for tt=50:size(var,3)
+figure
+for tt=40:size(zeta,3)
     clf
-    subplot(131);
+%     subplot(121);
     pcolorcen(xr./1000,yr./1000,zeta(:,:,tt));% .* eddy.mask(:,:,tt));
     shading flat;
     hold on
@@ -134,28 +135,30 @@ for tt=50:size(var,3)
     plot(eddy.cx(1:tt)./1000,eddy.cy(1:tt)./1000,'k-');
     contour(xr./1000,yr./1000,eddy.mask(:,:,tt),'k');
     title(['zeta | t =' num2str((tt-1)*dt/86400) ' days']);
-    beautify; xlabel('X (km)'); ylabel('Y (km)');
+    %beautify; 
+    xlabel('X (km)'); ylabel('Y (km)');
     axis image
     
-    subplot(132)
-    pcolorcen(xr./1000,yr./1000,var(:,:,tt));
-    shading flat;
-    hold on
-    caxis([nanmin(var(:)) nanmax(var(:))]); colorbar
-    freezeColors; cbfreeze
-    [C,hc] = contour(xr./1000,yr./1000,h(2:end-1,2:end-1),[200 500 750 1100],'k');
-    clabel(C,hc);
-    plot(eddy.cx(tt)./1000,eddy.cy(tt)./1000,'x','MarkerSize',16);
-    plot(eddy.cx(1:tt)./1000,eddy.cy(1:tt)./1000,'k-');
-    contour(xr./1000,yr./1000,eddy.mask(:,:,tt),'k');
-    title([varname ' | t =' num2str((tt-1)*dt/86400) ' days']);
-    beautify; xlabel('X (km)'); ylabel('Y (km)');
-    axis image
+%     subplot(122)
+%     pcolorcen(xr./1000,yr./1000,var(:,:,tt));
+%     shading flat;
+%     hold on
+%     caxis([nanmin(var(:)) nanmax(var(:))]); colorbar
+%     freezeColors; cbfreeze
+%     [C,hc] = contour(xr./1000,yr./1000,h(2:end-1,2:end-1),[200 500 750 1100],'k');
+%     clabel(C,hc);
+%     plot(eddy.cx(tt)./1000,eddy.cy(tt)./1000,'x','MarkerSize',16);
+%     plot(eddy.cx(1:tt)./1000,eddy.cy(1:tt)./1000,'k-');
+%     contour(xr./1000,yr./1000,eddy.mask(:,:,tt),'k');
+%     title([varname ' | t =' num2str((tt-1)*dt/86400) ' days']);
+%     %beautify; 
+%     xlabel('X (km)'); ylabel('Y (km)');
+%     axis image
     
-    subplot(133)
-    pcolorcen(xuz./1000,squeeze(zu(:,1,:)),squeeze(u(:,floor(eddy.my(tt)/dy),:,tt)));
-    shading flat; colorbar
-    caxis([-0.15 0.15]);
+%     subplot(133)
+%     pcolorcen(xuz./1000,squeeze(zu(:,1,:)),squeeze(u(:,floor(eddy.my(tt)/dy),:,tt)));
+%     shading flat; colorbar
+%     caxis([-0.15 0.15]);
     
     pause(0.01);
 end
