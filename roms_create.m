@@ -4,9 +4,10 @@
 %% Parameters
 % names cannot start with number
 FOLDER    = 'runs\';
-GRID_NAME = 'eddy_grd';
-INI_NAME  = 'eddy_ini';
-BRY_NAME  = 'eddy_bry';
+prefix    = 'eddy';
+GRID_NAME = [prefix '_grd'];
+INI_NAME  = [prefix '_ini'];
+BRY_NAME  = [prefix '_bry'];
 
 % fix file names
 GRID_NAME = [FOLDER GRID_NAME '.nc'];% '-' num2str(ceil(X/1000)) 'x' num2str(ceil(Y/1000)) '-' num2str(S.Lm) 'x' num2str(S.Mm) 'x' num2str(S.N) '.nc'];[FOLDER GRID_NAME '.nc'];
@@ -20,16 +21,16 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
 S.Lm = 144;
-S.Mm = 300;
+S.Mm = 168;
 S.N  = 40;
 
 % Domain Extent (in m)
-X = 180000;
-Y = 660000;
+X = 180 * 1000;
+Y = 420 * 1000;
 Z = 2000;
 
 % tracers
-S.NPT = 3; % number of passive tracers
+S.NPT = 0; % number of passive tracers
 S.NT = 2+S.NPT; % total number of tracers
 
 % vertical stretching
@@ -42,7 +43,7 @@ S.Tcline  = 100.0;    %  S-coordinate surface/bottom stretching width (m)
 % coriolis parameters
 lat_ref = 45;
 f0    = 2 * (2*pi/86400) * sind(lat_ref);
-beta  = 0;2e-11;
+beta  = 2e-11;
 
 % Physical Parameters
 N2    = 1e-5;
@@ -67,6 +68,7 @@ flags.spinup = 0; % if spinup, do not initialize ubar/vbar fields.
 flags.front = 0; % create shelfbreak front
 flags.eddy  = 1; % create eddy
 flags.ubt_initial = 1; % add barotropic velocity to initial condition?
+flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
 
 % eddy momentum balance options
 flags.use_cartesian = 0; % use cartesian forumlation
@@ -83,7 +85,7 @@ flags.comment = ['solidbody = solid body core profile for eddy | ' ...
     'wind balance instead of geostrophic | use_radial = use expression in' ...
     ' radial instead of cartesian co-ordinates | perturb_zeta = add random' ...
     ' perturbation to initial free surface field | ubt_initial = add background' ...
-    ' barotropic velocity field'];
+    ' barotropic velocity field | fplanezeta = f-plane solution for zeta (BT vel)'];
 
 % DO NOT CHANGE THIS ORDER
 if flags.OBC
@@ -98,7 +100,7 @@ end
 
 % Barotropic background flow parameters
 ubt = 0;-0.05; % m/s barotropic velocity
-vbt = -0.04; % m/s barotropic velocity
+vbt = 0;-0.04; % m/s barotropic velocity
 
 % Bathymetry parameters - all measurements in m
 bathy.H_shelf  = 100;
@@ -128,12 +130,12 @@ bathy.comment = ['H_shelf = depth at coast | L_shelf = shelf width | ' ...
                  ' passes'];
 
 % Eddy parameters - all distances in m
-eddy.dia   = 50*1000; % in m
+eddy.dia   = 50*1000;
 eddy.depth = 500; % depth below which flow is 'compensated'
 eddy.tamp  = 25; % controls gradient
 eddy.a     = 3;  % ? in Katsman et al. (2003)
-eddy.cx    = 103000; % center of eddy
-eddy.cy    = 597000; %    "
+eddy.cx    = 103 * 1000; % center of eddy
+eddy.cy    = 300 * 1000; %597000; %    "
 %eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero 
 eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
                 ' of temp. perturbation | a = alpha in Katsman et al. (2003)' ...
@@ -349,6 +351,10 @@ end
 
 %% Bathymetry + Coriolis + more grid stuff
 
+% Coriolis with beta. f = f0 @ y=ymid
+fnew = f0*ones(size(S.x_rho));
+f = fnew + beta * (S.y_rho - S.y_rho(1,ymid));
+
 % linear bathymetry
 if flags.linear_bathymetry == 1
     
@@ -400,6 +406,10 @@ if flags.linear_bathymetry == 1
         end
     end  
     
+    % Calculate Burger numbers
+    S_sh = bathy.sl_shelf * sqrt(N2)./min(f(:)); % shelf
+    S_sl = bathy.sl_slope * sqrt(N2)./min(f(:)); % slope
+    
 end
 
 if flags.tanh_bathymetry == 1
@@ -415,10 +425,6 @@ if flags.tanh_bathymetry == 1
     hy = (1+tanh( ((S.y_rho-L_deep)/scale) ))/2;
     S.h = H_deep + (H_shelf-H_deep) * (hx.*hy);
 end
-
-% Coriolis with beta. f = f0 @ y=ymid
-fnew = f0*ones(size(S.x_rho));
-f = fnew + beta * (S.y_rho - S.y_rho(1,ymid));
 
 % Calculate weird stuff
 [S.pm,S.pn,S.dndx,S.dmde] = grid_metrics(S,false);
@@ -946,7 +952,11 @@ if flags.ubt_initial == 1
             S.zeta = S.zeta + cumtrapz(squeeze(yrmat(1,:,1)),-f./g * ubt,2);
         else
             S.v = S.v + vbt; 
-            S.zeta = S.zeta + cumtrapz(squeeze(xrmat(:,1,1)),f./g * vbt,1);
+            if ~flags.fplanezeta
+               S.zeta = S.zeta + cumtrapz(squeeze(xrmat(:,1,1)),f./g * vbt,1);
+            else
+               S.zeta = S.zeta + cumtrapz(squeeze(xrmat(:,1,1)),f0.*ones(size(f))./g * vbt,1); 
+            end
         end
 %    end
 end
@@ -1210,6 +1220,13 @@ if flags.OBC == 1
     end
 end
 
+%% non-dimensional parameters
+
+if exist('Ro','var'); nondim.Ro = Ro; end
+nondim.S_sh = S_sh;
+nondim.S_sl = S_sl;
+nondim.comment = 'Ro = Rossby number | S_sh = shelf Burger number | S_sl = slope Burger number';
+
 %% Check plots
 
 make_plot = 1;
@@ -1285,6 +1302,7 @@ if make_plot
     
     linkaxes([ax(1:4)],'xy');
     linkaxes([ax(5:8)],'xy');
+
 end
 
 %% Write to Grid & IC file
@@ -1361,10 +1379,11 @@ write_params_to_ini(INI_NAME,ubt,'u_background_barotropic');
 write_params_to_ini(INI_NAME,vbt,'v_background_barotropic');
 if flags.front, write_params_to_ini(INI_NAME,front); end
 if flags.eddy,  write_params_to_ini(INI_NAME,eddy); end
+if exist('nondim','var'),  write_params_to_ini(INI_NAME,nondim); end
 
 fprintf('\n\n Files %s | %s ', GRID_NAME,INI_NAME);
 if flags.OBC, fprintf('| %s ',BRY_NAME); end
-fprintf('written.\n\n');
+fprintf('written.\n');
 
 %% Grid and time step information
 
@@ -1387,6 +1406,8 @@ Cbc7 = 7 * dt * sqrt(1/dx^2 + 1/dy^2);
 fprintf('\n\n Beckmann & Haidvogel number = %f (< 0.2 , max 0.4) \n \t\t\t\tHaney number = %f (< 9 , maybe 16)', rx0,rx1);
 fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, \n\n C_bt = %.3f | C_bc = %.3f  | C_bc7 = %.3f\n\n Min. Ri = %.2f', dt,ndtfast,Cbt,Cbc,Cbc7,min(Ri(:)));
 if exist('Ro','var'), fprintf(' | Max. Ro = %.2f', Ro); end
+if exist('S_sh','var'), fprintf(' | S_shelf = %.2f', S_sh); end
+if exist('S_sl','var'), fprintf(' | S_slope = %.2f', S_sl); end
 fprintf('\n\n');
 %fprintf('\n\n (dt)_bt < %.2f s | (dt)_bc < %.2f s\n\n', DX/(sqrt(g*min(S.h(:)))), DX/(sqrt(N2)*min(S.h(:))/pi))
 

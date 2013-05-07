@@ -318,53 +318,77 @@ zeta = double(ncread(fname,'zeta'));
 
 ntavg = size(zeta,3);
 ntflt = size(floats.x,1) - 1;
-fac = ntflt/ntavg;
+floats.fac = ntflt/ntavg;
 
-%% 2D animate floats & bathymetry
-% need to color floats based on starting position
-colors = distinguishable_colors(7);
+%% animate ROMS floats
 
-N = 35;
-n = 5;
-for i=1:n:N
-   colarray(i:i+n-1,:,:) = repmat(colors(ceil(i/n),:,:),n,1);
-end
 
-cmap = flipud(cbrewer('div', 'BrBG', 32));
+    % need to color floats based on starting position
+    colors = distinguishable_colors(size(floats.x,1));
 
-figure;
-% plot bathymetry
-ax(2) = subplot(132);
-plot(rgrid.x_rho(1,:)/1000,-rgrid.h(1,:));
-liney(-114,'-114');
-liney(-130,'-130');
-beautify
-ax(3) = subplot(133);
-plot3(floats.x/1000,floats.y/1000,floats.z);
-hold on;
-plot3(floats.init(:,1)/1000,floats.init(:,2)/1000,floats.init(:,3),'x','MarkerSize',12);
-
-for i=31:ntavg
-    ax(1) = subplot(131);
-    cla
-    contourf(rgrid.x_rho/1000,rgrid.y_rho/1000,zeta(:,:,i)');
-    shading flat; axis image
-    colormap(cmap); 
-    caxis([min(zeta(:)) max(zeta(:))]);
-    hold on
-    [C,hc] = contour(rgrid.x_rho./1000,rgrid.y_rho./1000,rgrid.h,[114 500 750 1100],'k');
-    clabel(C,hc);
-    plot(floats.init(:,1)/1000,floats.init(:,2)/1000,'x','MarkerSize',12);
-    for j = 1:size(floats.x,2)
-          plot(floats.x(1:fac*i,j)/1000,floats.y(1:fac*i,j)/1000, ...
-                 'Color',colarray(j,:,:),'MarkerSize',10);
-%     scatter3(floats.x(1:fac*i,j),floats.y(1:fac*i,j),floats.z(1:fac*i,j), ...
-%                 10,floats.z(1:fac*i,j));
+    N = 35;
+    n = 5;
+    for i=1:n:N
+       colarray(i:i+n-1,:,:) = repmat(colors(ceil(i/n),:,:),n,1);
     end
-    linkaxes(ax,'x')
-    title(['t = ' num2str(i) ' days']);
-    pause(0.01)
+
+    cmap = flipud(cbrewer('div', 'BrBG', 32));
+
+    figure;
+    % plot bathymetry
+    ax(2) = subplot(132);
+    plot(rgrid.x_rho(1,:)/1000,-rgrid.h(1,:));
+    liney(-114,'-114');
+    liney(-130,'-130');
+    beautify
+    ax(3) = subplot(133);
+    plot3(floats.x/1000,floats.y/1000,floats.z);
+    hold on;
+    plot3(floats.init(:,1)/1000,floats.init(:,2)/1000,floats.init(:,3),'x','MarkerSize',12);
+
+    for i=31:ntavg
+        ax(1) = subplot(131);
+        cla
+        contourf(rgrid.x_rho/1000,rgrid.y_rho/1000,zeta(:,:,i)');
+        shading flat; axis image
+        colormap(cmap); 
+        caxis([min(zeta(:)) max(zeta(:))]);
+        hold on
+        [C,hc] = contour(rgrid.x_rho./1000,rgrid.y_rho./1000,rgrid.h,[114 500 750 1100],'k');
+        clabel(C,hc);
+        plot(floats.init(:,1)/1000,floats.init(:,2)/1000,'x','MarkerSize',12);
+        for j = 1:size(floats.x,2)
+              plot(floats.x(1:floats.fac*i,j)/1000,floats.y(1:floats.fac*i,j)/1000, ...
+                     'Color',colarray(j,:,:),'MarkerSize',10);
+    %     scatter3(floats.x(1:fac*i,j),floats.y(1:fac*i,j),floats.z(1:fac*i,j), ...
+    %                 10,floats.z(1:fac*i,j));
+        end
+        linkaxes(ax,'x')
+        title(['t = ' num2str(i) ' days']);
+        pause(0.01)
+    end
+
+%% read LTRANS floats
+
+%% read TRACMASS floats
+redo = 1;
+if ~exist('trac','var') || redo == 1
+    trac = tracmass_read('runs/eddytest_run.asc',rgrid);
 end
+if ~exist('zeta','var')
+    zeta = ncread(fname,'zeta');
+end
+trac.fac = 1;
+
+i = 1;
+figure
+hold on
+plot(trac.x/1000,trac.y/1000);
+plot(trac.x(1,i)/1000,trac.y(1,i)/1000,'x','MarkerSize',12);
+title('tracmass');
+plot3(trac.init(:,1)/1000,trac.init(:,2)/1000,trac.init(:,3),'x','MarkerSize',12);
+
+animate_floats2d(rgrid,zeta,trac)
 
 %% compare ltrans and ROMS output
 
@@ -406,3 +430,4 @@ for i=1:ntavg
     view(az,el);
     pause(0.01)
 end
+
