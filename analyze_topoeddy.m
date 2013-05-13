@@ -29,10 +29,11 @@ for ii=1:nn
     subplot(a(1),a(2),ii);
     eddy = track{ii};
     plot(eddy.mx/1000,eddy.my/1000,'k','LineWidth',2); hold on;
+    plot(eddy.mx(1)/1000,eddy.my(1)/1000,'ko','MarkerSize',7);
     [c,h] = contour(eddy.xr/1000,eddy.yr/1000,eddy.h(2:end-1,2:end-1),10,'k');
     clabel(c,h);
     xlim([0 220]);
-    title(['runteb-0' num2str(ii+1)]);
+    title(['runteb-0' num2str(ii+1) '| ' num2str(length(eddy.t)) ' days']);
     xlabel('X (km)');
     ylabel('Y (km)');
 end

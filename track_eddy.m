@@ -13,8 +13,8 @@ function [eddy] = track_eddy(dir)
     zeta = roms_read_data(dir,'zeta');
     [xr,yr,~,~,~,~] = roms_var_grid(fname,'zeta');
     eddy.h = ncread(fname,'h');
-    t = ncread(fname,'ocean_time'); % required only for dt
-    dt = t(2)-t(1);
+    eddy.t = roms_read_data(dir,'ocean_time'); % required only for dt
+    dt = eddy.t(2)-eddy.t(1);
 
     zeta = zeta(2:end-1,2:end-1,:);
     xr = xr(2:end-1,2:end-1);
@@ -33,6 +33,9 @@ function [eddy] = track_eddy(dir)
 
     tic;
     for tt=1:size(zeta,3)
+%         if tt == 126
+%             disp('time to debug');
+%         end
         if tt == 1,
             mask = ones(sz);
             d_sbreak = Inf;
@@ -71,6 +74,8 @@ function [eddy] = track_eddy(dir)
         eddy.ee(tt) = temp.ee;
         eddy.ne(tt) = temp.ne;
         eddy.se(tt) = temp.se;
+        
+        % pcolor(xr,yr,eddy.mask(:,:,tt).*zeta(:,:,tt)); linex(eddy.mx(tt));title(num2str(tt))
         % calculate center velocity
         if tt == 1
             eddy.mvx(1) = NaN;
@@ -131,8 +136,17 @@ function [eddy] = eddy_diag(zeta,dx,dy,sbreak,w)
             %if sum(local_max(:)) > 1, continue; end % skip if more than one maximum
             
             % Criterion 4 - amplitude is at least > amp_thresh
-            amp = max(zreg(:)) - mean(zperim(:));
-            if amp < amp_thresh, continue; end
+            indices = find(local_max == 1);
+            % make sure all local maxima found satisfy this criterion
+            for mm=1:length(indices)
+                if (zreg(indices(mm)) - nanmean(zperim(:))) < amp_thresh
+                   local_max(indices(mm)) = 0;
+                end
+            end
+            amp = max(zreg(local_max)) - nanmean(zperim(:));
+            if isempty(amp) || (amp < amp_thresh) || isequal(local_max,zeros(size(local_max)))
+                continue; 
+            end
             
             % Criterion 5 - distance between any pair of points must be
             % less than a specified maximum
@@ -160,7 +174,7 @@ function [eddy] = eddy_diag(zeta,dx,dy,sbreak,w)
             cy = c.WeightedCentroid(1) * dy;
 
             if exist('eddy','var') 
-                if (cx-sbreak) > (eddy.cx-sbreak)
+                if (cx-sbreak) > (eddy.cx-sbreak) && (eddy.cx-sbreak > 0)
                     continue
                 else
                     % current eddy is closer but could be bigger than we want

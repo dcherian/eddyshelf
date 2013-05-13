@@ -104,13 +104,12 @@ vbt = 0;-0.04; % m/s barotropic velocity
 
 % Bathymetry parameters - all measurements in m
 bathy.H_shelf  = 100;
-bathy.L_shelf  = 50 * 1000;
-bathy.L_slope  =  30 * 1000;
+bathy.L_shelf  = 20 * 1000;
+bathy.L_slope  =  80 * 1000;
 bathy.axis = 'x'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
 bathy.sl_shelf = 0.0005;
-bathy.sl_slope = 0.05;
-
+bathy.sl_slope = 0.02;
 % bathymetry smoothing options
 bathy.n_points = 4;
 bathy.n_passes = 6;
