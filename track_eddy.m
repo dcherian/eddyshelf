@@ -1,17 +1,18 @@
 function [eddy] = track_eddy(dir)
 
-    fname = [dir ls([dir '/*his*.nc'])];
+    fnames = ls([dir '/*his*.nc']);
     if isempty(ls([dir '/*his*.nc']))
-        fname = [dir ls([dir '/*avg*.nc'])];
+        fnames = ls([dir '/*avg*.nc']);
     end
 
+    fname = [dir '/' fnames(1,:)];
     % search region for tracking eddies (in addition to detected diameter)
     limit_x = 40*1000;
     limit_y = 40*1000;
 
     zeta = roms_read_data(dir,'zeta');
     [xr,yr,~,~,~,~] = roms_var_grid(fname,'zeta');
-    h = ncread(fname,'h');
+    eddy.h = ncread(fname,'h');
     t = ncread(fname,'ocean_time'); % required only for dt
     dt = t(2)-t(1);
 
@@ -82,6 +83,8 @@ function [eddy] = track_eddy(dir)
     eddy.xr = xr;
     eddy.yr = yr;
     toc;
+    
+    save([dir '/eddytrack.mat'],'eddy');
     disp('Done.');
 
 % Calculates eddy diagnostics as in Chelton et al. (2011)
@@ -215,10 +218,18 @@ function [eddy] = eddy_diag(zeta,dx,dy,sbreak,w)
     if ~exist('eddy','var')
         eddy.cx   = NaN;
         eddy.cy   = NaN;
+        eddy.mx   = NaN;
+        eddy.my   = NaN;
+        eddy.we   = NaN;
+        eddy.ee   = NaN;
+        eddy.ne   = NaN;
+        eddy.se   = NaN;
         eddy.amp  = NaN;
         eddy.dia  = NaN;
         eddy.mask = NaN;
         eddy.n    = NaN;
+        eddy.jj   = NaN;
+        disp('Eddy not found!');
     end
     
     try
