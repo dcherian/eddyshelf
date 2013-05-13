@@ -16,11 +16,12 @@ function [] = animate_floats2d(rgrid,zeta,floats)
 %     plot3(floats.x/1000,floats.y/1000,floats.z);
 %     hold on;
     
+    ind0 = find(rgrid.ocean_time == floats.time(1));
 
     for i=1:2:size(floats.x,1)
         %ax(1) = subplot(131);
         cla
-        contourf(rgrid.x_rho/1000,rgrid.y_rho/1000,zeta(:,:,floats.time(1)+i)');
+        contourf(rgrid.x_rho/1000,rgrid.y_rho/1000,zeta(:,:,ind0+i)');
         shading flat; axis image
         colormap(cmap); 
         caxis([min(zeta(:)) max(zeta(:))]);

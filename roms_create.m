@@ -4,7 +4,7 @@
 %% Parameters
 % names cannot start with number
 FOLDER    = 'runs\';
-prefix    = 'eddy';
+prefix    = 'te';
 GRID_NAME = [prefix '_grd'];
 INI_NAME  = [prefix '_ini'];
 BRY_NAME  = [prefix '_bry'];
@@ -20,13 +20,13 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 144;
-S.Mm = 168;
+S.Lm = 170;
+S.Mm = 120;
 S.N  = 40;
 
 % Domain Extent (in m)
-X = 180 * 1000;
-Y = 420 * 1000;
+X = 240 * 1000;120
+Y = 300 * 1000;100
 Z = 2000;
 
 % tracers
@@ -104,8 +104,8 @@ vbt = 0;-0.04; % m/s barotropic velocity
 
 % Bathymetry parameters - all measurements in m
 bathy.H_shelf  = 100;
-bathy.L_shelf  = 30 * 1000;
-bathy.L_slope  =  20 * 1000;
+bathy.L_shelf  = 50 * 1000;
+bathy.L_slope  =  30 * 1000;
 bathy.axis = 'x'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
 bathy.sl_shelf = 0.0005;
@@ -134,8 +134,8 @@ eddy.dia   = 50*1000;
 eddy.depth = 500; % depth below which flow is 'compensated'
 eddy.tamp  = 25; % controls gradient
 eddy.a     = 3;  % ? in Katsman et al. (2003)
-eddy.cx    = 103 * 1000; % center of eddy
-eddy.cy    = 300 * 1000; %597000; %    "
+eddy.cx    = 150 * 1000; % center of eddy
+eddy.cy    = Y/2;300 * 1000; %597000; %    "
 %eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero 
 eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
                 ' of temp. perturbation | a = alpha in Katsman et al. (2003)' ...
@@ -409,6 +409,10 @@ if flags.linear_bathymetry == 1
     % Calculate Burger numbers
     S_sh = bathy.sl_shelf * sqrt(N2)./min(f(:)); % shelf
     S_sl = bathy.sl_slope * sqrt(N2)./min(f(:)); % slope
+    
+    % Calculate topographic beta
+    b_sh = f0 * bathy.sl_shelf / bathy.H_shelf;
+    b_sl = f0 * bathy.sl_slope / max(S.h(:));
     
 end
 
@@ -1388,7 +1392,7 @@ fprintf('written.\n');
 %% Grid and time step information
 
 dx = min(dx(:)); dy = min(dy(:));
-
+fprintf('\n\n=============================  SUMMARY  ========================================');
 fprintf('\n\n X = %.2f | Y = %.2f | Z = %.2f | dx = %.2f m | dy = %.2f m', ...
                 max(xrmat(:)), max(yrmat(:)), max(abs(zrmat(:))),dx, dy);
 
@@ -1404,10 +1408,13 @@ Cbc7 = 7 * dt * sqrt(1/dx^2 + 1/dy^2);
 
 % print to screen
 fprintf('\n\n Beckmann & Haidvogel number = %f (< 0.2 , max 0.4) \n \t\t\t\tHaney number = %f (< 9 , maybe 16)', rx0,rx1);
-fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, \n\n C_bt = %.3f | C_bc = %.3f  | C_bc7 = %.3f\n\n Min. Ri = %.2f', dt,ndtfast,Cbt,Cbc,Cbc7,min(Ri(:)));
+fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, C_bt = %.3f | C_bc = %.3f  | C_bc7 = %.3f\n\n Min. Ri = %.2f', dt,ndtfast,Cbt,Cbc,Cbc7,min(Ri(:)));
 if exist('Ro','var'), fprintf(' | Max. Ro = %.2f', Ro); end
 if exist('S_sh','var'), fprintf(' | S_shelf = %.2f', S_sh); end
-if exist('S_sl','var'), fprintf(' | S_slope = %.2f', S_sl); end
+if exist('S_sl','var'), fprintf(' | S_slope = %.2f \n', S_sl); end
+fprintf(' beta = %1.2e', beta); 
+if exist('b_sh','var'), fprintf(' | Beta_shelf = %1.2e', b_sh); end
+if exist('b_sl','var'), fprintf(' | Beta_slope = %1.2e', b_sl); end
 fprintf('\n\n');
 %fprintf('\n\n (dt)_bt < %.2f s | (dt)_bc < %.2f s\n\n', DX/(sqrt(g*min(S.h(:)))), DX/(sqrt(N2)*min(S.h(:))/pi))
 

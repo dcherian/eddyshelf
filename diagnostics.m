@@ -378,7 +378,10 @@ end
 if ~exist('zeta','var')
     zeta = ncread(fname,'zeta');
 end
-trac.fac = 1;
+
+ntavg = size(zeta,3);
+ntflt = size(trac.time,1) - 1;
+trac.fac = ntflt/ntavg;
 
 i = 1;
 figure
@@ -387,8 +390,8 @@ plot(trac.x/1000,trac.y/1000);
 plot(trac.x(1,i)/1000,trac.y(1,i)/1000,'x','MarkerSize',12);
 title('tracmass');
 plot3(trac.init(:,1)/1000,trac.init(:,2)/1000,trac.init(:,3),'x','MarkerSize',12);
-
-animate_floats2d(rgrid,zeta,trac)
+linex(xsb/1000)
+%animate_floats2d(rgrid,zeta,trac)
 
 %% compare ltrans and ROMS output
 
