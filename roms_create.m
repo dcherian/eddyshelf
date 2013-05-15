@@ -25,8 +25,8 @@ S.Mm = 120;
 S.N  = 40;
 
 % Domain Extent (in m)
-X = 240 * 1000;120
-Y = 300 * 1000;100
+X = 240 * 1000;120;
+Y = 300 * 1000;100;
 Z = 2000;
 
 % tracers
@@ -55,6 +55,17 @@ SCOEF = 7.6e-4;
 g     = 9.81;
 rho0  = 1025; % Boussinesq
 
+%% save physical parameters to structure
+
+phys.rho0 = rho0;
+phys.T0 = T0; phys.S0 = S0; phys.R0 = R0;
+phys.SCOEF = SCOEF; phys.TCOEF = TCOEF;
+phys.N2 = N2; phys.g = g;
+phys.lat_ref = lat_ref; phys.f0 = f0; phys.beta = beta;
+phys.comment = ['rho0 = Boussinessq approx. | (T0,S0,R0,TCOEF,SCOEF) = linear EOS | ' ...
+                '(lat_ref,f0,beta) = coriolis beta plane parameters | ' ...
+                ' g = 9.81 m/s2 | N2 = Brunt Vaisalla frequency'];
+            
 %% Options
 
 flags.tanh_bathymetry = 0;
@@ -1378,6 +1389,7 @@ ncwrite(INIname, 'salt', S.salt);
 % write parameters to IC file
 write_params_to_ini(INI_NAME,flags);
 write_params_to_ini(INI_NAME,bathy);
+write_params_to_ini(INI_NAME,phys);
 write_params_to_ini(INI_NAME,ubt,'u_background_barotropic');
 write_params_to_ini(INI_NAME,vbt,'v_background_barotropic');
 if flags.front, write_params_to_ini(INI_NAME,front); end

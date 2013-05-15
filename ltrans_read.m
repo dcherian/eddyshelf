@@ -1,4 +1,4 @@
-track_file = 'ltrans-eddy-04.nc';
+track_file = 'runs/ltrans-eddy-04.nc';
 out_file = 'runs/runeddy-04-1his/ocean_avg.nc';
 
 lat = ncread(track_file,'lat');
