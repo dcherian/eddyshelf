@@ -6,6 +6,9 @@ function [eddy] = track_eddy(dir)
     end
 
     fname = [dir '/' fnames(1,:)];
+    kk = 2; % if ncread fails, it will use fnames(kk,:)
+    tt0 = 0; % offset for new history.average file - 0 initially, updated later
+    
     % search region for tracking eddies (in addition to detected diameter)
     limit_x = 40*1000;
     limit_y = 40*1000;
@@ -96,8 +99,17 @@ function [eddy] = track_eddy(dir)
         imx = find_approx(xr(:,1),eddy.mx(tt),1);
         imy = find_approx(yr(1,:),eddy.my(tt),1);
         ze  = squeeze(zr(imx,imy,:)); % z co-ordinate at center of eddy
-        eddy.T(tt,:)   = double(squeeze(ncread(fname,'temp',[imx imy 1 tt],[1 1 Inf 1])));
-        Ti             = double(squeeze(ncread(fname,'temp',[imx  Y  1 tt],[1 1 Inf 1])));
+        try
+            eddy.T(tt,:)   = double(squeeze(ncread(fname,'temp',[imx imy 1 tt-tt0],[1 1 Inf 1])));
+        catch ME
+            disp([' Moving to next file tt = ' num2str(tt) ' - ' fnames(kk,:)]);
+            fname = [dir '/' fnames(kk,:)];
+            kk = kk +1;
+            tt0 = tt-1;
+            eddy.T(tt,:)   = double(squeeze(ncread(fname,'temp',[imx imy 1 tt-tt0],[ ...
+                                                    1 1 Inf 1])));
+        end
+        Ti = double(squeeze(ncread(fname,'temp',[imx  Y  1 tt-tt0],[1 1 Inf 1])));
         x2 = fminsearch(@(x) gaussfit2(x,eddy.T(tt,:)'-Ti,ze),initGuess2);
         x3 = fminsearch(@(x) gaussfit3(x,eddy.T(tt,:)'-Ti,ze),initGuess3);
         eddy.Lz2(tt)  = abs(x2(2));
@@ -142,7 +154,7 @@ function [E] = gaussfit3(x0,T,zr)
     % x = (T0,H,a)
     T0 = x0(1); h = x0(2); a = x0(3);
     
-    E = sum((T - T0 * (1+a*zr) .* (exp(-(zr/h).^2))).^2);
+    E = sum((T - (T0+a*zr) .* (exp(-(zr/h).^2))).^2);
 
 % Calculates eddy diagnostics as in Chelton et al. (2011)
 % doesn't support multiple eddies yet
