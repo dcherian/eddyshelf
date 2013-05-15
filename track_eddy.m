@@ -11,7 +11,8 @@ function [eddy] = track_eddy(dir)
     limit_y = 40*1000;
 
     zeta = roms_read_data(dir,'zeta');
-    [xr,yr,~,~,~,~] = roms_var_grid(fname,'zeta');
+    [xr,yr,zr,~,~,~] = roms_var_grid(fname,'temp');
+    params = read_params_from_ini(dir);
     eddy.h = ncread(fname,'h');
     eddy.t = roms_read_data(dir,'ocean_time'); % required only for dt
     dt = eddy.t(2)-eddy.t(1);
@@ -19,6 +20,7 @@ function [eddy] = track_eddy(dir)
     zeta = zeta(2:end-1,2:end-1,:);
     xr = xr(2:end-1,2:end-1);
     yr = yr(2:end-1,2:end-1);
+    Y  = size(yr,2);
 
     dx = xr(2,1)-xr(1,1);
     dy = yr(1,2)-yr(1,1);
@@ -75,6 +77,18 @@ function [eddy] = track_eddy(dir)
         eddy.ne(tt) = temp.ne;
         eddy.se(tt) = temp.se;
         
+        % diagnose vertical scale (fit Gaussian)
+        imx = find_approx(xr(:,1),eddy.mx(tt),1);
+        imy = find_approx(yr(1,:),eddy.my(tt),1);
+        ze  = squeeze(zr(imx,imy,:)); % z co-ordinate at center of eddy
+        eddy.T(tt,:)   = double(squeeze(ncread(fname,'temp',[imx imy 1 tt],[1 1 Inf 1])));
+        Ti  = double(squeeze(ncread(fname,'temp',[imx Y   1 tt],[1 1 Inf 1])));
+        x2 = fminsearch(@(x) gaussfit2(x,eddy.T(tt,:)'-Ti,ze),[1,params.eddy.depth]);
+        x3 = fminsearch(@(x) gaussfit3(x,eddy.T(tt,:)'-Ti,ze), ...
+                    [1,0.01,params.eddy.depth]);
+        eddy.Lz2(tt)  = abs(x2(2));
+        eddy.Lz3(tt)  = abs(x3(2));
+        
         % pcolor(xr,yr,eddy.mask(:,:,tt).*zeta(:,:,tt)); linex(eddy.mx(tt));title(num2str(tt))
         % calculate center velocity
         if tt == 1
@@ -89,8 +103,31 @@ function [eddy] = track_eddy(dir)
     eddy.yr = yr;
     toc;
     
+    eddy.comment = ['(cx,cy) = Location of weighted center (m) | ' ...
+                    '(mx,my) = Location of SSH max closest to shelfbreak (m) | ' ...
+                    'amp = amplitude (m) | dia = diameter of circle with same area (m) | ' ...
+                    'mask = SSH mask to check detection | n = number of pixels | ' ...
+                    '(we,ee,ne,se) = West, East, North and South edges of eddy (m) | ' ...
+                    'Lz2,3 = Vertical scale (m) when fitting without & with linear trend | ' ...
+                    'T = temp profile at (mx,my)'];
+    
     save([dir '/eddytrack.mat'],'eddy');
     disp('Done.');
+    
+% Gaussian fit for vertical scale - called by fminsearch
+% calculates squared error
+function [E] = gaussfit2(x0,T,zr)
+    % x = (T0,H,a)
+    T0 = x0(1); h = x0(2);
+    
+    %E = sum((T - T0 * (1+a*zr) .* (1 + exp(-(zr/h).^2))).^2);
+    E = sum((T - T0 .* exp(-(zr/h).^2)).^2);
+    
+ function [E] = gaussfit3(x0,T,zr)
+    % x = (T0,H,a)
+    T0 = x0(1); h = x0(2); a = x0(3);
+    
+    E = sum((T - T0 * (1+a*zr) .* (1 + exp(-(zr/h).^2))).^2);
 
 % Calculates eddy diagnostics as in Chelton et al. (2011)
 % doesn't support multiple eddies yet
