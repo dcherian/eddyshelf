@@ -38,11 +38,11 @@ thresh = 0.2 * std(std(w)); % Isern-Fontanet et al. (2006)
 
 %% get eddy tracks
 
-eddy = track_eddy(dir);
+%eddy = track_eddy(dir);
 
 % compare tracks of centroid and local maximum
 figure;
-[C,hc] = contour(xr./1000,yr./1000,h,[200 500 750 1100],'k');
+[C,hc] = contour(eddy.xr./1000,eddy.yr./1000,eddy.h(2:end-1,2:end-1),[200 500 750 1100],'k');
 clabel(C,hc); hold on
 plot(eddy.cx/1000,eddy.cy/1000,'b',eddy.mx/1000,eddy.my/1000,'r'); 
 plot(eddy.mx/1000,eddy.my/1000,'r-'); 
@@ -193,7 +193,6 @@ yrmat = repmat(rgrid.y_rho(yrange,xrange)',[1 1 size(rgrid.z_r,1)]);
 zrmat = permute(rgrid.z_r,[2 3 1]);
 zrmat = zrmat(yrange,xrange,:);
 zrmat = permute(zrmat,[2 1 3]);
-
 
 %% cone plot locations
 cx = xrmat(1:10:end,1:10:end,1:10:end);
@@ -407,7 +406,6 @@ for i=1:a
     end
 end
 
-
 %% 3D movie
 
 az = 19.5;
@@ -434,3 +432,38 @@ for i=1:ntavg
     pause(0.01)
 end
 
+%% movie following eddy center
+
+dir = 'runs/topoeddy/runteb-03/';
+fname = [dir '/ocean_avg.nc'];
+[xr,yr,zr,~] = roms_var_grid(fname,'temp',0);
+time    = roms_read_data(dir,'ocean_time')/86400;
+
+load([dir '/eddytrack.mat'],'eddy');
+
+xmin = min(eddy.mx(:)); xmax = max(eddy.mx(:));
+ymin = min(eddy.my(:)); ymax = max(eddy.my(:));
+
+ixmin = find_approx(xr(:,1),xmin); ixmax = find_approx(xr(:,1),xmax);
+iymin = find_approx(yr(1,:),ymin); iymax = find_approx(yr(1,:),ymax);
+
+stride = [2 1 1 2];
+
+temp = double(squeeze(ncread(fname,'temp',[1 iymin 1 1],[Inf iymax-iymin+1 Inf Inf],stride)));
+
+xzr = repmat(xr(1:stride(1):end,1),[1 size(zr,3)]);
+
+%%
+figure
+for tt=1:size(temp,4)
+    clf
+    ix = find_approx(xr(:,1),eddy.mx(tt*stride(4)));
+    iy = find_approx(yr(1,:),eddy.my(tt*stride(4)));
+    contourf(xzr/1000,squeeze(zr(1:stride(1):end,iy,:)),squeeze(temp(:,iy-iymin + 1,:,tt)),10);
+    title(['(mx,my) = (', num2str(eddy.mx(tt*stride(4))/1000) ',' ...
+            num2str(eddy.my(tt*stride(4))/1000) ') | t = ' num2str(tt*stride(4)) ' days']);
+    xlabel('x (km)'); ylabel('z (m)'); colorbar; caxis([14 20]);
+    liney(-eddy.Lz2(tt*stride(4)),'2','b');
+    liney(-eddy.Lz3(tt*stride(4)),'3','k');
+    pause(0.01); 
+end

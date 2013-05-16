@@ -32,13 +32,15 @@ figure
 for ii=1:nn
     subplot(a(1),a(2),ii);
     eddy = track{ii};
-    plot(eddy.mx/1000,eddy.my/1000,'k','LineWidth',2); hold on;
-    plot(eddy.mx(1)/1000,eddy.my(1)/1000,'ko','MarkerSize',7);
+    vscale = eddy.Lz2;
     [c,h] = contour(eddy.xr/1000,eddy.yr/1000,eddy.h(2:end-1,2:end-1),10,'k');
-    clabel(c,h);
-    xlim([0 220]);
+    hold on; caxis([min(vscale(:)) max(vscale(:))]); colorbar;
+    scatter(eddy.mx/1000,eddy.my/1000,10,vscale,'filled'); 
+    plot(eddy.mx(1)/1000,eddy.my(1)/1000,'ko','MarkerSize',7);    
+     axis image; xlim([0 220]);
     title(['runteb-0' num2str(ii+1) '| ' num2str(length(eddy.t)) ' days ' ...
             '| sl = ' num2str(eddy.sl_slope) ' | L = ' num2str(eddy.L_slope/1000)]);
     xlabel('X (km)');
     ylabel('Y (km)');
 end
+colormap(pmkmp);
