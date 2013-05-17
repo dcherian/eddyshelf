@@ -149,7 +149,8 @@ eddy.cy    = Y/2;300 * 1000; %597000; %    "
 %eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero 
 eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
                 ' of temp. perturbation | a = alpha in Katsman et al. (2003)' ...
-                ' | (cx,cy) = (x,y) location of center | (ix,iy) = indices of center'];
+                ' | (cx,cy) = (x,y) location of center | (ix,iy) = indices of center | ' ...
+                'U = max. azimuthal velocity'];
 
 % Shelfbreak front parameters
 front.LTleft  = 12.5 * 1000; % length scale for temperature (m) - onshore
@@ -825,8 +826,9 @@ if flags.eddy
                 %rut = -sqrt(bsxfun(@times,vgeo,-2*rfb2)); % need -r for real solutions
             end
         end
-        
-        Ro = max(abs(rut(:)))./f0./r0;
+        % same max. azimuthal velocity for future
+        eddy.U = max(abs(rut(:)));
+        Ro = eddy.U ./f0./r0;
         fprintf('\n max. Ro = %.2f \n', Ro);
         
         eddy.u = -1 * bsxfun(@times,rut, sin(th));

@@ -1,4 +1,4 @@
-eddy.m - test code implementing chelton et al. (2011) method
+track_eddy.m - implementing chelton et al. (2011) method
 
 bathy_crooked.m, bathy2.m - these are both scripts that create fancy shaped bathymetry
 bathy_simple.m - creates simple sloping bathymetry
@@ -9,7 +9,18 @@ roms_create.m - create all .nc files required for ROMS run (forward model)
 images.m - creates images
 movies.m - creates nice looking movies for presentation
 
-eddy_diag.m - eddy diagnostics from Chelton et al. (2011)
 eddy_obuko.m - obuko-weiss diagnostic based tracking
 
 ltrans_read.m - reads LTRANS netcdf output
+tracmass_read.m - reads TRACMASS output
+
+%%%%%%%% ANALYSIS %%%%%%%%%
+
+analyze_topoeddy - analyzes eddy on beta plane with topography
+calc_nondim		 - calculates needed non-dimensional parameters
+diagnostics		 - lots of code for diagnostic plots
+
+%%%%%%%%% FILES %%%%%%%%%%%%
+
+eddytrack.mat 	 - eddy track from track_eddy.m
+nondim.mat		 - stores nondim params from calc_nondim.m
