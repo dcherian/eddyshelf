@@ -16,7 +16,7 @@ function [eddy] = track_eddy(dir)
     zeta = roms_read_data(dir,'zeta');
     [xr,yr,zr,~,~,~] = roms_var_grid(fname,'temp');
     eddy.h = ncread(fname,'h');
-    eddy.t = roms_read_data(dir,'ocean_time'); % required only for dt
+    eddy.t = roms_read_data(dir,'ocean_time')/86400; % required only for dt
     dt = eddy.t(2)-eddy.t(1);
 
     zeta = zeta(2:end-1,2:end-1,:);

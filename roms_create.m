@@ -20,12 +20,12 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 170;
-S.Mm = 120;
+S.Lm = 360;
+S.Mm = 100;
 S.N  = 40;
 
 % Domain Extent (in m)
-X = 240 * 1000;120;
+X = 180 * 1000;120;
 Y = 300 * 1000;100;
 Z = 2000;
 
@@ -116,11 +116,11 @@ vbt = 0;-0.04; % m/s barotropic velocity
 % Bathymetry parameters - all measurements in m
 bathy.H_shelf  = 100;
 bathy.L_shelf  = 20 * 1000;
-bathy.L_slope  =  80 * 1000;
+bathy.L_slope  =  50 * 1000;
 bathy.axis = 'x'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
 bathy.sl_shelf = 0.0005;
-bathy.sl_slope = 0.02;
+bathy.sl_slope = 0.05;
 % bathymetry smoothing options
 bathy.n_points = 4;
 bathy.n_passes = 6;
@@ -144,7 +144,7 @@ eddy.dia   = 50*1000;
 eddy.depth = 500; % depth below which flow is 'compensated'
 eddy.tamp  = 25; % controls gradient
 eddy.a     = 3;  % ? in Katsman et al. (2003)
-eddy.cx    = 150 * 1000; % center of eddy
+eddy.cx    = 120 * 1000; % center of eddy
 eddy.cy    = Y/2;300 * 1000; %597000; %    "
 %eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero 
 eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
@@ -829,6 +829,7 @@ if flags.eddy
         % same max. azimuthal velocity for future
         eddy.U = max(abs(rut(:)));
         Ro = eddy.U ./f0./r0;
+        if  Ro > 0.25, error('Error: Ro > 0.25'); end
         fprintf('\n max. Ro = %.2f \n', Ro);
         
         eddy.u = -1 * bsxfun(@times,rut, sin(th));

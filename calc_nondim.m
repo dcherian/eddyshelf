@@ -4,7 +4,7 @@ function [nondim] = calc_nondim(dir)
     
     params = read_params_from_ini(dir);
     if ~isfield(params,'phys') % run is from before I added physical parameters
-       params.phys.f0   = 1e-4;
+       params.phys.f0   = 1.028e-4;
        params.phys.beta = 2e-11;
        params.phys.N2   = 1e-5;
     end

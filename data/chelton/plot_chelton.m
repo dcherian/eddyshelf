@@ -42,7 +42,7 @@ function [] = plot_chelton(data,mask)
         radius = (data.L .* maski)./100/1000;
         x = bsxfun(@plus,bsxfun(@times,radius,cos(theta)),xCenter);
         y = bsxfun(@plus,bsxfun(@times,radius,sin(theta)),yCenter);
-        m_plot(x, y,'.','Color',colors(i,:),'MarkerSize',6);
+        %m_plot(x, y,'.','Color',colors(i,:),'MarkerSize',6);
         
         % plot 'x' at initial position
         m_plot(data.lon(index_first),data.lat(index_first),'*','Color',colors(i,:));

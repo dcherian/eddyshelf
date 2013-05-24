@@ -6,7 +6,7 @@ acyc_mask = fillnan(double(data.cyc == -1),0);
 [y,m,d,h,mi,s] = datevec(data.date);
 
 %%
-date_mask = fillnan(double(y == 2002),0);
+date_mask = fillnan(double(y == 2003),0);
 r_mask = ones(size(data.L)); fillnan(double(data.L >= 40 *1000),0);
 n_mask = fillnan(double(data.n >= 3),0);
 
@@ -24,4 +24,4 @@ total_mask = acyc_mask .* date_mask .* n_mask.* shelf_mask; %.*r_mask;
 % make plot
 plot_chelton(data,total_mask);
 %maximize;
-pause;export_fig -zbuffer 'chelton_test.png';
+%pause;export_fig -zbuffer 'chelton_test.png';

@@ -1,6 +1,7 @@
 % analyze topoeddy runs
 % makes subplots of eddy tracks
 
+function [] = analyze_topoeddy()
 %% read data
 dir1 = 'runs/topoeddy/';
 dir2 = {'runteb-02';'runteb-03';'runteb-04';'runteb-05';'runteb-06';'runteb-07'};
@@ -22,6 +23,7 @@ for ii=1:length(dir2)
     % get non-dim parameters
     fname = [dir3 '/nondim.mat'];
     if ~exist(fname,'file') || redo == 1
+       disp(['Calculating non-dim params for ' dir3]);
        track{ii}.nondim = calc_nondim(dir3);
     else
        track{ii}.nondim = load(fname,'nondim');
@@ -56,10 +58,12 @@ for ii=1:nn
     axis image; xlim([0 220]);
     title(['runteb-0' num2str(ii+1) '| ' num2str(length(eddy.t)) ' days ' ...
             '| sl = ' num2str(bathy.sl_slope) ' | L = ' num2str(bathy.L_slope/1000)]);
-    ht = text(120,200,sprintf('\\beta_t = %.2e',nondim.betatH));
-    set(ht,'FontSize',10);
-    ht = text(90,180,sprintf('\\beta(fl/N) = %.2e',nondim.betafL));
-    set(ht,'FontSize',10);
+        
+    if strcmpi(char(dir2{ii}),'runteb-02')
+        print_nondim(120,180+100,nondim);
+    else
+        print_nondim(120,180,nondim);
+    end
     xlabel('X (km)');
     ylabel('Y (km)');
 end
@@ -70,3 +74,14 @@ if strcmpi(char(dir2{1}),'runteb-02')
     ylim(limy+100);
 end
 colormap(pmkmp);
+
+function [] = print_nondim(ix,iy,nondim)
+    a = fieldnames(nondim);
+    for kk = 1:length(a)
+        if ~strcmpi(a{kk},'comment')
+            str = sprintf('%s = %.2e',char(a{kk}),nondim.(char(a{kk})));
+            if strfind(str,'beta'), str = ['\' str]; end
+            ht = text(ix,iy+20*(kk-1),str);
+            set(ht,'FontSize',10);
+        end
+    end
