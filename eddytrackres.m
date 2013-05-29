@@ -8,25 +8,85 @@ function [] = eddytrackres()
     names = ls([dir1 str]);
     
     colors = distinguishable_colors(size(names,1));
+    % generate gray colors
+    %arr = linspace(0,200,size(names,1))/255;
+    %colors = repmat(arr',1,3);
     
     figure; hold on
     for ii=1:size(names,1)
         fname = [dir1 strtrim(names(ii,:)) '/eddytrack.mat'];
         load(fname,'eddy');
+        eddies{ii} = eddy;
         legstr{ii} = make_legend(eddy);
-        plot(eddy.mx/1000,eddy.my/1000,'Color',colors(ii,:),'LineWidth',2);
+    end
+    [sorted,ind] = sort(legstr);
+    
+    for ii=1:length(ind)
+        kk = ind(ii);
+        eddy = eddies{kk};
+        %if ii == 2, eddy.cy = eddy.cy-50000; end
+        subplot(4,2,[1 3 5 7]); hold on
+        plot(eddy.cx/1000,eddy.cy/1000,'Color',colors(ii,:),'LineWidth',2);
+        subplot(4,2,2); hold on
+        plot(eddy.t,eddy.amp,'Color',colors(ii,:));
+        subplot(4,2,4); hold on
+        plot(eddy.t,eddy.dia/1000,'Color',colors(ii,:));
+        subplot(4,2,6); hold on
+        plot(eddy.t,eddy.cx/1000,'Color',colors(ii,:));
+        subplot(4,2,8); hold on
+        plot(eddy.t,eddy.cy/1000,'Color',colors(ii,:));
     end
     
-    xlim([0 180]);
+    xtick = 0:25:150;
+    subplot(4,2,[1 3 5 7]);
+    hold on;
+    [cc,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.h(2:end-1,2:end-1),[500 1000 2000 2300],'k');
+    clabel(cc,hh);
     axis image;
-    legend(legstr);
+    legend(sorted);
+    title('center track');
+    xlim([0 180]);
+    xlabel('x (km)'); ylabel('y (km)');
+    beautify
+    
+    subplot(422)
+    ylabel('amplitude (m)');
+    xlabel('time (days)');
+    set(gca,'XTick',xtick);
+    beautify
+    
+    subplot(424)
+    ylabel('diameter (km)');
+    xlabel('time (days)');
+    set(gca,'XTick',xtick);
+    beautify
+    
+    subplot(426)
+    ylabel('x - center (km)');
+    xlabel('time (days)');
+    set(gca,'XTick',xtick);
+    beautify
+    
+    subplot(428)
+    ylabel('y - center (km)');
+    xlabel('time (days)');
+    set(gca,'XTick',xtick);
+    beautify
+    
+%     pause
+%     spaceplots
+%     export_fig eddytrackres.png
+    
+    analyze_cyclones();
+    
+function [] = analyze_cyclones()
     
 
 function [legend] = make_legend(track)
 
     dx = (track.xr(2,1)-track.xr(1,1))/1000;
     dy = (track.yr(1,2)-track.yr(1,1))/1000;
-    legend = [num2str(dx) ' km x ' num2str(dy) ' km'];
+    legend = sprintf('%.2f km x %.2f km',dx,dy);
     
 % old code
 %     lores = load('runs/topoeddy/runteb-04-lores/eddytrack.mat','eddy');
