@@ -7,6 +7,8 @@ function [] = eddytrackres()
     
     names = ls([dir1 str]);
     
+    plots = 1;
+    
     colors = distinguishable_colors(size(names,1));
     % generate gray colors
     %arr = linspace(0,200,size(names,1))/255;
@@ -14,15 +16,16 @@ function [] = eddytrackres()
     
     figure; hold on
     for ii=1:size(names,1)
-        fname = [dir1 strtrim(names(ii,:)) '/eddytrack.mat'];
+        files{ii} = [dir1 strtrim(names(ii,:))];
+        fname = [files{ii} '/eddytrack.mat'];
         load(fname,'eddy');
         eddies{ii} = eddy;
         legstr{ii} = make_legend(eddy);
     end
-    [sorted,ind] = sort(legstr);
+    [sorted,sort_ind] = sort(legstr);
     
-    for ii=1:length(ind)
-        kk = ind(ii);
+    for ii=1:length(sort_ind)
+        kk = sort_ind(ii);
         eddy = eddies{kk};
         %if ii == 2, eddy.cy = eddy.cy-50000; end
         subplot(4,2,[1 3 5 7]); hold on
@@ -37,7 +40,7 @@ function [] = eddytrackres()
         plot(eddy.t,eddy.cy/1000,'Color',colors(ii,:));
     end
     
-    xtick = 0:25:150;
+    xtick = 0:25:300;
     subplot(4,2,[1 3 5 7]);
     hold on;
     [cc,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.h(2:end-1,2:end-1),[500 1000 2000 2300],'k');
@@ -49,38 +52,90 @@ function [] = eddytrackres()
     xlabel('x (km)'); ylabel('y (km)');
     beautify
     
-    subplot(422)
+    ax(1) = subplot(422);
     ylabel('amplitude (m)');
     xlabel('time (days)');
     set(gca,'XTick',xtick);
     beautify
     
-    subplot(424)
+    ax(2) = subplot(424);
     ylabel('diameter (km)');
     xlabel('time (days)');
     set(gca,'XTick',xtick);
     beautify
     
-    subplot(426)
+    ax(3) = subplot(426);
     ylabel('x - center (km)');
     xlabel('time (days)');
     set(gca,'XTick',xtick);
     beautify
     
-    subplot(428)
+    ax(4) = subplot(428);
     ylabel('y - center (km)');
     xlabel('time (days)');
     set(gca,'XTick',xtick);
     beautify
     
-%     pause
-%     spaceplots
-%     export_fig eddytrackres.png
+    linkaxes(ax,'x');
+    if plots
+        set(gcf,'position',[0 0 1600 900]);
+        export_fig eddytrackres.png
+    end
+
+    % compare both 0.5km runs 
+    figure; hold on
+    dy = -(eddies{sort_ind(1)}.cy(1) - eddies{sort_ind(2)}.cy(1))/1000;
+    plot(eddies{sort_ind(1)}.cx/1000,eddies{sort_ind(1)}.cy/1000,'b');
+    plot(eddies{sort_ind(2)}.cx/1000,eddies{sort_ind(2)}.cy/1000 - dy, 'r');
+    plot(eddies{sort_ind(2)}.cx/1000,eddies{sort_ind(2)}.cy/1000, 'k');
+    [cc,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.h(2:end-1,2:end-1),[500 1000 2000 2300],'k');
+    clabel(cc,hh); 
+    axis image;xlim([0 220]);
+    xlabel('x (km)'); ylabel('y (km)');
+    title('comparing both 0.5km x 3km runs');
+    legend('center of domain','higher-displaced','higher');
     
-    analyze_cyclones();
+    if plots
+        set(gcf,'position',[0 0 1600 900]);
+        export_fig compare500.png
+    end
     
-function [] = analyze_cyclones()
+    analyze_cyclones(eddies,legstr,sort_ind,files,120.5);
     
+    if plots
+        set(gcf,'position',[0 0 1600 900]);
+        export_fig cyclones.png
+    end
+    
+function [] = analyze_cyclones(eddies,legstr,sort_ind,files,t0)
+    % x-locations of centers seen to diverge then after inspecting image 
+    % created by eddytrackres()
+    N = length(eddies);
+    a = factor(N);
+    clim = linspace(-0.02,0.05,35);
+    
+    figure
+    for ii=1:N
+        subplot(a(1),a(2),ii)
+        kk = sort_ind(ii);
+        tind = find(eddies{kk}.t == t0);
+        if isempty(tind), continue; end
+        zeta = double(ncread([files{kk} '/ocean_avg.nc'],'zeta',[1 1 tind],[Inf Inf 1]));
+        [cc,hh] = contourf(eddies{kk}.xr/1000,eddies{kk}.yr/1000,zeta(2:end-1,2:end-1),clim);
+        %clabel(cc,hh);
+        title(legstr{kk})
+        xlabel('x (km)'); ylabel('y (km)');
+        hold on
+        plot(eddies{kk}.cx/1000,eddies{kk}.cy/1000,'w');
+        plot(eddies{kk}.cx(tind)/1000,eddies{kk}.cy(tind)/1000,'b.','MarkerSize',16);
+        %axis image; 
+        colorbar
+        beautify
+        caxis([clim(1) clim(end)]);
+    end
+    [~,hh1] = suplabel(['t_0 = ' num2str(t0) ' days'],'t');
+    set(hh1,'FontSize',16);
+    %beautify
 
 function [legend] = make_legend(track)
 
