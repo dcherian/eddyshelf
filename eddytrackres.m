@@ -7,7 +7,7 @@ function [] = eddytrackres()
     
     names = ls([dir1 str]);
     
-    plots = 1;
+    plots = 0;
     
     colors = distinguishable_colors(size(names,1));
     % generate gray colors
@@ -100,7 +100,7 @@ function [] = eddytrackres()
         export_fig compare500.png
     end
     
-    analyze_cyclones(eddies,legstr,sort_ind,files,120.5);
+    analyze_cyclones(eddies,legstr,sort_ind,files,70.5);
     
     if plots
         set(gcf,'position',[0 0 1600 900]);
@@ -113,14 +113,27 @@ function [] = analyze_cyclones(eddies,legstr,sort_ind,files,t0)
     N = length(eddies);
     a = factor(N);
     clim = linspace(-0.02,0.05,35);
+    clim2 = linspace(-5e-5,5e-5,10);
     
-    figure
+    h1 = figure;
+    h2 = figure;
     for ii=1:N
-        subplot(a(1),a(2),ii)
+        % read data
         kk = sort_ind(ii);
         tind = find(eddies{kk}.t == t0);
         if isempty(tind), continue; end
+        rgrid = roms_get_grid([files{kk} '/ocean_avg.nc'],[files{kk} '/ocean_avg.nc']);
         zeta = double(ncread([files{kk} '/ocean_avg.nc'],'zeta',[1 1 tind],[Inf Inf 1]));
+        u = double(ncread([files{kk} '/ocean_avg.nc'],'u',[1 1 rgrid.N tind],[Inf Inf 1 1]));
+        v = double(ncread([files{kk} '/ocean_avg.nc'],'v',[1 1 rgrid.N tind],[Inf Inf 1 1]));
+        rgrid.xv = rgrid.x_v'; rgrid.yv = rgrid.y_v';
+        rgrid.yu = rgrid.y_u'; rgrid.zv = rgrid.z_r;
+        [vor,xvor,yvor,~] = vorticity_cgrid(rgrid,u,v);
+        
+        % compare zeta
+        figure(h1)
+        subplot(a(1),a(2),ii)
+        kk = sort_ind(ii);
         [cc,hh] = contourf(eddies{kk}.xr/1000,eddies{kk}.yr/1000,zeta(2:end-1,2:end-1),clim);
         %clabel(cc,hh);
         title(legstr{kk})
@@ -132,8 +145,28 @@ function [] = analyze_cyclones(eddies,legstr,sort_ind,files,t0)
         colorbar
         beautify
         caxis([clim(1) clim(end)]);
+        
+        % compare surface vorticity
+        figure(h2)
+        subplot(a(1),a(2),ii)
+        [cc,hh] = contourf(xvor/1000,yvor/1000,vor,clim2);
+        %clabel(cc,hh);
+        title(legstr{kk})
+        xlabel('x (km)'); ylabel('y (km)');
+        hold on
+        plot(eddies{kk}.cx/1000,eddies{kk}.cy/1000,'w');
+        plot(eddies{kk}.cx(tind)/1000,eddies{kk}.cy(tind)/1000,'b.','MarkerSize',16);
+        %axis image; 
+        colorbar
+        beautify
+        caxis([clim2(1) clim2(end)]);
     end
-    [~,hh1] = suplabel(['t_0 = ' num2str(t0) ' days'],'t');
+    figure(h1)
+    [~,hh1] = suplabel([' zeta | t_0 = ' num2str(t0) ' days'],'t');
+    set(hh1,'FontSize',16);
+    
+    figure(h2)
+    [~,hh1] = suplabel([' surface vor. | t_0 = ' num2str(t0) ' days'],'t');
     set(hh1,'FontSize',16);
     %beautify
 

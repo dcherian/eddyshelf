@@ -8,11 +8,13 @@ prefix    = 'te';
 GRID_NAME = [prefix '_grd'];
 INI_NAME  = [prefix '_ini'];
 BRY_NAME  = [prefix '_bry'];
+FRC_NAME  = [prefix '_frc'];
 
 % fix file names
 GRID_NAME = [FOLDER GRID_NAME '.nc'];% '-' num2str(ceil(X/1000)) 'x' num2str(ceil(Y/1000)) '-' num2str(S.Lm) 'x' num2str(S.Mm) 'x' num2str(S.N) '.nc'];[FOLDER GRID_NAME '.nc'];
 INI_NAME  = [FOLDER INI_NAME  '.nc'];% '-' num2str(ceil(X/1000)) 'x' num2str(ceil(Y/1000)) '-' num2str(S.Lm) 'x' num2str(S.Mm) 'x' num2str(S.N) '.nc'];[FOLDER INI_NAME '.nc'];
 BRY_NAME  = [FOLDER BRY_NAME  '.nc'];
+FRC_NAME  = [FOLDER FRC_NAME  '.nc'];
 
 % Grid Parameters
 S.spherical = 0; % 0 - Cartesian, 1 - Spherical
@@ -20,7 +22,7 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 360;
+S.Lm = 600;
 S.Mm = 100;
 S.N  = 40;
 
@@ -43,7 +45,7 @@ S.Tcline  = 100.0;    %  S-coordinate surface/bottom stretching width (m)
 % coriolis parameters
 lat_ref = 45;
 f0    = 2 * (2*pi/86400) * sind(lat_ref);
-beta  = 2e-11;
+beta  = 2e-12;
 
 % Physical Parameters
 N2    = 1e-5;
@@ -70,6 +72,7 @@ phys.comment = ['rho0 = Boussinessq approx. | (T0,S0,R0,TCOEF,SCOEF) = linear EO
 
 flags.tanh_bathymetry = 0;
 flags.linear_bathymetry = 1;
+flags.flat_bottom = 0;
 flags.old_bathy = 0;
 flags.crooked_bathy = 0;
 
@@ -78,6 +81,7 @@ flags.spinup = 0; % if spinup, do not initialize ubar/vbar fields.
 
 flags.front = 0; % create shelfbreak front
 flags.eddy  = 1; % create eddy
+flags.wind  = 0; % create wind forcing file
 flags.ubt_initial = 1; % add barotropic velocity to initial condition?
 flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
 
@@ -145,7 +149,7 @@ eddy.depth = 500; % depth below which flow is 'compensated'
 eddy.tamp  = 25; % controls gradient
 eddy.a     = 3;  % ? in Katsman et al. (2003)
 eddy.cx    = 120 * 1000; % center of eddy
-eddy.cy    = Y/2;300 * 1000; %597000; %    "
+eddy.cy    = 200 * 1000; %597000; %    "
 %eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero 
 eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
                 ' of temp. perturbation | a = alpha in Katsman et al. (2003)' ...
@@ -161,6 +165,11 @@ front.Tx0     = -1e-4; % max. magnitude of temperature gradient
 front.comment = ['LTleft = onshore length scale | LTright = offshore length scale' ...
                  ' LTz = vertical scale | slope = frontal slope | Tx0 = amplitude' ...
                  ' of gradient'];
+             
+% wind stress parameters
+wind.tau0 = 0; % set later 
+wind.ramp = 2; % days
+wind.v    = 0.05; % m/s
              
 % write parameters to initial conditions .nc file - AT THE END
     
@@ -366,6 +375,10 @@ end
 fnew = f0*ones(size(S.x_rho));
 f = fnew + beta * (S.y_rho - S.y_rho(1,ymid));
 
+if flags.flat_bottom
+    S.h = Z * ones(size(S.h));
+end
+
 % linear bathymetry
 if flags.linear_bathymetry == 1
     
@@ -492,16 +505,21 @@ bathy_title = sprintf(['\n\n Beckmann & Haidvogel number (r_{x0}) = %f (< 0.2 , 
             '\t\t\t\t Haney number (r_{x1}) = %f (< 9 , maybe 16)'], rx0,rx1);
 
 figure;
-subplot(121)
+subplot(131)
 ind = S.Mm/2;
 pcolorcen(squeeze(xrmat(:,ind,:))/fx,squeeze(zrmat(:,ind,:)),squeeze(zeros(size(xrmat(:,ind,:)))));
 title(['Z = ' num2str(Z) ' m']); xlabel(['x ' lx]); ylabel(['z (m)']);
 shading faceted; beautify;
 
-subplot(122)
+subplot(132)
 surf(S.x_rho/fx,S.y_rho/fy,-S.h); shading interp
 title(bathy_title); colorbar;
 xlabel(['x ' lx]); ylabel(['y ' ly]); zlabel('z (m)');
+beautify;
+
+subplot(133)
+contour(S.x_rho/fx,S.y_rho/fy,-S.h./f,30,'k');
+xlabel(['x ' lx]); ylabel(['y ' ly]); title('f/h');
 beautify;
 
 % save for later use
@@ -1237,11 +1255,40 @@ if flags.OBC == 1
     end
 end
 
+%% Wind Forcing - Initialize and write
+
+if flags.wind
+    % first find width of deep water region
+    indh = find(S.h(:,1) == max(S.h(:)),1);
+    iX = size(xrmat,1);
+    wind.Lx = xrmat(end,1,end) - xrmat(indh,1,end);
+    
+    % beta * V (depth integrated) = curl(tau)/rho0
+    wind.tau0 = rho0 * phys.beta * wind.Lx * wind.v * Z;
+    
+    sms_time = [0 wind.ramp 300] * 86400;
+    
+    sustr = zeros([size(S.h) length(sms_time)]);
+    svstr = zeros([size(S.h) length(sms_time)]);
+    
+    svstr(indh:end,:,2) = (0 + (wind.tau0 - 0) *  (xrmat(indh:end,:,1)-xrmat(indh,1,1)) ...
+                        /wind.Lx)/rho0;
+    svstr(:,:,3) = svstr(:,:,2);
+    
+    % create file
+    dc_roms_wind_forcing(S,FRC_NAME);
+    
+    % write to file
+    ncwrite(FRC_NAME,'sms_time',sms_time);
+    ncwrite(FRC_NAME,'sustr',sustr);
+    ncwrite(FRC_NAME,'svstr',svstr);
+end
+
 %% non-dimensional parameters
 
 if exist('Ro','var'); nondim.Ro = Ro; end
-nondim.S_sh = S_sh;
-nondim.S_sl = S_sl;
+if exist('S_sh','var');nondim.S_sh = S_sh; end
+if exist('S_sl','var');nondim.S_sl = S_sl; end
 nondim.comment = 'Ro = Rossby number | S_sh = shelf Burger number | S_sl = slope Burger number';
 
 %% Check plots
@@ -1397,10 +1444,12 @@ write_params_to_ini(INI_NAME,ubt,'u_background_barotropic');
 write_params_to_ini(INI_NAME,vbt,'v_background_barotropic');
 if flags.front, write_params_to_ini(INI_NAME,front); end
 if flags.eddy,  write_params_to_ini(INI_NAME,eddy); end
+if flags.wind,  write_params_to_ini(INI_NAME,wind); end
 if exist('nondim','var'),  write_params_to_ini(INI_NAME,nondim); end
 
 fprintf('\n\n Files %s | %s ', GRID_NAME,INI_NAME);
 if flags.OBC, fprintf('| %s ',BRY_NAME); end
+if flags.wind, fprintf('| %s ',FRC_NAME); end
 fprintf('written.\n');
 
 %% Grid and time step information
@@ -1430,6 +1479,7 @@ fprintf(' beta = %1.2e', beta);
 if exist('b_sh','var'), fprintf(' | Beta_shelf = %1.2e', b_sh); end
 if exist('b_sl','var'), fprintf(' | Beta_slope = %1.2e', b_sl); end
 fprintf('\n\n');
+if flags.wind, cprintf('Red',sprintf('Wind tau0 = %.2e \n\n',wind.tau0)); end
 %fprintf('\n\n (dt)_bt < %.2f s | (dt)_bc < %.2f s\n\n', DX/(sqrt(g*min(S.h(:)))), DX/(sqrt(N2)*min(S.h(:))/pi))
 
 %% using Hernan's balance operator code (with prsgd31 algo)

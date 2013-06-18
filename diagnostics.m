@@ -289,6 +289,7 @@ bar(bins,[ni nf],'histc');
 legend('initial','final');
 
 %% read ROMS floats output
+dir = 'E:\Work\eddyshelf\runs\runeddy-04-1his';
 flt = [dir '/ocean_flt.nc'];
 
 floats = roms_read_floats(flt);
