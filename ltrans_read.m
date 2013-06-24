@@ -1,4 +1,4 @@
-track_file = 'runs/ltrans-eddy-04.nc';
+track_file = 'runs/runeddy-04-1his/ltrans-eddy-04.nc';
 out_file = 'runs/runeddy-04-1his/ocean_avg.nc';
 
 lat = ncread(track_file,'lat');
@@ -8,8 +8,6 @@ age = ncread(track_file,'age')/86400;
 
 h = ncread(out_file,'h');
 rgrid = roms_get_grid(out_file,out_file,1,1);
-
-%%
 
 figure
 surf(rgrid.x_rho(1,:)/1000,rgrid.y_rho(:,1)/1000,-h');
@@ -21,6 +19,12 @@ end
 plot3(lon(:,1)/1000,lat(:,1)/1000,depth(:,1),'bo');
 xlabel('x'); ylabel('y'); zlabel('z');
 
+%% check traj 4
+traj = 4;
+
+ix = 17;iy = 201;iz = 34;
+
+u = double(squeeze(ncread(out_file,'u',[ix iy iz 1],[1 1 1 Inf])));
 %% animate
 
 zeta = double(ncread(out_file,'zeta'));

@@ -27,51 +27,66 @@ function [] = eddytrackres()
     for ii=1:length(sort_ind)
         kk = sort_ind(ii);
         eddy = eddies{kk};
+        aa = 5; bb = aa * 2;
         %if ii == 2, eddy.cy = eddy.cy-50000; end
-        subplot(4,2,[1 3 5 7]); hold on
+        subplot(aa,2,[1:2:bb]); hold on
         plot(eddy.cx/1000,eddy.cy/1000,'Color',colors(ii,:),'LineWidth',2);
-        subplot(4,2,2); hold on
+        subplot(aa,2,2); hold on
         plot(eddy.t,eddy.amp,'Color',colors(ii,:));
-        subplot(4,2,4); hold on
+        subplot(aa,2,4); hold on
         plot(eddy.t,eddy.dia/1000,'Color',colors(ii,:));
-        subplot(4,2,6); hold on
+        subplot(aa,2,6); hold on
         plot(eddy.t,eddy.cx/1000,'Color',colors(ii,:));
-        subplot(4,2,8); hold on
+        subplot(aa,2,8); hold on
         plot(eddy.t,eddy.cy/1000,'Color',colors(ii,:));
+        subplot(aa,2,10); hold on
+        plot(eddy.t,eddy.Lz2,'Color',colors(ii,:));
     end
     
     xtick = 0:25:300;
-    subplot(4,2,[1 3 5 7]);
+    subplot(aa,2,[1:2:bb]);
     hold on;
     [cc,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.h(2:end-1,2:end-1),[500 1000 2000 2300],'k');
     clabel(cc,hh);
     axis image;
-    legend(sorted);
-    title('center track');
+    legend(sorted,'Location','NorthWestOutside');
+    title('center track | red crosses at t=150 days');
     xlim([0 180]);
     xlabel('x (km)'); ylabel('y (km)');
+    for kk = 1:length(sort_ind)
+        eddy = eddies{kk};
+        subplot(aa,2,[1:2:bb]);
+        index = find_approx(eddy.t,150);
+        plot(eddy.cx(index)/1000,eddy.cy(index)/1000,'rx','MarkerSize',12);
+    end
     beautify
     
-    ax(1) = subplot(422);
+    ax(1) = subplot(aa,2,2);
     ylabel('amplitude (m)');
     xlabel('time (days)');
     set(gca,'XTick',xtick);
     beautify
     
-    ax(2) = subplot(424);
+    ax(2) = subplot(aa,2,4);
     ylabel('diameter (km)');
     xlabel('time (days)');
     set(gca,'XTick',xtick);
     beautify
     
-    ax(3) = subplot(426);
+    ax(3) = subplot(aa,2,6);
     ylabel('x - center (km)');
     xlabel('time (days)');
     set(gca,'XTick',xtick);
     beautify
     
-    ax(4) = subplot(428);
+    ax(4) = subplot(aa,2,8);
     ylabel('y - center (km)');
+    xlabel('time (days)');
+    set(gca,'XTick',xtick);
+    beautify
+    
+    ax(5) = subplot(aa,2,10);
+    ylabel('vertical scale (m)');
     xlabel('time (days)');
     set(gca,'XTick',xtick);
     beautify
@@ -84,10 +99,11 @@ function [] = eddytrackres()
 
     % compare both 0.5km runs 
     figure; hold on
-    dy = -(eddies{sort_ind(1)}.cy(1) - eddies{sort_ind(2)}.cy(1))/1000;
-    plot(eddies{sort_ind(1)}.cx/1000,eddies{sort_ind(1)}.cy/1000,'b');
-    plot(eddies{sort_ind(2)}.cx/1000,eddies{sort_ind(2)}.cy/1000 - dy, 'r');
-    plot(eddies{sort_ind(2)}.cx/1000,eddies{sort_ind(2)}.cy/1000, 'k');
+    II = 2;
+    dy = -(eddies{sort_ind(II)}.cy(II) - eddies{sort_ind(II+1)}.cy(II))/1000;
+    plot(eddies{sort_ind(II)}.cx/1000,eddies{sort_ind(II)}.cy/1000,'b');
+    plot(eddies{sort_ind(II+1)}.cx/1000,eddies{sort_ind(II+1)}.cy/1000 - dy, 'r');
+    plot(eddies{sort_ind(II+1)}.cx/1000,eddies{sort_ind(II+1)}.cy/1000, 'k');
     [cc,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.h(2:end-1,2:end-1),[500 1000 2000 2300],'k');
     clabel(cc,hh); 
     axis image;xlim([0 220]);
@@ -100,7 +116,7 @@ function [] = eddytrackres()
         export_fig compare500.png
     end
     
-    analyze_cyclones(eddies,legstr,sort_ind,files,70.5);
+    %analyze_cyclones(eddies,legstr,sort_ind,files,70.5);
     
     if plots
         set(gcf,'position',[0 0 1600 900]);
@@ -111,13 +127,15 @@ function [] = analyze_cyclones(eddies,legstr,sort_ind,files,t0)
     % x-locations of centers seen to diverge then after inspecting image 
     % created by eddytrackres()
     N = length(eddies);
-    a = factor(N);
+    a = factor(N-1);
     clim = linspace(-0.02,0.05,35);
-    clim2 = linspace(-5e-5,5e-5,10);
+    clim2 = linspace(-2e-5,2e-5,10);
+    clim3 = linspace(-5e-6,5e-6,8);
     
     h1 = figure;
     h2 = figure;
-    for ii=1:N
+    h3 = figure;
+    for ii=1:N-1
         % read data
         kk = sort_ind(ii);
         tind = find(eddies{kk}.t == t0);
@@ -126,15 +144,17 @@ function [] = analyze_cyclones(eddies,legstr,sort_ind,files,t0)
         zeta = double(ncread([files{kk} '/ocean_avg.nc'],'zeta',[1 1 tind],[Inf Inf 1]));
         u = double(ncread([files{kk} '/ocean_avg.nc'],'u',[1 1 rgrid.N tind],[Inf Inf 1 1]));
         v = double(ncread([files{kk} '/ocean_avg.nc'],'v',[1 1 rgrid.N tind],[Inf Inf 1 1]));
+        w = double(ncread([files{kk} '/ocean_avg.nc'],'w',[1 1 rgrid.N tind],[Inf Inf 1 1]));
         rgrid.xv = rgrid.x_v'; rgrid.yv = rgrid.y_v';
         rgrid.yu = rgrid.y_u'; rgrid.zv = rgrid.z_r;
         [vor,xvor,yvor,~] = vorticity_cgrid(rgrid,u,v);
         
         % compare zeta
         figure(h1)
-        subplot(a(1),a(2),ii)
+        ax1(ii) = subplot(a(1),a(2),ii);
         kk = sort_ind(ii);
         [cc,hh] = contourf(eddies{kk}.xr/1000,eddies{kk}.yr/1000,zeta(2:end-1,2:end-1),clim);
+        shading flat;
         %clabel(cc,hh);
         title(legstr{kk})
         xlabel('x (km)'); ylabel('y (km)');
@@ -148,8 +168,8 @@ function [] = analyze_cyclones(eddies,legstr,sort_ind,files,t0)
         
         % compare surface vorticity
         figure(h2)
-        subplot(a(1),a(2),ii)
-        [cc,hh] = contourf(xvor/1000,yvor/1000,vor,clim2);
+        ax2(ii) = subplot(a(1),a(2),ii);
+        [cc,hh] = contourf(xvor/1000,yvor/1000,vor,clim2); shading flat
         %clabel(cc,hh);
         title(legstr{kk})
         xlabel('x (km)'); ylabel('y (km)');
@@ -160,15 +180,38 @@ function [] = analyze_cyclones(eddies,legstr,sort_ind,files,t0)
         colorbar
         beautify
         caxis([clim2(1) clim2(end)]);
+        
+        % compare w
+        figure(h3)
+        ax3(ii) = subplot(a(1),a(2),ii);
+        kk = sort_ind(ii);
+        [cc,hh] = contourf(eddies{kk}.xr/1000,eddies{kk}.yr/1000,w(2:end-1,2:end-1),clim3);
+        shading flat
+        %clabel(cc,hh);
+        title(legstr{kk})
+        xlabel('x (km)'); ylabel('y (km)');
+        hold on
+        plot(eddies{kk}.cx/1000,eddies{kk}.cy/1000,'w');
+        plot(eddies{kk}.cx(tind)/1000,eddies{kk}.cy(tind)/1000,'b.','MarkerSize',16);
+        %axis image; 
+        colorbar
+        beautify
+        caxis([clim3(1) clim3(end)]);
     end
     figure(h1)
     [~,hh1] = suplabel([' zeta | t_0 = ' num2str(t0) ' days'],'t');
-    set(hh1,'FontSize',16);
+    set(hh1,'FontSize',12);
+    linkaxes(ax1,'xy');
     
     figure(h2)
     [~,hh1] = suplabel([' surface vor. | t_0 = ' num2str(t0) ' days'],'t');
-    set(hh1,'FontSize',16);
-    %beautify
+    set(hh1,'FontSize',12);
+    linkaxes(ax2,'xy');
+    
+    figure(h2)
+    [~,hh1] = suplabel([' w | t_0 = ' num2str(t0) ' days'],'t');
+    set(hh1,'FontSize',12);
+    linkaxes(ax3,'xy');
 
 function [legend] = make_legend(track)
 

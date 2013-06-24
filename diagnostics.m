@@ -454,7 +454,6 @@ temp = double(squeeze(ncread(fname,'temp',[1 iymin 1 1],[Inf iymax-iymin+1 Inf I
 
 xzr = repmat(xr(1:stride(1):end,1),[1 size(zr,3)]);
 
-%%
 figure
 for tt=1:size(temp,4)
     clf
@@ -468,3 +467,4 @@ for tt=1:size(temp,4)
     liney(-eddy.Lz3(tt*stride(4)),'3','k');
     pause(0.01); 
 end
+
