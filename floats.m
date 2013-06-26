@@ -31,18 +31,23 @@ classdef floats < handle
                 floats.time = ncread(file,'model_time');
                 floats.temp = ncread(file,'temperature')';
                 floats.salt = ncread(file,'salinity')';
-                floats.hitLand = ncread(file,'hitLand');
-                floats.hitBottom = ncread(file,'hitBottom');
+                floats.hitLand = ncread(file,'hitLand')';
+                floats.hitBottom = ncread(file,'hitBottom')';
+                mask = zeros(size(floats.x));
                 if max(floats.hitLand(:) ~= zeros(size(floats.hitLand(:))))
-                    warning('Floats have hit land.');
+                    nf = length(cut_nan(fillnan(floats.hitLand,0)));
+                    warning([num2str(nf) ' floats have hit land.']);
+                    mask = (mask | cumsum(floats.hitBottom,1));
                 end
                 if max(floats.hitBottom(:) ~= zeros(size(floats.hitBottom(:))))
-                    warning('Floats have hit bottom.');
+                    nf = length(cut_nan(fillnan(floats.hitBottom,0)));
+                    warning([num2str(nf) ' floats have hit bottom.']);
                     % remove record after float has hit bottom i.e., fill
                     % with NaNs
+                    mask = (mask | cumsum(floats.hitBottom,1));
                 end
                 floats.type = 'ltrans';
-                mask = bsxfun(@eq,floats.x,floats.x(1,:)); 
+                mask = (mask | bsxfun(@eq,floats.x,floats.x(1,:))); 
                 floats.x(mask) = nan; floats.y(mask) = nan; floats.z(mask) = nan;
                 floats.temp(mask) = nan; floats.salt(mask) = nan;
             end
