@@ -33,11 +33,13 @@ classdef floats < handle
                 floats.salt = ncread(file,'salinity')';
                 floats.hitLand = ncread(file,'hitLand');
                 floats.hitBottom = ncread(file,'hitBottom');
-                if floats.hitLand ~= zeros(size(floats.hitLand))
+                if max(floats.hitLand(:) ~= zeros(size(floats.hitLand(:))))
                     warning('Floats have hit land.');
                 end
-                if floats.hitBottom ~= zeros(size(floats.hitBottom))
+                if max(floats.hitBottom(:) ~= zeros(size(floats.hitBottom(:))))
                     warning('Floats have hit bottom.');
+                    % remove record after float has hit bottom i.e., fill
+                    % with NaNs
                 end
                 floats.type = 'ltrans';
                 mask = bsxfun(@eq,floats.x,floats.x(1,:)); 
