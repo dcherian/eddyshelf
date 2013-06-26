@@ -346,7 +346,7 @@ floats.fac = ntflt/ntavg;
     hold on;
     plot3(floats.init(:,1)/1000,floats.init(:,2)/1000,floats.init(:,3),'x','MarkerSize',12);
 
-    for i=31:ntavg
+    for i=31:size(zeta,3)
         ax(1) = subplot(131);
         cla
         contourf(rgrid.x_rho/1000,rgrid.y_rho/1000,zeta(:,:,i)');
@@ -367,8 +367,6 @@ floats.fac = ntflt/ntavg;
         title(['t = ' num2str(i) ' days']);
         pause(0.01)
     end
-
-%% read LTRANS floats
 
 %% read TRACMASS floats
 redo = 1;
@@ -393,19 +391,6 @@ plot3(trac.init(:,1)/1000,trac.init(:,2)/1000,trac.init(:,3),'x','MarkerSize',12
 linex(xsb/1000)
 %animate_floats2d(rgrid,zeta,trac)
 
-%% compare ltrans and ROMS output
-
-ltrans = 'ltrans-eddy-04.nc';
-
-% assume floats contains ROMS float data
-
-[a b] = factor(size(floats.x,2));
-figure
-for i=1:a
-    for j=1:b
-        subplot(a,b,sub2ind([a b],i,j))
-    end
-end
 
 %% 3D movie
 
@@ -466,5 +451,33 @@ for tt=1:size(temp,4)
     liney(-eddy.Lz2(tt*stride(4)),'2','b');
     liney(-eddy.Lz3(tt*stride(4)),'3','k');
     pause(0.01); 
+end
+
+%% LTRANS
+
+ltra
+figure
+surf(rgrid.x_rho(1,:)/1000,rgrid.y_rho(:,1)/1000,-h');
+shading flat
+hold on
+for i=1:size(ltrans.x,2)
+    plot3(ltrans.x(:,i)/1000,ltrans.y(:,i)/1000,ltrans.z(:,i),'k');
+end
+plot3(ltrans.init(:,1)/1000,ltrans.init(:,2)/1000,ltrans.init(:,3),'bo','MarkerSize',10);
+xlabel('x'); ylabel('y'); zlabel('z');
+
+%%
+floats = roms;
+hf = figure;
+for i=1:size(zeta,3)
+    figure(hf);
+    clf
+    contourf(rgrid.x_rho/1000,rgrid.y_rho/1000,zeta(:,:,i)'); shading flat
+    axis image
+    hold on
+    n = i*floats.fac+1;
+    plot(floats.x(n,:)/1000,floats.y(n,:)/1000,'k.','MarkerSize',16);
+    title(['time = ' num2str(time(i)) ' days']);
+    pause(0.01)
 end
 
