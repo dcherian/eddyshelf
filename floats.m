@@ -222,7 +222,7 @@ classdef floats < handle
             subplot(311)
             plot(floats.time/86400,floats.mom1,fmt); hold on;
             xlabel('time (days)'); ylabel('first moment');
-            legend('x (km)','y (km)','z (m^2)','Location','NorthWest');
+            legend('x (km)','y (km)','z (m)','Location','NorthWest');
             title(' dashed = LTRANS, line = ROMS');
             subplot(312)
             plot(floats.time/86400,floats.disp,fmt); hold on;
@@ -234,6 +234,7 @@ classdef floats < handle
             legend('x','y','z','Location','NorthWest');
         end
         
+        % animates with zeta plot
         function [] = animate(floats,rgrid,zeta)
 
             cmap = flipud(cbrewer('div', 'BrBG', 32));

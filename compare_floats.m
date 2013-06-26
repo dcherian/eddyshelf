@@ -25,7 +25,7 @@ clear ltrans roms
 ltrans = floats('ltrans',track_file,rgrid);
 roms   = floats('roms',flt_file,rgrid);
 ltrans.plot_stats; roms.plot_stats
-
+ltrans.plot_displacements; roms.plot_displacements;
 % fig;
 % plot(ltrans.time/86400,ltrans.N); hold on
 % plot(roms.time/86400,roms.N,'r'); 
