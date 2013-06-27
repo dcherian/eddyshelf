@@ -3,32 +3,31 @@
 function [] = eddytrackres()
 
     dir1 = 'runs/topoeddy/';
-    str  = 'runteb-04-*';
+    str  = 'runteb-04-hires-*';
     
     names = ls([dir1 str]);
     
     plots = 0;
     
     colors = distinguishable_colors(size(names,1));
-    % generate gray colors
-    %arr = linspace(0,200,size(names,1))/255;
-    %colors = repmat(arr',1,3);
     
-    figure; hold on
+    hf1 = figure; hold on;
+    hf2 = figure; hold on;
+    
     for ii=1:size(names,1)
         files{ii} = [dir1 strtrim(names(ii,:))];
         fname = [files{ii} '/eddytrack.mat'];
         load(fname,'eddy');
+        [eddy.sq,legstr{ii}] = make_legend(eddy);
         eddies{ii} = eddy;
-        legstr{ii} = make_legend(eddy);
     end
     [sorted,sort_ind] = sort(legstr);
-    
+    zz = 1;
+    aa = 5; bb = aa * 2;
+    figure(hf1); hold on
     for ii=1:length(sort_ind)
         kk = sort_ind(ii);
         eddy = eddies{kk};
-        aa = 5; bb = aa * 2;
-        %if ii == 2, eddy.cy = eddy.cy-50000; end
         subplot(aa,2,[1:2:bb]); hold on
         plot(eddy.cx/1000,eddy.cy/1000,'Color',colors(ii,:),'LineWidth',2);
         subplot(aa,2,2); hold on
@@ -55,7 +54,7 @@ function [] = eddytrackres()
     xlabel('x (km)'); ylabel('y (km)');
     for kk = 1:length(sort_ind)
         eddy = eddies{kk};
-        subplot(aa,2,[1:2:bb]);
+        subplot(aa,2,[1:2:bb]); hold on;
         index = find_approx(eddy.t,150);
         plot(eddy.cx(index)/1000,eddy.cy(index)/1000,'rx','MarkerSize',12);
     end
@@ -98,9 +97,11 @@ function [] = eddytrackres()
     end
 
     % compare both 0.5km runs 
-    figure; hold on
+    figure(hf2);
+    subplot(121)
+    hold on
     II = 2;
-    dy = -(eddies{sort_ind(II)}.cy(II) - eddies{sort_ind(II+1)}.cy(II))/1000;
+    dy = -(eddies{sort_ind(II)}.cy(1) - eddies{sort_ind(II+1)}.cy(1))/1000;
     plot(eddies{sort_ind(II)}.cx/1000,eddies{sort_ind(II)}.cy/1000,'b');
     plot(eddies{sort_ind(II+1)}.cx/1000,eddies{sort_ind(II+1)}.cy/1000 - dy, 'r');
     plot(eddies{sort_ind(II+1)}.cx/1000,eddies{sort_ind(II+1)}.cy/1000, 'k');
@@ -110,6 +111,24 @@ function [] = eddytrackres()
     xlabel('x (km)'); ylabel('y (km)');
     title('comparing both 0.5km x 3km runs');
     legend('center of domain','higher-displaced','higher');
+    
+    subplot(122); hold on
+    for ii=1:length(sort_ind)
+        kk = sort_ind(ii);
+        eddy = eddies{kk};
+        % plot square grid cell runs
+        if eddy.sq
+            if eddy.cy(1) >= 200000
+                eddy.cy = eddy.cy - 50000;
+            end
+            plot(eddy.cx/1000,eddy.cy/1000,'Color',colors(ii,:),'LineWidth',2);
+            legsq{zz} = legstr{kk}; zz = zz+1;
+        end
+    end
+    title('comparing square grid cell runs');
+    legend(legsq);
+    axis image;
+    xlim([0 180]);ylim([0 max(eddy.yr(:))/1000]);
     
     if plots
         set(gcf,'position',[0 0 1600 900]);
@@ -213,10 +232,11 @@ function [] = analyze_cyclones(eddies,legstr,sort_ind,files,t0)
     set(hh1,'FontSize',12);
     linkaxes(ax3,'xy');
 
-function [legend] = make_legend(track)
+function [sq,legend] = make_legend(track)
 
     dx = (track.xr(2,1)-track.xr(1,1))/1000;
     dy = (track.yr(1,2)-track.yr(1,1))/1000;
+    if dx == dy, sq = 1; else sq = 0; end
     legend = sprintf('%.2f km x %.2f km',dx,dy);
     
 % old code

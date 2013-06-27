@@ -23,7 +23,7 @@ function [] = ltrans_create(rgrid,zeta)
         title('yhi'); [~,yhi] = ginput(1);
     else
        xlo = 5; xhi = 34;
-       ylo = 10; yhi = 128;
+       ylo = 30; yhi = 128;
     end
     xlo = floor(xlo); ylo = floor(ylo);
     xhi = floor(xhi); yhi = floor(yhi);
@@ -32,7 +32,9 @@ function [] = ltrans_create(rgrid,zeta)
     
     flag = 0;
     while flag == 0
-        fprintf('\n\n ( %d:%d, %d:%d, %d:%d ) \n\n',xlo,xhi,ylo,yhi,zlo,zhi);
+        fprintf('\n\n ( %d:%d, %d:%d, %d:%d ) | ( %.2f:%.2f, %.2f:%.2f )\n\n', ...
+            xlo,xhi,ylo,yhi,zlo,zhi,xr(xlo,1)/1000,xr(xhi,1)/1000, ...
+            yr(1,ylo)/1000,yr(1,yhi)/1000);
         dd = input('enter [dx,dy,dz] in pts :');
         dx = dd(1); dy = dd(2); dz = dd(3); clear dd
 
@@ -56,7 +58,12 @@ function [] = ltrans_create(rgrid,zeta)
     
     % write to file
     fprintf(fid,'%.2f,%.2f,%.2f,%d \n',init');
-    fprintf('Added %d floats to %s \n',size(init,1),fname);
+    fprintf('Added %d floats to %s \n\n\n',size(init,1),fname);
 
     fclose(fid);
+    
+    disp('ROMS Parameters');
+    fprintf(['\n Ft0 = %d | Fx0 = %d | Fy0 = %d | Fz0 = %d' ...
+             '\n Fdt = %d | Fdx = %d | Fdy = %d | Fdz = %d\n\n'],tlo,xlo,ylo,zlo, ...
+             dt,dx,dy,dz);
 end

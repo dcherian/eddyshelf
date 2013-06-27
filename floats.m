@@ -193,27 +193,41 @@ classdef floats < handle
                           nansum(bsxfun(@minus,floats.y,floats.init(:,2)')/1000,2) ...
                           nansum(bsxfun(@minus,floats.z,floats.init(:,3)')     ,2)] ...
                           ,1./floats.N);
-            tic;  
-            s = zeros(T,3);
-            for i=1:size(floats.x,2)
-                for j=1:size(floats.x,2)
-                    if i~=j
-                        s(:,1) = s(:,1) + repnan((floats.x(:,i) - floats.x(:,j)),0).^2/1e6;
-                        s(:,2) = s(:,2) + repnan((floats.y(:,i) - floats.y(:,j)),0).^2/1e6;
-                        s(:,3) = s(:,3) + repnan((floats.z(:,i) - floats.z(:,j)),0).^2;
-                    end
-                end
-            end
+                      
+             % cloud / relative dispersion
+%             tic;  
+%             s = zeros(T,3);
+%             for i=1:size(floats.x,2)
+%                 for j=1:size(floats.x,2)
+%                     if i~=j
+%                         s(:,1) = s(:,1) + repnan((floats.x(:,i) - floats.x(:,j)),0).^2/1e6;
+%                         s(:,2) = s(:,2) + repnan((floats.y(:,i) - floats.y(:,j)),0).^2/1e6;
+%                         s(:,3) = s(:,3) + repnan((floats.z(:,i) - floats.z(:,j)),0).^2;
+%                     end
+%                 end
+%             end
+%             toc;
+            tic;
+            nn = size(floats.x,2);
+            [p,q] = meshgrid(1:nn,1:nn);
+            s(:,1) = nansum((floats.x(:,p(:)) - floats.x(:,q(:))).^2,2)/1e6;
+            s(:,2) = nansum((floats.y(:,p(:)) - floats.y(:,q(:))).^2,2)/1e6;
+            s(:,3) = nansum((floats.z(:,p(:)) - floats.z(:,q(:))).^2,2);
             toc;
             floats.disp = bsxfun(@times,s,1./(2*floats.N.*(floats.N-1)));
             
+            % kurtosis - this could be improved?
             floats.kur = nan(T,3);
-            floats.kur(:,1) = nansum(bsxfun(@minus,floats.x,floats.mom1(:,1)).^4,2)./ ...
-                             (nansum(bsxfun(@minus,floats.x,floats.mom1(:,1)).^2,2)).^2;
-            floats.kur(:,2) = nansum(bsxfun(@minus,floats.y,floats.mom1(:,2)).^4,2)./ ...
-                             (nansum(bsxfun(@minus,floats.y,floats.mom1(:,2)).^2,2)).^2;
-            floats.kur(:,3) = nansum(bsxfun(@minus,floats.z,floats.mom1(:,3)).^4,2)./ ...
-                             (nansum(bsxfun(@minus,floats.z,floats.mom1(:,3)).^2,2)).^2;
+            dfx = bsxfun(@minus,floats.x,floats.mom1(:,1));
+            dfy = bsxfun(@minus,floats.y,floats.mom1(:,2));
+            dfz = bsxfun(@minus,floats.z,floats.mom1(:,3));
+            
+            floats.kur(:,1) = nansum(dfx.^4,2)./ ...
+                             (nansum(dfx.^2,2)).^2;
+            floats.kur(:,2) = nansum(dfy.^4,2)./ ...
+                             (nansum(dfy.^2,2)).^2;
+            floats.kur(:,3) = nansum(dfz.^4,2)./ ...
+                             (nansum(dfz.^2,2)).^2;
         end
         
         % plot stats in subplots
@@ -233,7 +247,7 @@ classdef floats < handle
             title(' dashed = LTRANS, line = ROMS');
             subplot(312)
             plot(floats.time/86400,floats.disp,fmt); hold on;
-            xlabel('time (days)'); ylabel(' Cloud Dispersion (mean sq. pair separation)');
+            xlabel('time (days)'); ylabel(' Relative Dispersion');
             legend('x (km^2)','y (km^2)','z (m^2)','Location','NorthWest');
             subplot(313)
             plot(floats.time/86400,floats.kur,fmt); hold on;

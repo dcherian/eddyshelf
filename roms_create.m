@@ -22,8 +22,8 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 180;
-S.Mm = 300;
+S.Lm = 90;
+S.Mm = 150;
 S.N  = 40;
 
 % Domain Extent (in m)
@@ -1401,7 +1401,7 @@ ncwrite(GRID_NAME, 'pm',       S.pm);
 ncwrite(GRID_NAME, 'pn',       S.pn);
 ncwrite(GRID_NAME, 'dndx',       S.dndx);
 ncwrite(GRID_NAME, 'dmde',       S.dmde);
-ncwrite(GRID_NAME, 'angle', zeros(size(temp)));
+ncwrite(GRID_NAME, 'angle', zeros(size(S.h)));
 
 % IC file
 
