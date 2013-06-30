@@ -2,15 +2,19 @@
 
 %% load data
 load topo_useast
-load aviso_data_1992_2011_eddies_anticyclones_7days_40km_gap_Leff_mod_MAB
-
+load ('03eddy_trajectories_7days_gap40km_1992_Leff_mod_MAB_v5','ea*');
 %% do traj plots
 
 % plot coast & topo
-[cc,hh] = contour(Xuseast,Yuseast,-Zuseast,-[100 200 500 1000 2000 3000 5000],'k');
-clabel(cc,hh);
-Z_dar
+plot_coast();
+
+% plot trajs
 hold on
-plot(coast(:,1),coast(:,2),'k')
-ylim([34.5 43]);
+colors = distinguishable_colors(length(eaX));
+set(gca,'ColorOrder',colors);
+for ii=1:length(eaX)/2
+    plot(eaX{ii},eaY{ii},'color',colors(ii,:));
+    plot(eaX{ii}(1),eaY{ii}(1),'r.','MarkerSize',12);
+end
+
 
