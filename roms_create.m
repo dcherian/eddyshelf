@@ -22,17 +22,17 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 90;
-S.Mm = 150;
+S.Lm = 300;
+S.Mm = 120;
 S.N  = 40;
 
 % Domain Extent (in m)
-X = 180 * 1000;120;
-Y = 300 * 1000;100;
+X = 450 * 1000;120;
+Y = 180 * 1000;100;
 Z = 2000;
 
 % tracers
-S.NPT = 0; % number of passive tracers
+S.NPT = 2; % number of passive tracers
 S.NT = 2+S.NPT; % total number of tracers
 
 % vertical stretching
@@ -84,6 +84,7 @@ flags.eddy  = 1; % create eddy
 flags.wind  = 0; % create wind forcing file
 flags.ubt_initial = 1; % add barotropic velocity to initial condition?
 flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
+flags.floats = 0; % need to figure out float seeding locations?
 
 % eddy momentum balance options
 flags.use_cartesian = 0; % use cartesian forumlation
@@ -104,24 +105,24 @@ flags.comment = ['solidbody = solid body core profile for eddy | ' ...
 
 % DO NOT CHANGE THIS ORDER
 if flags.OBC
-    OBC.west  = false;           % process western  boundary segment
+    OBC.west  = true;           % process western  boundary segment
     OBC.east  = false;           % process eastern  boundary segment
     OBC.south = false;           % process southern boundary segment
-    OBC.north = true;            % process northern boundary segment
+    OBC.north = false;            % process northern boundary segment
 end
 
 % flags.ubt_deep = 0; % nudge to ubt only in deep water - NOT WORKING
 %flags.localize_jet = 0;% buffer around eddy where velocity should exist - NOT NEEDED
 
 % Barotropic background flow parameters
-ubt = 0;-0.05; % m/s barotropic velocity
+ubt = 0.04; % m/s barotropic velocity
 vbt = 0;-0.04; % m/s barotropic velocity
 
 % Bathymetry parameters - all measurements in m
 bathy.H_shelf  = 100;
 bathy.L_shelf  = 20 * 1000;
 bathy.L_slope  =  50 * 1000;
-bathy.axis = 'x'; % CROSS SHELF AXIS
+bathy.axis = 'y'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
 bathy.sl_shelf = 0.0005;
 bathy.sl_slope = 0.05;
@@ -141,15 +142,15 @@ bathy.comment = ['H_shelf = depth at coast | L_shelf = shelf width | ' ...
                  ' L_tile = length over which shelf width changes | ' ...
                  ' L_entry = length of smaller shelf | n_points = number ' ...
                  ' of points to smooth over | n_passes = number of smoothing' ...
-                 ' passes'];
+                 ' passes | isb,xsb,hsb = index,axis loc, depth at shelfbreak'];
 
 % Eddy parameters - all distances in m
 eddy.dia   = 50*1000;
 eddy.depth = 500; % depth below which flow is 'compensated'
 eddy.tamp  = 25; % controls gradient
 eddy.a     = 3;  % ? in Katsman et al. (2003)
-eddy.cx    = 120 * 1000; % center of eddy
-eddy.cy    = 200 * 1000; %597000; %    "
+eddy.cx    = 80 * 1000; % center of eddy
+eddy.cy    = 100 * 1000; %597000; %    "
 %eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero 
 eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
                 ' of temp. perturbation | a = alpha in Katsman et al. (2003)' ...
@@ -504,11 +505,43 @@ Z  = abs(max(S.h(:)));
 bathy_title = sprintf(['\n\n Beckmann & Haidvogel number (r_{x0}) = %f (< 0.2 , max 0.4) \n' ...
             '\t\t\t\t Haney number (r_{x1}) = %f (< 9 , maybe 16)'], rx0,rx1);
 
+switch bathy.axis
+    case 'x'
+        ax_cs = xrmat(:,1,1);
+        ax_as = yrmat(1,:,1)'; % cross-shelf axis
+        i_cs = 1; % cross shelf axis
+        i_as = 2; % along shelf axis
+        hvec = S.h(:,1);
+    case 'y'
+        ax_cs = yrmat(1,:,1)'; % cross-shelf axis
+        ax_as = xrmat(:,1,1); % along shelf axis
+        i_cs = 2; % along shelf axis
+        i_as = 1; % cross-shelf axis
+        hvec = S.h(1,:)';
+end
+
+% find shelfbreak
+dh2dx2 = diff(hvec,2,1)./avg1(diff(ax_cs,1,1).^2,1);
+[~,bathy.isb] = max(dh2dx2(:));
+bathy.isb = bathy.isb-1;
+bathy.hsb = hvec(bathy.isb);
+bathy.xsb = ax_cs(bathy.isb);
+
 figure;
 subplot(131)
-ind = S.Mm/2;
-pcolorcen(squeeze(xrmat(:,ind,:))/fx,squeeze(zrmat(:,ind,:)),squeeze(zeros(size(xrmat(:,ind,:)))));
-title(['Z = ' num2str(Z) ' m']); xlabel(['x ' lx]); ylabel(['z (m)']);
+if strcmp(bathy.axis,'x')
+    ind = S.Mm/2;
+    pcolorcen(squeeze(xrmat(:,ind,:))/fx,squeeze(zrmat(:,ind,:)),squeeze(zeros(size(xrmat(:,ind,:)))));
+    xlabel(['x ' lx]);
+    linex(bathy.xsb/fx,['sb = ' num2str(floor(bathy.hsb)) 'm'],'k');
+else 
+    ind = S.Lm/2;
+    pcolorcen(squeeze(yrmat(ind,:,:))/fy,squeeze(zrmat(ind,:,:)),squeeze(zeros(size(xrmat(ind,:,:)))));
+    xlabel(['y ' ly]);
+    linex(bathy.xsb/fy,['sb = ' num2str(floor(bathy.hsb)) 'm'],'k');
+end
+
+title(['Z = ' num2str(Z) ' m']);  ylabel(['z (m)']);
 shading faceted; beautify;
 
 subplot(132)
@@ -889,7 +922,7 @@ if flags.eddy
         figure(h_check);
         axt(8) = subplot(248);
     else
-        figure
+        hfeddy = figure;
     end
     contourf(xrmat(:,:,1)./fx,yrmat(:,:,1)./fy,S.zeta,20); shading flat;
     colorbar
@@ -1092,12 +1125,12 @@ subplot(222)
 pcolorcen(squeeze(diff_u(:,:,S.N/2))'); colorbar
 title('% error (-u_z - dT/dy * \alpha g/f)|_{z=mid}');
 subplot(223)
-pcolorcen(((avg1((dzdx ./ avg1(f,1)* g),2)-avg1(S.v(:,:,end),1)))./ ...
-                max(abs(S.v(:)))*100); colorbar
+pcolorcen((((avg1((dzdx ./ avg1(f,1)* g),2)-avg1(S.v(:,:,end),1)))./ ...
+                max(abs(S.v(:)))*100)'); colorbar
 title('% error (g/f d\zeta /dx - v_{z=0})');
 subplot(224)
-pcolorcen((avg1(dzdy ./ avg1(f,2)* g,1) + avg1(S.u(:,:,end),2)) ./ ...
-            max(abs(S.u(:)))*100); colorbar
+pcolorcen(((avg1(dzdy ./ avg1(f,2)* g,1) + avg1(S.u(:,:,end),2)) ./ ...
+            max(abs(S.u(:)))*100)'); colorbar
 title(' % error (g/f d\zeta /dy + u_{z=0})');
 
 % sanity checks
@@ -1129,7 +1162,7 @@ end
 
 if S.NPT > 0
     % create variables first
-    names = {'initial x';'initial y';'initial z'};
+    names = {'shelf water','slope water'};
     try
         dc_roms_passive_tracer(S,names);
     catch ME
@@ -1137,15 +1170,28 @@ if S.NPT > 0
     end
     
     % assign initial condition
+    % important, we do not want grid scale discontinuity.
+    % taper everything with gaussian
     dye_01 = xrmat;
     dye_02 = yrmat;
-    dye_03 = zrmat;    
     
     % write to file
     for ii=1:S.NPT
         vname = sprintf('dye_%02d',ii);
         eval(['nc_write(S.ncname,''' vname ''',' vname ',1);']);
     end
+end
+
+%% Floats - figure out seeding locations
+
+if flags.floats
+    if ~flags.front
+       figure(hfeddy); 
+    end
+    str = 'select rectangle for float deployment';
+    title(str);
+    disp(str);
+    [x,y] = select_rect();
 end
 
 %% Open Boundary Conditions - Initialize and write
@@ -1246,10 +1292,14 @@ if flags.OBC == 1
   
     % set and write passive tracer data boundary conditions
     if S.NPT > 0
-       for ii=1:S.NPT
-           varname = sprintf('dye_%s_%02d',char(boundaries(mm,:)),ii);
-           eval([varname ' = ' sprintf('dye_%02d',ii) char(range{mm}) ';']);
-           eval(['nc_write(Sbr.ncname,''' varname ''',' varname ',1);']);
+       for mm=1:size(boundaries,1)
+           if OBC.(char(boundaries(mm,:)))
+               for ii=1:S.NPT
+                   varname = sprintf('dye_%s_%02d',char(boundaries(mm,:)),ii);
+                   eval([varname ' = ' sprintf('dye_%02d',ii) char(range{mm}) ';']);
+                   eval(['nc_write(Sbr.ncname,''' varname ''',' varname ',1);']);
+               end
+           end
        end
        nc_write(Sbr.ncname,'dye_time',bry_time,1);
     end
@@ -1481,6 +1531,7 @@ if exist('b_sh','var'), fprintf(' | Beta_shelf = %1.2e', b_sh); end
 if exist('b_sl','var'), fprintf(' | Beta_slope = %1.2e', b_sl); end
 fprintf('\n\n');
 if flags.wind, cprintf('Red',sprintf('Wind tau0 = %.2e \n\n',wind.tau0)); end
+if flags.eddy, fprintf('\n\n Deploy float in center of eddy = (%d,%d) \n\n',eddy.ix,eddy.iy); end
 %fprintf('\n\n (dt)_bt < %.2f s | (dt)_bc < %.2f s\n\n', DX/(sqrt(g*min(S.h(:)))), DX/(sqrt(N2)*min(S.h(:))/pi))
 
 %% using Hernan's balance operator code (with prsgd31 algo)
