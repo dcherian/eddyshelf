@@ -84,7 +84,7 @@ flags.eddy  = 1; % create eddy
 flags.wind  = 0; % create wind forcing file
 flags.ubt_initial = 1; % add barotropic velocity to initial condition?
 flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
-flags.floats = 0; % need to figure out float seeding locations?
+flags.floats = 1; % need to figure out float seeding locations?
 
 % eddy momentum balance options
 flags.use_cartesian = 0; % use cartesian forumlation
@@ -1017,7 +1017,11 @@ if flags.ubt_initial == 1
         
         if vbt == 0
             S.u = S.u + ubt;
-            S.zeta = S.zeta + cumtrapz(squeeze(yrmat(1,:,1)),-f./g * ubt,2);
+            if flags.fplanezeta
+                S.zeta = S.zeta + cumtrapz(squeeze(yrmat(1,:,1)),-f0.*ones(size(f))./g * ubt,2);
+            else
+                error('fplanezeta not enabled.');
+            end
         else
             S.v = S.v + vbt; 
             if ~flags.fplanezeta
@@ -1026,7 +1030,6 @@ if flags.ubt_initial == 1
                S.zeta = S.zeta + cumtrapz(squeeze(xrmat(:,1,1)),f0.*ones(size(f))./g * vbt,1); 
             end
         end
-%    end
 end
 
 %% Misc calculations (ubar,vbar,pv) - shouldn't require changes
@@ -1191,7 +1194,7 @@ if flags.floats
     str = 'select rectangle for float deployment';
     title(str);
     disp(str);
-    [x,y] = select_rect();
+    %[floatx,floaty] = select_rect();
 end
 
 %% Open Boundary Conditions - Initialize and write
@@ -1223,7 +1226,7 @@ if flags.OBC == 1
 
     boundaries = fieldnames(OBC);
     range   = {'(1,:,:)','(end,:,:)','(:,1,:)','(:,end,:)'};
-    VarList = {'zeta'; 'v'; 'vbar';'temp';'salt'}; % variables to write
+    VarList = {'zeta'; 'u'; 'ubar';'v'; 'vbar';'temp';'salt'}; % variables to write
     
     % set boundary condition data
     if flags.OBC_from_initial
@@ -1507,8 +1510,9 @@ fprintf('written.\n');
 
 dx = min(dx(:)); dy = min(dy(:));
 fprintf('\n\n=============================  SUMMARY  ========================================');
-fprintf('\n\n X = %.2f | Y = %.2f | Z = %.2f | dx = %.2f m | dy = %.2f m', ...
-                max(xrmat(:)), max(yrmat(:)), max(abs(zrmat(:))),dx, dy);
+fprintf(['\n\n (nx,ny,nz) = (%d,%d,%d) | (X,Y,Z) = (%.2f , %.2f , %.2f) m |' ...
+        '(dx,dy) = ( %.2f , %.2f) m'], ...
+        S.Lm,S.Mm,S.N,max(xrmat(:)), max(yrmat(:)), max(abs(zrmat(:))),dx, dy);
 
 DX = sqrt(min(dx)^2 + min(dy)^2);
 
@@ -1529,9 +1533,17 @@ if exist('S_sl','var'), fprintf(' | S_slope = %.2f \n', S_sl); end
 fprintf(' beta = %1.2e', beta); 
 if exist('b_sh','var'), fprintf(' | Beta_shelf = %1.2e', b_sh); end
 if exist('b_sl','var'), fprintf(' | Beta_slope = %1.2e', b_sl); end
-fprintf('\n\n');
+fprintf('\n');
 if flags.wind, cprintf('Red',sprintf('Wind tau0 = %.2e \n\n',wind.tau0)); end
 if flags.eddy, fprintf('\n\n Deploy float in center of eddy = (%d,%d) \n\n',eddy.ix,eddy.iy); end
+if flags.floats
+   xlo = find_approx(xrmat(:,1,1),min(floatx(:))*1000,1); 
+   xhi = find_approx(xrmat(:,1,1),max(floatx(:))*1000,1); 
+   ylo = find_approx(yrmat(1,:,1),min(floaty(:))*1000,1); 
+   yhi = find_approx(yrmat(1,:,1),max(floaty(:))*1000,1); 
+   fprintf('\n Float deployment locations : (%d:%d , %d:%d)', xlo,xhi,ylo,yhi);
+end
+fprintf('\n\n');
 %fprintf('\n\n (dt)_bt < %.2f s | (dt)_bc < %.2f s\n\n', DX/(sqrt(g*min(S.h(:)))), DX/(sqrt(N2)*min(S.h(:))/pi))
 
 %% using Hernan's balance operator code (with prsgd31 algo)

@@ -1,8 +1,21 @@
-function [sbreak,ind] = find_shelfbreak(fname)
+% finds shelfbreak
+%       [xsb,isb,hsb] = find_shelfbreak(fname)
+
+function [xsb,isb,hsb] = find_shelfbreak(fname)
 
     h = ncread(fname,'h');
-    xr = ncread(fname,'x_rho');    
-    dx = xr(2,1)-xr(1,1);    
-    dhdx = diff(h(:,1),1,1)./dx;
-    [~,ind] = max(dhdx);
-    sbreak = xr(ind,1);
+    if h(2,1)-h(1,1) == 0
+        yr = ncread(fname,'y_rho');
+        dx = yr(1,2)-yr(1,1);
+        hvec = h(1,:)';
+    else
+        xr = ncread(fname,'x_rho'); 
+        dx = xr(2,1)-xr(1,1);
+        hvec = h(:,1);
+    end
+   
+    dh2dx2 = diff(hvec,2,1)./dx^2;
+    [~,isb] = max(dh2dx2);
+    isb = isb-1;
+    xsb = xr(isb,1);
+    hsb = hvec(isb);

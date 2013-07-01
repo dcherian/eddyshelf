@@ -13,6 +13,8 @@ classdef floats < handle
     methods
         % reads data
         function [floats] = floats(type,file,rgrid)
+            disp('Reading float data.');
+            tic;
             if strcmpi(type,'roms')
                 floats.x = ncread(file,'x')';
                 floats.y = ncread(file,'y')';
@@ -164,6 +166,7 @@ classdef floats < handle
 
                 floats.init(ii,:) = [floats.x(ind,ii) floats.y(ind,ii) floats.z(ind,ii) floats.time(ind)];
             end
+            toc;
         end % read_floats   
         
         % plots displacements
@@ -256,7 +259,7 @@ classdef floats < handle
         end
         
         % animates with zeta plot
-        function [] = animate(floats,rgrid,zeta)
+        function [] = animate(floats,rgrid,zeta,eddy)
 
             cmap = flipud(cbrewer('div', 'BrBG', 32));
 
@@ -277,6 +280,10 @@ classdef floats < handle
                 floats.fac = floor(floats.fac);
                 nn = find_approx(floats.time,rgrid.ocean_time(i),1);
                 plot(floats.x(nn,:)/1000,floats.y(nn,:)/1000,'k.','MarkerSize',10);
+                if exist('eddy','var')
+                   [cc,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.mask(:,:,i),1);
+                   set(hh,'LineWidth',2);
+                end
                 title(['t = ' num2str(floats.time(1)+i) ' days']);
                 pause(0.01)
             end
