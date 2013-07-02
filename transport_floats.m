@@ -28,31 +28,31 @@ yvec = yr(1,:)';
 S = size(xr);
 floats = ltrans;
 
-initmask = zeros(size(xr));
-xi = vecfind(xvec, cut_nan(floats.init(:,1)) );
-yi = vecfind(yvec, cut_nan(floats.init(:,2)) );
-initmask(sub2ind(S,xi,yi)) = 1;
+shelfmask = ones([1 size(floats.x,2)]);
+% xi = vecfind(xvec, cut_nan(floats.init(:,1)) );
+% yi = vecfind(yvec, cut_nan(floats.init(:,2)) );
+% initmask(sub2ind(S,xi,yi)) = 1;
 
-
-shelfmask = initmask .* (xr >= xsb); 
+shelfmask(floats.init(:,1) < xsb) = NaN;
 
 for i=1:size(eddy.mask,3)
     clf;
     fltloc = zeros(size(xr));
-    ff = i*floats.fac+1;
+    ff = ceil(i*floats.fac);
     % determine grid indices & make float locations a matrix
-    xg = vecfind( xvec, cut_nan(floats.x(ff,:)) );
-    yg = vecfind( yvec, cut_nan(floats.y(ff,:)) );
+    xg = vecfind( xvec, cut_nan(floats.x(ff,:) .* shelfmask) );
+    yg = vecfind( yvec, cut_nan(floats.y(ff,:) .* shelfmask) );
     fltloc(sub2ind(S,xg,yg)) = 1;
     
     % remove floats inside eddy contour and those that started offshore of
     % shelbreak
-    netmask = ~eddy.mask(:,:,i) .* shelfmask(2:end-1,2:end-1);
+    netmask = ~eddy.mask(:,:,i);
     
     % truncate because of eddy.mask
     fltloc = fltloc(2:end-1,2:end-1);    
     
-    pcolorcen(eddy.xr/1000,eddy.yr/1000,fltloc ); hold on
+    pcolorcen(eddy.xr/1000,eddy.yr/1000,fltloc .*netmask); hold on
+    colormap(gray);
     contour(eddy.xr/1000,eddy.yr/1000,eddy.mask(:,:,i),1);
     %plot(floats.x(i,:)/1000,floats.y(i,:)/1000,'k.');
     title(num2str(i));

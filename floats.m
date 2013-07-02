@@ -244,14 +244,14 @@ classdef floats < handle
             end
             figure(hfig);
             subplot(311)
-            plot(floats.time/86400,floats.mom1,fmt); hold on;
+            plot(floats.time/86400,bsxfun(@times,floats.mom1,[ 1 1 10]),fmt); hold on;
             xlabel('time (days)'); ylabel('first moment');
-            legend('x (km)','y (km)','z (m)','Location','NorthWest');
+            legend('x (km)','y (km)','10 * z (m)','Location','NorthWest');
             title(' dashed = LTRANS, line = ROMS');
             subplot(312)
-            plot(floats.time/86400,floats.disp,fmt); hold on;
+            plot(floats.time/86400,bsxfun(@times,floats.disp,[1 1 3]),fmt); hold on;
             xlabel('time (days)'); ylabel(' Relative Dispersion');
-            legend('x (km^2)','y (km^2)','z (m^2)','Location','NorthWest');
+            legend('x (km^2)','y (km^2)','3 * z (m^2)','Location','NorthWest');
             subplot(313)
             plot(floats.time/86400,floats.kur,fmt); hold on;
             xlabel('time (days)'); ylabel('Kurtosis');

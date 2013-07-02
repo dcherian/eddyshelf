@@ -1,4 +1,4 @@
-function [] = ltrans_create(rgrid,zeta)
+function [] = ltrans_create(rgrid,zeta,eddy)
     fname = 'runs/ltrans_init.txt';
     % open file
     fid = fopen(fname,'w');
@@ -6,21 +6,28 @@ function [] = ltrans_create(rgrid,zeta)
         error('Couldn''t open file to write.');
     end
     
-    contourf(zeta(:,:,1)');
+    contourf(rgrid.x_rho/1000,rgrid.y_rho/1000,zeta(:,:,1)');
     shading flat; axis image
     caxis([min(zeta(:)) max(zeta(:))]);
     hold on
     [C,hc] = contour(rgrid.h,[114 500 750 1100],'k');
     clabel(C,hc);
+    if exist('eddy','var') && ~isempty(eddy)
+       plot(eddy.mx/1000,eddy.my/1000,'k','LineWidth',2);
+    end
     
     % create distribution
     xr = rgrid.x_rho';    yr = rgrid.y_rho'; zr = permute(rgrid.z_r,[3 2 1]);
     flag = input('From image? (0/1) : ');
     if flag
-        title('xlo'); [xlo,~] = ginput(1);
-        title('xhi'); [xhi,~] = ginput(1);
-        title('ylo'); [~,ylo] = ginput(1);
-        title('yhi'); [~,yhi] = ginput(1);
+        str = 'select rectangle for float deployment';
+        title(str);
+        disp(str);
+        [floatx,floaty] = select_rect();
+        xlo = find_approx(xr(:,1),min(floatx(:))*1000,1); 
+        xhi = find_approx(xr(:,1),max(floatx(:))*1000,1); 
+        ylo = find_approx(yr(1,:),min(floaty(:))*1000,1); 
+        yhi = find_approx(yr(1,:),max(floaty(:))*1000,1); 
     else
        xlo = 5; xhi = 34;
        ylo = 30; yhi = 128;
@@ -44,7 +51,8 @@ function [] = ltrans_create(rgrid,zeta)
         xvec = xlo:dx:xhi; yvec = ylo:dy:yhi; zvec =zlo:dz:zhi;
         tvec = tlo:dt:thi;
         X = length(xvec); Y= length(yvec); Z = length(zvec); T = length(tvec);
-        fprintf('\n Number of floats = %.0f | ',X*Y*Z*T);
+        fprintf('\n Total Number of floats = %d | Number released at once = %d', ...
+                    X*Y*Z*T, X*Y*Z);
         flag = input('Continue (0/1)?');
     end
     

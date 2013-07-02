@@ -142,7 +142,8 @@ bathy.comment = ['H_shelf = depth at coast | L_shelf = shelf width | ' ...
                  ' L_tile = length over which shelf width changes | ' ...
                  ' L_entry = length of smaller shelf | n_points = number ' ...
                  ' of points to smooth over | n_passes = number of smoothing' ...
-                 ' passes | isb,xsb,hsb = index,axis loc, depth at shelfbreak'];
+                 ' passes | isb,xsb,hsb = index,axis loc, depth at shelfbreak' ...
+                 ' isl,xsl,hsl = index, axis loc, depth at end of continental slope'];
 
 % Eddy parameters - all distances in m
 eddy.dia   = 50*1000;
@@ -160,7 +161,7 @@ eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
 % Shelfbreak front parameters
 front.LTleft  = 12.5 * 1000; % length scale for temperature (m) - onshore
 front.LTright = 8*1000; % length scale - offshore
-front.LTz     = 100; % Gaussian decay scale in t he vertical for temperature
+front.LTz     = 100; % Gaussian decay scale in the vertical for temperature
 front.slope   = 500/4000; % non-dimensional
 front.Tx0     = -1e-4; % max. magnitude of temperature gradient
 front.comment = ['LTleft = onshore length scale | LTright = offshore length scale' ...
@@ -526,6 +527,12 @@ dh2dx2 = diff(hvec,2,1)./avg1(diff(ax_cs,1,1).^2,1);
 bathy.isb = bathy.isb-1;
 bathy.hsb = hvec(bathy.isb);
 bathy.xsb = ax_cs(bathy.isb);
+
+% find end of slope
+[~,bathy.isl] = min(dh2dx2(:));
+bathy.isl = bathy.isl-1;
+bathy.hsl = hvec(bathy.isl);
+bathy.xsl = ax_cs(bathy.isl);
 
 figure;
 subplot(131)
@@ -1174,9 +1181,31 @@ if S.NPT > 0
     
     % assign initial condition
     % important, we do not want grid scale discontinuity.
-    % taper everything with gaussian
-    dye_01 = xrmat;
-    dye_02 = yrmat;
+    % taper everything with gaussian or similar
+    dye_01 = zeros(size(xrmat)); dye_02 = dye_01;
+
+    buffer = 6;
+    % decrease from 1 to 0
+    buffer_val_dec = repmat(cos( pi/2*(0:buffer-1)/(buffer-1) ), ...
+                                [size(dye_01,1) 1 size(dye_01,3)]);
+    % increase from 0 to 1
+    buffer_val_inc = repmat(fliplr(cos( pi/2*(0:buffer-1)/(buffer-1) )), ...
+                                [size(dye_01,1) 1 size(dye_01,3)]);
+
+    dye_01(:,1:bathy.isb,:) = 1;
+    dye_01(:,bathy.isb+1:bathy.isb+buffer,:) = buffer_val_dec;
+
+    dye_02(:,bathy.isb-buffer:bathy.isb-1,:) = buffer_val_inc;
+    dye_02(:,bathy.isb:bathy.isl,:) = 1;
+    dye_02(:,bathy.isl+1:bathy.isl+buffer,:) = buffer_val_dec;
+
+    figure;
+    subplot(211)
+    pcolorcen(dye_01(:,:,end)'); 
+    title('dye_{01}');
+    subplot(212)
+    pcolorcen(dye_02(:,:,end)');
+    title('dye_{02}');
     
     % write to file
     for ii=1:S.NPT
