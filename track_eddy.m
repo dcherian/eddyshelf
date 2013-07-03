@@ -1,11 +1,13 @@
 function [eddy] = track_eddy(dir)
 
-    fnames = ls([dir '/*his*.nc']);
-    if isempty(ls([dir '/*his*.nc']))
-        fnames = ls([dir '/*avg*.nc']);
-    end
+    if isdir(dir)
+        fnames = ls([dir '/*his*.nc']);
+        if isempty(ls([dir '/*his*.nc']))
+            fnames = ls([dir '/*avg*.nc']);
+        end
 
-    fname = [dir '/' fnames(1,:)];
+        fname = [dir '/' fnames(1,:)];
+    end
     kk = 2; % if ncread fails, it will use fnames(kk,:)
     tt0 = 0; % offset for new history.average file - 0 initially, updated later
     
@@ -46,7 +48,7 @@ function [eddy] = track_eddy(dir)
     initGuess3(3) = N2./g./TCOEF;
 
     % detect shelfbreak
-    sbreak = find_shelfbreak(fname);
+    [sbreak,~,~] = find_shelfbreak(fname);
 
     % remove background flow contribution to zeta
     zeta_bg = zeta(:,end,1);

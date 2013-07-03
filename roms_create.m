@@ -32,7 +32,7 @@ Y = 180 * 1000;100;
 Z = 2000;
 
 % tracers
-S.NPT = 2; % number of passive tracers
+S.NPT = 3; % number of passive tracers
 S.NT = 2+S.NPT; % total number of tracers
 
 % vertical stretching
@@ -1182,30 +1182,34 @@ if S.NPT > 0
     % assign initial condition
     % important, we do not want grid scale discontinuity.
     % taper everything with gaussian or similar
-    dye_01 = zeros(size(xrmat)); dye_02 = dye_01;
-
-    buffer = 6;
-    % decrease from 1 to 0
-    buffer_val_dec = repmat(cos( pi/2*(0:buffer-1)/(buffer-1) ), ...
-                                [size(dye_01,1) 1 size(dye_01,3)]);
-    % increase from 0 to 1
-    buffer_val_inc = repmat(fliplr(cos( pi/2*(0:buffer-1)/(buffer-1) )), ...
-                                [size(dye_01,1) 1 size(dye_01,3)]);
-
-    dye_01(:,1:bathy.isb,:) = 1;
-    dye_01(:,bathy.isb+1:bathy.isb+buffer,:) = buffer_val_dec;
-
-    dye_02(:,bathy.isb-buffer:bathy.isb-1,:) = buffer_val_inc;
-    dye_02(:,bathy.isb:bathy.isl,:) = 1;
-    dye_02(:,bathy.isl+1:bathy.isl+buffer,:) = buffer_val_dec;
-
-    figure;
-    subplot(211)
-    pcolorcen(dye_01(:,:,end)'); 
-    title('dye_{01}');
-    subplot(212)
-    pcolorcen(dye_02(:,:,end)');
-    title('dye_{02}');
+    
+    dye_01 = xrmat;
+    dye_02 = yrmat;
+    dye_03 = zrmat;
+%     dye_01 = zeros(size(xrmat)); dye_02 = dye_01;
+% 
+%     buffer = 6;
+%     % decrease from 1 to 0
+%     buffer_val_dec = repmat(cos( pi/2*(0:buffer-1)/(buffer-1) ), ...
+%                                 [size(dye_01,1) 1 size(dye_01,3)]);
+%     % increase from 0 to 1
+%     buffer_val_inc = repmat(fliplr(cos( pi/2*(0:buffer-1)/(buffer-1) )), ...
+%                                 [size(dye_01,1) 1 size(dye_01,3)]);
+% 
+%     dye_01(:,1:bathy.isb,:) = 1;
+%     dye_01(:,bathy.isb+1:bathy.isb+buffer,:) = buffer_val_dec;
+% 
+%     dye_02(:,bathy.isb-buffer:bathy.isb-1,:) = buffer_val_inc;
+%     dye_02(:,bathy.isb:bathy.isl,:) = 1;
+%     dye_02(:,bathy.isl+1:bathy.isl+buffer,:) = buffer_val_dec;
+% 
+%     figure;
+%     subplot(211)
+%     pcolorcen(dye_01(:,:,end)'); 
+%     title('dye_{01}');
+%     subplot(212)
+%     pcolorcen(dye_02(:,:,end)');
+%     title('dye_{02}');
     
     % write to file
     for ii=1:S.NPT

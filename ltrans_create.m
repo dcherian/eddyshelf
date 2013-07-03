@@ -29,13 +29,14 @@ function [] = ltrans_create(rgrid,zeta,eddy)
         ylo = find_approx(yr(1,:),min(floaty(:))*1000,1); 
         yhi = find_approx(yr(1,:),max(floaty(:))*1000,1); 
     else
-       xlo = 5; xhi = 34;
-       ylo = 30; yhi = 128;
+        dd = input('[xlo,xhi,ylo,yhi] in index: ');
+       xlo = dd(1); xhi = dd(2);
+       ylo = dd(3); yhi = dd(4);
     end
     xlo = floor(xlo); ylo = floor(ylo);
     xhi = floor(xhi); yhi = floor(yhi);
-    zlo = 1; zhi = rgrid.N;
-    figure(gcf); linex([xlo xhi]); liney([ylo yhi]);
+    dd = input('[zlo,zhi] in m: ');
+    zlo = dd(1); zhi = dd(2);
     
     flag = 0;
     while flag == 0
@@ -51,9 +52,9 @@ function [] = ltrans_create(rgrid,zeta,eddy)
         xvec = xlo:dx:xhi; yvec = ylo:dy:yhi; zvec =zlo:dz:zhi;
         tvec = tlo:dt:thi;
         X = length(xvec); Y= length(yvec); Z = length(zvec); T = length(tvec);
-        fprintf('\n Total Number of floats = %d | Number released at once = %d', ...
+        fprintf('\n Total Number of floats = %d | Number released at once = %d\n\n', ...
                     X*Y*Z*T, X*Y*Z);
-        flag = input('Continue (0/1)?');
+        flag = input('\nContinue (0/1)?');
     end
     
     [p,q,r,s] = ndgrid(xvec,yvec,zvec,tvec);
