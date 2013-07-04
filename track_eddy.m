@@ -55,13 +55,13 @@ function [eddy] = track_eddy(dir)
 
     tic;
     for tt=1:size(zeta,3)
-%         if tt == 126
-%             disp('time to debug');
-%         end
         if tt == 1,
             mask = ones(sz);
             d_sbreak = Inf;
         else 
+            if tt ==  15,
+                disp('debug time!');
+            end
             mask = nan*ones(sz);
             lx = eddy.dia(tt-1)/2 + limit_x;
             ly = eddy.dia(tt-1)/2 + limit_y;
@@ -71,8 +71,8 @@ function [eddy] = track_eddy(dir)
             iy2 = find_approx(yr(1,:),eddy.cy(tt-1)+ly,1);
 
             mask(ix1:ix2,iy1:iy2) = 1;
-
-            d_sbreak = eddy.cx-sbreak;
+            % distance to shelfbreak in *m*
+            d_sbreak = eddy.cx(tt-1)-sbreak;
         end
         temp = eddy_diag(bsxfun(@minus,zeta(:,:,tt),zeta_bg) .* mask, ...
                             dx,dy,sbreak); %w(:,:,tt));
@@ -201,6 +201,9 @@ function [eddy] = eddy_diag(zeta,dx,dy,sbreak,w)
             if local_max == zeros(size(zreg)), continue; end
             %if sum(local_max(:)) > 1, continue; end % skip if more than one maximum
             
+            props = regionprops(maskreg,zeta,'WeightedCentroid','Solidity', ...
+                        'EquivDiameter','Area','BoundingBox');
+            
             % Criterion 4 - amplitude is at least > amp_thresh
             indices = find(local_max == 1);
             % make sure all local maxima found satisfy this criterion
@@ -215,12 +218,14 @@ function [eddy] = eddy_diag(zeta,dx,dy,sbreak,w)
             end
             
             % Criterion 5 - distance between any pair of points must be
-            % less than a specified maximum
-            % first find convex hull vertices
-            chull = regionprops(maskreg,'ConvexHull');
-            chull = chull.ConvexHull;
-            chull = bsxfun(@times,chull,[dx dy]);
-            if maximumCaliperDiameter(chull) > max_dist, continue; end
+            % less than a specified maximum            
+            % need to trace out outline, first find one point to start from
+            % (convex hull doesn't do the job)
+            [x0,y0] = ind2sub(size(maskreg),find(maskreg == 1,1,'first'));
+            points = bwtraceboundary(maskreg,[x0,y0],'E');
+            points = bsxfun(@times,points,[dx dy]);
+            if maximumCaliperDiameter(points) > max_dist, continue; end
+           % if minimumCaliperDiameter(points) < min_dist, continue; end
             
             % Criterion 6 - Obuko-Weiss parameter must make sense
             if exist('w','var')
@@ -231,13 +236,23 @@ function [eddy] = eddy_diag(zeta,dx,dy,sbreak,w)
                 end
             end
             
+            % Criterion 7 - solidity must be good - helps get rid of some
+            % thin 'isthumuses'
+            if props.Solidity  < 0.90, continue; end
+            
+            % Criterion 8 - low 'rectangularity' - gets rid of rectangles
+            % that are sometime picked up
+            rectarea = props.BoundingBox(3) * props.BoundingBox(4);
+            if props.Area/rectarea > 0.85, continue; end
+            
             % Calculate properties of region
             c = regionprops(maskreg,zeta,'WeightedCentroid');
             
             % Criterion 7 - if multiple regions (eddies), only store the one
             % closest to shelfbreak
-            cx = c.WeightedCentroid(2) * dx;
-            cy = c.WeightedCentroid(1) * dy;
+            cx = props.WeightedCentroid(2) * dx;
+            cy = props.WeightedCentroid(1) * dy;
+            
 
             if exist('eddy','var') 
                 if (cx-sbreak) > (eddy.cx-sbreak) && (eddy.cx-sbreak > 0)
@@ -279,8 +294,7 @@ function [eddy] = eddy_diag(zeta,dx,dy,sbreak,w)
             eddy.ne   = min(ymax) * dy; % south edge
             eddy.se   = max(ymax) * dy; % north edge
             eddy.amp  = amp;
-            eddy.dia  = regionprops(maskreg,'EquivDiameter');
-            eddy.dia  = eddy.dia.EquivDiameter * sqrt(dx*dy);
+            eddy.dia  = props.EquivDiameter * sqrt(dx*dy);
             eddy.mask = maskreg;
             eddy.n    = n; % number of points
             eddy.jj   = jj;
@@ -316,3 +330,9 @@ function [eddy] = eddy_diag(zeta,dx,dy,sbreak,w)
         rmfield(eddy,'jj');
     catch ME
     end
+    
+    
+%             % first find convex hull vertices
+%             chull = regionprops(maskreg,'ConvexHull');
+%             chull = chull.ConvexHull;
+%             chull = bsxfun(@times,chull,[dx dy]);
