@@ -7,6 +7,9 @@
 *.dat
 *.nc
 *.mat
+*.csv
+ltrans*.txt
+*.fig
 videos/
 runs/
 presentations/
