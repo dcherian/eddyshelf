@@ -20,10 +20,12 @@ classdef runs < handle
                 runs.dir = dir;
                 runs.out_file = [dir '/ocean_avg.nc'];
             else
+                givenFile = 1;
                 runs.out_file = dir;
                 dir = strrep(dir,'\','/');
                 inds = strfind(dir,'/');
                 dir = dir(1:inds(end));
+                runs.dir = dir;
             end
             runs.flt_file = [dir '/ocean_flt.nc'];
             runs.ltrans_file = [dir '/ltrans.nc'];
@@ -31,7 +33,11 @@ classdef runs < handle
             runs.rgrid.xr = runs.rgrid.x_rho';
             runs.rgrid.yr = runs.rgrid.y_rho';
             try
-                runs.zeta = roms_read_data(dir,'zeta');
+                if ~givenFile
+                    runs.zeta = roms_read_data(dir,'zeta');
+                else
+                    runs.zeta = double(ncread(runs.out_file,'zeta'));
+                end
             catch ME
                 runs.zeta = double(ncread(runs.out_file,'zeta'));
             end
