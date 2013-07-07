@@ -3,7 +3,7 @@ classdef runs < handle
         % dir & file names
         dir; out_file; ltrans_file; flt_file;
         % data
-        zeta; temp;
+        zeta; temp; dye;
         % grid & bathymetry
         rgrid; bathy
         % float data
@@ -78,6 +78,12 @@ classdef runs < handle
         % create ltrans init file from roms out
         function [] = ltrans_create_from_roms(runs)
             ltrans_create_from_roms('ltrans_init_compare.txt',runs.flt_file,runs.rgrid);
+        end
+        
+        function [] = compare_floats(runs)
+            ltransc = floats('ltrans',[runs.dir '/ltrans-compare.nc'],runs.rgrid);
+            runs.roms.plot_stats;
+            ltransc.plot_stats;
         end
     end
 end

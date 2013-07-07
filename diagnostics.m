@@ -292,7 +292,7 @@ legend('initial','final');
 dir = 'E:\Work\eddyshelf\runs\runeddy-04-1his';
 flt = [dir '/ocean_flt.nc'];
 
-floats = roms_read_floats(flt);
+flt = roms_read_floats(flt);
 % 
 % figure;
 % %subplot(121)
@@ -317,14 +317,14 @@ floats = roms_read_floats(flt);
 zeta = double(ncread(fname,'zeta'));
 
 ntavg = size(zeta,3);
-ntflt = size(floats.x,1) - 1;
-floats.fac = ntflt/ntavg;
+ntflt = size(flt.x,1) - 1;
+flt.fac = ntflt/ntavg;
 
 %% animate ROMS floats
 
 
     % need to color floats based on starting position
-    colors = distinguishable_colors(size(floats.x,1));
+    colors = distinguishable_colors(size(flt.x,1));
 
     N = 35;
     n = 5;
@@ -342,9 +342,9 @@ floats.fac = ntflt/ntavg;
     liney(-130,'-130');
     beautify
     ax(3) = subplot(133);
-    plot3(floats.x/1000,floats.y/1000,floats.z);
+    plot3(flt.x/1000,flt.y/1000,flt.z);
     hold on;
-    plot3(floats.init(:,1)/1000,floats.init(:,2)/1000,floats.init(:,3),'x','MarkerSize',12);
+    plot3(flt.init(:,1)/1000,flt.init(:,2)/1000,flt.init(:,3),'x','MarkerSize',12);
 
     for i=31:size(zeta,3)
         ax(1) = subplot(131);
@@ -356,9 +356,9 @@ floats.fac = ntflt/ntavg;
         hold on
         [C,hc] = contour(rgrid.x_rho./1000,rgrid.y_rho./1000,rgrid.h,[114 500 750 1100],'k');
         clabel(C,hc);
-        plot(floats.init(:,1)/1000,floats.init(:,2)/1000,'x','MarkerSize',12);
-        for j = 1:size(floats.x,2)
-              plot(floats.x(1:floats.fac*i,j)/1000,floats.y(1:floats.fac*i,j)/1000, ...
+        plot(flt.init(:,1)/1000,flt.init(:,2)/1000,'x','MarkerSize',12);
+        for j = 1:size(flt.x,2)
+              plot(flt.x(1:flt.fac*i,j)/1000,flt.y(1:flt.fac*i,j)/1000, ...
                      'Color',colarray(j,:,:),'MarkerSize',10);
     %     scatter3(floats.x(1:fac*i,j),floats.y(1:fac*i,j),floats.z(1:fac*i,j), ...
     %                 10,floats.z(1:fac*i,j));
@@ -408,8 +408,8 @@ for i=1:ntavg
     hsurf = surf(rgrid.x_rho/1000,rgrid.y_rho/1000,-rgrid.h);
     set(hsurf,'FaceColor',[117 104 104]/255,'FaceAlpha',0.5,'EdgeAlpha',0);
     shading flat;
-    for j = 1:size(floats.x,2)
-          plot3(floats.x(1:fac*i,j),floats.y(1:fac*i,j),floats.z(1:fac*i,j), ...
+    for j = 1:size(flt.x,2)
+          plot3(flt.x(1:fac*i,j),flt.y(1:fac*i,j),flt.z(1:fac*i,j), ...
                  'k.','MarkerSize',12);
 %     scatter3(floats.x(1:fac*i,j),floats.y(1:fac*i,j),floats.z(1:fac*i,j), ...
 %                 10,floats.z(1:fac*i,j));
@@ -467,7 +467,7 @@ plot3(ltrans.init(:,1)/1000,ltrans.init(:,2)/1000,ltrans.init(:,3),'bo','MarkerS
 xlabel('x'); ylabel('y'); zlabel('z');
 
 %%
-floats = roms;
+flt = roms;
 hf = figure;
 for i=1:size(zeta,3)
     figure(hf);
@@ -475,9 +475,33 @@ for i=1:size(zeta,3)
     contourf(rgrid.x_rho/1000,rgrid.y_rho/1000,zeta(:,:,i)'); shading flat
     axis image
     hold on
-    n = i*floats.fac+1;
-    plot(floats.x(n,:)/1000,floats.y(n,:)/1000,'k.','MarkerSize',16);
+    n = i*flt.fac+1;
+    plot(flt.x(n,:)/1000,flt.y(n,:)/1000,'k.','MarkerSize',16);
     title(['time = ' num2str(time(i)) ' days']);
     pause(0.01)
 end
+
+%%
+run = runs('runs/topoeddy/runbathysouth-02/ocean_avg_003.nc');
+flt = run.roms;
+i = [1006];
+%flt.x(:,i) = flt.x(:,i) - 0.04*(flt.time-flt.init(i,4));
+fig;
+subplot(411)
+plot(flt.x(:,i)/1000,flt.y(:,i)/1000,'.'); hold on
+plot(flt.x(109,i)/1000,flt.y(109,i)/1000,'ko');
+plot(nanmean(flt.x(:,i)/1000),nanmean(flt.y(:,i)/1000),'r*');
+title(num2str(i));
+legend(cellstr(num2str(i')),'Location','WestOutside');
+axis image
+xlabel('X (km)'); ylabel('Y(km)');
+subplot(412)
+plot(flt.time/86400,flt.x(:,i)/1000);
+ylabel('X(km)');
+subplot(413)
+plot(flt.time/86400,flt.y(:,i)/1000);
+ylabel('Y(km)');xlabel('time (days)');
+subplot(414)
+plot(flt.time/86400,flt.z(:,i));
+ylabel('z(m)');xlabel('time (days)');
 

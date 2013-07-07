@@ -192,8 +192,8 @@ classdef floats < handle
             T = size(floats.x,1);
             %first moment
             floats.mom1 = bsxfun(@times, ...
-                         [nansum(bsxfun(@minus,floats.x,floats.init(:,1)')/1000,2) ...
-                          nansum(bsxfun(@minus,floats.y,floats.init(:,2)')/1000,2) ...
+                         [nansum(bsxfun(@minus,floats.x,floats.init(:,1)'),2) ...
+                          nansum(bsxfun(@minus,floats.y,floats.init(:,2)'),2) ...
                           nansum(bsxfun(@minus,floats.z,floats.init(:,3)')     ,2)] ...
                           ,1./floats.N);
                       
@@ -210,14 +210,33 @@ classdef floats < handle
 %                 end
 %             end
 %             toc;
+%             tic;
+%             nn = size(floats.x,2);
+%             %[p,q] = meshgrid(1:nn,1:nn);
+%             p = nchoosek(1:nn,2);
+%             q = p(:,2); p = p(:,1);
+%             s(:,1) = nansum((floats.x(:,p(:)) - floats.x(:,q(:))).^2,2)/1e6;
+%             s(:,2) = nansum((floats.y(:,p(:)) - floats.y(:,q(:))).^2,2)/1e6;
+%             s(:,3) = nansum((floats.z(:,p(:)) - floats.z(:,q(:))).^2,2);
+%             toc;
+            s = nan(T,3);
             tic;
             nn = size(floats.x,2);
-            [p,q] = meshgrid(1:nn,1:nn);
-            s(:,1) = nansum((floats.x(:,p(:)) - floats.x(:,q(:))).^2,2)/1e6;
-            s(:,2) = nansum((floats.y(:,p(:)) - floats.y(:,q(:))).^2,2)/1e6;
-            s(:,3) = nansum((floats.z(:,p(:)) - floats.z(:,q(:))).^2,2);
+            indices = [1:size(floats.x,2)];
+            %[p,q] = meshgrid(1:nn,1:nn);
+            p = nchoosek(1:nn,2);
+            q = p(:,2); p = p(:,1);
+            for kk = 1:size(floats.x,1)
+                try
+                    s(kk,1) = nansum((floats.x(kk,p(:)) - floats.x(kk,q(:))).^2,2)/1e6;
+                    s(kk,2) = nansum((floats.y(kk,p(:)) - floats.y(kk,q(:))).^2,2)/1e6;
+                    s(kk,3) = nansum((floats.z(kk,p(:)) - floats.z(kk,q(:))).^2,2);
+                catch ME
+                    s(kk,:) = NaN;
+                end
+            end
             toc;
-            floats.disp = bsxfun(@times,s,1./(2*floats.N.*(floats.N-1)));
+            floats.disp = bsxfun(@times,s,1./(floats.N.*(floats.N-1)));
             
             % kurtosis - this could be improved?
             floats.kur = nan(T,3);
@@ -239,12 +258,13 @@ classdef floats < handle
             if ~exist('hfig','var'), hfig = gcf; end
             if strcmp(floats.type,'ltrans')
                 fmt = '--';
+                floats.time = floats.time + 4147200;
             else
                 fmt = '-';
             end
             figure(hfig);
             subplot(311)
-            plot(floats.time/86400,bsxfun(@times,floats.mom1,[ 1 1 10]),fmt); hold on;
+            plot(floats.time/86400,bsxfun(@times, floats.mom1,[ 1/1000 1/1000 10]),fmt); hold on;
             xlabel('time (days)'); ylabel('first moment');
             legend('x (km)','y (km)','10 * z (m)','Location','NorthWest');
             title(' dashed = LTRANS, line = ROMS');
@@ -266,26 +286,34 @@ classdef floats < handle
             figure;
             tfilt = cut_nan(fillnan(floats.init(:,4),0));
             ind0 = find_approx(rgrid.ocean_time, tfilt(1),1);
+            
+            i = ind0;
+            [~,hz] = contourf(rgrid.x_rho/1000,rgrid.y_rho/1000,zeta(:,:,i)');
+            shading flat; axis image
+            colormap(cmap); 
+            caxis([min(zeta(:)) max(zeta(:))]);
+            hold on
+            [C,hc] = contour(rgrid.x_rho./1000,rgrid.y_rho./1000,rgrid.h,[114 500 750 1100],'k');
+            clabel(C,hc);
+            floats.fac = floor(floats.fac);
+            nn = find_approx(floats.time,rgrid.ocean_time(i),1);
+            hplot = plot(floats.x(nn,:)/1000,floats.y(nn,:)/1000,'k.','MarkerSize',10);
+            if exist('eddy','var')
+               [~,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.mask(:,:,i),1);
+               set(hh,'LineWidth',2);
+            end
+            ht = title(['t = ' num2str((rgrid.ocean_time(i)+1)/86400) ' days']);
 
-            for i=ind0:size(zeta,3)
-                cla
-                contourf(rgrid.x_rho/1000,rgrid.y_rho/1000,zeta(:,:,i)');
-                shading flat; axis image
-                colormap(cmap); 
-                caxis([min(zeta(:)) max(zeta(:))]);
-                hold on
-                [C,hc] = contour(rgrid.x_rho./1000,rgrid.y_rho./1000,rgrid.h,[114 500 750 1100],'k');
-                clabel(C,hc);
-                plot(floats.init(:,1)/1000,floats.init(:,2)/1000,'x','MarkerSize',12);
-                floats.fac = floor(floats.fac);
+            for i=ind0+1:size(zeta,3)
+                set(hz,'ZData',zeta(:,:,i)'); shading flat
                 nn = find_approx(floats.time,rgrid.ocean_time(i),1);
-                plot(floats.x(nn,:)/1000,floats.y(nn,:)/1000,'k.','MarkerSize',10);
+                set(hplot,'XData',floats.x(nn,:)/1000);
+                set(hplot,'YData',floats.y(nn,:)/1000);
                 if exist('eddy','var')
-                   [cc,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.mask(:,:,i),1);
-                   set(hh,'LineWidth',2);
+                   set(hh,'ZData',eddy.mask(:,:,i));
                 end
-                title(['t = ' num2str(floats.time(1)+i) ' days']);
-                pause(0.01)
+                set(ht,'String',['t = ' num2str((rgrid.ocean_time(i)+1)/86400) ' days'])
+                pause(0.03)
             end
         end
     end
