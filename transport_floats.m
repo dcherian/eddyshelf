@@ -22,6 +22,7 @@ function [] = transport_floats(run)
     distance = 5*rr; % 5 times rossby radius
     
     clim = [bathy.xsb/1000 bathy.xsb/1000+distance/1000]; % colorbar
+    disp(['limit = ' num2str(clim)]);
     
     % mask based on initial position
     initmask = ones([1 size(floats.x,2)]);
@@ -49,7 +50,11 @@ function [] = transport_floats(run)
         % remove points just outside grid
         outsideGrid = fillnan((xf<max(xvec(:))),0);
         xf = xf .* outsideGrid; yf = yf .* outsideGrid;
-       
+        
+        % remove floats downstream of eddy
+        downstreamEddy = fillnan(xf < eddy.ee(i),0);
+        xf = xf .* downstreamEddy; yf = yf .* downstreamEddy;
+        
         % remove floats inside eddy contour
         netmask = eddy.mask(:,:,i);
         % find float indices
@@ -98,7 +103,7 @@ function [] = transport_floats(run)
                 set(ht,'String',num2str(i));
             end
         end
-        pause(0.001);
+        pause(0.04);
     end
 end
 

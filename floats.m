@@ -258,7 +258,7 @@ classdef floats < handle
             if ~exist('hfig','var'), hfig = gcf; end
             if strcmp(floats.type,'ltrans')
                 fmt = '--';
-                floats.time = floats.time + 4147200;
+                %floats.time = floats.time + 4147200;
             else
                 fmt = '-';
             end
@@ -288,7 +288,7 @@ classdef floats < handle
             ind0 = find_approx(rgrid.ocean_time, tfilt(1),1);
             
             i = ind0;
-            [~,hz] = contourf(rgrid.x_rho/1000,rgrid.y_rho/1000,zeta(:,:,i)');
+            [~,hz] = contourf(rgrid.x_rho/1000,rgrid.y_rho/1000,zeta(:,:,i)',25);
             shading flat; axis image
             colormap(cmap); 
             caxis([min(zeta(:)) max(zeta(:))]);

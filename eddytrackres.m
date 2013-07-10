@@ -122,6 +122,8 @@ function [] = eddytrackres()
                 eddy.cy = eddy.cy - 50000;
             end
             plot(eddy.cx/1000,eddy.cy/1000,'Color',colors(ii,:),'LineWidth',2);
+            index = find_approx(eddy.t,150);
+            plot(eddy.cx(index)/1000,eddy.cy(index)/1000,'rx','MarkerSize',12);            
             legsq{zz} = legstr{kk}; zz = zz+1;
         end
     end
