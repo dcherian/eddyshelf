@@ -7,6 +7,13 @@ function [eddy] = track_eddy(dir)
         end
 
         fname = [dir '/' fnames(1,:)];
+        zeta = roms_read_data(dir,'zeta');
+    else
+        fname = dir;
+        index = strfind(dir,'/');
+        dir = dir(1:index(end));
+        fnames = [];
+        zeta = double(ncread(fname,'zeta'));
     end
     kk = 2; % if ncread fails, it will use fnames(kk,:)
     tt0 = 0; % offset for new history.average file - 0 initially, updated later
@@ -15,7 +22,6 @@ function [eddy] = track_eddy(dir)
     limit_x = 40*1000;
     limit_y = 40*1000;
 
-    zeta = roms_read_data(dir,'zeta');
     [xr,yr,zr,~,~,~] = roms_var_grid(fname,'temp');
     eddy.h = ncread(fname,'h');
     eddy.t = roms_read_data(dir,'ocean_time')/86400; % required only for dt
@@ -24,7 +30,6 @@ function [eddy] = track_eddy(dir)
     zeta = zeta(2:end-1,2:end-1,:);
     xr   = xr(2:end-1,2:end-1);
     yr   = yr(2:end-1,2:end-1);
-    Y    = size(yr,2);
 
     dx = xr(2,1) - xr(1,1);
     dy = yr(1,2) - yr(1,1);
@@ -111,7 +116,12 @@ function [eddy] = track_eddy(dir)
             eddy.T(tt,:)   = double(squeeze(ncread(fname,'temp',[imx imy 1 tt-tt0],[ ...
                                                     1 1 Inf 1])));
         end
-        Ti = double(squeeze(ncread(fname,'temp',[imx  Y  1 tt-tt0],[1 1 Inf 1])));
+        
+        if params.bathy.axis == 'x'
+            Ti = double(squeeze(ncread(fname,'temp',[imx  size(xr,2)  1 tt-tt0],[1 1 Inf 1])));
+        else
+            Ti = double(squeeze(ncread(fname,'temp',[size(xr,1)  imy  1 tt-tt0],[1 1 Inf 1])));
+        end
         x2 = fminsearch(@(x) gaussfit2(x,eddy.T(tt,:)'-Ti,ze),initGuess2);
         x3 = fminsearch(@(x) gaussfit3(x,eddy.T(tt,:)'-Ti,ze),initGuess3);
         eddy.Lz2(tt)  = abs(x2(2));
@@ -275,33 +285,34 @@ function [eddy] = eddy_diag(zeta,dx,dy,sbreak,w)
             %imagesc(zreg'); pause
             
             % find location of maximum that is closest to shelfbreak
-            % ASSUMES ISOBATHS ARE NORTH-SOUTH
             ix = bsxfun(@times,ones(size(local_max)),[1:size(local_max,1)]');
             iy = bsxfun(@times,ones(size(local_max)),[1:size(local_max,2)]);
             indx = nanmin(nanmin(fillnan(local_max.*ix,0)));
             [~,indy] = max(local_max(indx,:));
             
-            xmax = ix(logical(maskreg(:,indy)),1);
-            ymax = iy(1,logical(maskreg(indx,:)));
+            xmax = fillnan(maskreg(:).*ix(:),0);
+            ymax = fillnan(maskreg(:).*iy(:),0);
             
             % store eddy properties for return
             eddy.cx   = cx; % weighted center
             eddy.cy   = cy; %     "
             eddy.mx   = ix(indx,indy) * dx; % maximum
             eddy.my   = iy(indx,indy) * dy; %    "
-            eddy.we   = min(xmax) * dx; % west edge
-            eddy.ee   = max(xmax) * dx; % east edge
-            eddy.ne   = min(ymax) * dy; % south edge
-            eddy.se   = max(ymax) * dy; % north edge
+            eddy.we   = nanmin(xmax) * dx; % west edge
+            eddy.ee   = nanmax(xmax) * dx; % east edge
+            eddy.ne   = nanmax(ymax) * dy; % south edge
+            eddy.se   = nanmin(ymax) * dy; % north edge
             eddy.amp  = amp;
             eddy.dia  = props.EquivDiameter * sqrt(dx*dy);
             eddy.mask = maskreg;
             eddy.n    = n; % number of points
             eddy.jj   = jj;
-            
+             
 %             imagesc(zreg');
 %             linex(cx./dx); liney(cy./dy);
 %             linex(indx,[],'r'); liney(indy,[],'r');
+%             linex(nanmin(xmax),[],'b'); linex(nanmax(xmax),[],'b');
+%             liney(nanmin(ymax),[],'b'); liney(nanmax(ymax),[],'b');
             
             % stop when eddy is found
             %break;
