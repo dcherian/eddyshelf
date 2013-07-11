@@ -9,13 +9,16 @@ classdef runs < handle
         % float data
         roms; ltrans;
         % eddy track data
-        eddy;
+        eddy; prox
         % initial params
         params
         % transport
         eutrans;
         % make video?
         makeVideo; mm_instance;
+        %
+        comment = ['prox = distance of edge from shelfbreak in m | '...
+                   'eutrans = eulerian transport estimate (structure).'];
     end
     methods
         % constructor
@@ -52,6 +55,14 @@ classdef runs < handle
                 catch ME
                 end
             end
+            % params & bathy
+            runs.params = read_params_from_ini(runs.dir);
+            runs.bathy = runs.params.bathy;
+            
+            % fill bathy
+            [runs.bathy.xsb,runs.bathy.isb,runs.bathy.hsb] = find_shelfbreak(runs.out_file);
+            [runs.bathy.xsl,runs.bathy.isl,runs.bathy.hsl] = find_shelfbreak(runs.out_file,'slope');
+            runs.bathy.h = runs.rgrid.h';
             
             if exist(runs.flt_file,'file')
                 runs.roms = floats('roms',runs.flt_file,runs.rgrid);
@@ -66,19 +77,17 @@ classdef runs < handle
             else
                 edd = load([dir '/eddytrack.mat'],'eddy');
                 runs.eddy = edd.eddy;
+                if runs.bathy.axis == 'y'
+                    edge = runs.eddy.se;
+                else
+                    edge = runs.eddy.we;
+                end
+                runs.prox = (edge-runs.bathy.xsb);
             end
             
             if exist(runs.ltrans_file,'file')
                 runs.ltrans = floats('ltrans',runs.ltrans_file,runs.rgrid);
             end
-            
-            runs.params = read_params_from_ini(runs.dir);
-            runs.bathy = runs.params.bathy;
-            
-            % fill bathy
-            [runs.bathy.xsb,runs.bathy.isb,runs.bathy.hsb] = find_shelfbreak(runs.out_file);
-            [runs.bathy.xsl,runs.bathy.isl,runs.bathy.hsl] = find_shelfbreak(runs.out_file,'slope');
-            runs.bathy.h = runs.rgrid.h';
         end
         
         function [] = animate_zeta(runs)
@@ -274,5 +283,6 @@ classdef runs < handle
             end
             
         end
+        
     end
 end
