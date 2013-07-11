@@ -122,8 +122,11 @@ function [eddy] = track_eddy(dir)
         else
             Ti = double(squeeze(ncread(fname,'temp',[size(xr,1)  imy  1 tt-tt0],[1 1 Inf 1])));
         end
-        x2 = fminsearch(@(x) gaussfit2(x,eddy.T(tt,:)'-Ti,ze),initGuess2);
-        x3 = fminsearch(@(x) gaussfit3(x,eddy.T(tt,:)'-Ti,ze),initGuess3);
+        opts = optimset('MaxFunEvals',1e3);
+        [x2,~,exitflag] = fminsearch(@(x) gaussfit2(x,eddy.T(tt,:)'-Ti,ze),initGuess2,opts);
+        if ~exitflag, x2(2) = NaN; end
+        [x3,~,exitflag] = fminsearch(@(x) gaussfit3(x,eddy.T(tt,:)'-Ti,ze),initGuess3,opts);
+        if ~exitflag, x3(2) = NaN; end
         eddy.Lz2(tt)  = abs(x2(2));
         eddy.Lz3(tt)  = abs(x3(2));
         
@@ -133,19 +136,23 @@ function [eddy] = track_eddy(dir)
             eddy.mvx(1) = NaN;
             eddy.mvy(1) = NaN;
         else
-            eddy.mvx(tt) = (eddy.mx(tt) - eddy.mx(tt-1))./dt;
-            eddy.mvy(tt) = (eddy.my(tt) - eddy.my(tt-1))./dt;
+            % dt in days; convert dx,dy to km
+            eddy.mvx(tt) = (eddy.mx(tt) - eddy.mx(tt-1))./dt/1000;
+            eddy.mvy(tt) = (eddy.my(tt) - eddy.my(tt-1))./dt/1000;
         end
     end
     eddy.xr = xr;
     eddy.yr = yr;
+    
+    eddy.Lz2(abs(eddy.Lz2) > max(abs(zr(:)))) = NaN;
+    eddy.Lz3(abs(eddy.Lz3) > max(abs(zr(:)))) = NaN;
     toc;
     
     eddy.comment = ['(cx,cy) = Location of weighted center (m) | ' ...
                     '(mx,my) = Location of SSH max closest to shelfbreak (m) | ' ...
                     'amp = amplitude (m) | dia = diameter of circle with same area (m) | ' ...
                     'mask = SSH mask to check detection | n = number of pixels | ' ...
-                    '(mvx,mvy) = velocity of (mx,my) | ' ...
+                    '(mvx,mvy) = velocity of (mx,my) in km/day | ' ...
                     '(we,ee,ne,se) = West, East, North and South edges of eddy (m) | ' ...
                     'Lz2,3 = Vertical scale (m) when fitting without & with linear trend | ' ...
                     'T = temp profile at (mx,my)'];
