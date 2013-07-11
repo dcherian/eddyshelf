@@ -14,6 +14,8 @@ classdef runs < handle
         params
         % transport
         eutrans;
+        % make video?
+        makeVideo; mm_instance;
     end
     methods
         % constructor
@@ -34,14 +36,21 @@ classdef runs < handle
             runs.rgrid = roms_get_grid(runs.out_file,runs.out_file,0,1);
             runs.rgrid.xr = runs.rgrid.x_rho';
             runs.rgrid.yr = runs.rgrid.y_rho';
+            runs.makeVideo = 0; % no videos by default.
             
             if ~runs.givenFile
                 runs.zeta = roms_read_data(dir,'zeta');
-                runs.dye  = roms_read_data(dir,'dye_02');
+                try
+                    runs.dye  = roms_read_data(dir,'dye_02');
+                catch ME
+                end
             else
                 runs.zeta = double(ncread(runs.out_file,'zeta'));
-                runs.dye  = squeeze(double(ncread(runs.out_file,'dye_02', ...
+                try
+                    runs.dye  = squeeze(double(ncread(runs.out_file,'dye_02', ...
                     [1 1 runs.rgrid.N 1],[Inf Inf 1 Inf])));
+                catch ME
+                end
             end
             
             if exist(runs.flt_file,'file')
@@ -70,6 +79,58 @@ classdef runs < handle
             [runs.bathy.xsb,runs.bathy.isb,runs.bathy.hsb] = find_shelfbreak(runs.out_file);
             [runs.bathy.xsl,runs.bathy.isl,runs.bathy.hsl] = find_shelfbreak(runs.out_file,'slope');
             runs.bathy.h = runs.rgrid.h';
+        end
+        
+        function [] = animate_zeta(runs)
+            if runs.makeVideo
+%                 runs.mm_instance = mm_setup;
+%                 runs.mm_instance.pixelSize = [1600 900];
+%                 runs.mm_instance.outputFile = 'mm_output.avi';
+%                 runs.mm_instance.ffmpegArgs = '-q:v 1 -g 1';
+%                 runs.mm_instance.InputFrameRate = 3;
+%                 runs.mm_instance.frameRate = 3;
+                aviobj = VideoWriter('output','MPEG-4');
+                open(aviobj);
+            end
+            figure;
+            hz = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.zeta(:,:,1));
+            shading flat
+            ax = gca;
+            hold on
+            colorbar; freezeColors;
+            [cc,hh] = contour(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.rgrid.h',[200 500 1000 1500 2000],'k');
+            clabel(cc,hh);
+            [~,he] = contour(runs.eddy.xr/1000,runs.eddy.yr/1000,runs.eddy.mask(:,:,1));
+            if runs.bathy.axis == 'y'
+                liney(runs.bathy.xsb/1000,'shelfbreak','w');
+            else
+                linex(runs.bathy.xsb/1000,'shelfbreak','w');
+            end
+            ht = title([num2str(runs.rgrid.ocean_time(1)/86400)  ' days']);
+            xlabel('X (km)');ylabel('Y (km)');
+            if runs.makeVideo
+                %shading(gca,'interp');
+                disp('maximize!');
+                pause; 
+                mm_addFrame(runs.mm_instance,gcf);
+            end
+            for ii = 2:size(runs.zeta,3)
+                set(hz,'CData',runs.zeta(:,:,ii));
+                if runs.makeVideo, shading interp; end
+                set(he,'ZData',runs.eddy.mask(:,:,ii));
+                set(ht,'String',[num2str(runs.rgrid.ocean_time(ii)/86400) ' days']);
+                if runs.makeVideo
+                   % shading(gca,'interp');
+                    %mm_addFrame(runs.mm_instance,gcf);
+                    F = getframe(gcf);
+                    writeVideo(aviobj,F);
+                end
+                pause(0.03);
+            end
+            if runs.makeVideo
+               % mm_render(runs.mm_instance);
+               close(aviobj);
+            end
         end
         
         function [] = animate(runs)
