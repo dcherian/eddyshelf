@@ -98,21 +98,21 @@ function [] = eddytrackres()
 
     % compare both 0.5km runs 
     figure(hf2);
-    subplot(121)
-    hold on
-    II = 2;
-    dy = -(eddies{sort_ind(II)}.cy(1) - eddies{sort_ind(II+1)}.cy(1))/1000;
-    plot(eddies{sort_ind(II)}.cx/1000,eddies{sort_ind(II)}.cy/1000,'b');
-    plot(eddies{sort_ind(II+1)}.cx/1000,eddies{sort_ind(II+1)}.cy/1000 - dy, 'r');
-    plot(eddies{sort_ind(II+1)}.cx/1000,eddies{sort_ind(II+1)}.cy/1000, 'k');
-    [cc,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.h(2:end-1,2:end-1),[500 1000 2000 2300],'k');
-    clabel(cc,hh); 
-    axis image;xlim([0 220]);
-    xlabel('x (km)'); ylabel('y (km)');
-    title('comparing both 0.5km x 3km runs');
-    legend('center of domain','higher-displaced','higher');
-    
-    subplot(122); hold on
+%     subplot(121)
+%     hold on
+%     II = 2;
+%     dy = -(eddies{sort_ind(II)}.cy(1) - eddies{sort_ind(II+1)}.cy(1))/1000;
+%     plot(eddies{sort_ind(II)}.cx/1000,eddies{sort_ind(II)}.cy/1000,'b');
+%     plot(eddies{sort_ind(II+1)}.cx/1000,eddies{sort_ind(II+1)}.cy/1000 - dy, 'r');
+%     plot(eddies{sort_ind(II+1)}.cx/1000,eddies{sort_ind(II+1)}.cy/1000, 'k');
+%     [cc,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.h(2:end-1,2:end-1),[500 1000 2000 2300],'k');
+%     clabel(cc,hh); 
+%     axis image;xlim([0 220]);
+%     xlabel('x (km)'); ylabel('y (km)');
+%     title('comparing both 0.5km x 3km runs');
+%     legend('center of domain','higher-displaced','higher');
+%     
+%     subplot(122); hold on
     for ii=1:length(sort_ind)
         kk = sort_ind(ii);
         eddy = eddies{kk};
@@ -121,16 +121,32 @@ function [] = eddytrackres()
             if eddy.cy(1) >= 200000
                 eddy.cy = eddy.cy - 50000;
             end
-            plot(eddy.cx/1000,eddy.cy/1000,'Color',colors(ii,:),'LineWidth',2);
-            index = find_approx(eddy.t,150);
-            plot(eddy.cx(index)/1000,eddy.cy(index)/1000,'rx','MarkerSize',12);            
+            plot(eddy.cx/1000,eddy.cy/1000,'Color',colors(ii,:),'LineWidth',2);         
             legsq{zz} = legstr{kk}; zz = zz+1;
         end
     end
-    title('comparing square grid cell runs');
+    title('Center tracks | Red cross at t=150 days');
     legend(legsq);
     axis image;
     xlim([0 180]);ylim([0 max(eddy.yr(:))/1000]);
+    for ii=1:length(sort_ind)
+        kk = sort_ind(ii);
+        eddy = eddies{kk};
+        % plot square grid cell runs
+        if eddy.sq
+            if eddy.cy(1) >= 200000
+                eddy.cy = eddy.cy - 50000;
+            end
+            index = find_approx(eddy.t,150);
+            plot(eddy.cx(index)/1000,eddy.cy(index)/1000,'rx','MarkerSize',12);
+        end
+    end
+    hold on;
+    [cc,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.h(2:end-1,2:end-1),[500 1000 2000 2300],'k');
+    clabel(cc,hh);
+    xlabel('X (km)');
+    ylabel('Y (km)');
+    ylim([50 200]);
     
     if plots
         set(gcf,'position',[0 0 1600 900]);
