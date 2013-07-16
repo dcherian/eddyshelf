@@ -41,16 +41,19 @@ classdef floats < handle
                 toc; tic;
                 mask = zeros(size(floats.x));
                 if max(floats.hitLand(:) ~= zeros(size(floats.hitLand(:))))
-                    nf = length(cut_nan(fillnan(floats.hitLand,0)));
+                    % hitLand is 1 at time the float hits land
+                    nf = sum(floats.hitLand(:));
                     warning([num2str(nf) ' floats have hit land.']);
-                    mask = (mask | cumsum(floats.hitBottom,1));
+                    mask = (mask | cumsum(floats.hitLand,1));
                 end
                 if max(floats.hitBottom(:) ~= zeros(size(floats.hitBottom(:))))
-                    nf = length(cut_nan(fillnan(floats.hitBottom,0)));
+                    maskbot = (cumsum(floats.hitBottom) >= 1);
+                    nf = diff(maskbot);
+                    nf = sum(nf(:));
                     warning([num2str(nf) ' floats have hit bottom.']);
                     % remove record after float has hit bottom i.e., fill
                     % with NaNs
-                    mask = (mask | cumsum(floats.hitBottom,1));
+                    mask = (mask | maskbot);
                 end
                 floats.type = 'ltrans';
                 mask = (mask | bsxfun(@eq,floats.x,floats.x(1,:))); 
@@ -185,7 +188,7 @@ classdef floats < handle
 % 
 %                 floats.init(ii,:) = [floats.x(ind,ii) floats.y(ind,ii) floats.z(ind,ii) floats.time(ind)];
 %             end
-            disp('Finished processing.');
+            disp(['Finished processing ' upper(type) ' floats.']);
             toc;
         end % read_floats   
         
