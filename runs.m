@@ -9,7 +9,7 @@ classdef runs < handle
         % float data
         roms; ltrans;
         % eddy track data
-        eddy; prox
+        eddy;
         % initial params
         params
         % transport
@@ -82,7 +82,13 @@ classdef runs < handle
                 else
                     edge = runs.eddy.we;
                 end
-                runs.prox = (edge-runs.bathy.xsb);
+                runs.eddy.prox = (edge-runs.bathy.xsb);
+                h = runs.bathy.h(2:end-1,2:end-1);
+            
+                ix = vecfind(runs.eddy.xr(:,1),runs.eddy.mx);
+                iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.my);
+
+                runs.eddy.hcen = h(sub2ind(size(runs.eddy.xr),ix,iy))';
             end
             
             if exist(runs.ltrans_file,'file')
@@ -282,6 +288,40 @@ classdef runs < handle
                 pause
             end
             
+        end
+        
+        function [] = eddyevol(runs)
+            eddy = runs.eddy;
+            ii = 1; colors(1) = 'b';
+            aa = 5; bb = aa*2;
+            figure;
+            subplot(aa,2,[1:2:bb]); hold on
+            pcolorcen(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.bathy.h);
+            xlabel('X (km)'); ylabel('Y (km)');
+            plot(eddy.cx/1000,eddy.cy/1000,'Color',colors(ii,:),'LineWidth',2);
+            colorbar
+            if runs.bathy.axis == 'x'
+                plot(eddy.we/1000,eddy.cy/1000,'k');
+            else
+                plot(eddy.cx/1000,eddy.se/1000,'k');
+            end
+            axis image; axis tight
+            subplot(aa,2,2); hold on
+            plot(eddy.t,eddy.amp,'Color',colors(ii,:));
+            ylabel('amplitude (m)');
+            subplot(aa,2,4); hold on
+            plot(eddy.t,eddy.dia/1000,'Color',colors(ii,:));
+            ylabel('diameter (km)');
+            subplot(aa,2,6); hold on
+            plot(eddy.t,eddy.cx/1000,'Color',colors(ii,:));
+            ylabel('x - center (km)');
+            subplot(aa,2,8); hold on
+            plot(eddy.t,eddy.cy/1000,'Color',colors(ii,:));
+            ylabel('y - center (km)');
+            subplot(aa,2,10); hold on
+            plot(eddy.t,eddy.Lz2,'Color',colors(ii,:));
+            ylabel('vertical scale (m)');
+            xlabel('time (days)');
         end
         
     end
