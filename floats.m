@@ -23,6 +23,8 @@ classdef floats < handle
                 floats.temp = ncread(file,'temp')';
                 floats.salt = ncread(file,'salt')';
                 floats.type = 'roms';
+                disp('Read data. Now processing.');
+                toc;tic;
             end
 
             if strcmpi(type,'ltrans')
@@ -35,6 +37,8 @@ classdef floats < handle
                 floats.salt = ncread(file,'salinity')';
                 floats.hitLand = ncread(file,'hitLand')';
                 floats.hitBottom = ncread(file,'hitBottom')';
+                disp('Read data. Now processing.');
+                toc; tic;
                 mask = zeros(size(floats.x));
                 if max(floats.hitLand(:) ~= zeros(size(floats.hitLand(:))))
                     nf = length(cut_nan(fillnan(floats.hitLand,0)));
@@ -145,6 +149,17 @@ classdef floats < handle
                    toc
                    disp(' read float data ');
             end
+            
+            % remove floats that are all NaN
+            tmat = repmat(floats.time,[1 size(floats.x,2)]);
+            nanmask = ~all(isnan(floats.x),1);
+            floats.x = floats.x(:,nanmask);
+            floats.y = floats.y(:,nanmask);
+            floats.z = floats.z(:,nanmask);
+            floats.temp = floats.temp(:,nanmask);
+            floats.salt = floats.salt(:,nanmask);
+            
+            %
             floats.N = sum(repnan(floats.x,0)~=0,2);
             floats.comment = ['init = (x,y,z,t) = initial location, release time in meters, seconds | ' ...
                 'fac = number float timesteps per ROMS output timestep'];
@@ -155,17 +170,22 @@ classdef floats < handle
             floats.fac = dtroms/dtltr;
             
             % initial locations and seeding time
-            for ii = 1:size(floats.x,2)
-                clear ind
-                ind = find(floats.x(:,ii) > 0);
-                if isempty(ind)
-                    ind = 1;
-                else
-                    ind = ind(1);
-                end
-
-                floats.init(ii,:) = [floats.x(ind,ii) floats.y(ind,ii) floats.z(ind,ii) floats.time(ind)];
-            end
+            initmask = find([zeros([1 size(floats.x,2)]); abs(diff(isnan(floats.x)))] == 1);
+            init2 = [floats.x(initmask) floats.y(initmask) floats.z(initmask) tmat(initmask)];
+%             tic;
+%             indices = max(bsxfun(@times,abs(diff(isnan(floats.x),1,1)),[1:size(floats.x,1)-1]'+1));
+%             for ii = 1:size(floats.x,2)
+%                 clear ind
+%                 ind = find(floats.x(:,ii) > 0);
+%                 if isempty(ind)
+%                     ind = 1;
+%                 else
+%                     ind = ind(1);
+%                 end
+% 
+%                 floats.init(ii,:) = [floats.x(ind,ii) floats.y(ind,ii) floats.z(ind,ii) floats.time(ind)];
+%             end
+            disp('Finished processing.');
             toc;
         end % read_floats   
         
