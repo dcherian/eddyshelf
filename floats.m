@@ -159,6 +159,11 @@ classdef floats < handle
             floats.x = floats.x(:,nanmask);
             floats.y = floats.y(:,nanmask);
             floats.z = floats.z(:,nanmask);
+            if strcmpi(type,'ltrans')
+                floats.age = floats.age(:,nanmask);
+                floats.hitLand = floats.hitLand(:,nanmask);
+                floats.hitBottom = floats.hitBottom(:,nanmask);
+            end
             floats.temp = floats.temp(:,nanmask);
             floats.salt = floats.salt(:,nanmask);
             
@@ -173,8 +178,8 @@ classdef floats < handle
             floats.fac = dtroms/dtltr;
             
             % initial locations and seeding time
-            initmask = find([zeros([1 size(floats.x,2)]); abs(diff(isnan(floats.x)))] == 1);
-            init2 = [floats.x(initmask) floats.y(initmask) floats.z(initmask) tmat(initmask)];
+            initmask = find([zeros([1 size(floats.x,2)]); abs(diff((cumsum(repnan(floats.x,0)) >= 1)))] == 1);
+            floats.init = [floats.x(initmask) floats.y(initmask) floats.z(initmask) tmat(initmask)];
 %             tic;
 %             indices = max(bsxfun(@times,abs(diff(isnan(floats.x),1,1)),[1:size(floats.x,1)-1]'+1));
 %             for ii = 1:size(floats.x,2)
@@ -188,8 +193,8 @@ classdef floats < handle
 % 
 %                 floats.init(ii,:) = [floats.x(ind,ii) floats.y(ind,ii) floats.z(ind,ii) floats.time(ind)];
 %             end
-            disp(['Finished processing ' upper(type) ' floats.']);
-            toc;
+%             disp(['Finished processing ' upper(type) ' floats.']);
+%             toc;
         end % read_floats   
         
         % plots displacements
