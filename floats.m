@@ -167,6 +167,15 @@ classdef floats < handle
             floats.temp = floats.temp(:,nanmask);
             floats.salt = floats.salt(:,nanmask);
             
+            % for ROMS floats remove those that have stuck to bottom / land
+            % i.e., they go to (x,y,z) = (0,0,0);
+            if strcmpi(type,'roms')
+                mask2 = (floats.x == 0) & (floats.y == 0) & (floats.z == 0);
+                floats.x(mask2) = NaN;
+                floats.y(mask2) = NaN;
+                floats.z(mask2) = NaN;
+            end
+            
             %
             floats.N = sum(repnan(floats.x,0)~=0,2);
             floats.comment = ['init = (x,y,z,t) = initial location, release time in meters, seconds | ' ...
@@ -193,8 +202,8 @@ classdef floats < handle
 % 
 %                 floats.init(ii,:) = [floats.x(ind,ii) floats.y(ind,ii) floats.z(ind,ii) floats.time(ind)];
 %             end
-%             disp(['Finished processing ' upper(type) ' floats.']);
-%             toc;
+             disp(['Finished processing ' upper(type) ' floats.']);
+             toc;
         end % read_floats   
         
         % plots displacements
@@ -268,16 +277,17 @@ classdef floats < handle
             
             % kurtosis - this could be improved?
             floats.kur = nan(T,3);
-            dfx = bsxfun(@minus,floats.x,floats.mom1(:,1));
-            dfy = bsxfun(@minus,floats.y,floats.mom1(:,2));
-            dfz = bsxfun(@minus,floats.z,floats.mom1(:,3));
-            
-            floats.kur(:,1) = nansum(dfx.^4,2)./ ...
-                             (nansum(dfx.^2,2)).^2;
-            floats.kur(:,2) = nansum(dfy.^4,2)./ ...
-                             (nansum(dfy.^2,2)).^2;
-            floats.kur(:,3) = nansum(dfz.^4,2)./ ...
-                             (nansum(dfz.^2,2)).^2;
+            floats.kur = [kurtosis(floats.x,0,2) kurtosis(floats.y,0,2) kurtosis(floats.z,0,2)];
+%             dfx = bsxfun(@minus,floats.x,floats.mom1(:,1));
+%             dfy = bsxfun(@minus,floats.y,floats.mom1(:,2));
+%             dfz = bsxfun(@minus,floats.z,floats.mom1(:,3));
+%             
+%             floats.kur(:,1) = nansum(dfx.^4,2)./ ...
+%                              (nansum(dfx.^2,2)).^2;
+%             floats.kur(:,2) = nansum(dfy.^4,2)./ ...
+%                              (nansum(dfy.^2,2)).^2;
+%             floats.kur(:,3) = nansum(dfz.^4,2)./ ...
+%                              (nansum(dfz.^2,2)).^2;
         end
         
         % plot stats in subplots
@@ -296,14 +306,17 @@ classdef floats < handle
             xlabel('time (days)'); ylabel('first moment');
             legend('x (km)','y (km)','10 * z (m)','Location','NorthWest');
             title(' dashed = LTRANS, line = ROMS');
+            beautify([14 14 16]);
             subplot(312)
-            plot(floats.time/86400,bsxfun(@times,floats.disp,[1 1 3]),fmt); hold on;
-            xlabel('time (days)'); ylabel(' Relative Dispersion');
-            legend('x (km^2)','y (km^2)','3 * z (m^2)','Location','NorthWest');
+            semilogy(floats.time/86400,bsxfun(@times,floats.disp,[1 1 1]),fmt); hold on;
+            xlabel('time (days)'); ylabel(' log(Relative Dispersion)');
+            legend('x (km^2)','y (km^2)','z (m^2)','Location','NorthWest');
+            beautify([14 14 16]);
             subplot(313)
             plot(floats.time/86400,floats.kur,fmt); hold on;
             xlabel('time (days)'); ylabel('Kurtosis');
             legend('x','y','z','Location','NorthWest');
+            beautify([14 14 16]);
         end
         
         % animates with zeta plot
