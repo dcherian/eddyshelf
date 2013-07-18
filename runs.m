@@ -154,6 +154,17 @@ classdef runs < handle
         end
         
         function [] = animate_center(runs)
+           if runs.makeVideo
+%                 runs.mm_instance = mm_setup;
+%                 runs.mm_instance.pixelSize = [1600 900];
+%                 runs.mm_instance.outputFile = 'mm_output.avi';
+%                 runs.mm_instance.ffmpegArgs = '-q:v 1 -g 1';
+%                 runs.mm_instance.InputFrameRate = 3;
+%                 runs.mm_instance.frameRate = 3;
+                aviobj = VideoWriter('animate_center','MPEG-4');
+                set(aviobj,'FrameRate',8,'Quality',100);
+                open(aviobj);
+            end
             eddy = runs.eddy;
             xvec = runs.rgrid.xr(:,1);
             yvec = runs.rgrid.yr(1,:)';
@@ -179,7 +190,7 @@ classdef runs < handle
             % first plan view of zeta
             subplot(211)
             hz = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.zeta(:,:,1));
-            shading flat
+            shading interp
             ax = gca;
             hold on
             colorbar; freezeColors;
@@ -187,12 +198,13 @@ classdef runs < handle
             clabel(cc,hb);
             [~,he] = contour(runs.eddy.xr/1000,runs.eddy.yr/1000,runs.eddy.mask(:,:,1));
             if runs.bathy.axis == 'y'
-                liney(runs.bathy.xsb/1000,'shelfbreak','w');
+                liney(runs.bathy.xsb/1000,'shelfbreak','k');
             else
-                linex(runs.bathy.xsb/1000,'shelfbreak','w');
+                linex(runs.bathy.xsb/1000,'shelfbreak','k');
             end
             ht1 = title(['Free surface | ' num2str(runs.rgrid.ocean_time(1)/86400)  ' days']);
             xlabel('X (km)');ylabel('Y (km)');
+            axis image;
             beautify([14 14 16]);
             
             % temp following eddy center
@@ -210,10 +222,18 @@ classdef runs < handle
             %        num2str(eddy.my(tt*stride(4))/1000) ') km | t = ' num2str(stride(4)) ' days']);
             xlabel('y (km)'); ylabel('z (m)'); colorbar; caxis([14 20]);
             h1 = liney(-eddy.Lz2(stride(4)),[],'b');
-            ylim([-2000 0]);
+            ylim([-1000 0]);
             title('Cross-shore temperature slice through eddy center');
             %h2 = liney(-eddy.Lz3(stride(4)),'3','k');
             beautify([14 14  16]);
+            if runs.makeVideo
+                %shading(gca,'interp');
+                disp('maximize!');
+                pause; 
+%               mm_addFrame(runs.mm_instance,gcf);
+                F = getframe(gcf);
+                writeVideo(aviobj,F);
+            end
             % update plots
             for tt=2:size(temper,4)
                 if runs.bathy.axis == 'y'
@@ -226,16 +246,37 @@ classdef runs < handle
                 set(h1,'ydata',[-eddy.Lz2(tt*stride(4)) -eddy.Lz2(tt*stride(4))]);
                 %set(h2,'ydata',-eddy.Lz3(tt*stride(4)));
                 set(hz,'CData',runs.zeta(:,:,tt*stride(4)));
-                if runs.makeVideo, shading interp; end
+                %if runs.makeVideo, shading interp; end
                 set(he,'ZData',runs.eddy.mask(:,:,tt*stride(4)));
                 %set(ht,'String', ['(mx,my) = (', num2str(eddy.mx(tt*stride(4))/1000) ',' ...
                 %    num2str(eddy.my(tt*stride(4))/1000) ') | t = ' tstr]);
                 set(ht1,'String',['Free surface | ' tstr]);
+                if runs.makeVideo
+                   % shading(gca,'interp');
+                    %mm_addFrame(runs.mm_instance,gcf);
+                    F = getframe(gcf);
+                    writeVideo(aviobj,F);
+                end
                 pause(0.01); 
+            end
+            
+            if runs.makeVideo
+               % mm_render(runs.mm_instance);
+               close(aviobj);
             end
         end
         
-        function [] = animate(runs)
+        function [] = animate_pt(runs)
+%             if runs.makeVideo
+% %                 runs.mm_instance = mm_setup;
+% %                 runs.mm_instance.pixelSize = [1600 900];
+% %                 runs.mm_instance.outputFile = 'mm_output.avi';
+% %                 runs.mm_instance.ffmpegArgs = '-q:v 1 -g 1';
+% %                 runs.mm_instance.InputFrameRate = 3;
+% %                 runs.mm_instance.frameRate = 3;
+%                 aviobj = VideoWriter('animate_pt','MPEG-4');
+%                 open(aviobj);
+%             end
             if isempty(runs.usurf)
                 if runs.givenFile
                     runs.usurf = double(squeeze(ncread(runs.out_file, ....
@@ -321,7 +362,17 @@ classdef runs < handle
             % need some kind of initial time instant - probably objective
             % criterion based on distance between shelfbreak and eddy or
             % some sort
+            runs.eutrans = [];
             t0 = 1;
+            h = runs.bathy.h(2:end-1,2:end-1);
+            
+            ix = vecfind(runs.eddy.xr(:,1),runs.eddy.mx(t0:end));
+            iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.my(t0:end));
+            hcen = h(sub2ind(size(runs.eddy.xr),ix,iy))';
+            
+            ix = vecfind(runs.eddy.xr(:,1),runs.eddy.mx(t0:end));
+            iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.se(t0:end));
+            hedge = h(sub2ind(size(runs.eddy.xr),ix,iy))';
             % rossby radius
             rr = sqrt(runs.params.phys.N2)*runs.bathy.hsb/runs.rgrid.f(runs.bathy.isb,1);
             distance = 5*rr; % 5 times rossby radius
@@ -331,12 +382,14 @@ classdef runs < handle
             else
                 loc = sort([nanmean(runs.eddy.se(t0:end)) nanmean(runs.eddy.cy(t0:end)) ...
                         runs.bathy.xsb  ... 
-                        runs.rgrid.y_rho(vecfind(runs.bathy.h(1,:),[250 750 1000]),1)']);
+                        runs.rgrid.y_rho(vecfind(runs.bathy.h(1,:),[250 1000]),1)']);
             end
             
             runs.eutrans.x = loc;
             runs.eutrans.ix = vecfind(runs.rgrid.yr(1,:),loc);%find_approx(runs.rgrid.yr(1,:),loc,1);
             runs.eutrans.h = ceil(runs.bathy.h(1,runs.eutrans.ix));
+            
+            dx = runs.rgrid.xr(2,1)-runs.rgrid.xr(1,1);
             % cross-shore velocity
             for kk=1:length(loc)
                 cs_vel = double(squeeze(ncread(runs.out_file,'v', ...
@@ -347,10 +400,16 @@ classdef runs < handle
                 for tt=1:size(cs_vel,3)
                     mask(1:iwest(tt),:,tt) = 1;
                 end
+                
+                zmask = (abs(squeeze(runs.rgrid.z_r(:,runs.eutrans.ix(kk),:))   )' ...
+                                < runs.bathy.hsb);
+                mask = bsxfun(@times,mask,fillnan(zmask,0));
 
+%                 runs.eutrans.trans(:,:,kk) = squeeze( ...
+%                      trapz(runs.rgrid.z_r(:,runs.eutrans.ix(kk),1),mask .* cs_vel,2));
                 runs.eutrans.trans(:,:,kk) = squeeze( ...
-                     trapz(runs.rgrid.z_r(:,runs.eutrans.ix(kk),1),mask .* cs_vel,2));
-                dx = runs.rgrid.xr(2,1)-runs.rgrid.xr(1,1);
+                            nansum(bsxfun(@times,avg1(mask .* cs_vel,2), ...
+                            diff(runs.rgrid.z_r(:,runs.eutrans.ix(kk),1))'),2));
 
                 runs.eutrans.Itrans(:,kk) = squeeze(nansum(runs.eutrans.trans(:,:,kk) .* dx,1))';
                 
@@ -362,13 +421,16 @@ classdef runs < handle
                     for tt=1:size(cs_vel,3)
                         mask(1:ieast(tt),:,tt) = 1;
                     end
+                    
+                    mask = bsxfun(@times,mask,fillnan(zmask,0));
 
                     dye = double(squeeze(ncread(runs.out_file,'dye_02', ...
                     [1 runs.eutrans.ix(kk) 1 t0],[Inf 1 Inf Inf])));
                     dyemask = (dye >= runs.bathy.xsb) & (dye <=(runs.bathy.xsb + distance));
                     mask = mask .* fillnan(dyemask,0); 
                     runs.eutrans.dye.trans(:,:,kk) = squeeze( ...
-                            trapz(runs.rgrid.z_r(:,runs.eutrans.ix(kk),1),mask .* cs_vel,2));
+                            nansum(bsxfun(@times,avg1(mask .* cs_vel,2), ...
+                            diff(runs.rgrid.z_r(:,runs.eutrans.ix(kk),1))'),2));
                         
                     runs.eutrans.dye.Itrans(:,kk) = squeeze(nansum(runs.eutrans.dye.trans(:,:,kk) .* dx,1))';
                 end
@@ -377,22 +439,26 @@ classdef runs < handle
             %% plot transport
             
             figure;
-            subplot(6,1,[1 2 3])
+            subplot(6,1,[1 2])
             plot(runs.rgrid.ocean_time(t0:end)/86400,runs.eutrans.Itrans/1e6);
             hold on
-            plot(runs.rgrid.ocean_time(t0:end)/86400,runs.eutrans.dye.Itrans/1e6,'--');
+            %plot(runs.rgrid.ocean_time(t0:end)/86400,runs.eutrans.dye.Itrans/1e6,'--');
             limx = xlim;
             legend(num2str(runs.eutrans.h'),'Location','NorthWest');
             ylabel('Eulerian Transport (Sv)');
+            title(['Isobaths in legend | Z < ' num2str(ceil(runs.bathy.hsb)) ' m ' ...
+                '| mean eddy center isobath = '  num2str(mean(hcen)) ' m ' ...
+                '| mean eddy edge isobath = ' num2str(mean(hedge)) 'm']);
             beautify;
-            subplot(6,1,[4 5])
-            plot(runs.rgrid.ocean_time/86400,runs.eutrans.dye.Itrans/1e6,'--');
+            subplot(6,1,[3 4 5])
+            plot(runs.rgrid.ocean_time/86400,runs.eutrans.dye.Itrans/1e6,'-');
             limx = xlim;
             legend(num2str(runs.eutrans.h'),'Location','NorthWest');
             ylabel('Dye Transport (Sv)');
+            ylim([-0.05 0.3]); liney(0.1,[])
             beautify;
             subplot(6,1,6)
-            %[ax,~,~] = plotyy(runs.eddy.t,runs.eddy.prox/1000,runs.eddy.t,runs.eddy.hcen);
+            [ax,~,~] = plotyy(runs.eddy.t,runs.eddy.prox/1000,runs.eddy.t,runs.eddy.hcen);
             set(ax(1),'XLim',limx);set(ax(2),'XLim',limx);
             set(ax(1),'XTickLabel',[]); axes(ax(2));
             set(get(ax(1),'ylabel'),'String','Proximity (km)');
@@ -416,40 +482,40 @@ classdef runs < handle
             beautify;
             
             %% plotting tests
-            figure;
-            clim = [runs.bathy.xsb/1000 runs.bathy.xsb/1000+distance/1000];
-            rrfac = 7;
-            for ind = 1:size(runs.eddy.mask,3)
-                clf
-                subplot(211)
-                pcolorcen(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.dye(:,:,ind)/1000); hold on
-                dxi = 7; dyi = 7;
-                if ~isempty(runs.usurf) && ~isempty(runs.vsurf)
-                    hq = quiver(runs.eddy.xr(1:dxi:end,1:dyi:end)/1000,runs.eddy.yr(1:dxi:end,1:dyi:end)/1000, ...
-                        runs.usurf(1:dxi:end,1:dyi:end,ind),runs.vsurf(1:dxi:end,1:dyi:end,ind));
-                end
-                caxis(clim);
-                hold on
-                title(['t = ' num2str(runs.rgrid.ocean_time(ind)/86400) ' days']);
-                [~,hh] = contour(runs.eddy.xr/1000, runs.eddy.yr/1000,runs.eddy.mask(:,:,ind),1,'k');
-                set(hh,'LineWidth',2);
-                [~,hz] = contour(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.zeta(:,:,ind),5,'k');
-                plot(runs.rgrid.xr/1000,runs.eutrans.trans(:,ind)*10);
-                xlim([0 max(runs.rgrid.xr(:))/1000])
-                linex(runs.eddy.we(ind)/1000); liney(runs.bathy.xsb/1000,'shelfbreak','b');
-                linex(runs.eddy.we(ind)/1000 - rrfac*rr/1000,[num2str(rrfac) ' * RR']);
-                linex(runs.eddy.we(ind)/1000 - 50,'center - 50 km');
-                
-                subplot(212)
-                plot(runs.rgrid.xr/1000,runs.eutrans.trans(:,ind)); 
-                title('Transport (m^2/sec)');
-                ylim([floor(min(runs.eutrans.trans(:))) ceil(max(runs.eutrans.trans(:)))]);
-                xlim([0 max(runs.rgrid.xr(:))/1000]);linex(runs.eddy.we(ind)/1000);
-                
-                linex(runs.eddy.we(ind)/1000 - rrfac*rr/1000,[num2str(rrfac) ' * RR']);
-                liney(0);linex(runs.eddy.we(ind)/1000 - 50,'center - 50 km');
-                pause
-            end
+%             figure;
+%             clim = [runs.bathy.xsb/1000 runs.bathy.xsb/1000+distance/1000];
+%             rrfac = 7;
+%             for ind = 1:size(runs.eddy.mask,3)
+%                 clf
+%                 subplot(211)
+%                 pcolorcen(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.dye(:,:,ind)/1000); hold on
+%                 dxi = 7; dyi = 7;
+%                 if ~isempty(runs.usurf) && ~isempty(runs.vsurf)
+%                     hq = quiver(runs.eddy.xr(1:dxi:end,1:dyi:end)/1000,runs.eddy.yr(1:dxi:end,1:dyi:end)/1000, ...
+%                         runs.usurf(1:dxi:end,1:dyi:end,ind),runs.vsurf(1:dxi:end,1:dyi:end,ind));
+%                 end
+%                 caxis(clim);
+%                 hold on
+%                 title(['t = ' num2str(runs.rgrid.ocean_time(ind)/86400) ' days']);
+%                 [~,hh] = contour(runs.eddy.xr/1000, runs.eddy.yr/1000,runs.eddy.mask(:,:,ind),1,'k');
+%                 set(hh,'LineWidth',2);
+%                 [~,hz] = contour(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.zeta(:,:,ind),5,'k');
+%                 plot(runs.rgrid.xr/1000,runs.eutrans.trans(:,ind)*10);
+%                 xlim([0 max(runs.rgrid.xr(:))/1000])
+%                 linex(runs.eddy.we(ind)/1000); liney(runs.bathy.xsb/1000,'shelfbreak','b');
+%                 linex(runs.eddy.we(ind)/1000 - rrfac*rr/1000,[num2str(rrfac) ' * RR']);
+%                 linex(runs.eddy.we(ind)/1000 - 50,'center - 50 km');
+%                 
+%                 subplot(212)
+%                 plot(runs.rgrid.xr/1000,runs.eutrans.trans(:,ind)); 
+%                 title('Transport (m^2/sec)');
+%                 ylim([floor(min(runs.eutrans.trans(:))) ceil(max(runs.eutrans.trans(:)))]);
+%                 xlim([0 max(runs.rgrid.xr(:))/1000]);linex(runs.eddy.we(ind)/1000);
+%                 
+%                 linex(runs.eddy.we(ind)/1000 - rrfac*rr/1000,[num2str(rrfac) ' * RR']);
+%                 liney(0);linex(runs.eddy.we(ind)/1000 - 50,'center - 50 km');
+%                 pause
+%             end
             
         end
         

@@ -39,10 +39,6 @@ function [] = transport_floats(run)
     
 
     % transform to (r,theta) about eddy center
-%     indices = ceil(1:floats.fac:size(floats.x,1));
-%     if length(indices) ~= length(eddy.cx)
-%         indices(end) = [];
-%     end
     % interpolate center location to float times
     cxi = interp1(eddy.t,eddy.cx,floats.time/86400);
     cyi = interp1(eddy.t,eddy.cy,floats.time/86400);
@@ -72,29 +68,40 @@ function [] = transport_floats(run)
     disp([num2str(length(cut_nan(indices))) ' float tracks have been truncated.']);
     
     %% test plot
-    figure
-    a = 324; 
-    dtt = th(indices(a):end,a)-th(indices(a),a);
-    %dtheta = 90;
-    ind = find(abs(dtt) >= dtheta,1,'first') + indices(a);
-    subplot(211)
-    scatter(floats.x(:,a)/1000,floats.y(:,a)/1000,40,th(:,324),'filled'); 
-    hold on; plot(cxi/1000,cyi/1000);
-    colormap(flipud(copper)); colorbar
-    liney(run.bathy.xsb/1000);
-    plot(floats.x(ind,a)/1000,floats.y(ind,a)/1000,'kx','MarkerSize',20);
-    title(['float track ' num2str(a) ' with theta=color']);
-    legend('theta (deg)','eddy center','shelfbreak','Location','Northwest');
-    xlabel('X (km)'); ylabel('Y (km)');
-    beautify([14 14 16]);
-    subplot(212)
-    plot(floats.time/86400,th(:,324));
-    liney([-180 180]);
-    xlabel('time (days)');
-    ylabel('theta (deg)');
-    beautify([14 14 16]);
+%     figure
+%     a = 324; 
+%     dtt = th(indices(a):end,a)-th(indices(a),a);
+%     %dtheta = 90;
+%     ind = find(abs(dtt) >= dtheta,1,'first') + indices(a);
+%     subplot(211)
+%     scatter(floats.x(:,a)/1000,floats.y(:,a)/1000,40,th(:,324),'filled'); 
+%     hold on; plot(cxi/1000,cyi/1000);
+%     colormap(flipud(copper)); colorbar
+%     liney(run.bathy.xsb/1000);
+%     plot(floats.x(ind,a)/1000,floats.y(ind,a)/1000,'kx','MarkerSize',20);
+%     title(['float track ' num2str(a) ' with theta=color']);
+%     legend('theta (deg)','eddy center','shelfbreak','Location','Northwest');
+%     xlabel('X (km)'); ylabel('Y (km)');
+%     beautify([14 14 16]);
+%     subplot(212)
+%     plot(floats.time/86400,th(:,324));
+%     liney([-180 180]);
+%     xlabel('time (days)');
+%     ylabel('theta (deg)');
+%     beautify([14 14 16]);
     
     %%
+    if run.makeVideo
+%                 runs.mm_instance = mm_setup;
+%                 runs.mm_instance.pixelSize = [1600 900];
+%                 runs.mm_instance.outputFile = 'mm_output.avi';
+%                 runs.mm_instance.ffmpegArgs = '-q:v 1 -g 1';
+%                 runs.mm_instance.InputFrameRate = 3;
+%                 runs.mm_instance.frameRate = 3;
+        aviobj = VideoWriter('ptfloats','MPEG-4');
+        set(aviobj,'Quality',100,'FrameRate',4);
+        open(aviobj);
+    end
     figure
     for i=1:size(eddy.mask,3)
         ff = ceil(i*floats.fac);
@@ -114,7 +121,7 @@ function [] = transport_floats(run)
         xf = xf .* downstreamEddy; yf = yf .* downstreamEddy; zf = zf .*downstreamEddy;
         
         % keep only 'shallow' floats
-        shallow = fillnan(abs(zf) < 100,0);
+        shallow = fillnan(abs(zf) < 10,0);
         xf = xf .* shallow; yf = yf .* shallow; zf = zf .* shallow;
         
         % remove floats inside eddy contour
@@ -150,15 +157,24 @@ function [] = transport_floats(run)
                 colorbar; hold on; 
                 [~,hc] = contour(eddy.xr/1000,eddy.yr/1000,eddy.mask(:,:,i),1,'w');
                 set(hc,'LineWidth',2);
-                hp = plot(xf/1000,yf/1000,'k.','MarkerSize',12);        
+                hp = plot(xf/1000,yf/1000,'k.','MarkerSize',14);        
                 if run.bathy.axis == 'y'
-                    liney(bathy.xsb/1000,'shelfbreak','w');
+                   hsb =  liney(bathy.xsb/1000,'shelfbreak','w');
                 else
-                    linex(bathy.xsb/1000,'shelfbreak','w');
+                   hsb =  linex(bathy.xsb/1000,'shelfbreak','w');
                 end
-                ht = title(num2str(i));
+                ht = title(['Passive tracer + Floats | t = ' num2str(run.rgrid.ocean_time(1)/86400) ' days']);
                 %axis image;
-                beautify;
+                xlabel('X (km)'); ylabel('Y (km)');
+                beautify([16 16 18]);
+                if run.makeVideo
+                    %shading(gca,'interp');
+                    disp('maximize!');
+                    pause; 
+    %               mm_addFrame(run.mm_instance,gcf);
+                    F = getframe(gcf);
+                    writeVideo(aviobj,F);
+                end
             else
                 set(hf,'CData',run.dye(:,:,i)/1000);
                 set(hc,'ZData',eddy.mask(:,:,i));
@@ -167,10 +183,18 @@ function [] = transport_floats(run)
                 end
                 set(hp,'XData',xf/1000);
                 set(hp,'YData',yf/1000);
-                set(ht,'String',num2str(i));
+                set(ht,'String',['Passive tracer + Floats | t = ' num2str(run.rgrid.ocean_time(i)/86400) ' days']);
+                if run.makeVideo
+                    F = getframe(gcf);
+                    writeVideo(aviobj,F);
+                end
             end
         end
-        pause();
+        pause(0.03);
+    end
+    if run.makeVideo
+       % mm_render(run.mm_instance);
+       close(aviobj);
     end
 end
 
