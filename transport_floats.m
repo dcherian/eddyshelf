@@ -38,22 +38,84 @@ function [] = transport_floats(run)
     initmask(floats.init(:,3) < -100) = NaN;
     
 
+    % transform to (r,theta) about eddy center
+%     indices = ceil(1:floats.fac:size(floats.x,1));
+%     if length(indices) ~= length(eddy.cx)
+%         indices(end) = [];
+%     end
+    % interpolate center location to float times
+    cxi = interp1(eddy.t,eddy.cx,floats.time/86400);
+    cyi = interp1(eddy.t,eddy.cy,floats.time/86400);
+    % is r used elsewhere?
+    [th,rr] = cart2pol(bsxfun(@minus,floats.x,cxi), ...
+                      bsxfun(@minus,floats.y,cyi));
+    th = th .*180/pi;
+    dth = diff(th,1,1);
+    % find Delta-theta > 350 as location where float crosses center line of
+    % eddy
+    indices = bsxfun(@times,double(ceil(dth) > 350),[1:size(dth,1)]');
+    indices = nanmin(fillnan(indices,0),[],1) + 1; % add one to account for diff earlier
+    
+    % find change in angle by dtheta after the float has crossed the
+    % center line
+    dtheta = 90;
+    tic;
+    for a = 1:size(th,2)
+        if ~isnan(indices(a))
+            dtt = th(indices(a):end,a)-th(indices(a),a);
+            ind = find(abs(dtt) >= dtheta,1,'first') + indices(a);
+            floats.x(ind:end,a) = NaN;
+            floats.y(ind:end,a) = NaN;
+        end
+    end
+    toc;
+    disp([num2str(length(cut_nan(indices))) ' float tracks have been truncated.']);
+    
+    %% test plot
+    figure
+    a = 324; 
+    dtt = th(indices(a):end,a)-th(indices(a),a);
+    %dtheta = 90;
+    ind = find(abs(dtt) >= dtheta,1,'first') + indices(a);
+    subplot(211)
+    scatter(floats.x(:,a)/1000,floats.y(:,a)/1000,40,th(:,324),'filled'); 
+    hold on; plot(cxi/1000,cyi/1000);
+    colormap(flipud(copper)); colorbar
+    liney(run.bathy.xsb/1000);
+    plot(floats.x(ind,a)/1000,floats.y(ind,a)/1000,'kx','MarkerSize',20);
+    title(['float track ' num2str(a) ' with theta=color']);
+    legend('theta (deg)','eddy center','shelfbreak','Location','Northwest');
+    xlabel('X (km)'); ylabel('Y (km)');
+    beautify([14 14 16]);
+    subplot(212)
+    plot(floats.time/86400,th(:,324));
+    liney([-180 180]);
+    xlabel('time (days)');
+    ylabel('theta (deg)');
+    beautify([14 14 16]);
+    
+    %%
+    figure
     for i=1:size(eddy.mask,3)
-        fltloc = zeros(sz);
         ff = ceil(i*floats.fac);
         if ff > size(floats.x,1), break; end
         % determine grid indices & make float locations a matrix
         % probably useful later
         xf = (floats.x(ff,:) .* initmask);
         yf = (floats.y(ff,:) .* initmask);
+        zf = (floats.z(ff,:) .* initmask);
         
         % remove points just outside grid
         outsideGrid = fillnan((xf<max(xvec(:))),0);
-        xf = xf .* outsideGrid; yf = yf .* outsideGrid;
+        xf = xf .* outsideGrid; yf = yf .* outsideGrid; zf = zf .* outsideGrid;
         
         % remove floats downstream of eddy
         downstreamEddy = fillnan(xf < eddy.ee(i),0);
-        xf = xf .* downstreamEddy; yf = yf .* downstreamEddy;
+        xf = xf .* downstreamEddy; yf = yf .* downstreamEddy; zf = zf .*downstreamEddy;
+        
+        % keep only 'shallow' floats
+        shallow = fillnan(abs(zf) < 100,0);
+        xf = xf .* shallow; yf = yf .* shallow; zf = zf .* shallow;
         
         % remove floats inside eddy contour
         netmask = eddy.mask(:,:,i);
@@ -62,8 +124,7 @@ function [] = transport_floats(run)
         yg = vecfind(yvec,cut_nan(yf) );
         if ~isempty(xg)
             % nan if float is currently in eddy
-            vec_eddy_mask = fillnan(~netmask(sub2ind(sz,xg,yg)),0);
-            
+            vec_eddy_mask = fillnan(~netmask(sub2ind(sz,xg,yg)),0);  
         else
             vec_eddy_mask = nan(size(xf));
         end
@@ -74,14 +135,20 @@ function [] = transport_floats(run)
         % make float matrix
         %fltloc = make_matrix_mask(sz,xvec,yvec,xf,yf);
         
+        % after all filtering is done, get area over which I want to
+        % integrate
+        if ~isempty(cut_nan(xf))
+            fltloc = make_matrix_mask(sz,xvec,yvec,cut_nan(xf),cut_nan(yf));
+        end
+                
         if ~isempty(run.dye)
             if i == 1
                 clf;
                 hf = pcolor(run.rgrid.xr/1000,run.rgrid.yr/1000,run.dye(:,:,i)/1000);         
-                caxis(clim);
+                caxis(clim);colormap(flipud(cbrewer('div', 'RdYlGn', 32)));
                 shading flat;
-                colorbar; hold on
-                [~,hc] = contour(eddy.xr/1000,eddy.yr/1000,eddy.mask(:,:,i),1,'k');
+                colorbar; hold on; 
+                [~,hc] = contour(eddy.xr/1000,eddy.yr/1000,eddy.mask(:,:,i),1,'w');
                 set(hc,'LineWidth',2);
                 hp = plot(xf/1000,yf/1000,'k.','MarkerSize',12);        
                 if run.bathy.axis == 'y'
@@ -103,13 +170,14 @@ function [] = transport_floats(run)
                 set(ht,'String',num2str(i));
             end
         end
-        pause(0.04);
+        pause();
     end
 end
 
 function [mask] = make_matrix_mask(sz,xvec,yvec,xin,yin)
         xg = vecfind( xvec, xin );
         yg = vecfind( yvec, yin );
+        mask = zeros(sz);
         mask(sub2ind(sz,xg,yg)) = 1;
 end
 
