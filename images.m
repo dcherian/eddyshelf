@@ -40,3 +40,4 @@ for jj=1:length(vars)
     %spaceplots([0 0 0 0], [0.02 0.02]);
     export_fig(['E:\Work\eddyshelf\images\' vars{jj} '.png']);
 end
+

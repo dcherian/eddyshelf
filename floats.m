@@ -231,7 +231,7 @@ classdef floats < handle
             floats.mom1 = bsxfun(@times, ...
                          [nansum(bsxfun(@minus,floats.x,floats.init(:,1)'),2) ...
                           nansum(bsxfun(@minus,floats.y,floats.init(:,2)'),2) ...
-                          nansum(bsxfun(@minus,floats.z,floats.init(:,3)')     ,2)] ...
+                          nansum(bsxfun(@minus,floats.z,floats.init(:,3)'),2)] ...
                           ,1./floats.N);
                       
              % cloud / relative dispersion
@@ -308,9 +308,9 @@ classdef floats < handle
             title(' dashed = LTRANS, line = ROMS');
             beautify([14 14 16]);
             subplot(312)
-            semilogy(floats.time/86400,bsxfun(@times,floats.disp,[1 1 1]),fmt); hold on;
-            xlabel('time (days)'); ylabel(' log(Relative Dispersion)');
-            legend('x (km^2)','y (km^2)','z (m^2)','Location','NorthWest');
+            plot(floats.time/86400,bsxfun(@times,floats.disp,[1 10 10]),fmt); hold on;
+            xlabel('time (days)'); ylabel('Relative Dispersion');
+            legend('x (km^2)','10*y (km^2)','10*z (m^2)','Location','NorthWest');
             beautify([14 14 16]);
             subplot(313)
             plot(floats.time/86400,floats.kur,fmt); hold on;

@@ -33,3 +33,20 @@ export_fig E:/Work/notes/research/eddyshelf/images/compare-ns-ew.png
 %% convergence
 
 % run eddytrackres.m
+
+%% compare floats for runbathysouth-02
+
+run = runs('runs/topoeddy/runbathysouth-02/ocean_avg_004.nc');
+run.eddy = load('runs/topoeddy/runbathysouth-02/eddytrack_004.mat','eddy');
+run.eddy = run.eddy.eddy;
+run.ltrans = floats('ltrans','runs/topoeddy/runbathysouth-02/ltrans-compare.nc',run.rgrid);
+run.ltrans.time = run.ltrans.time + 48*86400;
+%%
+figure
+run.roms.plot_stats
+run.ltrans.plot_stats
+% 
+% figure
+% plot(run.roms.time,run.roms.N); hold on
+% plot(run.ltrans.time,run.ltrans.N,'r');
+% legend('roms','ltrans');
