@@ -394,7 +394,7 @@ classdef runs < handle
             for kk=1:length(loc)
                 cs_vel = double(squeeze(ncread(runs.out_file,'v', ...
                     [1 runs.eutrans.ix(kk) 1 t0],[Inf 1 Inf Inf])));
-
+                % dimensions = (x/y , z , t )
                 mask = nan(size(cs_vel));
                 iwest = vecfind(runs.eddy.xr(:,1),runs.eddy.we);
                 for tt=1:size(cs_vel,3)
@@ -481,8 +481,80 @@ classdef runs < handle
             title('percentage over-estimation = (eulerian - dye)/ dye');
             beautify;
             
+            %% normalized transport plot
+            %xmat = bsxfun(@minus,repmat(runs.rgrid.xr(:,1)/1000,[1 length(runs.rgrid.ocean_time)]), ...
+            %                     runs.eddy.cx/1000);
+            %tmat = repmat(runs.rgrid.ocean_time'/86400,[size(xmat,1) 1]);
+            %plot(xmat,ntrans); linex(0)
+            %disp_plot(runs.eutrans.dye.trans(:,:,4),xmat,runs.rgrid.ocean_time);
+            
+            time = runs.rgrid.ocean_time/86400;
+            % normalize by max.
+            mtrans = max(abs(runs.eutrans.dye.trans),[],1);
+            ntrans = bsxfun(@rdivide,runs.eutrans.dye.trans, mtrans);
+            mtrans = squeeze(mtrans);
+            
+            scrsz = get(0, 'ScreenSize'); 
+            figure('Position', [1 scrsz(4) scrsz(3) scrsz(4)]);
+            for kk = 1:size(runs.eutrans.Itrans,2)
+                % figure out eddy edges at latitude of transport calculation
+                emask = fillnan((bsxfun(@times, ...
+                    squeeze(abs(diff(runs.eddy.mask(:,runs.eutrans.ix(kk),:),1))), ...
+                    [1:size(runs.eddy.mask,1)-1]')'),0)';
+                left = nanmin(emask); right = nanmax(emask);
+                tmask = cut_nan(time' .* fillnan(~isnan(left),0));
+                cmask = cut_nan(runs.eddy.cx/1000 .* fillnan(~isnan(left),0));
+                
+                clf;
+                set(gcf,'Renderer','painters')
+                subplot(1,5,[1 2 3]);
+                hold on
+                for ii=1:size(runs.rgrid.ocean_time)
+                   plot(runs.rgrid.xr(:,1)/1000 - runs.eddy.cx(ii)/1000, ...
+                       ntrans(:,ii,kk) + time(ii));
+                end
+                xlim([-200 50]);ylim([40 90]);
+                %plot(runs.eddy.ee/1000 - runs.eddy.cx/1000,time,'r*');
+                %plot(runs.eddy.we/1000 - runs.eddy.cx/1000,time,'r*');
+                plot(runs.rgrid.xr(cut_nan(left),1)'/1000 - cmask,tmask,'r*');
+                plot(runs.rgrid.xr(cut_nan(right),1)'/1000 - cmask,tmask,'k*');
+                
+                linex(0,'eddy center'); linex(-75);
+                ylabel('Time (days)'); xlabel('X - X_{center}');
+                title(['Normalized Transport (m^2/s) across '  ...
+                    num2str(runs.eutrans.h(kk)) 'm isobath | red dots = edges']);
+                beautify([14 14 16]);
+                subplot(154)
+                hold on
+                if kk ~=1
+                    plot(mtrans(:,1:kk-1),time,'Color',0.75*[1 1 1]);
+                end
+                if kk ~= size(runs.eutrans.Itrans,2)
+                    plot(mtrans(:,kk+1:end),time,'Color',0.75*[1 1 1]);
+                end
+                plot(mtrans(:,kk),time,'b');
+                xlabel('Max. Transport (m^2/day)');
+                ylim([40 90]);xlim([0 40]);
+                beautify([14 14 16]);
+
+                subplot(155)
+                hold on
+                if kk ~=1
+                    plot(runs.eutrans.dye.Itrans(:,1:kk-1)/1e6,time,'Color',0.75*[1 1 1]);
+                end
+                if kk ~= size(runs.eutrans.Itrans,2)
+                    plot(runs.eutrans.dye.Itrans(:,kk+1:end)/1e6,time,'Color',0.75*[1 1 1]);
+                end
+                plot(runs.eutrans.dye.Itrans(:,kk)/1e6,time,'b'); 
+                ylim([40 90]);xlabel('Total Transport (Sv)');
+                title(sprintf('Max transport = %.2f Sv',(max(runs.eutrans.dye.Itrans(:,kk)/1e6))));
+                xlim([-0.2 0.2]); linex(0);
+                
+                export_fig(sprintf('images/transport/%04d.png',runs.eutrans.h(kk)));
+            end
+            
             %% plotting tests
-%             figure;
+%            figure;
 %             clim = [runs.bathy.xsb/1000 runs.bathy.xsb/1000+distance/1000];
 %             rrfac = 7;
 %             for ind = 1:size(runs.eddy.mask,3)
