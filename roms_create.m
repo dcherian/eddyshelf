@@ -4,7 +4,7 @@
 %% Parameters
 % names cannot start with number
 FOLDER    = 'runs\';
-prefix    = 'sbe';
+prefix    = 'te';
 GRID_NAME = [prefix '_grd'];
 INI_NAME  = [prefix '_ini'];
 BRY_NAME  = [prefix '_bry'];
@@ -22,17 +22,17 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 450;
+S.Lm = 300;
 S.Mm = 180;
 S.N  = 40;
 
 % Domain Extent (in m)
-X = 450 * 1000;120;
-Y = 180 * 1000;100;
+X = S.Lm * 1000;120;
+Y = S.Mm * 1000;100;
 Z = 2000;
 
 % tracers
-S.NPT = 0; % number of passive tracers
+S.NPT = 3; % number of passive tracers
 S.NT = 2+S.NPT; % total number of tracers
 
 % vertical stretching
@@ -79,33 +79,36 @@ flags.crooked_bathy = 0;
 flags.perturb_zeta = 0; % add random perturbation to zeta
 flags.spinup = 0; % if spinup, do not initialize ubar/vbar fields.
 
-flags.front = 1; % create shelfbreak front
+flags.front = 0; % create shelfbreak front
 flags.eddy  = 1; % create eddy
 flags.wind  = 0; % create wind forcing file
 flags.ubt_initial = 1; % add barotropic velocity to initial condition?
 flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
 flags.floats = 1; % need to figure out float seeding locations?
+flags.bg_shear = 1;
 
 % eddy momentum balance options
 flags.use_cartesian = 0; % use cartesian forumlation
 flags.use_radial    = 1; % use radial
 flags.use_gradient  = 1; % use gradient wind balance instead of geostrophic
-flags.solidbody     = 1; % solid body core profile?
+flags.solidbody_katsman  = 1; % solid body core profile?
+flags.vprof_gaussian = 0; % eddy is gaussian in vertical?
 
 % OBC + barotropic velocity options
 flags.OBC = 1;  % create OBC file and set open boundaries
 flags.OBC_from_initial = 1; % copy OBC data from initial condition?
 
-flags.comment = ['solidbody = solid body core profile for eddy | ' ...
+flags.comment = ['solidbody_katsman = solid body core profile for eddy (Katsman et al. 2003) | ' ...
     'OBC_from_initial = copy OBC data from IC? | use_gradient = gradient ' ...
     'wind balance instead of geostrophic | use_radial = use expression in' ...
     ' radial instead of cartesian co-ordinates | perturb_zeta = add random' ...
     ' perturbation to initial free surface field | ubt_initial = add background' ...
-    ' barotropic velocity field | fplanezeta = f-plane solution for zeta (BT vel)'];
+    ' barotropic velocity field | fplanezeta = f-plane solution for zeta (BT vel) |' ...
+    ' vprof_gaussian = if 1, then eddy is Gaussian in vertical'];
 
 % DO NOT CHANGE THIS ORDER
 if flags.OBC
-    OBC.west  = false;           % process western  boundary segment
+    OBC.west  = true;           % process western  boundary segment
     OBC.east  = false;           % process eastern  boundary segment
     OBC.south = false;           % process southern boundary segment
     OBC.north = false;            % process northern boundary segment
@@ -115,8 +118,9 @@ end
 %flags.localize_jet = 0;% buffer around eddy where velocity should exist - NOT NEEDED
 
 % Barotropic background flow parameters
-ubt = 0.04; % m/s barotropic velocity
-vbt = 0;-0.04; % m/s barotropic velocity
+bg.ubt = 1;0.04; % m/s barotropic velocity
+bg.vbt = 0;-0.04; % m/s barotropic velocity
+bg.shear = 2000 * (2e-11);
 
 % Bathymetry parameters - all measurements in m
 bathy.H_shelf  = 100;
@@ -146,12 +150,12 @@ bathy.comment = ['H_shelf = depth at coast | L_shelf = shelf width | ' ...
                  ' isl,xsl,hsl = index, axis loc, depth at end of continental slope'];
 
 % Eddy parameters - all distances in m
-eddy.dia   = 50*1000;
+eddy.dia   = 45*1000;
 eddy.depth = 500; % depth below which flow is 'compensated'
 eddy.tamp  = 25; % controls gradient
 eddy.a     = 3;  % ? in Katsman et al. (2003)
-eddy.cx    = 80 * 1000; % center of eddy
-eddy.cy    = 100 * 1000; %597000; %    "
+eddy.cx    = 220 * 1000; % center of eddy
+eddy.cy    = 120 * 1000; %597000; %    "
 %eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero 
 eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
                 ' of temp. perturbation | a = alpha in Katsman et al. (2003)' ...
@@ -162,7 +166,7 @@ eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
 front.LTleft  = 12.5 * 1000; % length scale for temperature (m) - onshore
 front.LTright = 8*1000; % length scale - offshore
 front.LTz     = 100; % Gaussian decay scale in the vertical for temperature
-front.slope   = 500/4000; % non-dimensional
+front.slope   = 100/4000; % non-dimensional
 front.Tx0     = 1.2/60000/SCOEF/R0; % max. magnitude of temperature gradient
 front.Tra     = 'salt';
 front.comment = ['LTleft = onshore length scale | LTright = offshore length scale' ...
@@ -814,7 +818,7 @@ if flags.eddy
     eddy.z = squeeze(zrmat(eddy.ix,eddy.iy,:));
 
     % eddy temp. field - xy profile - Reference: Katsman et al. (2003)
-    if flags.solidbody % solid body rotation
+    if flags.solidbody_katsman % solid body rotation
         if eddy.a <= 2
             error('eddy.a > 2 for solid body profiles! See Katsman et al. (2003)');
         end
@@ -842,8 +846,15 @@ if flags.eddy
 %     eddy.zprof = [zeros(ind-eddy.Ncos,1); (1-cos(pi * [0:eddy.Ncos]'/eddy.Ncos))/2; ones(S.N-ind-1,1)];
     
     % use half-Gaussian profile & normalize
-    eddy.zprof = exp(-(eddy.z ./ eddy.depth) .^ 2);
-    eddy.zprof = eddy.zprof./trapz(eddy.z,eddy.zprof);
+    if flags.vprof_gaussian
+        eddy.zprof = exp(-(eddy.z ./ eddy.depth) .^ 2);
+        eddy.zprof = eddy.zprof./trapz(eddy.z,eddy.zprof);
+    else % energy in barotropic and BC1 mode  
+        theta0 = 0; % surface phase anomaly
+        eddy.zprof = 1+sin((Z/2 - eddy.z)/Z * pi + theta0);
+        eddy.zprof = eddy.zprof./trapz(eddy.z,eddy.zprof);
+        eddy.depth = Z/2;
+    end
 
     % add eddy temperature perturbation
     eddy.tz = strat_flat .* repmat(permute(eddy.zprof,[3 2 1]),[S.Lm+2 S.Mm+2 1]);
@@ -864,7 +875,7 @@ if flags.eddy
         end
         
         % SSH calculation is same for gradient wind & geostrophic balance?
-        if flags.solidbody
+        if flags.solidbody_katsman
             S.zeta = S.zeta + TCOEF*eddy.tamp * int_Tz .* eddy.xyprof;                      
             % Calculate azimuthal velocity shear (r d(theta)/dt)_z using geostrophic balance
             dTdr = gamma * rnorm ./ r0 .* (rnorm <= rmnorm) ...
@@ -1033,25 +1044,51 @@ if flags.ubt_initial == 1
 %         plot(S.zeta(30,:));
 % 
 %     else
-        if ubt ~=0 && vbt ~=0 
+        if bg.ubt ~=0 && bg.vbt ~=0 
             error('Adding both x and y barotropic velocity in initial condition. WILL NOT WORK!');
         end
         
-        if vbt == 0
-            S.u = S.u + ubt;
+        % modify ubt / vbt based on shear
+        % bg.ubt , bg.vbt are scalars = value of backgroudn vel if no shear
+        % if shear, then value of bg.ubt/vbt does not matter. one must be
+        % zero to choose where to apply shear - u or v?
+        if flags.bg_shear == 1
+            if bg.vbt == 0 && bg.ubt == 0
+                error('ubt = 0 & vbt = 0, but bg_shear enabled');
+            end
+            if bg.vbt == 0
+                % need uy shear
+                uu = bg.shear * yrmat(1,:,1);
+                uu = uu - mean(uu(:));
+                ubt = repmat(uu,[size(yrmat,1) 1]);
+            else
+                if bg.ubt == 0
+                    vv = bg.shear * xrmat(:,1,1);
+                    vv = vv - mean(vv(:));
+                    vbt = repmat(vv,[1 size(xrmat,2)]);
+                end
+            end
+        else
+            ubt = bg.ubt * ones(size(f));
+            vbt = bg.vbt * ones(size(f));
+        end
+        
+        if bg.vbt == 0
+            S.u = bsxfun(@plus,S.u,avg1(ubt,1));
             if flags.fplanezeta
-                S.zeta = S.zeta + cumtrapz(squeeze(yrmat(1,:,1)),-f0.*ones(size(f))./g * ubt,2);
+                S.zeta = S.zeta + cumtrapz(squeeze(yrmat(1,:,1)),-f0./g * ubt,2);
             else
                 error('fplanezeta not enabled.');
             end
         else
-            S.v = S.v + vbt; 
+            S.v = bsxfun(@plus,S.v,avg1(vbt,2)); 
             if ~flags.fplanezeta
-               S.zeta = S.zeta + cumtrapz(squeeze(xrmat(:,1,1)),f./g * vbt,1);
+               S.zeta = S.zeta + cumtrapz(squeeze(xrmat(:,1,1)),f./g .* vbt,1);
             else
-               S.zeta = S.zeta + cumtrapz(squeeze(xrmat(:,1,1)),f0.*ones(size(f))./g * vbt,1); 
+               S.zeta = S.zeta + cumtrapz(squeeze(xrmat(:,1,1)),f0./g * vbt,1); 
             end
         end
+
 end
 
 %% Misc calculations (ubar,vbar,pv) - shouldn't require changes
@@ -1242,7 +1279,7 @@ if flags.floats
     str = 'select rectangle for float deployment';
     title(str);
     disp(str);
-    %[floatx,floaty] = select_rect();
+    [floatx,floaty] = select_rect();
 end
 
 %% Open Boundary Conditions - Initialize and write
@@ -1542,8 +1579,9 @@ ncwrite(INIname, 'salt', S.salt);
 write_params_to_ini(INI_NAME,flags);
 write_params_to_ini(INI_NAME,bathy);
 write_params_to_ini(INI_NAME,phys);
-write_params_to_ini(INI_NAME,ubt,'u_background_barotropic');
-write_params_to_ini(INI_NAME,vbt,'v_background_barotropic');
+write_params_to_ini(INI_NAME,bg);
+% write_params_to_ini(INI_NAME,ubt,'u_background_barotropic');
+% write_params_to_ini(INI_NAME,vbt,'v_background_barotropic');
 if flags.front, write_params_to_ini(INI_NAME,front); end
 if flags.eddy,  write_params_to_ini(INI_NAME,eddy); end
 if flags.wind,  write_params_to_ini(INI_NAME,wind); end
