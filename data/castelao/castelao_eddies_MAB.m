@@ -49,29 +49,38 @@ for BB=1:size(ssh30,3)
 end
         
 
-%%
-% example of trajectory of an anticyclone
+%% example of trajectory of an anticyclone
 close all
 
-aaaa=104;
+mm = 5;
     
-te=find(yearssh==eayear{aaaa}(1) & dayssh== eaday{aaaa}(1))   
-   
+te=find(yearssh==eayear{aaaa}(1) & dayssh== eaday{aaaa}(1)) ;  
+[cc,hh] = contour(Xuseast(1:mm:end,1:mm:end), ...
+                      Yuseast(1:mm:end,1:mm:end), ...
+                      Zuseast(1:mm:end,1:mm:end), ...
+                      [100 200 500 1000 2000 3000 4000],'k');
+                  hold on
+clabel(cc,hh);
+
 ap=eaX{aaaa};
-for j=1:length(ap)
-pcolor(xx,yy,ssh30(:,:,te-1+j))
+
+j =1;
+hssh = pcolor(xx,yy,ssh30(:,:,te-1+j));
 shading interp
 caxis([-30 30])
+axis image;
 hold on
 plot(cx,cy,'k')
-plot(eaX{aaaa}(1:j),eaY{aaaa}(1:j),'ob','markerfacecolor','b')
-plot(eaX{aaaa}(1:j),eaY{aaaa}(1:j),'b')
-title(j)
-pause
-clf
+ylim([31 43]);
+
+for j=2:length(ap)
+    set(hssh,'CData',ssh30(:,:,te-1+j));
+    plot(eaX{aaaa}(1:j),eaY{aaaa}(1:j),'ob-','markerfacecolor','b')
+    title(j)
+    pause
 end
 
-% example of trajectory of a cyclone
+%% example of trajectory of a cyclone
 
 close all
 
@@ -94,7 +103,7 @@ clf
 end
 
 
-% ploting frequency
+%% ploting frequency
 
 
 xlim=[min(min(xx)) max(max(xx))];

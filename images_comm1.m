@@ -1,7 +1,10 @@
 %% compare N-S & E-W isobaths
 
-%runns = runs('runs/topoeddy/runteb-04-hires-9');
+runns = runs('runs/topoeddy/runteb-04-hires-9');
 %runew = runs('runs/topoeddy/runbathysouth-02/ocean_avg_001.nc');
+% updated for run with closed boundaries, same resolution, and similar
+% initial location - this is a much better comparision
+runew = runs('runs/topoeddy/runbathysouth-03-new/');
 
 fontsize = [14 14 16];
 figure
