@@ -82,19 +82,20 @@ classdef runs < handle
                     edd = load([dir '/eddytrack.mat'],'eddy');
                 end
                 runs.eddy = edd.eddy;
-                if runs.bathy.axis == 'y'
-                    edge = runs.eddy.se;
-                else
-                    edge = runs.eddy.we;
-                end
-                runs.eddy.prox = (edge-runs.bathy.xsb);
-                h = runs.bathy.h(2:end-1,2:end-1);
-            
-                ix = vecfind(runs.eddy.xr(:,1),runs.eddy.mx);
-                iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.my);
-
-                runs.eddy.hcen = h(sub2ind(size(runs.eddy.xr),ix,iy))';
             end
+            
+            if runs.bathy.axis == 'y'
+                edge = runs.eddy.se;
+            else
+                edge = runs.eddy.we;
+            end
+            runs.eddy.prox = (edge-runs.bathy.xsb);
+            h = runs.bathy.h(2:end-1,2:end-1);
+
+            ix = vecfind(runs.eddy.xr(:,1),runs.eddy.mx);
+            iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.my);
+
+            runs.eddy.hcen = h(sub2ind(size(runs.eddy.xr),ix,iy))';
             
             if exist(runs.ltrans_file,'file')
                 runs.ltrans = floats('ltrans',runs.ltrans_file,runs.rgrid);
@@ -128,6 +129,7 @@ classdef runs < handle
             end
             ht = title([num2str(runs.rgrid.ocean_time(1)/86400)  ' days']);
             xlabel('X (km)');ylabel('Y (km)');
+            axis image;
             if runs.makeVideo
                 %shading(gca,'interp');
                 disp('maximize!');
@@ -596,7 +598,7 @@ classdef runs < handle
             ii = 1; colors(1) = 'b';
             aa = 5; bb = aa*2;
             figure;
-            subplot(aa,2,[1:2:bb]); hold on
+            subplot(aa,2,[1:2:bb-2*2]); hold on
             pcolorcen(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.bathy.h);
             xlabel('X (km)'); ylabel('Y (km)');
             plot(eddy.cx/1000,eddy.cy/1000,'Color',colors(ii,:),'LineWidth',2);
@@ -623,6 +625,57 @@ classdef runs < handle
             plot(eddy.t,eddy.Lz2,'Color',colors(ii,:));
             ylabel('vertical scale (m)');
             xlabel('time (days)');
+            
+            subplot(aa,2,[7 9] ); hold on
+            plot(eddy.t,eddy.hcen,'b');
+            plot(eddy.t,runs.params.phys.f0 / sqrt(runs.params.phys.N2) * runs.eddy.dia,'r');
+            legend('H_{center}','f/N*dia');
+            xlabel('Time (days)');
+            ylabel('(m)');
+        end
+        
+        function [] = compare_plot(runs,num)
+            eddy = runs.eddy;
+            ii = num;
+            colors = distinguishable_colors(10);
+            aa = 6; bb = aa*2;
+            subplot(aa,2,[1:2:bb-2*2]); hold on
+            %pcolorcen(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.bathy.h);            colorbar
+            xlabel('X (km)'); ylabel('Y (km)');
+            plot(eddy.cx/1000,eddy.cy/1000,'Color',colors(ii,:),'LineWidth',2);
+            if runs.bathy.axis == 'x'
+                plot(eddy.we/1000,eddy.cy/1000,'Color',colors(ii,:),'LineStyle','--');
+            else
+                plot(eddy.cx/1000,eddy.se/1000,'Color',colors(ii,:),'LineStyle','--');
+            end
+            axis image; axis tight
+            subplot(aa,2,2); hold on
+            plot(eddy.t,eddy.amp,'Color',colors(ii,:));
+            ylabel('amplitude (m)');
+            subplot(aa,2,4); hold on
+            plot(eddy.t,eddy.dia/1000,'Color',colors(ii,:));
+            ylabel('diameter (km)');
+            subplot(aa,2,6); hold on
+            plot(eddy.t,eddy.cx/1000,'Color',colors(ii,:));
+            ylabel('x - center (km)');
+            subplot(aa,2,8); hold on
+            plot(eddy.t,eddy.cy/1000,'Color',colors(ii,:));
+            ylabel('y - center (km)');
+            subplot(aa,2,10); hold on
+            plot(eddy.t,eddy.Lz2,'Color',colors(ii,:));
+            ylabel('vertical scale (m)');
+            %xlabel('time (days)');
+            subplot(aa,2,12); hold on
+            plot(eddy.t,eddy.prox/1000,'Color',colors(ii,:));
+            xlabel('time (days)');
+            ylabel('Proximity (km)');
+            
+            subplot(aa,2,[9 11] ); hold on
+            plot(eddy.t,eddy.hcen,'Color',colors(ii,:));
+%             plot(eddy.t,runs.params.phys.f0 / sqrt(runs.params.phys.N2) * runs.eddy.dia,'Color',colors(ii,:),'LineStyle','--');
+%             legend('H_{center}','f/N*dia');
+            xlabel('Time (days)');
+            ylabel('H_{center}(m)');
         end
         
     end
