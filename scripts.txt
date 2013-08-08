@@ -20,6 +20,9 @@ analyze_topoeddy - analyzes eddy on beta plane with topography
 calc_nondim		 - calculates needed non-dimensional parameters
 diagnostics		 - lots of code for diagnostic plots
 
+compare_floats   - compare float moments for LTRANS and ROMS
+compare_ew		 - analyze E-W isobath runs with & without mean flow
+
 %%%%%%%%% FILES %%%%%%%%%%%%
 
 eddytrack.mat 	 - eddy track from track_eddy.m
