@@ -1,3 +1,19 @@
+%%%%%%%%%% FOLDER STRUCTURE %%%%%%%%%%%%%
+
+- oldeddy\ - old vertical gaussian profile eddy
+	- proximity - essentially topoeddy
+	- sbeddy - front + eddy simulations
+	- 
+- sbreak - shelfbreak front tests
+- solideddytest - test out solid body profile
+- wind   - testing wind driven bg flow
+- zhangeddy - testing out Zhang profile.
+
+New Zhang eddy
+- topoeddy
+	- 
+
+%%%%%%%%%%
 track_eddy.m - implementing chelton et al. (2011) method
 
 bathy_crooked.m, bathy2.m - these are both scripts that create fancy shaped bathymetry

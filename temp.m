@@ -18,3 +18,23 @@ end
 %end
 
 plot(metric);
+
+%%
+
+beta = 2e-11;
+bg.shear = -beta;
+yvec = yrmat(1,:,1);
+Y = max(yrmat(:));
+
+ubt0 = 0.05;
+ubtmax = 0.05;
+
+% u = beta * y^2/2 + C1 * y + C2
+% u = 0 @ y = 0 => C2 = 0
+% u = ubtmax @ y = Y => 
+C1 = ubtmax/Y - bg.shear * Y/2;
+
+ubt = bg.shear * yvec.^2/2 + C1 * yvec;
+
+plot(yvec/1000,ubt)
+

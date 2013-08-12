@@ -38,19 +38,30 @@ function [eddy] = track_eddy(dir)
     
     % initial guess for vertical scale fit
     params = read_params_from_ini(dir);
-    initGuess2(2) = params.eddy.depth;
-    initGuess3(2) = params.eddy.depth;
-    if ~isfield(params,'phys')
-        T0 = 20; N2 = 1e-5; g = 9.81; TCOEF = 1.7e-4;
+    if ~isfield(params.flags,'vprof_gaussian') || params.flags.vprof_gaussian
+        initGuess2(2) = params.eddy.depth;
+        initGuess3(2) = params.eddy.depth;
+        if ~isfield(params,'phys')
+            T0 = 20; N2 = 1e-5; g = 9.81; TCOEF = 1.7e-4;
+        else
+            T0 = params.phys.T0; 
+            N2 = params.phys.N2;
+            g  = params.phys.g;
+            TCOEF = params.phys.TCOEF;
+        end
+        initGuess2(1) = T0;
+        initGuess3(1) = T0;
+        initGuess3(3) = N2./g./TCOEF;
     else
-        T0 = params.phys.T0; 
-        N2 = params.phys.N2;
-        g  = params.phys.g;
-        TCOEF = params.phys.TCOEF;
+        % for sine fits
+        initGuess(1) = params.eddy.tamp;
+        initGuess(2) = 2*pi/params.eddy.depth;
+        try
+            initGuess(3) = params.eddy.theta0;
+        catch ME
+            initGuess(3) = 0;
+        end
     end
-    initGuess2(1) = T0;
-    initGuess3(1) = T0;
-    initGuess3(3) = N2./g./TCOEF;
 
     % detect shelfbreak
     [sbreak,~,~] = find_shelfbreak(fname);
@@ -123,12 +134,18 @@ function [eddy] = track_eddy(dir)
             Ti = double(squeeze(ncread(fname,'temp',[size(xr,1)  imy  1 tt-tt0],[1 1 Inf 1])));
         end
         opts = optimset('MaxFunEvals',1e3);
-        [x2,~,exitflag] = fminsearch(@(x) gaussfit2(x,eddy.T(tt,:)'-Ti,ze),initGuess2,opts);
-        if ~exitflag, x2(2) = NaN; end
-        [x3,~,exitflag] = fminsearch(@(x) gaussfit3(x,eddy.T(tt,:)'-Ti,ze),initGuess3,opts);
-        if ~exitflag, x3(2) = NaN; end
-        eddy.Lz2(tt)  = abs(x2(2));
-        eddy.Lz3(tt)  = abs(x3(2));
+        if ~isfield(params.flags,'vprof_gaussian') || params.flags.vprof_gaussian
+            [x2,~,exitflag] = fminsearch(@(x) gaussfit2(x,eddy.T(tt,:)'-Ti,ze),initGuess2,opts);
+            if ~exitflag, x2(2) = NaN; end
+            %[x3,~,exitflag] = fminsearch(@(x) gaussfit3(x,eddy.T(tt,:)'-Ti,ze),initGuess3,opts);
+            %if ~exitflag, x3(2) = NaN; end
+            eddy.Lz2(tt)  = abs(x2(2));
+            eddy.Lz3(tt)  = NaN;%abs(x3(2));
+        else
+            %fit sinusoid
+            [x2,~,exitflag] = fminsearch(@(x) sinefit(x,eddy.T(tt,:)'-Ti,ze),initGuess,opts);
+            eddy.Lz2(tt) = abs(2*pi/x2(2));
+        end
         
         % pcolor(xr,yr,eddy.mask(:,:,tt).*zeta(:,:,tt)); linex(eddy.mx(tt));title(num2str(tt))
         % calculate center velocity
@@ -174,6 +191,10 @@ function [E] = gaussfit3(x0,T,zr)
     T0 = x0(1); h = x0(2); a = x0(3);
     
     E = sum((T - (T0+a*zr) .* (exp(-(zr/h).^2))).^2);
+    
+function [E] = sinefit(x0,T,zr)
+    T0 = x0(1); k = x0(2); theta_0 = x0(3);
+    E = sum((T - T0 * (1+cos(k/4*zr + theta_0))/2).^2);
 
 % Calculates eddy diagnostics as in Chelton et al. (2011)
 % doesn't support multiple eddies yet

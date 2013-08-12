@@ -4,7 +4,7 @@
 %% Parameters
 % names cannot start with number
 FOLDER    = 'runs\';
-prefix    = 'bg';
+prefix    = 'te';
 GRID_NAME = [prefix '_grd'];
 INI_NAME  = [prefix '_ini'];
 BRY_NAME  = [prefix '_bry'];
@@ -22,13 +22,13 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 100;300;
-S.Mm = 100;180;
+S.Lm = 400;
+S.Mm = 400;
 S.N  = 40;
 
 % Domain Extent (in m)
-X = S.Lm * 5000;120;
-Y = S.Mm * 5000;100;
+X = S.Lm * 1000;120;
+Y = S.Mm * 1000;100;
 Z = 1500;
 
 % tracers
@@ -45,7 +45,7 @@ S.Tcline  = 100.0;    %  S-coordinate surface/bottom stretching width (m)
 % coriolis parameters
 lat_ref = 45;
 f0    = 2 * (2*pi/86400) * sind(lat_ref);
-beta  = 0;2e-11;
+beta  = 2e-11;
 
 % Physical Parameters
 N2    = 1e-5;
@@ -72,7 +72,7 @@ phys.comment = ['rho0 = Boussinessq approx. | (T0,S0,R0,TCOEF,SCOEF) = linear EO
 
 flags.tanh_bathymetry = 0;
 flags.linear_bathymetry = 1;
-flags.flat_bottom = 1; % set depth in Z above
+flags.flat_bottom = 0; % set depth in Z above
 flags.old_bathy = 0;
 flags.crooked_bathy = 0;
 
@@ -82,10 +82,10 @@ flags.spinup = 0; % if spinup, do not initialize ubar/vbar fields.
 flags.front = 0; % create shelfbreak front
 flags.eddy  = 1; % create eddy
 flags.wind  = 0; % create wind forcing file
-flags.ubt_initial = 1; % add barotropic velocity to initial condition?
+flags.ubt_initial = 0; % add barotropic velocity to initial condition?
 flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
-flags.floats = 1; % need to figure out float seeding locations?
-flags.bg_shear = 1;
+flags.floats = 0; % need to figure out float seeding locations?
+flags.bg_shear = 0;
 
 % eddy momentum balance options
 flags.use_cartesian = 0; % use cartesian forumlation
@@ -96,7 +96,7 @@ flags.eddy_zhang = ~flags.solidbody_katsman;
 flags.vprof_gaussian = ~flags.eddy_zhang; % eddy is gaussian in vertical?
 
 % OBC + barotropic velocity options
-flags.OBC = 1;  % create OBC file and set open boundaries
+flags.OBC = 0;  % create OBC file and set open boundaries
 flags.OBC_from_initial = 1; % copy OBC data from initial condition?
 
 flags.comment = ['solidbody_katsman = solid body core profile for eddy (Katsman et al. 2003) | ' ...
@@ -122,7 +122,11 @@ end
 % Barotropic background flow parameters
 bg.ubt = 1;0.04; % m/s barotropic velocity
 bg.vbt = 0;-0.04; % m/s barotropic velocity
-bg.shear = 2000 * (2e-11);
+bg.shear_fac = 0.2; 
+bg.shear = NaN; % set later as bg.shear_fac * max(eddy vorticity)
+bg.comment = ['shear = shear_fac * max(eddy vorticity) | ', ...
+              'ubt,vbt = whichever is non-zero gets assigned shear ', ...
+              'if flags.bg_shear = 0, then ubt/vbt is added (again non-zero)'];
 
 % Bathymetry parameters - all measurements in m
 bathy.H_shelf  = 100;
@@ -131,7 +135,7 @@ bathy.L_slope  =  50 * 1000;
 bathy.axis = 'y'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
 bathy.sl_shelf = 0.0005;
-bathy.sl_slope = 0.05;
+bathy.sl_slope = 0.04;
 % bathymetry smoothing options
 bathy.n_points = 4;
 bathy.n_passes = 6;
@@ -152,17 +156,18 @@ bathy.comment = ['H_shelf = depth at coast | L_shelf = shelf width | ' ...
                  ' isl,xsl,hsl = index, axis loc, depth at end of continental slope'];
 
 % Eddy parameters - all distances in m
-eddy.dia   = 90*1000;
-eddy.depth = 0; % depth below which flow is 'compensated'
-eddy.tamp  = 2; % controls gradient
-eddy.a     = 3;  % ? in Katsman et al. (2003)
-eddy.cx    = X/2;220 * 1000; % center of eddy
-eddy.cy    = 1.8*Y/3;120 * 1000; %597000; %    "
+eddy.dia    = 90*1000;
+eddy.depth  = 0; % depth below which flow is 'compensated'
+eddy.tamp   = 1.5; % controls gradient
+eddy.a      = 3;  % ? in Katsman et al. (2003)
+eddy.cx     = 220 * 1000; % center of eddy
+eddy.cy     = 220 * 1000; %597000; %    "
+eddy.theta0 = 0;
 %eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero 
 eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
                 ' of temp. perturbation | a = alpha in Katsman et al. (2003)' ...
                 ' | (cx,cy) = (x,y) location of center | (ix,iy) = indices of center | ' ...
-                'U = max. azimuthal velocity'];
+                'U = max. azimuthal velocity | theta0 = surface phase anomaly'];
 
 % Shelfbreak front parameters
 front.LTleft  = 12.5 * 1000; % length scale for temperature (m) - onshore
@@ -301,37 +306,6 @@ ncwrite(INIname,   's_rho',       S.s_rho);
 ncwrite(INIname,   's_w',         S.s_w);
 ncwrite(INIname,   'Cs_r',        S.Cs_r);
 ncwrite(INIname,   'Cs_w',        S.Cs_w);
-
-
-%---------------------------------------------------------------------------
-%  Interpolate OA of temperature and salinity from standard levels to
-%  model depths.
-%---------------------------------------------------------------------------
-% 
-% if (OA_INTERPOLATE),
-% 
-%   disp(' ')
-%   disp([ 'Interpolating from OA fields, please wait ...']);
-%   
-%   InpRec = 1;
-% 
-%   Zoa=nc_read(OAname, 'zout');
-% 
-%   oa_temp=nc_read(OAname, 'temp', InpRec);
-%   oa_salt=nc_read(OAname, 'salt', InpRec);
-% 
-%   for j=1:Mr,
-%     for i=1:Lr,
-%       Zroms = squeeze(z_r(i,j,:));
-%       Toa   = squeeze(oa_temp(i,j,:));
-%       Soa   = squeeze(oa_salt(i,j,:));
-% 
-%       S.temp(i,j,:) = interp1(Zoa, Toa, Zroms, method);
-%       S.salt(i,j,:) = interp1(Zoa, Soa, Zroms, method);
-%     end,
-%   end,
-%   
-% end,
 
 % salt
 S.salt = S0*ones(size(S.salt));
@@ -862,8 +836,7 @@ if flags.eddy
     if flags.vprof_gaussian
         eddy.zprof = exp(-(eddy.z ./ eddy.depth) .^ 2);
     else % energy in barotropic and BC1 mode  
-        theta0 = 0; % surface phase anomaly
-        eddy.zprof = (1+sin((Z/2 - eddy.z)/Z * pi + theta0))/2;
+        eddy.zprof = (1+sin((Z/2 - eddy.z)/Z * pi + eddy.theta0))/2;
         eddy.depth = Z/2;
     end
     %eddy.zprof = eddy.zprof./trapz(eddy.z,eddy.zprof);
@@ -1050,6 +1023,9 @@ if flags.eddy
     
     linkaxes([axe(1) axe(3) axe(5) axe(7)],'xy');
     linkaxes([axe(2) axe(4) axe(6) axe(8)],'xy');
+    
+    % clear variables to save space
+    clear rut rutz dTdr 
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1078,22 +1054,24 @@ if flags.ubt_initial == 1
         end
         
         % modify ubt / vbt based on shear
-        % bg.ubt , bg.vbt are scalars = value of backgroudn vel if no shear
+        % bg.ubt , bg.vbt are scalars = value of background vel if no shear
         % if shear, then value of bg.ubt/vbt does not matter. one must be
         % zero to choose where to apply shear - u or v?
         if flags.bg_shear == 1
             if bg.vbt == 0 && bg.ubt == 0
                 warning('No background velocity added');
             else
+                bg.shear = bg.shear_fac * max(abs(vor(:)));
                 if bg.vbt == 0
                     % need uy shear
-                    uu = bg.shear * yrmat(1,:,1);
-                    uu = uu - mean(uu(:));
+                    bg.shear = bg.shear * -1;
+                    uu  = bg.shear * (yrmat(1,:,1));
+                    uu  = uu - mean(uu(:));
                     ubt = repmat(uu,[size(yrmat,1) 1]);
                 else
                     if bg.ubt == 0
-                        vv = bg.shear * xrmat(:,1,1);
-                        vv = vv - mean(vv(:));
+                        vv  = bg.shear * (xrmat(:,1,1));
+                        vv  = vv - mean(vv(:));
                         vbt = repmat(vv,[1 size(xrmat,2)]);
                     end
                 end
@@ -1119,7 +1097,6 @@ if flags.ubt_initial == 1
                S.zeta = S.zeta + cumtrapz(squeeze(xrmat(:,1,1)),f0./g * vbt,1); 
             end
         end
-
 end
 
 %% Misc calculations (ubar,vbar,pv) - shouldn't require changes
@@ -1251,6 +1228,8 @@ else
     fprintf('\n Min. Ri = %.3f\n\n', nanmin(Ri(:)));
 end 
 
+clear dRdx dRdy dzdx dzdy
+
 %% Passive Tracers - Initial condition + writing
 
 if S.NPT > 0
@@ -1301,6 +1280,8 @@ if S.NPT > 0
     end
 end
 
+clear dye_01 dye_02 dye_03
+
 %% Floats - figure out seeding locations
 
 if flags.floats
@@ -1310,7 +1291,7 @@ if flags.floats
     str = 'select rectangle for float deployment';
     title(str);
     disp(str);
-    [floatx,floaty] = select_rect();
+    %[floatx,floaty] = select_rect();
 end
 
 %% Open Boundary Conditions - Initialize and write
@@ -1537,6 +1518,10 @@ if make_plot
     linkaxes([ax(5:8)],'xy');
 
 end
+
+%% clear some vars
+
+clear pv grid1
 
 %% Write to Grid & IC file
 

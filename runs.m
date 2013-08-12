@@ -678,5 +678,10 @@ classdef runs < handle
             ylabel('H_{center}(m)');
         end
         
+        function [] = tracer_budget(runs)
+            tracer = roms_read_data(runs.out_file,'dye_02');
+            
+        end
+        
     end
 end
