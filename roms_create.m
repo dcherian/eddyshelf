@@ -23,7 +23,7 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
 S.Lm = 400;
-S.Mm = 300;
+S.Mm = 320;
 S.N  = 40;
 
 % Domain Extent (in m)
@@ -162,8 +162,9 @@ eddy.dia    = 50*1000;
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
 eddy.tamp   = 0.40; % controls gradient
-eddy.a      = 3;  % ? in Katsman et al. (2003 - NOT FOR ZHANG PROFILE
+eddy.a      = 3;  % ? in Katsman et al. (2003) - NOT FOR ZHANG PROFILE
 eddy.buffer = 10*1000; % distance from start of deep water (domain edge) to 4.4*r0
+                       % should account for sponges
 eddy.cx     = NaN; % determined using buffer later
 eddy.cy     = NaN; %              "
 eddy.theta0 = 0; % surface phase anomaly from Zhang et al. (2013)
@@ -553,6 +554,8 @@ contour(S.x_rho/fx,S.y_rho/fy,-S.h./f,30,'k');
 xlabel(['x ' lx]); ylabel(['y ' ly]); title('f/h');
 beautify;
 
+spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
+
 % save for later use
 bathy.h = S.h;
 
@@ -753,6 +756,8 @@ if flags.front
     linkaxes([axt(1) axt(2) axt(5) axt(6)],'xy');
     linkaxes([axt(4) axt(7)],'xy');
     
+    spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
+    
     % calculate diagnostics
     % define horizontal and vertical scales of jet  as half the core velocity 
     % like in Fratantoni et al (2001) & Linder & Gawarkiewicz (1998)
@@ -805,9 +810,21 @@ if flags.eddy
         case 'x'
             eddy.cx = bathy.xsl+eddy.buffer+4.4*eddy.dia/2;
             eddy.cy = Y-eddy.buffer-4.4*eddy.dia/2;
+            if X-eddy.cx-4.4*eddy.dia/2 < eddy.buffer
+                warning('Eastern edge - eddy center < buffer');
+            else
+                fprintf('Distance from eastern edge = %.2f km \n', ...
+                    (X-eddy.cx-4.4*eddy.dia/2)/1000);
+            end
         case 'y'
             eddy.cx = X-eddy.buffer-4.4*eddy.dia/2; % center of eddy
             eddy.cy = bathy.xsl+eddy.buffer+4.4*eddy.dia/2; %597000; %    "
+            if Y-eddy.cy-4.4*eddy.dia/2 < eddy.buffer
+                warning('Northern edge - eddy center < buffer');
+            else
+                fprintf('Distance from northern edge = %.2f km \n', ...
+                    (Y-eddy.cy-4.4*eddy.dia/2)/1000);
+            end
     end
 
     % cylindrical co-ordinates
@@ -937,13 +954,14 @@ if flags.eddy
         eddy.R = r(iU,eddy.iy);
         
         % calculate nondim parameters
-        nondim.Ro = eddy.U ./mean(f(rnorm < r(iU,eddy.iy)))./eddy.R;
-        if  nondim.Ro > 0.25, error('Error: Ro > 0.25'); end
-        nondim.Bu = N2*(Z/f0/eddy.R)^2;
-        nondim.Ri = N2./(TCOEF*g*eddy.tamp/f0/eddy.R).^2;
-        nondim.Bu_temp = TCOEF *g * Z * eddy.tamp / f0^2 / eddy.R^2;
-        fprintf('\n max. Ro = %.2f | Bu = %.2f | Bu_temp = %.2f\n | Ri = %.2f \n\n', ....
-                nondim.Ro,nondim.Bu,nondim.Bu_temp,nondim.Ri);
+        nondim.eddy.Ro = eddy.U ./mean(f(rnorm < r(iU,eddy.iy)))./eddy.R;
+        if  nondim.eddy.Ro > 0.25, error('Error: Ro > 0.25'); end
+        nondim.eddy.Rh = eddy.U/phys.beta/eddy.R^2;
+        nondim.eddy.Bu = f0^2  *eddy.R^2 / N2/Z^2;
+        nondim.eddy.Ri = N2./(TCOEF*g*eddy.tamp/f0/eddy.R).^2;
+        nondim.eddy.Bu_temp = TCOEF *g * Z * eddy.tamp / f0^2 / eddy.R^2;
+        fprintf('\n max. Ro = %.2f | Bu = %.2f | Bu_temp = %.2f | Ri = %.2f | Rh = %.2f\n\n', ....
+                nondim.eddy.Ro,nondim.eddy.Bu,nondim.eddy.Bu_temp,nondim.eddy.Ri,nondim.eddy.Rh);
         
         
         % calculate Ro using vorticity
@@ -1059,6 +1077,8 @@ if flags.eddy
     linkaxes([axe(1) axe(3) axe(5) axe(7)],'xy');
     linkaxes([axe(2) axe(4) axe(6) axe(8)],'xy');
     
+    spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
+    
     % clear variables to save space
 %    clear rut rutz dTdr strat r rnorm rfb2 sdisc
     eddy.tz = []; eddy.temp = []; eddy.u = []; eddy.v = [];
@@ -1066,7 +1086,6 @@ if flags.eddy
     fprintf('\n Eddy - %4.1f MB \n\n', monitor_memory_whos);
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-stop
 
 %% add barotropic velocity for advection (OBC initial condition also)
 
@@ -1496,7 +1515,8 @@ if exist('S_sh','var');nondim.S_sh = S_sh; end
 if exist('S_sl','var');nondim.S_sl = S_sl; end
 nondim.comment = ['Ro = Rossby number | S_sh = shelf Burger number |' ...
                   'S_sl = slope Burger number | Bu_temp = Bu based on eddy temp perturbation' ...
-                  ' | Bu = traditional eddy burger number = NH/fR | Ri = Richardson number'];
+                  ' | Bu = traditional eddy burger number = NH/fR | Ri = Richardson number | ' ...
+                  ' Rh = Rhines number = V/beta/R^2'];
 
 %% Check plots
 
@@ -1591,6 +1611,8 @@ if make_plot
     
     linkaxes([ax(1:4)],'xy');
     linkaxes([ax(5:8)],'xy');
+    
+    spaceplots(gcf,0.03*ones([1 4]),0.05*ones([1 4]))
 
 end
 
@@ -1707,15 +1729,17 @@ Cbc7 = 7 * dt * sqrt(1/dx^2 + 1/dy^2);
 % print to screen
 fprintf('\n\n Beckmann & Haidvogel number = %f (< 0.2 , max 0.4) \n \t\t\t\tHaney number = %f (< 9 , maybe 16)', rx0,rx1);
 fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, C_bt = %.3f | C_bc = %.3f  | C_bc7 = %.3f\n\n Min. Ri = %.2f', dt,ndtfast,Cbt,Cbc,Cbc7,min(Ri(:)));
-if exist('Ro','var'), fprintf(' | Max. Ro = %.2f', Ro); end
-if exist('S_sh','var'), fprintf(' | S_shelf = %.2f', S_sh); end
-if exist('S_sl','var'), fprintf(' | S_slope = %.2f \n', S_sl); end
-fprintf(' beta = %1.2e', beta); 
-if exist('b_sh','var'), fprintf(' | Beta_shelf = %1.2e', b_sh); end
-if exist('b_sl','var'), fprintf(' | Beta_slope = %1.2e', b_sl); end
-fprintf('\n');
+
+fprintf('\n Bathy Parameters');
+fprintf('\n\t\t S_shelf = %.2f | S_slope = %.2f | Beta_shelf = %1.2e | Beta_slope = %1.2e \n', ...
+    S_sh,S_sl,b_sh,b_sl);
 if flags.wind, cprintf('Red',sprintf('Wind tau0 = %.2e \n\n',wind.tau0)); end
-if flags.eddy, fprintf('\n\n Deploy float in center of eddy = (%d,%d) \n\n',eddy.ix,eddy.iy); end
+if flags.eddy, 
+    fprintf('\n Eddy Parameters: ');
+    fprintf('\n\t\t max. Ro = %.2f | Bu = %.2f | Bu_temp = %.2f | Ri = %.2f | Rh = %.2f\n\n', ....
+                nondim.eddy.Ro,nondim.eddy.Bu,nondim.eddy.Bu_temp,nondim.eddy.Ri,nondim.eddy.Rh);
+    fprintf('\n Deploy float in center of eddy = (%d,%d) \n\n',eddy.ix,eddy.iy);
+end
 if flags.floats
    xlo = find_approx(xrmat(:,1,1),min(floatx(:))*1000,1); 
    xhi = find_approx(xrmat(:,1,1),max(floatx(:))*1000,1); 
