@@ -23,7 +23,7 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
 S.Lm = 400;
-S.Mm = 400;
+S.Mm = 300;
 S.N  = 40;
 
 % Domain Extent (in m)
@@ -69,6 +69,8 @@ phys.comment = ['rho0 = Boussinessq approx. | (T0,S0,R0,TCOEF,SCOEF) = linear EO
                 ' g = 9.81 m/s2 | N2 = Brunt Vaisalla frequency'];
             
 %% Options
+
+calc_pv = 0;
 
 flags.tanh_bathymetry = 0;
 flags.linear_bathymetry = 1;
@@ -156,18 +158,22 @@ bathy.comment = ['H_shelf = depth at coast | L_shelf = shelf width | ' ...
                  ' isl,xsl,hsl = index, axis loc, depth at end of continental slope'];
 
 % Eddy parameters - all distances in m
-eddy.dia    = 90*1000;
-eddy.depth  = 0; % depth below which flow is 'compensated'
-eddy.tamp   = 1.5; % controls gradient
-eddy.a      = 3;  % ? in Katsman et al. (2003)
-eddy.cx     = 220 * 1000; % center of eddy
-eddy.cy     = 220 * 1000; %597000; %    "
-eddy.theta0 = 0;
+eddy.dia    = 50*1000;
+eddy.R      = NaN; % radius of max. vel - determined later
+eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
+eddy.tamp   = 0.40; % controls gradient
+eddy.a      = 3;  % ? in Katsman et al. (2003 - NOT FOR ZHANG PROFILE
+eddy.buffer = 10*1000; % distance from start of deep water (domain edge) to 4.4*r0
+eddy.cx     = NaN; % determined using buffer later
+eddy.cy     = NaN; %              "
+eddy.theta0 = 0; % surface phase anomaly from Zhang et al. (2013)
 %eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero 
 eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
                 ' of temp. perturbation | a = alpha in Katsman et al. (2003)' ...
                 ' | (cx,cy) = (x,y) location of center | (ix,iy) = indices of center | ' ...
-                'U = max. azimuthal velocity | theta0 = surface phase anomaly'];
+                'U = max. azimuthal velocity | R = radius of max. vel (U)' ...
+                '| theta0 = surface phase anomaly | buffer = distance from domain edge ' ...
+                '/start of deep water to 4.4*r0'];
 
 % Shelfbreak front parameters
 front.LTleft  = 12.5 * 1000; % length scale for temperature (m) - onshore
@@ -313,7 +319,7 @@ S.salt = S0*ones(size(S.salt));
 % temperature
 S.temp = T0*ones(size(S.temp));
 
-%% Fix grids
+%Fix grids
 
 % for future use
 xmid = ceil(S.Lm/2);
@@ -352,15 +358,17 @@ if max(abs(S.x_u(:))) > 3500
     fy = 1000; ly = '(km)';
 end
 
+fprintf('\n Initialization - %4.1f MB \n\n', monitor_memory_whos);
+
 %% Bathymetry + Coriolis + more grid stuff
 
 % Coriolis with beta. f = f0 @ y=ymid
 fnew = f0*ones(size(S.x_rho));
 f = fnew + beta * (S.y_rho - S.y_rho(1,ymid));
+clear fnew
 
 if flags.flat_bottom
     S.h = Z * ones(size(S.h));
-
 else
     % linear bathymetry
     if flags.linear_bathymetry == 1
@@ -370,10 +378,6 @@ else
         else
             [S] = bathy_simple(S,bathy,X,Y,bathy.axis);
         end
-    %     ix1 = find_approx(S.x_rho(:,1),X-bathy.L_entry-bathy.L_tilt,1);
-    %     ix2 = find_approx(S.x_rho(:,1),X-bathy.L_entry,1);
-    %     iy1 = find_approx(S.y_rho(1,:),Y-bathy.L_shelf,1);
-    %     iy2 = find_approx(S.y_rho(1,:),Y-bathy.L_shelf2,1);
 
         if flags.old_bathy
             bathy.sl_slope2 = bathy.sl_slope;
@@ -461,9 +465,9 @@ S.lon_psi = S.x_psi;
 [z_r]=set_depth(S.Vtransform, S.Vstretching, ...
                 S.theta_s, S.theta_b, S.hc, S.N, ...
                 1, S.h, S.zeta,0);
-[zrflat]=set_depth(S.Vtransform, S.Vstretching, ...
-    S.theta_s, S.theta_b, S.hc, S.N, ...
-    1, max(S.h(:)).*ones(size(S.h)), S.zeta,0);
+%[zrflat]=set_depth(S.Vtransform, S.Vstretching, ...
+%    S.theta_s, S.theta_b, S.hc, S.N, ...
+%    1, max(S.h(:)).*ones(size(S.h)), S.zeta,0);
 [z_u]=set_depth(S.Vtransform, S.Vstretching, ...
                  S.theta_s, S.theta_b, S.hc, S.N, ...
                  3, S.h, S.zeta,0);
@@ -480,7 +484,6 @@ zwmat = z_w;
 
 clear z_r z_u z_v z_w
 
-hrmat = repmat(S.h,[1 1 S.N]);
 Hz = diff(zwmat,1,3); bsxfun(@rdivide,diff(zwmat,1,3),permute(diff(S.s_w',1,1),[3 2 1]));
 Z  = abs(max(S.h(:)));
 
@@ -553,6 +556,8 @@ beautify;
 % save for later use
 bathy.h = S.h;
 
+fprintf('\n Bathy - %4.1f MB \n\n', monitor_memory_whos);
+
 %% Now set initial conditions - first shelfbreak front
 
 % all variables are 0 by default S = S0; T=T0
@@ -572,13 +577,15 @@ tgrid.s = S.s_rho;
 Tz = N2/g/TCOEF * ones(size(zwmat) - [0 0 2]); % at w points except top / bottom face
 strat = T0.*ones(size(zrmat));
 strat(1,:,:) = T0;
-strat_flat = strat;
+%strat_flat = strat;
 for k=size(zrmat,3)-1:-1:1
     strat(:,:,k) = strat(:,:,k+1) - Tz(:,:,k).*(zrmat(:,:,k+1)-zrmat(:,:,k));
-    strat_flat(:,:,k) = strat_flat(:,:,k+1) - Tz(:,:,k).*(zrflat(:,:,k+1)-zrflat(:,:,k));
+%    strat_flat(:,:,k) = strat_flat(:,:,k+1) - Tz(:,:,k).*(zrflat(:,:,k+1)-zrflat(:,:,k));
 end
 
 S.temp = strat;
+
+clear S.Tz
 
 % choose axis + assign appropriate variables
 switch bathy.axis
@@ -773,7 +780,11 @@ if flags.front
     else
         S.temp = S.Tra;
     end
+    % clear some vars
+    clear S.Tra S.Trax S.Traz S.Tz
 end % if shelfbreak front
+
+fprintf('\n Front - %4.1f MB \n\n', monitor_memory_whos);
 
 %% Now create eddy using temperature
 
@@ -788,6 +799,15 @@ if flags.eddy
         S.u = zeros(size(S.u));
         S.v = zeros(size(S.v));
         S.zeta = zeros(size(S.zeta));               
+    end
+    
+    switch bathy.axis
+        case 'x'
+            eddy.cx = bathy.xsl+eddy.buffer+4.4*eddy.dia/2;
+            eddy.cy = Y-eddy.buffer-4.4*eddy.dia/2;
+        case 'y'
+            eddy.cx = X-eddy.buffer-4.4*eddy.dia/2; % center of eddy
+            eddy.cy = bathy.xsl+eddy.buffer+4.4*eddy.dia/2; %597000; %    "
     end
 
     % cylindrical co-ordinates
@@ -882,7 +902,7 @@ if flags.eddy
 %                         g*TCOEF* 1./f .* (-exponent./r *eddy.a)),3);
             end
         end
-%         rutz = eddy.tamp *(TCOEF*g) .* bsxfun(@times,eddy.tz,dTdr./f);
+        % rutz = eddy.tamp *(TCOEF*g) .* bsxfun(@times,eddy.tz,dTdr./f);
         
         % azimuthal velocity = r d(theta)/dt
         rut = eddy.tamp * (TCOEF*g) .* bsxfun(@times,cumtrapz(eddy.z,eddy.tz,3),dTdr./f);
@@ -913,43 +933,52 @@ if flags.eddy
         S.v = S.v + avg1(eddy.v,2);
         
         % save max. azimuthal velocity for future   
-        eddy.U = max(abs(rut(:)));
-        Ro = eddy.U ./f0./r0;
-        if  Ro > 0.25, error('Error: Ro > 0.25'); end
-        fprintf('\n max. Ro = %.2f \n', Ro);
+        [eddy.U,iU] = max(abs(rut(:,eddy.iy,end)));
+        eddy.R = r(iU,eddy.iy);
+        
+        % calculate nondim parameters
+        nondim.Ro = eddy.U ./mean(f(rnorm < r(iU,eddy.iy)))./eddy.R;
+        if  nondim.Ro > 0.25, error('Error: Ro > 0.25'); end
+        nondim.Bu = N2*(Z/f0/eddy.R)^2;
+        nondim.Ri = N2./(TCOEF*g*eddy.tamp/f0/eddy.R).^2;
+        nondim.Bu_temp = TCOEF *g * Z * eddy.tamp / f0^2 / eddy.R^2;
+        fprintf('\n max. Ro = %.2f | Bu = %.2f | Bu_temp = %.2f\n | Ri = %.2f \n\n', ....
+                nondim.Ro,nondim.Bu,nondim.Bu_temp,nondim.Ri);
+        
         
         % calculate Ro using vorticity
         vor = avg1(diff(eddy.v(:,:,end),1,1)./diff(xrmat(:,:,end),1,1),2) - ...
               avg1(diff(eddy.u(:,:,end),1,2)./diff(yrmat(:,:,end),1,2),1);
         Ro1 = vor./avg1(avg1(f,1),2);
-        fprintf('\n Max. Ro (vor/f)  = %.2f \n', max(abs(Ro1(:))));
+        Ro1 = max(abs(Ro1(:)));
+        fprintf('\n Max. Ro (vor/f)  = %.2f \n', Ro1);
 
     end
-
-    if flags.use_cartesian % FIX FOR BACKGROUND STATE
-        % calculate Tx at v points and Ty and u points
-        Txv1 = avg1(avg1(diff(S.temp,1,1)./diff(xrmat,1,1),2),1);
-        Txv = [Txv1(1,:,:);Txv1;Txv1(end,:,:)];
-        clear Txv1
-
-        Tyu1 = avg1(avg1(diff(S.temp,1,2)./diff(yrmat,1,2),2),1);
-        Tyu = [Tyu1(:,1,:) Tyu1 Tyu1(:,end,:)];
-        clear Tyu1;
-        
-        % v field
-        vz = avg1(g*TCOEF * bsxfun(@times,avg1(1./f,2),Txv),3);
-        S.v = zeros(size(xvmat));
-        for i=2:size(xvmat,3)
-            S.v(:,:,i) = S.v(:,:,i-1) + vz(:,:,i-1).*(zvmat(:,:,i)-zvmat(:,:,i-1));
-        end
-
-        % u field
-        uz = avg1(-g*TCOEF * bsxfun(@times,avg1(1./f,1),Tyu),3);
-        S.u = zeros(size(xumat));
-        for i=2:size(xumat,3)
-            S.u(:,:,i) = S.u(:,:,i-1) + uz(:,:,i-1).*(zumat(:,:,i)-zumat(:,:,i-1));
-        end 
-    end
+% 
+%     if flags.use_cartesian % FIX FOR BACKGROUND STATE
+%         % calculate Tx at v points and Ty and u points
+%         Txv1 = avg1(avg1(diff(S.temp,1,1)./diff(xrmat,1,1),2),1);
+%         Txv = [Txv1(1,:,:);Txv1;Txv1(end,:,:)];
+%         clear Txv1
+% 
+%         Tyu1 = avg1(avg1(diff(S.temp,1,2)./diff(yrmat,1,2),2),1);
+%         Tyu = [Tyu1(:,1,:) Tyu1 Tyu1(:,end,:)];
+%         clear Tyu1;
+%         
+%         % v field
+%         vz = avg1(g*TCOEF * bsxfun(@times,avg1(1./f,2),Txv),3);
+%         S.v = zeros(size(xvmat));
+%         for i=2:size(xvmat,3)
+%             S.v(:,:,i) = S.v(:,:,i-1) + vz(:,:,i-1).*(zvmat(:,:,i)-zvmat(:,:,i-1));
+%         end
+% 
+%         % u field
+%         uz = avg1(-g*TCOEF * bsxfun(@times,avg1(1./f,1),Tyu),3);
+%         S.u = zeros(size(xumat));
+%         for i=2:size(xumat,3)
+%             S.u(:,:,i) = S.u(:,:,i-1) + uz(:,:,i-1).*(zumat(:,:,i)-zumat(:,:,i-1));
+%         end 
+%     end
 
     % check plots
     xind = ymid; yind = ymid; zind = 20;
@@ -971,9 +1000,15 @@ if flags.eddy
     if flags.front
         linkaxes([axt(4) axt(7) axt(8)],'xy');
     end
+    if bathy.axis == 'y'
+        liney([bathy.xsl bathy.xsb]/fy);
+    else
+        linex([bathy.xsl bathy.xsb]/fx);
+    end
+    axis image;
     
-    xedd = find_approx(xrmat(:,1,1),eddy.cx,1);
-    yedd = find_approx(yrmat(1,:,1),eddy.cy,1);
+    xedd = eddy.ix;
+    yedd = eddy.iy;
     
     % check temperature profile
     figure;
@@ -1025,9 +1060,13 @@ if flags.eddy
     linkaxes([axe(2) axe(4) axe(6) axe(8)],'xy');
     
     % clear variables to save space
-    clear rut rutz dTdr 
+%    clear rut rutz dTdr strat r rnorm rfb2 sdisc
+    eddy.tz = []; eddy.temp = []; eddy.u = []; eddy.v = [];
+
+    fprintf('\n Eddy - %4.1f MB \n\n', monitor_memory_whos);
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+stop
 
 %% add barotropic velocity for advection (OBC initial condition also)
 
@@ -1099,7 +1138,9 @@ if flags.ubt_initial == 1
         end
 end
 
-%% Misc calculations (ubar,vbar,pv) - shouldn't require changes
+fprintf('\n BT vel - %4.1f MB \n\n', monitor_memory_whos);
+
+%% Misc calculations (ubar,vbar,rho,pv) - shouldn't require changes
 
 % Add random perturbation
 zeta0 = S.zeta; % save for thermal wind check later
@@ -1122,36 +1163,42 @@ if ~flags.spinup
                      5, S.h, S.zeta,0);
     [S.ubar,S.vbar] = uv_barotropic(S.u,S.v,Hz);
 end
-toc;
-
-% setup for pv calculation
-grid1.xu = xumat;
-grid1.yu = yumat;
-grid1.zu = zumat;
-
-grid1.xv = xvmat;
-grid1.yv = yvmat;
-grid1.zv = zvmat;
-
-grid1.xr = xrmat;
-grid1.yr = yrmat;
-grid1.zr = zrmat;
-grid1.zw = zwmat; 
-
-grid1.s_w = S.s_w; grid1.s_rho = S.s_rho;
 
 S.rho = R0*(1 - TCOEF * (S.temp-T0) + SCOEF * (S.salt-S0));
 
-[pv,xpv,ypv,zpv] = pv_cgrid(grid1,S.u,S.v,S.rho,f,R0);
+toc;
 
-pvmin = min(pv(:));
-pvmid = pv(xmid,ymid,zmid);
+% setup for pv calculation
+if calc_pv
+    grid1.xu = xumat;
+    grid1.yu = yumat;
+    grid1.zu = zumat;
 
-% figure;
-% contourf(xpv,zpv,squeeze(pv(:,ymid,:))',40);
-% colorbar;
-% title(['PV | PV_{min}/PV_{mid} = ' num2str(pvmin/pvmid)]);
-% xlabel('x'); ylabel('z (m)');
+    grid1.xv = xvmat;
+    grid1.yv = yvmat;
+    grid1.zv = zvmat;
+
+    grid1.xr = xrmat;
+    grid1.yr = yrmat;
+    grid1.zr = zrmat;
+    grid1.zw = zwmat; 
+
+    grid1.s_w = S.s_w; grid1.s_rho = S.s_rho;
+
+    [pv,xpv,ypv,zpv] = pv_cgrid(grid1,S.u,S.v,S.rho,f,R0);
+
+    pvmin = min(pv(:));
+    pvmid = pv(xmid,ymid,zmid);
+
+    % figure;
+    % contourf(xpv,zpv,squeeze(pv(:,ymid,:))',40);
+    % colorbar;
+    % title(['PV | PV_{min}/PV_{mid} = ' num2str(pvmin/pvmid)]);
+    % xlabel('x'); ylabel('z (m)');
+    clear grid1
+end
+
+fprintf('\n ubar,vbar,pv- %4.1f MB \n\n', monitor_memory_whos);
 
 %% Sanity Checks + check thermal wind
 
@@ -1166,14 +1213,14 @@ xind = 30; yind = 15; zind = 30;
 VZ  = diff(S.v,1,3) ./ diff(zvmat,1,3);
 UZ  = diff(S.u,1,3) ./ diff(zumat,1,3);
         
-dx = squeeze(diff(xrmat,1,1));
-dy = squeeze(diff(yrmat,1,2));
+dx = squeeze(diff(xrmat(:,:,end),1,1));
+dy = squeeze(diff(yrmat(:,:,end),1,2));
 
 dRdx = bsxfun(@rdivide, diff_cgrid(tgrid,S.rho,1) * g/R0, avg1(f,1));
 dRdy = bsxfun(@rdivide, diff_cgrid(tgrid,S.rho,2) * g/R0, avg1(f,2));
 
-dzdx = bsxfun(@rdivide, diff(zeta0,1,1), dx(:,:,end));
-dzdy = bsxfun(@rdivide, diff(zeta0,1,2), dy(:,:,end));
+dzdx = bsxfun(@rdivide, diff(zeta0,1,1), dx);
+dzdy = bsxfun(@rdivide, diff(zeta0,1,2), dy);
 
 % PERCENTAGE error in thermal wind balance
 diff_u = (avg1(UZ,2) - avg1(avg1(dRdy,1),3))./max(abs(UZ(:))) * 100;
@@ -1228,7 +1275,11 @@ else
     fprintf('\n Min. Ri = %.3f\n\n', nanmin(Ri(:)));
 end 
 
+Ri = nanmin(Ri(:));
+
 clear dRdx dRdy dzdx dzdy
+
+fprintf('\n Sanity checks - %4.1f MB \n\n', monitor_memory_whos);
 
 %% Passive Tracers - Initial condition + writing
 
@@ -1278,9 +1329,10 @@ if S.NPT > 0
         vname = sprintf('dye_%02d',ii);
         eval(['nc_write(S.ncname,''' vname ''',' vname ',1);']);
     end
-end
+    clear dye_01 dye_02 dye_03
 
-clear dye_01 dye_02 dye_03
+    fprintf('\n Passive Tracer - %4.1f MB \n\n', monitor_memory_whos);
+end
 
 %% Floats - figure out seeding locations
 
@@ -1292,6 +1344,7 @@ if flags.floats
     title(str);
     disp(str);
     %[floatx,floaty] = select_rect();
+    fprintf('\n Floats- %4.1f MB \n\n', monitor_memory_whos);
 end
 
 %% Open Boundary Conditions - Initialize and write
@@ -1403,6 +1456,7 @@ if flags.OBC == 1
        end
        nc_write(Sbr.ncname,'dye_time',bry_time,1);
     end
+    fprintf('\n OBC - %4.1f MB \n\n', monitor_memory_whos);
 end
 
 %% Wind Forcing - Initialize and write
@@ -1432,14 +1486,17 @@ if flags.wind
     ncwrite(FRC_NAME,'sms_time',sms_time);
     ncwrite(FRC_NAME,'sustr',sustr);
     ncwrite(FRC_NAME,'svstr',svstr);
+    
+    fprintf('\n Wind - %4.1f MB \n\n', monitor_memory_whos);
 end
 
 %% non-dimensional parameters
 
-if exist('Ro','var'); nondim.Ro = Ro; end
 if exist('S_sh','var');nondim.S_sh = S_sh; end
 if exist('S_sl','var');nondim.S_sl = S_sl; end
-nondim.comment = 'Ro = Rossby number | S_sh = shelf Burger number | S_sl = slope Burger number';
+nondim.comment = ['Ro = Rossby number | S_sh = shelf Burger number |' ...
+                  'S_sl = slope Burger number | Bu_temp = Bu based on eddy temp perturbation' ...
+                  ' | Bu = traditional eddy burger number = NH/fR | Ri = Richardson number'];
 
 %% Check plots
 
@@ -1479,11 +1536,13 @@ if make_plot
     xlabel(['y ' lx]); ylabel('z (m)');
     
     % fix pv script so that it returns proper co-ordinates
-    ax(4) = subplot(244);
-    contourf(repmat(xpv(:,1),1,size(pv,3))./fx,squeeze(zpv(:,ymid,:)),squeeze(pv(:,ymid,:)),20);
-    colorbar;
-    title('PV');
-    xlabel(['x ' lx]); ylabel('z (m)');
+    if calc_pv
+        ax(4) = subplot(244);
+        contourf(repmat(xpv(:,1),1,size(pv,3))./fx,squeeze(zpv(:,ymid,:)),squeeze(pv(:,ymid,:)),20);
+        colorbar;
+        title('PV');
+        xlabel(['x ' lx]); ylabel('z (m)');
+    end
     
     % need to interpolate to constant z - surface
     ax(5) = subplot(245);
@@ -1491,6 +1550,10 @@ if make_plot
     colorbar;
     title('surface u');
     xlabel(['x ' lx]); ylabel(['y ' ly]);
+    linex((eddy.cx-eddy.dia/2)/fx);
+    linex((eddy.cx+eddy.dia/2)/fx);
+    liney((eddy.cy-eddy.dia/2)/fy);
+    liney((eddy.cy+eddy.dia/2)/fy);
     axis square;
 
     ax(6) = subplot(246);
@@ -1498,11 +1561,19 @@ if make_plot
     colorbar;
     title('surface v');
     xlabel(['x ' lx]); ylabel(['y ' ly]);
+    linex((eddy.cx-eddy.dia/2)/fx);
+    linex((eddy.cx+eddy.dia/2)/fx);
+    liney((eddy.cy-eddy.dia/2)/fy);
+    liney((eddy.cy+eddy.dia/2)/fy);
     axis square;
 
     ax(7) = subplot(247);
     contourf(xrmat(:,:,end)./fx,yrmat(:,:,end)./fy,squeeze(S.rho(:,:,end)));
     colorbar;
+    linex((eddy.cx-eddy.dia/2)/fx);
+    linex((eddy.cx+eddy.dia/2)/fx);
+    liney((eddy.cy-eddy.dia/2)/fy);
+    liney((eddy.cy+eddy.dia/2)/fy);
     title('SSRho');
     xlabel(['x ' lx]); ylabel(['y ' ly]);
     axis square;
@@ -1510,6 +1581,10 @@ if make_plot
     ax(8) = subplot(248);
     contourf(S.x_rho(:,1)./fx,squeeze(S.y_rho(1,:))./fy,squeeze(S.zeta(:,:,1))');
     colorbar;
+    linex((eddy.cx-eddy.dia/2)/fx);
+    linex((eddy.cx+eddy.dia/2)/fx);
+    liney((eddy.cy-eddy.dia/2)/fy);
+    liney((eddy.cy+eddy.dia/2)/fy);
     title('SSH (zeta)');
     xlabel(['x ' lx]); ylabel(['y ' ly]);
     axis square;
@@ -1521,10 +1596,12 @@ end
 
 %% clear some vars
 
-clear pv grid1
+clear pv
 
 %% Write to Grid & IC file
 
+fprintf('\n Started writing files...\n');
+tic;
 % grid file
 ncwrite(GRID_NAME,'spherical',S.spherical);
 ncwrite(GRID_NAME,'xl',X);
@@ -1607,6 +1684,7 @@ fprintf('\n\n Files %s | %s ', GRID_NAME,INI_NAME);
 if flags.OBC, fprintf('| %s ',BRY_NAME); end
 if flags.wind, fprintf('| %s ',FRC_NAME); end
 fprintf('written.\n');
+toc;
 
 %% Grid and time step information
 
