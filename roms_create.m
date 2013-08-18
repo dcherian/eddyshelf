@@ -4,7 +4,7 @@
 %% Parameters
 % names cannot start with number
 FOLDER    = 'runs\';
-prefix    = 'te';
+prefix    = 'tek';
 GRID_NAME = [prefix '_grd'];
 INI_NAME  = [prefix '_ini'];
 BRY_NAME  = [prefix '_bry'];
@@ -22,8 +22,8 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 400;
-S.Mm = 320;
+S.Lm = 300;
+S.Mm = 200;
 S.N  = 40;
 
 % Domain Extent (in m)
@@ -72,34 +72,18 @@ phys.comment = ['rho0 = Boussinessq approx. | (T0,S0,R0,TCOEF,SCOEF) = linear EO
 
 calc_pv = 0;
 
-flags.tanh_bathymetry = 0;
-flags.linear_bathymetry = 1;
-flags.flat_bottom = 0; % set depth in Z above
-flags.old_bathy = 0;
-flags.crooked_bathy = 0;
-
 flags.perturb_zeta = 0; % add random perturbation to zeta
 flags.spinup = 0; % if spinup, do not initialize ubar/vbar fields.
 
 flags.front = 0; % create shelfbreak front
 flags.eddy  = 1; % create eddy
 flags.wind  = 0; % create wind forcing file
-flags.ubt_initial = 0; % add barotropic velocity to initial condition?
-flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
 flags.floats = 0; % need to figure out float seeding locations?
-flags.bg_shear = 0;
-
-% eddy momentum balance options
-flags.use_cartesian = 0; % use cartesian forumlation
-flags.use_radial    = 1; % use radial
-flags.use_gradient  = 1; % use gradient wind balance instead of geostrophic
-flags.solidbody_katsman  = 0; % solid body core profile?
-flags.eddy_zhang = ~flags.solidbody_katsman;
-flags.vprof_gaussian = ~flags.eddy_zhang; % eddy is gaussian in vertical?
-
-% OBC + barotropic velocity options
+flags.ubt_initial = 0; % add barotropic velocity to initial condition?
 flags.OBC = 0;  % create OBC file and set open boundaries
 flags.OBC_from_initial = 1; % copy OBC data from initial condition?
+% flags.ubt_deep = 0; % nudge to ubt only in deep water - NOT WORKING
+%flags.localize_jet = 0;% buffer around eddy where velocity should exist - NOT NEEDED
 
 flags.comment = ['solidbody_katsman = solid body core profile for eddy (Katsman et al. 2003) | ' ...
     'eddy_zhang = use Zhang et al. (2013) profile | ' ...
@@ -118,11 +102,11 @@ if flags.OBC
     OBC.north = false;            % process northern boundary segment
 end
 
-% flags.ubt_deep = 0; % nudge to ubt only in deep water - NOT WORKING
-%flags.localize_jet = 0;% buffer around eddy where velocity should exist - NOT NEEDED
+%%%%%%%%%%%%%%%%%%%%%%%%%%  Barotropic background flow parameters
+flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
+flags.bg_shear = 0;
 
-% Barotropic background flow parameters
-bg.ubt = 1;0.04; % m/s barotropic velocity
+bg.ubt = 0;0.04; % m/s barotropic velocity
 bg.vbt = 0;-0.04; % m/s barotropic velocity
 bg.shear_fac = 0.2; 
 bg.shear = NaN; % set later as bg.shear_fac * max(eddy vorticity)
@@ -130,7 +114,14 @@ bg.comment = ['shear = shear_fac * max(eddy vorticity) | ', ...
               'ubt,vbt = whichever is non-zero gets assigned shear ', ...
               'if flags.bg_shear = 0, then ubt/vbt is added (again non-zero)'];
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%% BATHY
 % Bathymetry parameters - all measurements in m
+%flags.tanh_bathymetry = 0;
+%flags.linear_bathymetry = 1;
+%flags.old_bathy = 0;
+flags.flat_bottom = 0; % set depth in Z above
+flags.crooked_bathy = 0;
+
 bathy.H_shelf  = 100;
 bathy.L_shelf  = 20 * 1000;
 bathy.L_slope  =  50 * 1000;
@@ -138,14 +129,17 @@ bathy.axis = 'y'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
 bathy.sl_shelf = 0.0005;
 bathy.sl_slope = 0.04;
+
 % bathymetry smoothing options
 bathy.n_points = 4;
 bathy.n_passes = 6;
 
 % curved bathymetry
-bathy.L_shelf2 =  30 * 1000;
-bathy.L_entry  = 200* 1000; % deep water to initialize eddy in
-bathy.L_tilt   = 130 * 1000;
+if flags.crooked_bathy
+    bathy.L_shelf2 =  30 * 1000;
+    bathy.L_entry  = 200* 1000; % deep water to initialize eddy in
+    bathy.L_tilt   = 130 * 1000;
+end
 
 bathy.comment = ['H_shelf = depth at coast | L_shelf = shelf width | ' ...
                  'L_slope = slope width | axis = cross-shelf axis for bathy ' ...
@@ -157,26 +151,37 @@ bathy.comment = ['H_shelf = depth at coast | L_shelf = shelf width | ' ...
                  ' passes | isb,xsb,hsb = index,axis loc, depth at shelfbreak' ...
                  ' isl,xsl,hsl = index, axis loc, depth at end of continental slope'];
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EDDY
+% eddy momentum balance options
+%flags.use_radial    = 1; % use radial
+flags.use_gradient  = 1; % use gradient wind balance instead of geostrophic
+flags.solidbody_katsman  = 1; % Katsman et al. (2003) solid body core profile?
+flags.eddy_zhang = ~flags.solidbody_katsman;
+flags.vprof_gaussian = 0;%~flags.eddy_zhang; % eddy is gaussian in vertical?
+
 % Eddy parameters - all distances in m
-eddy.dia    = 50*1000;
+eddy.dia    = NaN; % 2xNH/pi/f0 - determined later
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
-eddy.tamp   = 0.40; % controls gradient
-eddy.a      = 3;  % ? in Katsman et al. (2003) - NOT FOR ZHANG PROFILE
-eddy.buffer = 10*1000; % distance from start of deep water (domain edge) to 4.4*r0
+eddy.tamp   = 0.30; % controls gradient
+eddy.buffer = 15*1000; % distance from start of deep water (domain edge) to 4.4 (2.4) *r0
                        % should account for sponges
-eddy.cx     = NaN; % determined using buffer later
+eddy.cx     = NaN;X/2; % if NaN, determined using buffer later
+eddy.theta0 = pi/2; % surface phase anomaly from Zhang et al. (2013)
+                    % 7/16 * pi for WCR
 eddy.cy     = NaN; %              "
-eddy.theta0 = 0; % surface phase anomaly from Zhang et al. (2013)
-%eddy.Ncos  = 10; % no. of points over which the cosine modulates to zero 
 eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
                 ' of temp. perturbation | a = alpha in Katsman et al. (2003)' ...
                 ' | (cx,cy) = (x,y) location of center | (ix,iy) = indices of center | ' ...
                 'U = max. azimuthal velocity | R = radius of max. vel (U)' ...
                 '| theta0 = surface phase anomaly | buffer = distance from domain edge ' ...
-                '/start of deep water to 4.4*r0'];
+                '/start of deep water to 4.4*r0 (zhang) or 2.4 r0 (katsman)'];
+            
+if flags.solidbody_katsman
+    eddy.a      = 3;  % ? in Katsman et al. (2003) - NOT FOR ZHANG PROFILE
+end
 
-% Shelfbreak front parameters
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Shelfbreak front parameters
 front.LTleft  = 12.5 * 1000; % length scale for temperature (m) - onshore
 front.LTright = 8*1000; % length scale - offshore
 front.LTz     = 100; % Gaussian decay scale in the vertical for temperature
@@ -187,13 +192,12 @@ front.comment = ['LTleft = onshore length scale | LTright = offshore length scal
                  ' LTz = vertical scale | slope = frontal slope | Tx0 = amplitude' ...
                  ' of gradient'];
              
-% wind stress parameters
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% wind stress parameters
 wind.tau0 = 0; % set later 
 wind.ramp = 2; % days
 wind.v    = 0.05; % m/s
-             
-% write parameters to initial conditions .nc file - AT THE END
-    
+
+
 %% Create Junk IC & Grid Files + set vars to zero
 
 % Set other variables
@@ -359,7 +363,16 @@ if max(abs(S.x_u(:))) > 3500
     fy = 1000; ly = '(km)';
 end
 
-fprintf('\n Initialization - %4.1f MB \n\n', monitor_memory_whos);
+% write parameters to initial conditions .nc file - REST AT THE END
+tic;
+fprintf('\n Writing params \n');
+write_params_to_ini(INI_NAME,flags);
+write_params_to_ini(INI_NAME,bathy);
+write_params_to_ini(INI_NAME,phys);
+write_params_to_ini(INI_NAME,bg);
+toc;
+
+fprintf('\n Initialization - %4.1f MB \n\n', monitor_memory_whos);   
 
 %% Bathymetry + Coriolis + more grid stuff
 
@@ -372,37 +385,12 @@ if flags.flat_bottom
     S.h = Z * ones(size(S.h));
 else
     % linear bathymetry
-    if flags.linear_bathymetry == 1
+    %if flags.linear_bathymetry == 1
 
         if flags.crooked_bathy
             [S] = bathy2_x(S,bathy,X,Y);
         else
             [S] = bathy_simple(S,bathy,X,Y,bathy.axis);
-        end
-
-        if flags.old_bathy
-            bathy.sl_slope2 = bathy.sl_slope;
-
-            % main shelf
-            [hx,hy,hdeep] = bathy_crooked(S.x_rho,S.y_rho,bathy,X,Y);
-
-            % second section
-            B2 = bathy;
-            B2.L_entry = 0 *1000;
-            B2.L_shelf = 50*1000;
-            [hx2,hy2,~] = bathy_crooked(S.x_rho,S.y_rho,B2,X,Y);
-
-            h1 = hx.*hy .*~(S.x_rho > (X-bathy.L_entry-bathy.L_slope));
-            h2 = hx2 .* (S.y_rho > Y-B2.L_shelf) .*(S.x_rho > (X-bathy.L_entry-bathy.L_slope));
-
-        %     subplot(221); imagescnan(hx'); set(gca,'ydir','normal')
-        %     subplot(222); imagescnan(hy'); set(gca,'ydir','normal')
-        %     subplot(223); imagescnan(hx2');  set(gca,'ydir','normal')
-        %     subplot(224); imagescnan(hy2');  set(gca,'ydir','normal')
-
-            % final bathymetry
-            S.h = h1+h2;
-            S.h(S.h == 0) = hdeep;
         end
 
         % run smoother   
@@ -426,21 +414,7 @@ else
         b_sh = f0 * bathy.sl_shelf / bathy.H_shelf;
         b_sl = f0 * bathy.sl_slope / max(S.h(:));
 
-    end
-
-    if flags.tanh_bathymetry == 1
-        scale = 20000;  
-        bathy.L_deep = Y - bathy.L_shelf;
-        bathy.H_deep  = Z; 
-        S.hflat = Z*ones(size(S.h)); % constant depth
-        % y-z profile
-        %hy = H_deep + (H_shelf-H_deep)*(1+tanh( ((S.y_rho-L_deep)/20000) ))/2;
-        %hx = H_shelf - (H_shelf-H_deep)*(1+tanh( ((S.x_rho-L_entry)/20000) ))/2;
-
-        hx = (1-tanh( ((S.x_rho-L_entry)/scale) ))/2;
-        hy = (1+tanh( ((S.y_rho-L_deep)/scale) ))/2;
-        S.h = H_deep + (H_shelf-H_deep) * (hx.*hy);
-    end
+   % end
 end
 
 % Calculate weird stuff
@@ -794,9 +768,6 @@ fprintf('\n Front - %4.1f MB \n\n', monitor_memory_whos);
 %% Now create eddy using temperature
 
 if flags.eddy
-    if flags.use_cartesian == 1 && flags.use_radial == 1
-        error('Both cartesian & radial formulae specified. Correct it!');
-    end
     
     % reset in case I'm debugging
     if ~flags.front
@@ -806,24 +777,40 @@ if flags.eddy
         S.zeta = zeros(size(S.zeta));               
     end
     
-    switch bathy.axis
+    % Set eddy parameters that depend on something else
+    eddy.dia = 2* sqrt(phys.N2)*Z/pi/f0; % twice the deformation radius NH/pi/f
+    if flags.eddy_zhang
+        xtra = (4.4)*eddy.dia/2;
+    else
+        xtra = (2.4)*eddy.dia/2;
+    end
+    
+    switch bathy.axis % cross-shore axis
         case 'x'
-            eddy.cx = bathy.xsl+eddy.buffer+4.4*eddy.dia/2;
-            eddy.cy = Y-eddy.buffer-4.4*eddy.dia/2;
-            if X-eddy.cx-4.4*eddy.dia/2 < eddy.buffer
-                warning('Eastern edge - eddy center < buffer');
-            else
-                fprintf('Distance from eastern edge = %.2f km \n', ...
-                    (X-eddy.cx-4.4*eddy.dia/2)/1000);
+            if isnan(eddy.cx)
+                eddy.cx = bathy.xsl+eddy.buffer+xtra;
+            end 
+            if isnan(eddy.cy)
+                % add deformation radius buffer away from boundary
+                eddy.cy = Y-eddy.dia/2-xtra; 
+            end
+            fprintf('Distance from eastern edge = %.2f km \n', ...
+                    (X-eddy.cx-xtra)/1000);
+            if X-eddy.cx-xtra < eddy.buffer
+                error('Eastern edge - eddy edge < buffer');
             end
         case 'y'
-            eddy.cx = X-eddy.buffer-4.4*eddy.dia/2; % center of eddy
-            eddy.cy = bathy.xsl+eddy.buffer+4.4*eddy.dia/2; %597000; %    "
-            if Y-eddy.cy-4.4*eddy.dia/2 < eddy.buffer
-                warning('Northern edge - eddy center < buffer');
-            else
-                fprintf('Distance from northern edge = %.2f km \n', ...
-                    (Y-eddy.cy-4.4*eddy.dia/2)/1000);
+            if isnan(eddy.cx)
+                % add deformation radius buffer away from boundary
+                eddy.cx = X-eddy.dia/2-xtra; % center of eddy
+            end
+            if isnan(eddy.cy)
+                eddy.cy = bathy.xsl+eddy.buffer+xtra; %597000; %    "
+            end
+            fprintf('Distance from northern edge = %.2f km \n', ...
+                    (Y-eddy.cy-xtra)/1000);
+            if Y-eddy.cy-xtra < eddy.buffer
+                error('Northern edge - eddy edge < buffer');
             end
     end
 
@@ -864,16 +851,11 @@ if flags.eddy
     end
     eddy.xyprof = eddy.xyprof./max(eddy.xyprof(:));
 
-    % temp. field -  z-profile (normalized)
-%    % cos profile
-%     ind = find_approx(deep_z, -1 * eddy.depth,1);
-%     eddy.zprof = [zeros(ind-eddy.Ncos,1); (1-cos(pi * [0:eddy.Ncos]'/eddy.Ncos))/2; ones(S.N-ind-1,1)];
-    
     % use half-Gaussian profile & normalize
     if flags.vprof_gaussian
         eddy.zprof = exp(-(eddy.z ./ eddy.depth) .^ 2);
     else % energy in barotropic and BC1 mode  
-        eddy.zprof = (1+sin((Z/2 - eddy.z)/Z * pi + eddy.theta0))/2;
+        eddy.zprof = (1+sin((- eddy.z)/Z * pi + eddy.theta0))/2;
         eddy.depth = Z/2;
     end
     %eddy.zprof = eddy.zprof./trapz(eddy.z,eddy.zprof);
@@ -886,7 +868,7 @@ if flags.eddy
     end
 
     % Radial
-    if flags.use_radial && max(~isnan(eddy.temp(:)))
+    if max(~isnan(eddy.temp(:))) % && flags.use_radial
         % integrated z profile of eddy.temp (HAS to include stratification)
         % needed for zeta calculation
 %         int_Tz = nan([size(xrmat,1) size(xrmat,2)]);
@@ -972,32 +954,7 @@ if flags.eddy
         fprintf('\n Max. Ro (vor/f)  = %.2f \n', Ro1);
 
     end
-% 
-%     if flags.use_cartesian % FIX FOR BACKGROUND STATE
-%         % calculate Tx at v points and Ty and u points
-%         Txv1 = avg1(avg1(diff(S.temp,1,1)./diff(xrmat,1,1),2),1);
-%         Txv = [Txv1(1,:,:);Txv1;Txv1(end,:,:)];
-%         clear Txv1
-% 
-%         Tyu1 = avg1(avg1(diff(S.temp,1,2)./diff(yrmat,1,2),2),1);
-%         Tyu = [Tyu1(:,1,:) Tyu1 Tyu1(:,end,:)];
-%         clear Tyu1;
-%         
-%         % v field
-%         vz = avg1(g*TCOEF * bsxfun(@times,avg1(1./f,2),Txv),3);
-%         S.v = zeros(size(xvmat));
-%         for i=2:size(xvmat,3)
-%             S.v(:,:,i) = S.v(:,:,i-1) + vz(:,:,i-1).*(zvmat(:,:,i)-zvmat(:,:,i-1));
-%         end
-% 
-%         % u field
-%         uz = avg1(-g*TCOEF * bsxfun(@times,avg1(1./f,1),Tyu),3);
-%         S.u = zeros(size(xumat));
-%         for i=2:size(xumat,3)
-%             S.u(:,:,i) = S.u(:,:,i-1) + uz(:,:,i-1).*(zumat(:,:,i)-zumat(:,:,i-1));
-%         end 
-%     end
-
+    
     % check plots
     xind = ymid; yind = ymid; zind = 20;
 
@@ -1085,7 +1042,6 @@ if flags.eddy
 
     fprintf('\n Eddy - %4.1f MB \n\n', monitor_memory_whos);
 end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% add barotropic velocity for advection (OBC initial condition also)
 
@@ -1315,9 +1271,15 @@ if S.NPT > 0
     % important, we do not want grid scale discontinuity.
     % taper everything with gaussian or similar
     
-    dye_01 = xrmat;
-    dye_02 = yrmat;
-    dye_03 = zrmat;
+    % set dye_01 = cross-shelf label & dye_03 = along shelf label
+    if bathy.axis == 'y'
+        dye_01 = yrmat;
+        dye_03 = xrmat;
+    else
+        dye_01 = xrmat;
+        dye_03 = yrmat;
+    end
+    dye_02 = zrmat;
 %     dye_01 = zeros(size(xrmat)); dye_02 = dye_01;
 % 
 %     buffer = 6;
@@ -1624,6 +1586,15 @@ clear pv
 
 fprintf('\n Started writing files...\n');
 tic;
+
+% write parameters
+if flags.front, write_params_to_ini(INI_NAME,front); end
+if flags.eddy,  write_params_to_ini(INI_NAME,eddy); end
+if flags.wind,  write_params_to_ini(INI_NAME,wind); end
+if exist('nondim','var'),  write_params_to_ini(INI_NAME,nondim); end
+fprintf('\n Parameters written \n');
+toc;
+
 % grid file
 ncwrite(GRID_NAME,'spherical',S.spherical);
 ncwrite(GRID_NAME,'xl',X);
@@ -1681,6 +1652,8 @@ else
   ncwrite(INIname, 'x_v',         S.x_v);
   ncwrite(INIname, 'y_v',         S.y_v);
 end,
+fprintf('\n Grid stuff written \n');
+toc;
 
 ncwrite(INIname, 'zeta', S.zeta);
 ncwrite(INIname, 'ubar', S.ubar);
@@ -1689,18 +1662,8 @@ ncwrite(INIname, 'u',    S.u);
 ncwrite(INIname, 'v',    S.v);
 ncwrite(INIname, 'temp', S.temp);
 ncwrite(INIname, 'salt', S.salt);
-
-% write parameters to IC file
-write_params_to_ini(INI_NAME,flags);
-write_params_to_ini(INI_NAME,bathy);
-write_params_to_ini(INI_NAME,phys);
-write_params_to_ini(INI_NAME,bg);
-% write_params_to_ini(INI_NAME,ubt,'u_background_barotropic');
-% write_params_to_ini(INI_NAME,vbt,'v_background_barotropic');
-if flags.front, write_params_to_ini(INI_NAME,front); end
-if flags.eddy,  write_params_to_ini(INI_NAME,eddy); end
-if flags.wind,  write_params_to_ini(INI_NAME,wind); end
-if exist('nondim','var'),  write_params_to_ini(INI_NAME,nondim); end
+fprintf('\n Hydrodynamic vars written \n');
+toc;
 
 fprintf('\n\n Files %s | %s ', GRID_NAME,INI_NAME);
 if flags.OBC, fprintf('| %s ',BRY_NAME); end
@@ -1711,23 +1674,21 @@ toc;
 %% Grid and time step information
 
 dx = min(dx(:)); dy = min(dy(:));
+DX = sqrt(min(dx)^2 + min(dy)^2);
 fprintf('\n\n=============================  SUMMARY  ========================================');
 fprintf(['\n\n (nx,ny,nz) = (%d,%d,%d) | (X,Y,Z) = (%.2f , %.2f , %.2f) m |' ...
         '(dx,dy) = ( %.2f , %.2f) m'], ...
         S.Lm,S.Mm,S.N,max(xrmat(:)), max(yrmat(:)), max(abs(zrmat(:))),dx, dy);
-
-DX = sqrt(min(dx)^2 + min(dy)^2);
+fprintf('\n\n Beckmann & Haidvogel number = %f (< 0.2 , max 0.4) \n \t\t\t\tHaney number = %f (< 9 , maybe 16)', rx0,rx1);
 
 % From Utility/metrics.F
 % Barotropic courant number
-dt = 120;
-ndtfast = 35;
+dt = 200;
+ndtfast = 45;
 Cbt = sqrt(g*max(S.h(:))) * dt/ndtfast * sqrt(1/dx^2 + 1/dy^2);
 Cbc = sqrt(N2)*min(S.h(:))/pi * dt * sqrt(1/dx^2 + 1/dy^2);
 Cbc7 = 7 * dt * sqrt(1/dx^2 + 1/dy^2);
-
-% print to screen
-fprintf('\n\n Beckmann & Haidvogel number = %f (< 0.2 , max 0.4) \n \t\t\t\tHaney number = %f (< 9 , maybe 16)', rx0,rx1);
+fprintf('\n\n (dt)_bt < %.2f s | (dt)_bc < %.2f s\n\n', DX/(sqrt(g*min(S.h(:)))), DX/(sqrt(N2)*min(S.h(:))/pi))
 fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, C_bt = %.3f | C_bc = %.3f  | C_bc7 = %.3f\n\n Min. Ri = %.2f', dt,ndtfast,Cbt,Cbc,Cbc7,min(Ri(:)));
 
 fprintf('\n Bathy Parameters');
@@ -1748,7 +1709,48 @@ if flags.floats
    fprintf('\n Float deployment locations : (%d:%d , %d:%d)', xlo,xhi,ylo,yhi);
 end
 fprintf('\n\n');
-%fprintf('\n\n (dt)_bt < %.2f s | (dt)_bc < %.2f s\n\n', DX/(sqrt(g*min(S.h(:)))), DX/(sqrt(N2)*min(S.h(:))/pi))
+
+%% old bathy code
+
+%         if flags.old_bathy
+%             bathy.sl_slope2 = bathy.sl_slope;
+% 
+%             % main shelf
+%             [hx,hy,hdeep] = bathy_crooked(S.x_rho,S.y_rho,bathy,X,Y);
+% 
+%             % second section
+%             B2 = bathy;
+%             B2.L_entry = 0 *1000;
+%             B2.L_shelf = 50*1000;
+%             [hx2,hy2,~] = bathy_crooked(S.x_rho,S.y_rho,B2,X,Y);
+% 
+%             h1 = hx.*hy .*~(S.x_rho > (X-bathy.L_entry-bathy.L_slope));
+%             h2 = hx2 .* (S.y_rho > Y-B2.L_shelf) .*(S.x_rho > (X-bathy.L_entry-bathy.L_slope));
+% 
+%         %     subplot(221); imagescnan(hx'); set(gca,'ydir','normal')
+%         %     subplot(222); imagescnan(hy'); set(gca,'ydir','normal')
+%         %     subplot(223); imagescnan(hx2');  set(gca,'ydir','normal')
+%         %     subplot(224); imagescnan(hy2');  set(gca,'ydir','normal')
+% 
+%             % final bathymetry
+%             S.h = h1+h2;
+%             S.h(S.h == 0) = hdeep;
+%         end
+
+% 
+%     if flags.tanh_bathymetry == 1
+%         scale = 20000;  
+%         bathy.L_deep = Y - bathy.L_shelf;
+%         bathy.H_deep  = Z; 
+%         S.hflat = Z*ones(size(S.h)); % constant depth
+%         % y-z profile
+%         %hy = H_deep + (H_shelf-H_deep)*(1+tanh( ((S.y_rho-L_deep)/20000) ))/2;
+%         %hx = H_shelf - (H_shelf-H_deep)*(1+tanh( ((S.x_rho-L_entry)/20000) ))/2;
+% 
+%         hx = (1-tanh( ((S.x_rho-L_entry)/scale) ))/2;
+%         hy = (1+tanh( ((S.y_rho-L_deep)/scale) ))/2;
+%         S.h = H_deep + (H_shelf-H_deep) * (hx.*hy);
+%     end
 
 %% using Hernan's balance operator code (with prsgd31 algo)
 
@@ -1776,22 +1778,6 @@ fprintf('\n\n');
 % drho = rho_balance(K,S.temp-T0,S.salt-S0);
 % [u,v,zeta_rhs] = uv_balance(K,drho);
 % [zeta,~] = zeta_balance(K,0,drho);
-
-%% old solid body profile - zeta
-%             expo = exp( -1 * exponent );
-%             z1 = (gamma/2 * rnorm.^2 + 1) .* (rnorm <= rmnorm);
-%             z2 = (gamma/2 *rmnorm.^2 + 1) .* expo .* (rnorm > rmnorm);
-            
-            % hack in matching at boundary - THIS SHOULD NOT BE NEEDED
-            %z1 = (z1 - nanmin(fillnan(z1(:),0)) .* (z1 ~= 0));
-            % S.zeta = S.zeta + TCOEF*eddy.tamp * int_Tz .* (z1 + z2);      
-%             z12 = z1+z2;
-%             idx = 250;
-%             plot(z1(:,idx)); hold on; 
-%             plot(z2(:,idx),'r'); 
-%             plot(z12(:,idx),'c'); 
-%             plot(S.zeta(:,idx),'k');
-%             legend('z1','z2','z12','zeta');
 
 %% old calculate velocity field
 % first re-calculate temperature (density) gradient
@@ -1857,6 +1843,12 @@ fprintf('\n\n');
 % plot(S.x_rho(:,1)/1000,eddy.xyprof(:,ymid),'*-');xlabel('x (km)');
 % subplot(133)
 % plot(eddy.zprof,squeeze(zrmat(1,1,:)),'*-'); ylabel('z (m)');
+
+%% cosine eddy profile
+    % temp. field -  z-profile (normalized)
+%    % cos profile
+%     ind = find_approx(deep_z, -1 * eddy.depth,1);
+%     eddy.zprof = [zeros(ind-eddy.Ncos,1); (1-cos(pi * [0:eddy.Ncos]'/eddy.Ncos))/2; ones(S.N-ind-1,1)];
 
 %% old ubar,vbar integration
 %     for ii=1:S.Lm+2
