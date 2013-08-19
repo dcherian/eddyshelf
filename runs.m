@@ -3,7 +3,9 @@ classdef runs < handle
         % dir & file names
         dir; out_file; ltrans_file; flt_file; givenFile
         % data
-        zeta; temp; dye; usurf; vsurf
+        zeta; temp; usurf; vsurf
+        % dyes
+        csdye; asdye; zdye; % cross-shore, along-shore, z dyes
         % grid & bathymetry
         rgrid; bathy
         % float data
@@ -42,6 +44,15 @@ classdef runs < handle
             runs.rgrid.zr = permute(runs.rgrid.z_r,[3 2 1]);
             runs.makeVideo = 0; % no videos by default.
             
+            % params & bathy
+            runs.params = read_params_from_ini(runs.dir);
+            runs.bathy = runs.params.bathy;
+            
+            % fill bathy
+            [runs.bathy.xsb,runs.bathy.isb,runs.bathy.hsb] = find_shelfbreak(runs.out_file);
+            [runs.bathy.xsl,runs.bathy.isl,runs.bathy.hsl] = find_shelfbreak(runs.out_file,'slope');
+            runs.bathy.h = runs.rgrid.h';
+            
             if ~runs.givenFile
                 runs.zeta = roms_read_data(dir,'zeta');
                 try
@@ -51,19 +62,11 @@ classdef runs < handle
             else
                 runs.zeta = double(ncread(runs.out_file,'zeta'));
                 try
-                    runs.dye  = squeeze(double(ncread(runs.out_file,'dye_02', ...
+                    runs.csdye  = squeeze(double(ncread(runs.out_file,'dye_02', ...
                     [1 1 runs.rgrid.N 1],[Inf Inf 1 Inf])));
                 catch ME
                 end
             end
-            % params & bathy
-            runs.params = read_params_from_ini(runs.dir);
-            runs.bathy = runs.params.bathy;
-            
-            % fill bathy
-            [runs.bathy.xsb,runs.bathy.isb,runs.bathy.hsb] = find_shelfbreak(runs.out_file);
-            [runs.bathy.xsl,runs.bathy.isl,runs.bathy.hsl] = find_shelfbreak(runs.out_file,'slope');
-            runs.bathy.h = runs.rgrid.h';
             
             if exist(runs.flt_file,'file')
                 runs.roms = floats('roms',runs.flt_file,runs.rgrid);
@@ -181,12 +184,18 @@ classdef runs < handle
             if runs.bathy.axis == 'x'
                 temper = double(squeeze(ncread(runs.out_file,'temp',[1 iymin 1 1], ...
                                 [Inf iymax-iymin+1 Inf Inf],stride)));
+                strat  = double(squeeze(ncread(runs.out_file,'temp',[Inf 1 1 1], ...
+                                [1 1 Inf 1])));
             else
                 temper = double(squeeze(ncread(runs.out_file,'temp',[ixmin 1  1 1], ...
                                 [ixmax-ixmin+1 Inf Inf Inf],stride)));
+                strat  = double(squeeze(ncread(runs.out_file,'temp',[1 1 1 1], ...
+                                [1 Inf Inf 1])));
             end
 
+            temper = bsxfun(@minus,temper,permute(strat,[3 1 2]));
             
+            % make plot
             tt = 1;
             figure;
             % first plan view of zeta
@@ -210,22 +219,23 @@ classdef runs < handle
             beautify([14 14 16]);
             
             % temp following eddy center
+            levels = linspace(min(temper(:)),max(temper(:)),25);
             subplot(212)
             if runs.bathy.axis == 'x'
                 xzr = repmat(xvec(1:stride(1):end,1),[1 size(temper,3)]);
                 [~,hh] = contourf(xzr/1000,squeeze(runs.rgrid.zr(1:stride(1):end,iy(1),:)), ...
-                         squeeze(temper(:,iy(1)-iymin + 1,:,1)),10);
+                         squeeze(temper(:,iy(1)-iymin + 1,:,1)),levels);
             else
                 yzr = repmat(yvec(1:stride(2):end),[1 size(temper,3)]);
                 [~,hh] = contourf(yzr/1000,squeeze(runs.rgrid.zr(ix(1),1:stride(2):end,:)), ...
-                         squeeze(temper(ix(1)-ixmin + 1,:,:,1)),20);
+                                  squeeze(temper(ix(1)-ixmin + 1,:,:,1)),levels);
             end
             %ht = title(['(mx,my) = (', num2str(eddy.mx(stride(4))/1000) ',' ...
             %        num2str(eddy.my(tt*stride(4))/1000) ') km | t = ' num2str(stride(4)) ' days']);
-            xlabel('y (km)'); ylabel('z (m)'); colorbar; caxis([14 20]);
+            xlabel('y (km)'); ylabel('z (m)'); colorbar; caxis([-1 1]*max(abs(temper(:))));
             h1 = liney(-eddy.Lz2(stride(4)),[],'b');
-            ylim([-1000 0]);
-            title('Cross-shore temperature slice through eddy center');
+            ylim([-1500 0]);
+            title('Cross-shore temperature anomaly - slice through eddy center');
             %h2 = liney(-eddy.Lz3(stride(4)),'3','k');
             beautify([14 14  16]);
             if runs.makeVideo
@@ -417,7 +427,7 @@ classdef runs < handle
                 
                 % if I have passive tracer info I can calculate transport
                 % using that
-                if ~isempty(runs.dye)
+                if ~isempty(runs.csdye)
                     mask = nan(size(cs_vel));
                     ieast = vecfind(runs.eddy.xr(:,1),runs.eddy.ee);
                     for tt=1:size(cs_vel,3)
@@ -680,7 +690,27 @@ classdef runs < handle
         
         function [] = tracer_budget(runs)
             tracer = roms_read_data(runs.out_file,'dye_02');
+            s = size(tracer);
+            %Itracer = domain_integrate(tracer, ...
+            %                runs.rgrid.xr,runs.rgrid.yr,runs.rgrid.zr);
             
+            clear N
+            
+            lim = linspace(min(min(tracer(:,:,end,1))),max(max(tracer(:,:,end,1))),100);
+            tracer = reshape(tracer,[s(1)*s(2)*s(3) s(4)]);
+            
+            for i=1:s(4)
+                [N(:,i),bins] = histc(tracer(:,i),lim);
+            end
+            
+            colors = flipud(repmat(linspace(0,0.9,s(4))',[1 3]));
+            figure
+            set(gca,'ColorOrder',colors); hold all
+            plot(lim/1000,N);
+            set(gcf,'Colormap',colors); 
+            hcbar = colorbar;
+            tlab = ceil(runs.rgrid.ocean_time(get(hcbar,'YTick'))/86400);
+            set(hcbar,'YTickLabel',num2str(tlab))
         end
         
     end
