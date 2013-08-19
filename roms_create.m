@@ -102,7 +102,7 @@ if flags.OBC
     OBC.north = false;            % process northern boundary segment
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%  Barotropic background flow parameters
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  Barotropic background flow parameters
 flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
 flags.bg_shear = 0;
 
@@ -114,7 +114,7 @@ bg.comment = ['shear = shear_fac * max(eddy vorticity) | ', ...
               'ubt,vbt = whichever is non-zero gets assigned shear ', ...
               'if flags.bg_shear = 0, then ubt/vbt is added (again non-zero)'];
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%% BATHY
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% BATHY
 % Bathymetry parameters - all measurements in m
 %flags.tanh_bathymetry = 0;
 %flags.linear_bathymetry = 1;
@@ -1042,6 +1042,8 @@ if flags.eddy
 
     fprintf('\n Eddy - %4.1f MB \n\n', monitor_memory_whos);
 end
+
+stop
 
 %% add barotropic velocity for advection (OBC initial condition also)
 
