@@ -105,6 +105,10 @@ classdef runs < handle
             end
         end
         
+        function [] = info(runs)
+            roms_info(runs.dir);
+        end
+        
         function [] = animate_zeta(runs)
             if runs.makeVideo
 %                 runs.mm_instance = mm_setup;
@@ -696,7 +700,7 @@ classdef runs < handle
             
             clear N
             
-            lim = linspace(min(min(tracer(:,:,end,1))),max(max(tracer(:,:,end,1))),100);
+            lim = linspace(min(min(tracer(:,:,end,1))),max(max(tracer(:,:,end,1))),90);
             tracer = reshape(tracer,[s(1)*s(2)*s(3) s(4)]);
             
             for i=1:s(4)
@@ -711,6 +715,11 @@ classdef runs < handle
             hcbar = colorbar;
             tlab = ceil(runs.rgrid.ocean_time(get(hcbar,'YTick'))/86400);
             set(hcbar,'YTickLabel',num2str(tlab))
+            xlabel('Cross-shore axis (km)');
+            ylabel('Count');
+            cblabel('Time (days)');
+            beautify ([14 14 16]);
+            
         end
         
     end
