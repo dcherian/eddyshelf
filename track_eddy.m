@@ -195,7 +195,7 @@ function [E] = gaussfit3(x0,T,zr)
     
 function [E] = sinefit(x0,T,zr)
     T0 = x0(1); k = x0(2); theta_0 = x0(3);
-    E = sum((T - T0 * (1+cos(k/4*zr + theta_0))/2).^2);
+    E = sum((T - T0 * (1+sin(-k/4*zr + theta_0))/2).^2);
 
 % Calculates eddy diagnostics as in Chelton et al. (2011)
 % doesn't support multiple eddies yet

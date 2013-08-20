@@ -75,7 +75,7 @@ calc_pv = 0;
 flags.perturb_zeta = 0; % add random perturbation to zeta
 flags.spinup = 0; % if spinup, do not initialize ubar/vbar fields.
 
-flags.front = 0; % create shelfbreak front
+flags.front = 1; % create shelfbreak front
 flags.eddy  = 1; % create eddy
 flags.wind  = 0; % create wind forcing file
 flags.floats = 0; % need to figure out float seeding locations?
@@ -182,15 +182,23 @@ if flags.solidbody_katsman
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Shelfbreak front parameters
-front.LTleft  = 12.5 * 1000; % length scale for temperature (m) - onshore
-front.LTright = 8*1000; % length scale - offshore
-front.LTz     = 100; % Gaussian decay scale in the vertical for temperature
-front.slope   = 100/4000; % non-dimensional
-front.Tx0     = 1.2/60000/SCOEF/R0; % max. magnitude of temperature gradient
+% front.LTleft  = 12.5 * 1000; % length scale for temperature (m) - onshore
+% front.LTright = 8*1000; % length scale - offshore
+% front.LTz     = 100; % Gaussian decay scale in the vertical for temperature
+% front.Tx0     = 1.2/60000/SCOEF/R0; % max. magnitude of temperature gradient
+% front.comment = ['LTleft = onshore length scale | LTright = offshore length scale' ...
+%                  ' LTz = vertical scale | slope = frontal slope | Tx0 = amplitude' ...
+%                  ' of gradient'];
+
+front.dT      = 0.6/SCOEF/R0; % delta tracer across front
+front.Lx      = 10 * 1000; % m - horizontal scale
+front.Lz      = 80; % m - vertical scale
+front.slope   = 100/4000; % non-dimensional - frontal slope
 front.Tra     = 'salt';
-front.comment = ['LTleft = onshore length scale | LTright = offshore length scale' ...
-                 ' LTz = vertical scale | slope = frontal slope | Tx0 = amplitude' ...
-                 ' of gradient'];
+front.comment = ['Lx = horizontal scale | Tra = tracer var for front | ' ...
+                 'Lz = vertical scale | slope = frontal slope | dT = change in' ...
+                 'tracer value across front'];
+
              
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% wind stress parameters
 wind.tau0 = 0; % set later 
@@ -611,31 +619,12 @@ if flags.front
         S.Tra = S.temp;
     end
     
-    [S.Trax,mask_z] = hor_grad_tracer(axmat,ax_as,ax_cs,zrmat,i_cs,i_as,front,bathy);
-%     S.Tz = mask_z .* exp(-(zrmat./front.LTz).^2);
-%     S.Tz = S.Tz ./ nanmax(S.Tz(:));
-%     S.Tz = N2/g/TCOEF .* (repnan(S.Tz,1));
-    S.Traz = 0;%N2/g/coef .* ones(size(zrmat));
-
-    % use chain rule to get gradient on SIGMA LEVEL
-    dzdx_s = diff(zrmat,1,i_cs)./diff(axmat,1,i_cs);
-    S.Trax_sig = avg1(S.Trax,i_cs) + dzdx_s .* avg1(S.Traz,i_cs);
-
-    % then integrate to make T front
-    % top to bottom integration done earlier
-    % integrate in horizontal dirn.from left to right using gradients on SIGMA LEVEL
-    [S,axmat] = reset_flip(S,axmat);
-    [S,axmat] = flip_vars(flip_flag,S,axmat);
-    if bathy.loc == 'h'
-        for i=size(S.Tra,1)-1:-1:1
-            S.Tra(i,:,:) = S.Tra(i+1,:,:) + S.Trax_sig(i,:,:)  .*(axmat(i+1,:,:)-axmat(i,:,:));
-        end
-    else
-        for i=2:size(S.Tra,1)
-            S.Tra(i,:,:) = S.Tra(i-1,:,:) + S.Trax_sig(i-1,:,:).*(axmat(i,:,:)-axmat(i-1,:,:));
-        end
-    end
-    S = flip_vars(flip_flag,S);
+    % divide dT/2 since tanh goes from (-1 to 1)*dT -> 2dT across front
+    x0     = bathy.xsb + (zrmat + bathy.hsb)/front.slope;
+    S.Tra  = front.dT/2 * (tanh( (axmat-x0)/front.Lx)) .* exp(- (zrmat/front.Lz).^2);
+    S.Trax = front.dT/2/front.Lx * sech( (axmat-x0)/front.Lx).^2 .* exp(- (zrmat/front.Lz).^2);
+    S.Tra  = S.Tra - min(S.Tra(:));
+    S.Trax_sig = diff(S.Tra,1,1);
 
     % Make plots to check temperature field
     h_check = figure;
@@ -649,7 +638,7 @@ if flags.front
     S = flip_vars(flip_flag,S);
 
     dsst = max(max(S.Tra(:,:,end)))-min(min(S.Tra(:,:,end)));
-    ssttitle = sprintf('Surface Tra | \\Delta surface Tracer = %.2f C', mean(dsst(:)));
+    ssttitle = sprintf('Surface Tra | \\Delta surface Tracer = %.2f ', mean(dsst(:)));
 
     % check front plots
     if bathy.axis == 'x'
@@ -723,14 +712,17 @@ if flags.front
     figure(h_check)
     axt(7) = subplot(247);
     contourf(xrmat(:,:,end)./fx,yrmat(:,:,end)./fy,S.zeta);
+    %axis image;
     colorbar; title('zeta (front only)');
 
     % link appropriate axes
-    linkaxes(axt,'x');
     linkaxes([axt(1) axt(2) axt(5) axt(6)],'xy');
     linkaxes([axt(4) axt(7)],'xy');
     
-    spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
+    % if eddy then line is called after placing last graph
+    if ~flags.eddy
+        spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
+    end
     
     % calculate diagnostics
     % define horizontal and vertical scales of jet  as half the core velocity 
@@ -961,26 +953,30 @@ if flags.eddy
     if flags.front
         figure(h_check);
         axt(8) = subplot(248);
+        cla
     else
         hfeddy = figure;
     end
     contourf(xrmat(:,:,1)./fx,yrmat(:,:,1)./fy,S.zeta,20); shading flat;
-    colorbar
-    freezeColors;cbfreeze
+    %axis image;
+    hcb = colorbar; freezeColors; cbfreeze(hcb)
     hold on
     [C,h] = contour(xrmat(:,:,1)./fx,yrmat(:,:,1)./fy,S.h,...
                 floor(linspace(min(S.h(:)),max(S.h(:)),5)),'k');
-    clabel(C,h);
+    clabel(C,h); 
     title('Zeta with eddy');
-    if flags.front
-        linkaxes([axt(4) axt(7) axt(8)],'xy');
-    end
     if bathy.axis == 'y'
         liney([bathy.xsl bathy.xsb]/fy);
     else
         linex([bathy.xsl bathy.xsb]/fx);
     end
-    axis image;
+    if flags.front
+        linkaxes([axt(4) axt(7) axt(8)],'xy');
+    end
+%     if flags.front
+%         cbfreeze(hcb,'off');
+%        spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
+%     end
     
     xedd = eddy.ix;
     yedd = eddy.iy;
@@ -1042,8 +1038,6 @@ if flags.eddy
 
     fprintf('\n Eddy - %4.1f MB \n\n', monitor_memory_whos);
 end
-
-stop
 
 %% add barotropic velocity for advection (OBC initial condition also)
 
@@ -1711,6 +1705,34 @@ if flags.floats
    fprintf('\n Float deployment locations : (%d:%d , %d:%d)', xlo,xhi,ylo,yhi);
 end
 fprintf('\n\n');
+
+%% Old sbfront code
+    
+%     [S.Trax,mask_z] = hor_grad_tracer(axmat,ax_as,ax_cs,zrmat,i_cs,i_as,front,bathy);
+% %     S.Tz = mask_z .* exp(-(zrmat./front.LTz).^2);
+% %     S.Tz = S.Tz ./ nanmax(S.Tz(:));
+% %     S.Tz = N2/g/TCOEF .* (repnan(S.Tz,1));
+%     S.Traz = 0;%N2/g/coef .* ones(size(zrmat));
+% 
+%     % use chain rule to get gradient on SIGMA LEVEL
+%     dzdx_s = diff(zrmat,1,i_cs)./diff(axmat,1,i_cs);
+%     S.Trax_sig = avg1(S.Trax,i_cs) + dzdx_s .* avg1(S.Traz,i_cs);
+% 
+%     % then integrate to make T front
+%     % top to bottom integration done earlier
+%     % integrate in horizontal dirn.from left to right using gradients on SIGMA LEVEL
+%     [S,axmat] = reset_flip(S,axmat);
+%     [S,axmat] = flip_vars(flip_flag,S,axmat);
+%     if bathy.loc == 'h'
+%         for i=size(S.Tra,1)-1:-1:1
+%             S.Tra(i,:,:) = S.Tra(i+1,:,:) + S.Trax_sig(i,:,:)  .*(axmat(i+1,:,:)-axmat(i,:,:));
+%         end
+%     else
+%         for i=2:size(S.Tra,1)
+%             S.Tra(i,:,:) = S.Tra(i-1,:,:) + S.Trax_sig(i-1,:,:).*(axmat(i,:,:)-axmat(i-1,:,:));
+%         end
+%     end
+%     S = flip_vars(flip_flag,S);
 
 %% old bathy code
 
