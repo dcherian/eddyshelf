@@ -22,8 +22,8 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 300;
-S.Mm = 200;
+S.Lm = 200;
+S.Mm = 300;
 S.N  = 40;
 
 % Domain Extent (in m)
@@ -75,7 +75,7 @@ calc_pv = 0;
 flags.perturb_zeta = 0; % add random perturbation to zeta
 flags.spinup = 0; % if spinup, do not initialize ubar/vbar fields.
 
-flags.front = 1; % create shelfbreak front
+flags.front = 0; % create shelfbreak front
 flags.eddy  = 1; % create eddy
 flags.wind  = 0; % create wind forcing file
 flags.floats = 0; % need to figure out float seeding locations?
@@ -125,7 +125,7 @@ flags.crooked_bathy = 0;
 bathy.H_shelf  = 100;
 bathy.L_shelf  = 20 * 1000;
 bathy.L_slope  =  50 * 1000;
-bathy.axis = 'y'; % CROSS SHELF AXIS
+bathy.axis = 'x'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
 bathy.sl_shelf = 0.0005;
 bathy.sl_slope = 0.04;
@@ -190,14 +190,14 @@ end
 %                  ' LTz = vertical scale | slope = frontal slope | Tx0 = amplitude' ...
 %                  ' of gradient'];
 
-front.dT      = 0.6/SCOEF/R0; % delta tracer across front
-front.Lx      = 10 * 1000; % m - horizontal scale
+front.dRho    = 0.6; % delta Rho across front
+front.Lx      = 15 * 1000; % m - horizontal scale
 front.Lz      = 80; % m - vertical scale
-front.slope   = 100/4000; % non-dimensional - frontal slope
+front.slope   = 10/4000; % non-dimensional - frontal slope
 front.Tra     = 'salt';
 front.comment = ['Lx = horizontal scale | Tra = tracer var for front | ' ...
                  'Lz = vertical scale | slope = frontal slope | dT = change in' ...
-                 'tracer value across front'];
+                 'tracer value across front | dRho = change in density across front'];
 
              
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% wind stress parameters
@@ -619,12 +619,17 @@ if flags.front
         S.Tra = S.temp;
     end
     
+    front.dT = front.dRho/abs(coef)/R0; % delta tracer across front
     % divide dT/2 since tanh goes from (-1 to 1)*dT -> 2dT across front
     x0     = bathy.xsb + (zrmat + bathy.hsb)/front.slope;
-    S.Tra  = front.dT/2 * (tanh( (axmat-x0)/front.Lx)) .* exp(- (zrmat/front.Lz).^2);
-    S.Trax = front.dT/2/front.Lx * sech( (axmat-x0)/front.Lx).^2 .* exp(- (zrmat/front.Lz).^2);
+    x      = (axmat-x0)/front.Lx;
+    front.zprof = 1;exp(- (zrmat/front.Lz).^2);
+    %front.zprof = repnan(fillnan(exp(- (zrmat/front.Lz).^2) .* (abs(S.Trax) > 1e-5),0),1);
+    S.Tra  = front.dT/2 * tanh(x) .* front.zprof;
+    S.Trax = front.dT/2/front.Lx * sech(x).^2.* front.zprof;
     S.Tra  = S.Tra - min(S.Tra(:));
-    S.Trax_sig = diff(S.Tra,1,1);
+    
+    clear x x0
 
     % Make plots to check temperature field
     h_check = figure;
@@ -747,9 +752,9 @@ if flags.front
     end
     
     if strcmpi(front.Tra,'salt')
-        S.salt = S.Tra;
+        S.salt = S.salt + S.Tra;
     else
-        S.temp = S.Tra;
+        S.temp = S.temp + S.Tra;
     end
     % clear some vars
     clear S.Tra S.Trax S.Traz S.Tz
@@ -972,6 +977,8 @@ if flags.eddy
     end
     if flags.front
         linkaxes([axt(4) axt(7) axt(8)],'xy');
+    else
+        axis image;
     end
 %     if flags.front
 %         cbfreeze(hcb,'off');
@@ -1269,11 +1276,19 @@ if S.NPT > 0
     
     % set dye_01 = cross-shelf label & dye_03 = along shelf label
     if bathy.axis == 'y'
-        dye_01 = yrmat;
+        if flags.eddy
+            dye_01 = yrmat;
+        end
         dye_03 = xrmat;
     else
-        dye_01 = xrmat;
+        if flags.eddy
+            dye_01 = xrmat;
+        end
         dye_03 = yrmat;
+    end
+    % set cross-shelf dye (dye_01) same as frontal structure
+    if flags.front
+        dye_01 = S.Tra;
     end
     dye_02 = zrmat;
 %     dye_01 = zeros(size(xrmat)); dye_02 = dye_01;

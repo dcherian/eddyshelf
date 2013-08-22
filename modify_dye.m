@@ -46,11 +46,26 @@ function [] = modify_dye(file)
 
     % write to file
     nt = length(ncread(file,'ocean_time'));
-    ncwrite(file,'dye_01',repmat(dye_01,[1 1 1 2 nt]));
-    ncwrite(file,'dye_02',repmat(dye_02,[1 1 1 2 nt]));
+    try
+        ncwrite(file,'dye_01',repmat(dye_01,[1 1 1 2 nt]));
+    catch ME
+        warning('dye_01 not found');
+        nccreate(file,'dye_01','Dimensions',{'xi_rho','eta_rho','s_rho','two',2,'ocean_time'});
+        ncwrite(file,'dye_01',repmat(dye_01,[1 1 1 2 nt]));
+    end
+    
+    try
+        ncwrite(file,'dye_02',repmat(dye_02,[1 1 1 2 nt]));
+    catch ME
+        warning('dye_02 not found');
+        nccreate(file,'dye_02','Dimensions',{'xi_rho','eta_rho','s_rho','two',2,'ocean_time'});
+        ncwrite(file,'dye_02',repmat(dye_02,[1 1 1 2 nt]));
+    end
     try
     ncwrite(file,'dye_03',repmat(dye_03,[1 1 1 2 nt]));
     catch ME
         warning('dye_03 not found');
+        nccreate(file,'dye_03','Dimensions',{'xi_rho','eta_rho','s_rho','two',2,'ocean_time'});
+        ncwrite(file,'dye_03',repmat(dye_03,[1 1 1 2 nt]));
     end
     disp(['wrote to file ' file]);
