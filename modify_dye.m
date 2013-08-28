@@ -8,9 +8,6 @@ function [] = modify_dye(file)
     [xsb,isb,hsb,ax] = find_shelfbreak(file);
     %[xsl,isl,hsl,ax] = find_shelfbreak(file,'slope');
 
-    
-    stat xrmat
-stat yrmat
     % set condition
 
     if ax == 'y'
@@ -67,4 +64,4 @@ function write_dye(file,name,var)
                             'two' 'ocean_time'});
         ncwrite(file,name,repmat(var,[1 1 1 2 nt]));
     end
-end
+    disp(['wrote to file ' file]);

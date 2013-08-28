@@ -140,11 +140,12 @@ function [eddy] = track_eddy(dir)
             %[x3,~,exitflag] = fminsearch(@(x) gaussfit3(x,eddy.T(tt,:)'-Ti,ze),initGuess3,opts);
             %if ~exitflag, x3(2) = NaN; end
             eddy.Lz2(tt)  = abs(x2(2));
-            eddy.Lz3(tt)  = NaN;%abs(x3(2));
+            %eddy.Lz3(tt)  = NaN;%abs(x3(2));
         else
             %fit sinusoid
             [x2,~,exitflag] = fminsearch(@(x) sinefit(x,eddy.T(tt,:)'-Ti,ze),initGuess,opts);
             eddy.Lz2(tt) = abs(2*pi/x2(2));
+            %eddy.Lz3(tt) = NaN;
         end
         
         % pcolor(xr,yr,eddy.mask(:,:,tt).*zeta(:,:,tt)); linex(eddy.mx(tt));title(num2str(tt))
@@ -162,7 +163,7 @@ function [eddy] = track_eddy(dir)
     eddy.yr = yr;
     
     eddy.Lz2(abs(eddy.Lz2) > max(abs(zr(:)))) = NaN;
-    eddy.Lz3(abs(eddy.Lz3) > max(abs(zr(:)))) = NaN;
+    %eddy.Lz3(abs(eddy.Lz3) > max(abs(zr(:)))) = NaN;
     toc;
     
     eddy.comment = ['(cx,cy) = Location of weighted center (m) | ' ...
@@ -194,7 +195,7 @@ function [E] = gaussfit3(x0,T,zr)
     
 function [E] = sinefit(x0,T,zr)
     T0 = x0(1); k = x0(2); theta_0 = x0(3);
-    E = sum((T - T0 * (1+cos(k/4*zr + theta_0))/2).^2);
+    E = sum((T - T0 * (1+sin(-k/4*zr + theta_0))/2).^2);
 
 % Calculates eddy diagnostics as in Chelton et al. (2011)
 % doesn't support multiple eddies yet

@@ -1,6 +1,7 @@
 function [] = compare_floats()
 
-dir = ['runs/topoeddy/runteb-04-hires-6/'];
+%dir = ['runs/topoeddy/runteb-04-hires-6/'];
+dir = ['runs/topoeddy/runbathysouth-02/'];
 track_file = [dir '/ltrans-compare.nc'];
 out_file = [dir 'ocean_avg.nc'];
 flt_file = [dir 'ocean_flt.nc'];
