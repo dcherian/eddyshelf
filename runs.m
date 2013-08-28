@@ -3,7 +3,7 @@ classdef runs < handle
         % dir & file names
         dir; out_file; ltrans_file; flt_file; givenFile
         % data
-        zeta; temp; usurf; vsurf
+        zeta; temp; usurf; vsurf; time
         % dyes
         csdye; asdye; zdye; % cross-shore, along-shore, z dyes
         % grid & bathymetry
@@ -28,6 +28,7 @@ classdef runs < handle
             if isdir(dir)
                 runs.dir = dir;
                 runs.out_file = [dir '/ocean_avg.nc'];
+                runs.givenFile = 0;
             else
                 runs.givenFile = 1;
                 runs.out_file = dir;
@@ -55,6 +56,7 @@ classdef runs < handle
             
             if ~runs.givenFile
                 runs.zeta = roms_read_data(dir,'zeta');
+                runs.time = roms_read_data(dir,'ocean_time');
                 try
                     runs.dye  = roms_read_data(dir,'dye_02');
                 catch ME
@@ -147,7 +149,7 @@ classdef runs < handle
                 set(hz,'CData',runs.zeta(:,:,ii));
                 if runs.makeVideo, shading interp; end
                 set(he,'ZData',runs.eddy.mask(:,:,ii));
-                set(ht,'String',[num2str(runs.rgrid.ocean_time(ii)/86400) ' days']);
+                set(ht,'String',[num2str(runs.time(ii)/86400) ' days']);
                 if runs.makeVideo
                    % shading(gca,'interp');
                     %mm_addFrame(runs.mm_instance,gcf);
@@ -273,7 +275,7 @@ classdef runs < handle
                     F = getframe(gcf);
                     writeVideo(aviobj,F);
                 end
-                pause(0.01); 
+                pause(0.02); 
             end
             
             if runs.makeVideo

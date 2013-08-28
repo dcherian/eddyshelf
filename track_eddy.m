@@ -1,17 +1,18 @@
-function [eddy] = track_eddy(dir)
+function [eddy] = track_eddy(dir1)
 
-    if isdir(dir)
-        fnames = ls([dir '/*his*.nc']);
-        if isempty(ls([dir '/*his*.nc']))
-            fnames = ls([dir '/*avg*.nc']);
-        end
-
-        fname = [dir '/' fnames(1,:)];
-        zeta = roms_read_data(dir,'zeta');
+    if isdir(dir1)
+%         a = dir([dir1 '/*his*.nc']);           
+%         if isempty(a)
+%             fnames = dir([dir1 '/*avg*.nc']);
+%         end
+% 
+%         fname = [dir1 '/' fnames(1,:)];
+        fname = roms_find_file(dir1,'his');
+        zeta  = roms_read_data(dir1,'zeta');
     else
-        fname = dir;
-        index = strfind(dir,'/');
-        dir = dir(1:index(end));
+        fname = dir1;
+        index = strfind(dir1,'/');
+        dir1 = dir1(1:index(end));
         fnames = [];
         zeta = double(ncread(fname,'zeta'));
     end
@@ -22,9 +23,10 @@ function [eddy] = track_eddy(dir)
     limit_x = 40*1000;
     limit_y = 40*1000;
 
-    [xr,yr,zr,~,~,~] = roms_var_grid(fname,'temp');
-    eddy.h = ncread(fname,'h');
-    eddy.t = roms_read_data(dir,'ocean_time')/86400; % required only for dt
+    file = char([dir1 '/' char(fname(1))]);
+    [xr,yr,zr,~,~,~] = roms_var_grid(file,'temp');
+    eddy.h = ncread(file,'h');
+    eddy.t = roms_read_data(dir1,'ocean_time')/86400; % required only for dt
     dt = eddy.t(2)-eddy.t(1);
 
     zeta = zeta(2:end-1,2:end-1,:);
@@ -37,7 +39,7 @@ function [eddy] = track_eddy(dir)
     sz = size(zeta(:,:,1));
     
     % initial guess for vertical scale fit
-    params = read_params_from_ini(dir);
+    params = read_params_from_ini(dir1);
     if ~isfield(params.flags,'vprof_gaussian') || params.flags.vprof_gaussian
         initGuess2(2) = params.eddy.depth;
         initGuess3(2) = params.eddy.depth;
@@ -64,7 +66,7 @@ function [eddy] = track_eddy(dir)
     end
 
     % detect shelfbreak
-    [sbreak,~,~] = find_shelfbreak(fname);
+    [sbreak,~,~] = find_shelfbreak(file);
 
     % remove background flow contribution to zeta
     zeta_bg = zeta(:,end,1);
@@ -118,20 +120,20 @@ function [eddy] = track_eddy(dir)
         imy = find_approx(yr(1,:),eddy.my(tt),1);
         ze  = squeeze(zr(imx,imy,:)); % z co-ordinate at center of eddy
         try
-            eddy.T(tt,:)   = double(squeeze(ncread(fname,'temp',[imx imy 1 tt-tt0],[1 1 Inf 1])));
+            eddy.T(tt,:)   = double(squeeze(ncread(file,'temp',[imx imy 1 tt-tt0],[1 1 Inf 1])));
         catch ME
-            disp([' Moving to next file tt = ' num2str(tt) ' - ' fnames(kk,:)]);
-            fname = [dir '/' fnames(kk,:)];
+            disp([' Moving to next file tt = ' num2str(tt) ' - ' char(fname(kk))]);
+            file = [dir1 '/' char(fname(kk))];
             kk = kk +1;
             tt0 = tt-1;
-            eddy.T(tt,:)   = double(squeeze(ncread(fname,'temp',[imx imy 1 tt-tt0],[ ...
+            eddy.T(tt,:)   = double(squeeze(ncread(file,'temp',[imx imy 1 tt-tt0],[ ...
                                                     1 1 Inf 1])));
         end
         
         if params.bathy.axis == 'x'
-            Ti = double(squeeze(ncread(fname,'temp',[imx  size(xr,2)  1 tt-tt0],[1 1 Inf 1])));
+            Ti = double(squeeze(ncread(file,'temp',[imx  size(xr,2)  1 tt-tt0],[1 1 Inf 1])));
         else
-            Ti = double(squeeze(ncread(fname,'temp',[size(xr,1)  imy  1 tt-tt0],[1 1 Inf 1])));
+            Ti = double(squeeze(ncread(file,'temp',[size(xr,1)  imy  1 tt-tt0],[1 1 Inf 1])));
         end
         opts = optimset('MaxFunEvals',1e3);
         if ~isfield(params.flags,'vprof_gaussian') || params.flags.vprof_gaussian
@@ -175,7 +177,7 @@ function [eddy] = track_eddy(dir)
                     'Lz2,3 = Vertical scale (m) when fitting without & with linear trend | ' ...
                     'T = temp profile at (mx,my)'];
     
-    save([dir '/eddytrack.mat'],'eddy');
+    save([dir1 '/eddytrack.mat'],'eddy');
     disp('Done.');
     
 % Gaussian fit for vertical scale - called by fminsearch
