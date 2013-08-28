@@ -624,11 +624,8 @@ if flags.front
     front.dT = front.dRho/abs(coef)/R0; % delta tracer across front
     % divide dT/2 since tanh goes from (-1 to 1)*dT -> 2dT across front
     x0     = bathy.xsb + (zrmat + bathy.hsb)/front.slope;
-    x      = (axmat-x0)/front.Lx;
-    front.zprof = exp(- (zrmat/front.Lz).^2);
-    %front.zprof = repnan(fillnan(exp(- (zrmat/front.Lz).^2) .* (abs(S.Trax) > 1e-5),0),1);
-    S.Tra  = front.dT/2 * tanh(x) .* front.zprof;
-    S.Trax = front.dT/2/front.Lx * sech(x).^2.* front.zprof;
+    S.Tra  = front.dT/2 * (tanh( (axmat-x0)/front.Lx)) .* exp(- (zrmat/front.Lz).^2);
+    S.Trax = front.dT/2/front.Lx * sech( (axmat-x0)/front.Lx).^2 .* exp(- (zrmat/front.Lz).^2);
     S.Tra  = S.Tra - min(S.Tra(:));
     
     clear x x0

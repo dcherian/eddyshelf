@@ -45,12 +45,23 @@ function [] = modify_dye(file)
     % title('dye_{02}');
 
     % write to file
+    
+    write_dye(file,'dye_01',dye_01);
+    write_dye(file,'dye_02',dye_02);
+    write_dye(file,'dye_03',dye_03);
+    
+    disp(['wrote to file ' file]);
+end
+
+function write_dye(file,name,var)
     nt = length(ncread(file,'ocean_time'));
-    ncwrite(file,'dye_01',repmat(dye_01,[1 1 1 2 nt]));
-    ncwrite(file,'dye_02',repmat(dye_02,[1 1 1 2 nt]));
-    try
-    ncwrite(file,'dye_03',repmat(dye_03,[1 1 1 2 nt]));
+   
+    try 
+        ncwrite(file,name,repmat(var,[1 1 1 2 nt]));
     catch ME
-        warning('dye_03 not found');
+        warning([name ' not found.']);
+        nccreate(file,name,'Dimensions',{'xi_rho' 'eta_rho' 's_rho' ...
+                            'two' 'ocean_time'});
+        ncwrite(file,name,repmat(var,[1 1 1 2 nt]));
     end
     disp(['wrote to file ' file]);
