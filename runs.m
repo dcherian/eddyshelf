@@ -63,6 +63,7 @@ classdef runs < handle
                 end
             else
                 runs.zeta = double(ncread(runs.out_file,'zeta'));
+                runs.time = double(ncread(runs.out_file,'ocean_time'));
                 try
                     runs.csdye  = squeeze(double(ncread(runs.out_file,'dye_02', ...
                     [1 1 runs.rgrid.N 1],[Inf Inf 1 Inf])));
@@ -179,7 +180,7 @@ classdef runs < handle
             eddy = runs.eddy;
             xvec = runs.rgrid.xr(:,1);
             yvec = runs.rgrid.yr(1,:)';
-            stride = [1 1 1 1];
+            stride = [1 1 1 4];
             
             ix = vecfind(xvec,eddy.mx([1:stride(4):end]));
             iy = vecfind(yvec,eddy.my([1:stride(4):end]));
@@ -188,15 +189,27 @@ classdef runs < handle
             iymax = max(iy); iymin = min(iy);            
 
             if runs.bathy.axis == 'x'
-                temper = double(squeeze(ncread(runs.out_file,'temp',[1 iymin 1 1], ...
-                                [Inf iymax-iymin+1 Inf Inf],stride)));
-                strat  = double(squeeze(ncread(runs.out_file,'temp',[Inf 1 1 1], ...
-                                [1 1 Inf 1])));
+%                 temper = double(squeeze(ncread(runs.out_file,'temp',[1 iymin 1 1], ...
+%                                 [Inf iymax-iymin+1 Inf Inf],stride)));
+%                 strat  = double(squeeze(ncread(runs.out_file,'temp',[Inf 1 1 1], ...
+%                                 [1 1 Inf 1])));
+                temper = roms_read_data(runs.dir,'temp',[1 iymin 1 1], ...
+                                  [Inf iymax-iymin+1 Inf Inf], stride);
+                strat  = roms_read_data(runs.dir,'temp',[Inf 1 1 1], ...
+                                  [1 1 Inf 1]);
             else
-                temper = double(squeeze(ncread(runs.out_file,'temp',[ixmin 1  1 1], ...
-                                [ixmax-ixmin+1 Inf Inf Inf],stride)));
-                strat  = double(squeeze(ncread(runs.out_file,'temp',[1 1 1 1], ...
-                                [1 Inf Inf 1])));
+                disp('Reading data.');
+                tic;
+%                 temper = double(squeeze(ncread(runs.out_file,'temp',[ixmin 1  1 1], ...
+%                                 [ixmax-ixmin+1 Inf Inf Inf],stride)));
+%                 strat  = double(squeeze(ncread(runs.out_file,'temp',[1 1 1 1], ...
+%                                 [1 Inf Inf 1])));
+                temper = roms_read_data(runs.dir,'temp',[ixmin 1  1 1], ...
+                                [ixmax-ixmin+1 Inf Inf Inf],stride);
+                            toc;
+                strat  = roms_read_data(runs.dir,'temp',[1 1 1 1], ...
+                                [1 Inf Inf 1]);               
+                            toc;
             end
 
             temper = bsxfun(@minus,temper,permute(strat,[3 1 2]));
@@ -260,7 +273,7 @@ classdef runs < handle
                 else
                     set(hh,'ZData',squeeze(temper(:,iy(tt)-iymin + 1,:,tt)));
                 end
-                tstr = [num2str(runs.rgrid.ocean_time(tt*stride(4))/86400) ' days'];
+                tstr = [num2str(runs.time(tt*stride(4))/86400) ' days'];
                 set(h1,'ydata',[-eddy.Lz2(tt*stride(4)) -eddy.Lz2(tt*stride(4))]);
                 %set(h2,'ydata',-eddy.Lz3(tt*stride(4)));
                 set(hz,'CData',runs.zeta(:,:,tt*stride(4)));
@@ -275,7 +288,7 @@ classdef runs < handle
                     F = getframe(gcf);
                     writeVideo(aviobj,F);
                 end
-                pause(0.02); 
+                pause(); 
             end
             
             if runs.makeVideo
@@ -506,7 +519,7 @@ classdef runs < handle
             %plot(xmat,ntrans); linex(0)
             %disp_plot(runs.eutrans.dye.trans(:,:,4),xmat,runs.rgrid.ocean_time);
             
-            time = runs.rgrid.ocean_time/86400;
+            time = runs.time/86400;
             % normalize by max.
             mtrans = max(abs(runs.eutrans.dye.trans),[],1);
             ntrans = bsxfun(@rdivide,runs.eutrans.dye.trans, mtrans);

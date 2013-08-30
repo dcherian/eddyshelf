@@ -3,7 +3,7 @@
 
 %% Parameters
 % names cannot start with number
-FOLDER    = '/home/deepak/';
+FOLDER    = '/media/data/Work/eddyshelf/runs/';
 prefix    = 'tek';
 GRID_NAME = [prefix '_grd'];
 INI_NAME  = [prefix '_ini'];
@@ -79,8 +79,8 @@ flags.front = 0; % create shelfbreak front
 flags.eddy  = 1; % create eddy
 flags.wind  = 0; % create wind forcing file
 flags.floats = 0; % need to figure out float seeding locations?
-flags.ubt_initial = 0; % add barotropic velocity to initial condition?
-flags.OBC = 0;  % create OBC file and set open boundaries
+flags.ubt_initial = 1; % add barotropic velocity to initial condition?
+flags.OBC = 1;  % create OBC file and set open boundaries
 flags.OBC_from_initial = 1; % copy OBC data from initial condition?
 % flags.ubt_deep = 0; % nudge to ubt only in deep water - NOT WORKING
 %flags.localize_jet = 0;% buffer around eddy where velocity should exist - NOT NEEDED
@@ -106,7 +106,7 @@ end
 flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
 flags.bg_shear = 0;
 
-bg.ubt = 0;0.04; % m/s barotropic velocity
+bg.ubt = 0.02; % m/s barotropic velocity
 bg.vbt = 0;-0.04; % m/s barotropic velocity
 bg.shear_fac = 0.2; 
 bg.shear = NaN; % set later as bg.shear_fac * max(eddy vorticity)
@@ -776,9 +776,9 @@ if flags.eddy
     % Set eddy parameters that depend on something else
     eddy.dia = 2* sqrt(phys.N2)*Z/pi/f0; % twice the deformation radius NH/pi/f
     if flags.eddy_zhang
-        xtra = (4.4)*eddy.dia/2;
+        xtra = (4.2)*eddy.dia/2;
     else
-        xtra = (2.4)*eddy.dia/2;
+        xtra = (2.2)*eddy.dia/2;
     end
     
     switch bathy.axis % cross-shore axis
@@ -797,8 +797,12 @@ if flags.eddy
             end
         case 'y'
             if isnan(eddy.cx)
-                % add deformation radius buffer away from boundary
-                eddy.cx = X-eddy.dia/2-xtra; % center of eddy
+                if ~flags.OBC
+                    % add deformation radius buffer away from boundary
+                    eddy.cx = X-eddy.dia/2-xtra; % center of eddy
+                else
+                    eddy.cx = 0+eddy.dia/2+xtra;
+                end
             end
             if isnan(eddy.cy)
                 eddy.cy = bathy.xsl+eddy.buffer+xtra; %597000; %    "
@@ -1318,7 +1322,6 @@ if S.NPT > 0
         vname = sprintf('dye_%02d',ii);
         eval(['nc_write(S.ncname,''' vname ''',' vname ',1);']);
     end
-    clear dye_01 dye_02 dye_03
 
     fprintf('\n Passive Tracer - %4.1f MB \n\n', monitor_memory_whos);
 end
