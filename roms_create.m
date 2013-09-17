@@ -22,8 +22,8 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 300;
-S.Mm = 200;
+S.Lm = 430;
+S.Mm = 192;
 S.N  = 40;
 
 % Domain Extent (in m)
@@ -45,7 +45,7 @@ S.Tcline  = 100.0;    %  S-coordinate surface/bottom stretching width (m)
 % coriolis parameters
 lat_ref = 45;
 f0    = 2 * (2*pi/86400) * sind(lat_ref);
-beta  = 4e-11;
+beta  = 2e-11;
 
 % Physical Parameters
 N2    = 1e-5;
@@ -106,7 +106,7 @@ end
 flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
 flags.bg_shear = 0;
 
-bg.ubt = 0.02; % m/s barotropic velocity
+bg.ubt = 0.04; % m/s barotropic velocity
 bg.vbt = 0;-0.04; % m/s barotropic velocity
 bg.shear_fac = 0.2; 
 bg.shear = NaN; % set later as bg.shear_fac * max(eddy vorticity)
@@ -164,8 +164,8 @@ eddy.dia    = NaN; % 2xNH/pi/f0 - determined later
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
 eddy.tamp   = 0.30; % controls gradient
-eddy.buffer = 15*1000; % distance from start of deep water (domain edge) to 4.4 (2.4) *r0
-                       % should account for sponges
+eddy.buffer_sp = 15*1000; % distance from  4.2 (2.2) *r0 to sponge edge
+eddy.buffer = 7.5*1000; % distance from start of deep water to 4.4 (2.4) * dia
 eddy.cx     = NaN;X/2; % if NaN, determined using buffer later
 eddy.theta0 = pi/2; % surface phase anomaly from Zhang et al. (2013)
                     % 7/16 * pi for WCR
@@ -175,7 +175,7 @@ eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
                 ' | (cx,cy) = (x,y) location of center | (ix,iy) = indices of center | ' ...
                 'U = max. azimuthal velocity | R = radius of max. vel (U)' ...
                 '| theta0 = surface phase anomaly | buffer = distance from domain edge ' ...
-                '/start of deep water to 4.4*r0 (zhang) or 2.4 r0 (katsman)'];
+                '/start of deep water to 4.2*r0 (zhang) or 2.2 r0 (katsman)'];
             
 if flags.solidbody_katsman
     eddy.a      = 3;  % ? in Katsman et al. (2003) - NOT FOR ZHANG PROFILE
@@ -776,9 +776,9 @@ if flags.eddy
     % Set eddy parameters that depend on something else
     eddy.dia = 2* sqrt(phys.N2)*Z/pi/f0; % twice the deformation radius NH/pi/f
     if flags.eddy_zhang
-        xtra = (4.2)*eddy.dia/2;
+        xtra = (4.3)*eddy.dia/2;
     else
-        xtra = (2.2)*eddy.dia/2;
+        xtra = (2.3)*eddy.dia/2;
     end
     
     switch bathy.axis % cross-shore axis
@@ -788,17 +788,19 @@ if flags.eddy
             end 
             if isnan(eddy.cy)
                 % add deformation radius buffer away from boundary
+                % note there is no sponge at the inflow boundary
                 eddy.cy = Y-eddy.dia/2-xtra; 
             end
             fprintf('Distance from eastern edge = %.2f km \n', ...
                     (X-eddy.cx-xtra)/1000);
-            if X-eddy.cx-xtra < eddy.buffer
+            if X-eddy.cx-xtra < eddy.buffer_obc
                 error('Eastern edge - eddy edge < buffer');
             end
         case 'y'
             if isnan(eddy.cx)
                 if ~flags.OBC
                     % add deformation radius buffer away from boundary
+                    % note there is no sponge at the inflow boundary
                     eddy.cx = X-eddy.dia/2-xtra; % center of eddy
                 else
                     eddy.cx = 0+eddy.dia/2+xtra;
@@ -809,8 +811,8 @@ if flags.eddy
             end
             fprintf('Distance from northern edge = %.2f km \n', ...
                     (Y-eddy.cy-xtra)/1000);
-            if Y-eddy.cy-xtra < eddy.buffer
-                error('Northern edge - eddy edge < buffer');
+            if Y-eddy.cy-xtra < eddy.buffer_sp
+                error('Northern edge - eddy edge < sponge buffer');
             end
     end
 
@@ -1042,7 +1044,7 @@ if flags.eddy
     
     % clear variables to save space
 %    clear rut rutz dTdr strat r rnorm rfb2 sdisc
-    eddy.tz = []; eddy.temp = []; eddy.u = []; eddy.v = [];
+    %eddy.tz = []; eddy.temp = []; eddy.u = []; eddy.v = [];
 
     fprintf('\n Eddy - %4.1f MB \n\n', monitor_memory_whos);
 end
@@ -1104,7 +1106,7 @@ if flags.ubt_initial == 1
             if flags.fplanezeta
                 S.zeta = S.zeta + cumtrapz(squeeze(yrmat(1,:,1)),-f0./g * ubt,2);
             else
-                error('fplanezeta not enabled.');
+                S.zeta = S.zeta + cumtrapz(squeeze(yrmat(1,:,1)),-f./g .* ubt,2);
             end
         end
         if bg.vbt ~=0

@@ -51,5 +51,5 @@ linex(2.4);
 title('Katsman et al. (2013)');
 legend('T = R(r_n)','V = d/dr_n R(r_n)');
 xlabel('r_n = r/r_0');
-beautify;
-export_fig('images/katsmaneddy.png');
+%beautify;
+%export_fig('images/katsmaneddy.png');

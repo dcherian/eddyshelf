@@ -24,7 +24,11 @@ classdef runs < handle
     end
     methods
         % constructor
-        function [runs] = runs(dir)
+        function [runs] = runs(dir,reset)
+            if ~exist('reset','var')
+                reset = 0;
+            end
+            
             if isdir(dir)
                 runs.dir = dir;
                 runs.out_file = [dir '/ocean_avg.nc'];
@@ -75,7 +79,7 @@ classdef runs < handle
                 runs.roms = floats('roms',runs.flt_file,runs.rgrid);
             end
             
-            if ~exist([dir '/eddytrack.mat'],'file')
+            if ~exist([dir '/eddytrack.mat'],'file') || reset == 1
                 try
                     runs.eddy = track_eddy(dir);
                 catch ME
