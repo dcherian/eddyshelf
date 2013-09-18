@@ -45,7 +45,7 @@ S.Tcline  = 100.0;    %  S-coordinate surface/bottom stretching width (m)
 % coriolis parameters
 lat_ref = 45;
 f0    = 2 * (2*pi/86400) * sind(lat_ref);
-beta  = 2e-11;
+beta  = 4e-11;
 
 % Physical Parameters
 N2    = 1e-5;
@@ -106,7 +106,7 @@ end
 flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
 flags.bg_shear = 0;
 
-bg.ubt = 0.04; % m/s barotropic velocity
+bg.ubt = 0.02; % m/s barotropic velocity
 bg.vbt = 0;-0.04; % m/s barotropic velocity
 bg.shear_fac = 0.2; 
 bg.shear = NaN; % set later as bg.shear_fac * max(eddy vorticity)
@@ -164,8 +164,8 @@ eddy.dia    = NaN; % 2xNH/pi/f0 - determined later
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
 eddy.tamp   = 0.30; % controls gradient
-eddy.buffer_sp = 15*1000; % distance from  4.2 (2.2) *r0 to sponge edge
-eddy.buffer = 7.5*1000; % distance from start of deep water to 4.4 (2.4) * dia
+eddy.buffer_sp = 15*1000; % distance from  4.3 (2.3) *r0 to sponge edge
+eddy.buffer = 7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
 eddy.cx     = NaN;X/2; % if NaN, determined using buffer later
 eddy.theta0 = pi/2; % surface phase anomaly from Zhang et al. (2013)
                     % 7/16 * pi for WCR
@@ -372,7 +372,7 @@ if max(abs(S.x_u(:))) > 3500
 end
 
 % write parameters to initial conditions .nc file - REST AT THE END
-tic;
+
 fprintf('\n Writing params \n');
 write_params_to_ini(INI_NAME,flags);
 write_params_to_ini(INI_NAME,bathy);
@@ -757,6 +757,10 @@ if flags.front
     end
     % clear some vars
     clear S.Tra S.Trax S.Traz S.Tz
+    fprintf('\n Writing front params');
+    
+    write_params_to_ini(INI_NAME,front);
+    toc;
 end % if shelfbreak front
 
 fprintf('\n Front - %4.1f MB \n\n', monitor_memory_whos);
@@ -1047,6 +1051,10 @@ if flags.eddy
     %eddy.tz = []; eddy.temp = []; eddy.u = []; eddy.v = [];
 
     fprintf('\n Eddy - %4.1f MB \n\n', monitor_memory_whos);
+    
+    fprintf('\n Writing eddy params');
+    write_params_to_ini(INI_NAME,eddy);
+    toc;
 end
 
 %% add barotropic velocity for advection (OBC initial condition also)
@@ -1120,6 +1128,19 @@ if flags.ubt_initial == 1
 end
 
 fprintf('\n BT vel - %4.1f MB \n\n', monitor_memory_whos);
+
+%% non-dimensional parameters
+
+if exist('S_sh','var');nondim.S_sh = S_sh; end
+if exist('S_sl','var');nondim.S_sl = S_sl; end
+nondim.comment = ['Ro = Rossby number | S_sh = shelf Burger number |' ...
+                  'S_sl = slope Burger number | Bu_temp = Bu based on eddy temp perturbation' ...
+                  ' | Bu = traditional eddy burger number = NH/fR | Ri = Richardson number | ' ...
+                  ' Rh = Rhines number = V/beta/R^2'];
+
+write_params_to_ini(INI_NAME,nondim);
+fprintf('\n Parameters written \n');
+toc;
 
 %% Misc calculations (ubar,vbar,rho,pv) - shouldn't require changes
 
@@ -1482,16 +1503,10 @@ if flags.wind
     ncwrite(FRC_NAME,'svstr',svstr);
     
     fprintf('\n Wind - %4.1f MB \n\n', monitor_memory_whos);
+    
+    write_params_to_ini(INI_NAME,wind);
+    toc;
 end
-
-%% non-dimensional parameters
-
-if exist('S_sh','var');nondim.S_sh = S_sh; end
-if exist('S_sl','var');nondim.S_sl = S_sl; end
-nondim.comment = ['Ro = Rossby number | S_sh = shelf Burger number |' ...
-                  'S_sl = slope Burger number | Bu_temp = Bu based on eddy temp perturbation' ...
-                  ' | Bu = traditional eddy burger number = NH/fR | Ri = Richardson number | ' ...
-                  ' Rh = Rhines number = V/beta/R^2'];
 
 %% Check plots
 
@@ -1598,15 +1613,6 @@ clear pv
 %% Write to Grid & IC file
 
 fprintf('\n Started writing files...\n');
-tic;
-
-% write parameters
-if flags.front, write_params_to_ini(INI_NAME,front); end
-if flags.eddy,  write_params_to_ini(INI_NAME,eddy); end
-if flags.wind,  write_params_to_ini(INI_NAME,wind); end
-if exist('nondim','var'),  write_params_to_ini(INI_NAME,nondim); end
-fprintf('\n Parameters written \n');
-toc;
 
 % grid file
 ncwrite(GRID_NAME,'spherical',S.spherical);
