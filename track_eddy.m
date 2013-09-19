@@ -7,14 +7,16 @@ function [eddy] = track_eddy(dir1)
 %         end
 % 
 %         fname = [dir1 '/' fnames(1,:)];
-        fname = roms_find_file(dir1,'his');
+        fnames = roms_find_file(dir1,'his');
         zeta  = roms_read_data(dir1,'zeta');
+        file = char([dir1 '/' char(fnames(1))]);
     else
         fname = dir1;
         index = strfind(dir1,'/');
         dir1 = dir1(1:index(end));
         fnames = [];
         zeta = double(ncread(fname,'zeta'));
+        file = fname;
     end
     kk = 2; % if ncread fails, it will use fnames(kk,:)
     tt0 = 0; % offset for new history.average file - 0 initially, updated later
@@ -23,8 +25,8 @@ function [eddy] = track_eddy(dir1)
     limit_x = 40*1000;
     limit_y = 40*1000;
 
-    file = char([dir1 '/' char(fname(1))]);
     [xr,yr,zr,~,~,~] = roms_var_grid(file,'temp');
+
     eddy.h = ncread(file,'h');
     eddy.t = roms_read_data(dir1,'ocean_time')/86400; % required only for dt
     dt = eddy.t(2)-eddy.t(1);
@@ -66,18 +68,22 @@ function [eddy] = track_eddy(dir1)
     end
 
     % detect shelfbreak
-    [sbreak,~,~] = find_shelfbreak(file);
+    [sbreak,~,~,ax] = find_shelfbreak(file);
 
     % remove background flow contribution to zeta
-    zeta_bg = zeta(:,end,1);
-
+    if ax == 'x'
+        zeta_bg = zeta(:,end,1);
+    else
+        zeta_bg = zeta(1,:,1);
+    end
+    
     tic;
     for tt=1:size(zeta,3)
         if tt == 1,
             mask = ones(sz);
             d_sbreak = Inf;
         else 
-            if tt ==  15,
+            if tt ==  49,
                 disp('debug time!');
             end
             mask = nan*ones(sz);
@@ -122,8 +128,8 @@ function [eddy] = track_eddy(dir1)
         try
             eddy.T(tt,:)   = double(squeeze(ncread(file,'temp',[imx imy 1 tt-tt0],[1 1 Inf 1])));
         catch ME
-            disp([' Moving to next file tt = ' num2str(tt) ' - ' char(fname(kk))]);
-            file = [dir1 '/' char(fname(kk))];
+            disp([' Moving to next file tt = ' num2str(tt) ' - ' char(fnames(kk))]);
+            file = [dir1 '/' char(fnames(kk))];
             kk = kk +1;
             tt0 = tt-1;
             eddy.T(tt,:)   = double(squeeze(ncread(file,'temp',[imx imy 1 tt-tt0],[ ...
@@ -155,10 +161,13 @@ function [eddy] = track_eddy(dir1)
         if tt == 1
             eddy.mvx(1) = NaN;
             eddy.mvy(1) = NaN;
+            eddy.mcx(1) = NaN;
+            eddy.mcy(1) = NaN;
         else
             % dt in days; convert dx,dy to km
             eddy.mvx(tt) = (eddy.mx(tt) - eddy.mx(tt-1))./dt/1000;
             eddy.mvy(tt) = (eddy.my(tt) - eddy.my(tt-1))./dt/1000;
+            
         end
     end
     eddy.xr = xr;
@@ -224,8 +233,16 @@ function [eddy] = eddy_diag(zeta,dx,dy,sbreak,w)
         % first find simply connected regions
         regions = bwconncomp(mask,connectivity);
         
+        % sort regions by n
+        nn = [];
+        for ii=1:regions.NumObjects
+            nn(ii) = length(regions.PixelIdxList{ii});
+        end
+        [~,ind] = sort(nn,'descend');
+        
         % loop over these regions and apply the criteria
-        for jj=1:regions.NumObjects
+        for kk=1:regions.NumObjects
+            jj = ind(kk);
             % Criterion 2 - either too big or too small
             n = length(regions.PixelIdxList{jj});
             if n < low_n || n > high_n, continue; end
@@ -247,6 +264,7 @@ function [eddy] = eddy_diag(zeta,dx,dy,sbreak,w)
             
             % Criterion 4 - amplitude is at least > amp_thresh
             indices = find(local_max == 1);
+            if length(indices) > 20; continue; end
             % make sure all local maxima found satisfy this criterion
             for mm=1:length(indices)
                 if (zreg(indices(mm)) - nanmean(zperim(:))) < amp_thresh
