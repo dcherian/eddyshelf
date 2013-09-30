@@ -23,7 +23,7 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
 S.Lm = 430;
-S.Mm = 192;
+S.Mm = 190;
 S.N  = 40;
 
 % Domain Extent (in m)
@@ -45,7 +45,7 @@ S.Tcline  = 100.0;    %  S-coordinate surface/bottom stretching width (m)
 % coriolis parameters
 lat_ref = 45;
 f0    = 2 * (2*pi/86400) * sind(lat_ref);
-beta  = 4e-11;
+beta  = 6e-11;
 
 % Physical Parameters
 N2    = 1e-5;
@@ -106,7 +106,7 @@ end
 flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
 flags.bg_shear = 0;
 
-bg.ubt = 0.02; % m/s barotropic velocity
+bg.ubt = 0.04; % m/s barotropic velocity
 bg.vbt = 0;-0.04; % m/s barotropic velocity
 bg.shear_fac = 0.2; 
 bg.shear = NaN; % set later as bg.shear_fac * max(eddy vorticity)
@@ -163,7 +163,7 @@ flags.vprof_gaussian = 0;%~flags.eddy_zhang; % eddy is gaussian in vertical?
 eddy.dia    = NaN; % 2xNH/pi/f0 - determined later
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
-eddy.tamp   = 0.30; % controls gradient
+eddy.tamp   = 0.45; % controls gradient
 eddy.buffer_sp = 15*1000; % distance from  4.3 (2.3) *r0 to sponge edge
 eddy.buffer = 7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
 eddy.cx     = NaN;X/2; % if NaN, determined using buffer later
@@ -204,7 +204,6 @@ front.comment = ['Lx = horizontal scale | Tra = tracer var for front | ' ...
 wind.tau0 = 0; % set later 
 wind.ramp = 2; % days
 wind.v    = 0.05; % m/s
-
 
 %% Create Junk IC & Grid Files + set vars to zero
 
@@ -372,7 +371,7 @@ if max(abs(S.x_u(:))) > 3500
 end
 
 % write parameters to initial conditions .nc file - REST AT THE END
-
+tic;
 fprintf('\n Writing params \n');
 write_params_to_ini(INI_NAME,flags);
 write_params_to_ini(INI_NAME,bathy);
@@ -1612,6 +1611,7 @@ clear pv
 
 %% Write to Grid & IC file
 
+toc;
 fprintf('\n Started writing files...\n');
 
 % grid file
