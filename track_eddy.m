@@ -1,22 +1,28 @@
 function [eddy] = track_eddy(dir1)
 
     if isdir(dir1)
-%         a = dir([dir1 '/*his*.nc']);           
-%         if isempty(a)
-%             fnames = dir([dir1 '/*avg*.nc']);
-%         end
-% 
-%         fname = [dir1 '/' fnames(1,:)];
         fnames = roms_find_file(dir1,'his');
-        zeta  = roms_read_data(dir1,'zeta');
         file = char([dir1 '/' char(fnames(1))]);
+        [xr,yr,zr,~,~,~] = roms_var_grid(file,'temp');
+        tic;
+        disp('Reading data');
+        zeta  = roms_read_data(dir1,'zeta');
+        u     = roms_read_data(dir1,'u',[1 1 size(zr,3) 1],[Inf Inf 1 Inf]);
+        v     = roms_read_data(dir1,'v',[1 1 size(zr,3) 1],[Inf Inf 1 Inf]);
+        toc;
     else
         fname = dir1;
         index = strfind(dir1,'/');
         dir1 = dir1(1:index(end));
         fnames = [];
-        zeta = double(ncread(fname,'zeta'));
         file = fname;
+        [xr,yr,zr,~,~,~] = roms_var_grid(file,'temp');
+        tic;
+        disp('Reading data');
+        zeta = double(ncread(fname,'zeta'));
+        u     = squeeze(double(ncread(fname,'u',[1 1 size(zr,3) 1],[Inf Inf 1 Inf])));
+        v     = squeeze(double(ncread(fname,'v',[1 1 size(zr,3) 1],[Inf Inf 1 Inf])));
+        toc;
     end
     kk = 2; % if ncread fails, it will use fnames(kk,:)
     tt0 = 0; % offset for new history.average file - 0 initially, updated later
@@ -25,19 +31,18 @@ function [eddy] = track_eddy(dir1)
     limit_x = 40*1000;
     limit_y = 40*1000;
 
-    [xr,yr,zr,~,~,~] = roms_var_grid(file,'temp');
-
     eddy.h = ncread(file,'h');
     eddy.t = roms_read_data(dir1,'ocean_time')/86400; % required only for dt
     dt = eddy.t(2)-eddy.t(1);
-
-    zeta = zeta(2:end-1,2:end-1,:);
-    xr   = xr(2:end-1,2:end-1);
-    yr   = yr(2:end-1,2:end-1);
-
     dx = xr(2,1) - xr(1,1);
     dy = yr(1,2) - yr(1,1);
 
+    zeta = zeta(2:end-1,2:end-1,:);
+    vor = avg1(avg1(diff(v,1,1)./dx - diff(u,1,2)./dy,1),2);
+    clear u v
+    xr   = xr(2:end-1,2:end-1);
+    yr   = yr(2:end-1,2:end-1);
+    
     sz = size(zeta(:,:,1));
     
     % initial guess for vertical scale fit
@@ -77,13 +82,12 @@ function [eddy] = track_eddy(dir1)
         zeta_bg = zeta(1,:,1);
     end
     
-    tic;
     for tt=1:size(zeta,3)
         if tt == 1,
             mask = ones(sz);
             d_sbreak = Inf;
         else 
-            if tt ==  49,
+            if tt ==  55,
                 disp('debug time!');
             end
             mask = nan*ones(sz);
@@ -99,7 +103,7 @@ function [eddy] = track_eddy(dir1)
             d_sbreak = eddy.cx(tt-1)-sbreak;
         end
         temp = eddy_diag(bsxfun(@minus,zeta(:,:,tt),zeta_bg) .* mask, ...
-                            dx,dy,sbreak); %w(:,:,tt));
+                            vor(:,:,tt).*mask,dx,dy,sbreak); %w(:,:,tt));
 
         % [cx,cy] = location of weighted center (first moment)
         eddy.cx(tt)  = temp.cx;
@@ -120,6 +124,9 @@ function [eddy] = track_eddy(dir1)
         eddy.ee(tt) = temp.ee;
         eddy.ne(tt) = temp.ne;
         eddy.se(tt) = temp.se;
+        eddy.L(tt)  = temp.L;
+        eddy.lmin(tt) = temp.lmin;
+        eddy.lmaj(tt) = temp.lmaj;
         
         % diagnose vertical scale (fit Gaussian)
         imx = find_approx(xr(:,1),eddy.mx(tt),1);
@@ -168,6 +175,9 @@ function [eddy] = track_eddy(dir1)
             eddy.mvx(tt) = (eddy.mx(tt) - eddy.mx(tt-1))./dt/1000;
             eddy.mvy(tt) = (eddy.my(tt) - eddy.my(tt-1))./dt/1000;
             
+            % dt in days; convert dx,dy to km
+            eddy.cvx(tt) = (eddy.cx(tt) - eddy.cx(tt-1))./dt/1000;
+            eddy.cvy(tt) = (eddy.cy(tt) - eddy.cy(tt-1))./dt/1000;
         end
     end
     eddy.xr = xr;
@@ -184,7 +194,8 @@ function [eddy] = track_eddy(dir1)
                     '(mvx,mvy) = velocity of (mx,my) in km/day | ' ...
                     '(we,ee,ne,se) = West, East, North and South edges of eddy (m) | ' ...
                     'Lz2,3 = Vertical scale (m) when fitting without & with linear trend | ' ...
-                    'T = temp profile at (mx,my)'];
+                    'T = temp profile at (mx,my) | '...
+                    'Lmin/Lmaj = minor/major axis length'];
     
     save([dir1 '/eddytrack.mat'],'eddy');
     disp('Done.');
@@ -213,7 +224,7 @@ function [E] = sinefit(x0,T,zr)
 % only finds anticyclonic eddies
 
 % this routine is called at every timestep
-function [eddy] = eddy_diag(zeta,dx,dy,sbreak,w)
+function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,w)
 
     % algorithm options
     amp_thresh = 0.01; % Amplitude threshold (in m)
@@ -260,7 +271,8 @@ function [eddy] = eddy_diag(zeta,dx,dy,sbreak,w)
             %if sum(local_max(:)) > 1, continue; end % skip if more than one maximum
             
             props = regionprops(maskreg,zeta,'WeightedCentroid','Solidity', ...
-                        'EquivDiameter','Area','BoundingBox');
+                        'EquivDiameter','Area','BoundingBox', ...
+                        'MinorAxisLength','MajorAxisLength');
             
             % Criterion 4 - amplitude is at least > amp_thresh
             indices = find(local_max == 1);
@@ -312,7 +324,6 @@ function [eddy] = eddy_diag(zeta,dx,dy,sbreak,w)
             cx = props.WeightedCentroid(2) * dx;
             cy = props.WeightedCentroid(1) * dy;
             
-
             if exist('eddy','var') 
                 if (cx-sbreak) > (eddy.cx-sbreak) && (eddy.cx-sbreak > 0)
                     continue
@@ -356,7 +367,33 @@ function [eddy] = eddy_diag(zeta,dx,dy,sbreak,w)
             eddy.mask = maskreg;
             eddy.n    = n; % number of points
             eddy.jj   = jj;
-             
+            
+            % find 0 rel. vor (max. speed) contour
+            vormask   = vor.*eddy.mask < 0;
+            vorregions = bwconncomp(vormask,connectivity);
+            for zz=1:vorregions.NumObjects
+                nvor(zz) = length(vorregions.PixelIdxList{zz});
+            end
+            [~,ind] = sort(nvor,'descend');
+            
+            % ugh. now I have to pick the right region, like earlier
+            for mm=1:vorregions.NumObjects
+                ll = ind(mm);
+                vormaskreg = zeros(vorregions.ImageSize);
+                vormaskreg(vorregions.PixelIdxList{ll}) = 1;
+                
+                n = length(vorregions.PixelIdxList{ll});
+                if n < low_n || n > high_n, continue; end
+                
+                vorprops  = regionprops(vormaskreg,zeta,'EquivDiameter', ...
+                        'MinorAxisLength','MajorAxisLength');
+                eddy.L    = vorprops.EquivDiameter * sqrt(dx*dy);
+                eddy.lmaj = vorprops.MajorAxisLength * sqrt(dx*dy);
+                eddy.lmin = vorprops.MinorAxisLength * sqrt(dx*dy);
+                % if i get here, i'm done
+                break;
+            end
+            
 %             imagesc(zreg');
 %             linex(cx./dx); liney(cy./dy);
 %             linex(indx,[],'r'); liney(indy,[],'r');
