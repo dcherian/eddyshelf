@@ -168,8 +168,8 @@ function [eddy] = track_eddy(dir1)
         if tt == 1
             eddy.mvx(1) = NaN;
             eddy.mvy(1) = NaN;
-            eddy.mcx(1) = NaN;
-            eddy.mcy(1) = NaN;
+            eddy.cvx(1) = NaN;
+            eddy.cvy(1) = NaN;
         else
             % dt in days; convert dx,dy to km
             eddy.mvx(tt) = (eddy.mx(tt) - eddy.mx(tt-1))./dt/1000;
@@ -382,6 +382,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,w)
                 vormaskreg = zeros(vorregions.ImageSize);
                 vormaskreg(vorregions.PixelIdxList{ll}) = 1;
                 
+                % only 1 criterion for now
                 n = length(vorregions.PixelIdxList{ll});
                 if n < low_n || n > high_n, continue; end
                 
