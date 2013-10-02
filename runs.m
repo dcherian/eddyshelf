@@ -3,7 +3,9 @@ classdef runs < handle
         % dir & file names
         dir; out_file; ltrans_file; flt_file; givenFile
         % data
-        zeta; temp; usurf; vsurf; time; vorsurf
+        zeta; temp; usurf; vsurf; time; vorsurf;
+        % barotropic vel (geostrophic)
+        ubarg; vbarg;
         % dyes
         csdye; asdye; zdye; % cross-shore, along-shore, z dyes
         % grid & bathymetry
@@ -19,8 +21,9 @@ classdef runs < handle
         % make video?
         makeVideo; mm_instance;
         %
-        comment = ['prox = distance of edge from shelfbreak in m | '...
-                   'eutrans = eulerian transport estimate (structure).'];
+        comment = ['eddy.prox = distance of edge from shelfbreak in m | '...
+                   'eutrans = eulerian transport estimate (structure).' ...
+                   'eddy.trev = time at which eddy reverses direction (first)'];
     end
     methods
         % constructor
@@ -48,6 +51,8 @@ classdef runs < handle
             runs.rgrid.xr = runs.rgrid.x_rho';
             runs.rgrid.yr = runs.rgrid.y_rho';
             runs.rgrid.zr = permute(runs.rgrid.z_r,[3 2 1]);
+            runs.rgrid.z_uw = [];
+            runs.rgrid.z_vw = [];
             runs.makeVideo = 0; % no videos by default.
             
             % params & bathy
@@ -80,10 +85,12 @@ classdef runs < handle
                 runs.roms = floats('roms',runs.flt_file,runs.rgrid);
             end
             
-            if ~exist([dir '/eddytrack.mat'],'file') || reset == 1
+            if ~exist([dir '/eddytrack.mat'],'file') || reset == 1 ...
+                    %|| ~exist('runs.eddy.cvx','var')
                 try
                     runs.eddy = track_eddy(dir);
                 catch ME
+                    disp(ME.message);
                     disp('Couldn''t run track_eddy.m');
                 end
             else
@@ -95,20 +102,26 @@ classdef runs < handle
                 runs.eddy = edd.eddy;
             end
             
+           if isfield(runs.eddy,'cvx')
+               if runs.eddy.cvx(1) == 0 || runs.eddy.cvy(1) == 0
+                runs.eddy.cvx(1) = NaN;
+                runs.eddy.cvy(1) = NaN;
+               end
+           end
+            
             if runs.bathy.axis == 'y'
                 edge = runs.eddy.se;
             else
                 edge = runs.eddy.we;
             end
             runs.eddy.prox = (edge-runs.bathy.xsb);
+            runs.eddy.trev = runs.time(find(runs.eddy.cvx < 0,1,'first'));
             h = runs.bathy.h(2:end-1,2:end-1);
 
             ix = vecfind(runs.eddy.xr(:,1),runs.eddy.mx);
             iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.my);
 
             runs.eddy.hcen = h(sub2ind(size(runs.eddy.xr),ix,iy))';
-            
-
             
             if exist(runs.ltrans_file,'file')
                 runs.ltrans = floats('ltrans',runs.ltrans_file,runs.rgrid);
@@ -142,6 +155,7 @@ classdef runs < handle
             toc;
         end
         
+        % calculate surface vorticity field
         function [] = calc_vorsurf(runs)
             if isempty(runs.usurf) || isempty(runs.vsurf)
                 runs.read_velsurf;
@@ -156,6 +170,15 @@ classdef runs < handle
                 runs.rgrid.xvor = avg1(avg1(runs.rgrid.xr(2:end-1,2:end-1),1),2);
                 runs.rgrid.yvor = avg1(avg1(runs.rgrid.yr(2:end-1,2:end-1),1),2);
             end
+        end
+        
+        % calculate geostrophically balanced barotropic velocities
+        function [] = calc_ubarg(runs)
+            runs.ubarg = -1 * 9.81 .* bsxfun(@rdivide,diff(runs.zeta,1,2), ...
+                                avg1(runs.rgrid.f',2).*diff(runs.rgrid.yr,1,2));
+        
+            runs.vbarg =      9.81 .* bsxfun(@rdivide,diff(runs.zeta,1,1), ...
+                                avg1(runs.rgrid.f',1).*diff(runs.rgrid.xr,1,1));
         end
         
         function [] = info(runs)
@@ -231,7 +254,6 @@ classdef runs < handle
             xlabel('Time (days)');
         end
             
-        
         function [] = animate_vor(runs)         
             if isempty(runs.vorsurf)
                 runs.calc_vorsurf();
@@ -449,6 +471,58 @@ classdef runs < handle
             if strcmpi(type,'roms')
                 runs.roms.animate(runs.rgrid,runs.zeta,runs.eddy);
             end
+        end
+        
+        function [] = animate_zslice(runs,varname,depth,tind)
+            % process tind
+            if ~exist('tind','var'), tind = []; end
+            [~,tind,~,nt,stride] = roms_tindices(tind,Inf,length(runs.time));
+            
+            stride = [1 1 1 1];
+            read_start = [1 1 1 tind(1)];
+            read_count = [Inf Inf Inf 1];
+            
+            % read data
+            for mmm = 1:nt
+                disp(['reading & interpolating timestep ' num2str(mmm) '/' ...
+                                num2str(nt)]);
+                data = roms_read_data(runs.dir,varname, ...
+                                [read_start(1:3) read_start(4)+mmm-1], ...
+                                read_count,stride);
+                [var(:,:,mmm),~,~] = roms_zslice_var(permute(data,[3 2 1]), ...
+                                    NaN,depth,runs.rgrid);
+            end
+            var = permute(var,[2 1 3]);
+            
+            [xax,yax,~] = dc_roms_var_grid(runs.rgrid,varname);
+            xax = xax(:,:,1)/1000;
+            yax = yax(:,:,1)/1000;
+            
+            %% animate
+            tt = 1;
+            [~,hc] = contourf(xax,yax,var(:,:,tt));
+            hold on
+            [~,he] = contour(runs.eddy.xr/1000,runs.eddy.yr/1000, ...
+                runs.eddy.mask(:,:,tind(1) + tt-1),'Color','k');
+            ht = title([varname ' | z = ' num2str(depth) ' m | t = ' ...
+                num2str(runs.time(tind(1)+tt-1)/86400) ' days']);
+            axis image;
+            xlim([min(xax(:)) max(xax(:))]);
+            ylim([min(yax(:)) max(yax(:))]);
+            colorbar; caxis([min(var(:)) max(var(:))]);
+            xlabel('X (km)'); ylabel('Y (km)');
+            if runs.bathy.axis == 'y'
+                liney(runs.bathy.xsl/1000);
+                liney(runs.bathy.xsb/1000);
+            end
+            for tt=2:nt
+                set(hc,'ZData',var(:,:,tt));
+                set(he,'ZData',runs.eddy.mask(:,:,tind(1) + tt-1));
+                set(ht,'String',[varname ' | z = ' num2str(depth) ' m | t = ' ...
+                num2str(runs.time(tind(1)+tt-1)/86400) ' days']);
+                pause(0.01);
+            end
+            
         end
         
         % create initial seed file for ltrans
@@ -705,7 +779,7 @@ classdef runs < handle
             ii = 1; colors(1) = 'b';
             aa = 5; bb = aa*2;
             
-            tind = 80;
+            tind = find(runs.time == runs.eddy.trev);
             
             figure;
             subplot(aa,2,[1:2:bb-2*2]); hold on
@@ -749,13 +823,11 @@ classdef runs < handle
             plot(eddy.t,eddy.hcen/2,'b');
             plot(eddy.t,runs.params.phys.f0 / sqrt(runs.params.phys.N2) * runs.eddy.dia,'r');
             plot(eddy.t,eddy.Lz2,'k');
-            legend('H_{center}/2','f*L/N','vertical scale','Location','NorthWest');
+            legend('H_{center}/2','f*L/N','vertical scale','Location','SouthWest');
             xlabel('Time (days)');
             ylabel('(m)');
             linex(tind);
-            c = corrcoef(eddy.hcen(1:tind),eddy.Lz2(1:tind));
-            title(['Blue-black Corr. coeff (1:' num2str(tind) ') = ' ...
-                    num2str(c(2))]);
+            suplabel(runs.dir,'t');
         end
         
         function [] = compare_plot(runs,num)
