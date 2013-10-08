@@ -3,7 +3,7 @@ function [eddy] = track_eddy(dir1)
     if isdir(dir1)
         fnames = roms_find_file(dir1,'his');
         file = char([dir1 '/' char(fnames(1))]);
-        [xr,yr,zr,~,~,~] = roms_var_grid(file,'temp');
+        [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
         tic;
         disp('Reading data');
         zeta  = roms_read_data(dir1,'zeta');
@@ -16,7 +16,7 @@ function [eddy] = track_eddy(dir1)
         dir1 = dir1(1:index(end));
         fnames = [];
         file = fname;
-        [xr,yr,zr,~,~,~] = roms_var_grid(file,'temp');
+        [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
         tic;
         disp('Reading data');
         zeta = double(ncread(fname,'zeta'));
