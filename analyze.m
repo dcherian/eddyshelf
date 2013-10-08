@@ -33,26 +33,40 @@ xlabel(' Time (days)');
 % run(2) = run2;
 % leg = {'07'; '10'}
 
-figure;
-subplot(211)
+h1 = figure;
 hold on
-subplot(212)
+h2 = figure;
+hold on
+h3 = figure;
 hold on
 for ii=1:length(run)
-    subplot(211)
-    plot(run(ii).eddy.cx/1000 - run(ii).params.bg.ubt*[1:length(run(ii).eddy.cx)]*86.4 ...
-        - run(ii).params.phys.beta * run(ii).eddy.dia/2, ...
+    figure(h1)
+    plot(run(ii).eddy.cx/1000 - (run(ii).params.bg.ubt ...
+        )...%- run(ii).params.phys.beta * (run(ii).params.eddy.dia/2).^2) ...
+        *[1:length(run(ii).eddy.cx)]*86.4, ...
         run(ii).eddy.cy/1000-run(ii).bathy.xsb/1000,'*','Color',colors(ii,:));
     
-    subplot(212)
+    figure(h3)
+    %ndtime = (run(ii).eddy.cx - run(ii).eddy.cx(1))./ ...
+    %                (run(ii).params.bg.ubt -  ...
+    %                run(ii).params.phys.beta/2*(run(ii).eddy.dia/2).^2);
+    plot(run(ii).eddy.prox/1000,run(ii).eddy.Lz2./run(ii).eddy.Lz2(1),'*','Color',colors(ii,:));
+    
+    figure(h2)
     plot(run(ii).params.nondim.eddy.Rh,run(ii).eddy.trev/86400,'*','Color',colors(ii,:));
 end
-subplot(211);
+loc = 'SouthWest';
+figure(h1)
 title('Weighted center (eddy''s frame of reference)');
-legend(leg,'Location','NorthWest');
+legend(leg,'Location',loc);
 xlabel('X - u_{bt} x time (km)');
 ylabel('Y - Y_{shelfbreak} (km)');
-subplot(212)
+figure(h2)
 ylabel('Day of reversal');
 xlabel('Rh');
+legend(leg,'Location',loc);
+figure(h3)
+ylabel('Vertical scale fraction');
+xlabel('Time (days)');
+legend(leg,'Location',loc);
 
