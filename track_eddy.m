@@ -3,6 +3,7 @@ function [eddy] = track_eddy(dir1)
     if isdir(dir1)
         fnames = roms_find_file(dir1,'his');
         file = char([dir1 '/' char(fnames(1))]);
+        file
         [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
         tic;
         disp('Reading data');
@@ -34,14 +35,14 @@ function [eddy] = track_eddy(dir1)
     eddy.h = ncread(file,'h');
     eddy.t = roms_read_data(dir1,'ocean_time')/86400; % required only for dt
     dt = eddy.t(2)-eddy.t(1);
-    dx = xr(2,1) - xr(1,1);
-    dy = yr(1,2) - yr(1,1);
+    dx = xr(2,1,1) - xr(1,1,1);
+    dy = yr(1,2,1) - yr(1,1,1);
 
     zeta = zeta(2:end-1,2:end-1,:);
     vor = avg1(avg1(diff(v,1,1)./dx - diff(u,1,2)./dy,1),2);
     clear u v
-    xr   = xr(2:end-1,2:end-1);
-    yr   = yr(2:end-1,2:end-1);
+    xr   = xr(2:end-1,2:end-1,end);
+    yr   = yr(2:end-1,2:end-1,end);
     
     sz = size(zeta(:,:,1));
     
@@ -87,21 +88,24 @@ function [eddy] = track_eddy(dir1)
             mask = ones(sz);
             d_sbreak = Inf;
         else 
-            if tt ==  55,
+            if tt ==  73,
                 disp('debug time!');
             end
-            mask = nan*ones(sz);
+            mask = nan(sz);
             lx = eddy.dia(tt-1)/2 + limit_x;
             ly = eddy.dia(tt-1)/2 + limit_y;
             ix1 = find_approx(xr(:,1),eddy.cx(tt-1)-lx,1);
             ix2 = find_approx(xr(:,1),eddy.cx(tt-1)+lx,1);
             iy1 = find_approx(yr(1,:),eddy.cy(tt-1)-ly,1);
             iy2 = find_approx(yr(1,:),eddy.cy(tt-1)+ly,1);
+            
+            
 
             mask(ix1:ix2,iy1:iy2) = 1;
             % distance to shelfbreak in *m*
             d_sbreak = eddy.cx(tt-1)-sbreak;
         end
+        fprintf('tt = %3d | ', tt);
         temp = eddy_diag(bsxfun(@minus,zeta(:,:,tt),zeta_bg) .* mask, ...
                             vor(:,:,tt).*mask,dx,dy,sbreak); %w(:,:,tt));
 
@@ -227,12 +231,12 @@ function [E] = sinefit(x0,T,zr)
 function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,w)
 
     % algorithm options
-    amp_thresh = 0.01; % Amplitude threshold (in m)
-    thresh_loop = nanmin(zeta(:)):0.01:nanmax(zeta(:)); % in m
+    amp_thresh = 0.001; % Amplitude threshold (in m)
     low_n  = 400;       % minimum number of pixels in eddy
     high_n = 2500;     % maximum number of pixels in eddy
     connectivity = 8;  % either 4 or 8
     max_dist = 400*1000;
+    thresh_loop = linspace(nanmin(zeta(:)),nanmax(zeta(:)),5); % in m
 
     for ii=1:length(thresh_loop)
         threshold = thresh_loop(ii);
@@ -317,7 +321,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,w)
             if props.Area/rectarea > 0.85, continue; end
             
             % Calculate properties of region
-            c = regionprops(maskreg,zeta,'WeightedCentroid');
+            %c = regionprops(maskreg,zeta,'WeightedCentroid');
             
             % Criterion 7 - if multiple regions (eddies), only store the one
             % closest to shelfbreak
@@ -402,7 +406,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,w)
 %             liney(nanmin(ymax),[],'b'); liney(nanmax(ymax),[],'b');
             
             % stop when eddy is found
-            %break;
+            break;
         end
         if exist('flag_found','var') && flag_found == 1, break; end
     end 
@@ -421,6 +425,9 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,w)
         eddy.mask = NaN;
         eddy.n    = NaN;
         eddy.jj   = NaN;
+        eddy.L    = NaN;
+        eddy.lmaj = NaN;
+        eddy.lmin = NaN;
         disp('Eddy not found!');
     end
     
