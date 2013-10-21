@@ -4,11 +4,11 @@
 %% Parameters
 % names cannot start with number
 FOLDER    = '/media/data/Work/eddyshelf/runs/';
-prefix    = 'tek';
-GRID_NAME = [prefix '_grd'];
-INI_NAME  = [prefix '_ini'];
-BRY_NAME  = [prefix '_bry'];
-FRC_NAME  = [prefix '_frc'];
+prefix    = 'tea';
+GRID_NAME = [prefix '1.5km_grd'];
+INI_NAME  = [prefix '1.5km_ini'];
+BRY_NAME  = [prefix '1.5km_bry'];
+FRC_NAME  = [prefix '1.5km_frc'];
 
 % fix file names
 GRID_NAME = [FOLDER GRID_NAME '.nc'];% '-' num2str(ceil(X/1000)) 'x' num2str(ceil(Y/1000)) '-' num2str(S.Lm) 'x' num2str(S.Mm) 'x' num2str(S.N) '.nc'];[FOLDER GRID_NAME '.nc'];
@@ -22,17 +22,17 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 430;
-S.Mm = 190;
+S.Lm = 294;
+S.Mm = 120;
 S.N  = 40;
 
 % Domain Extent (in m)
-X = S.Lm * 1000;120;
-Y = S.Mm * 1000;100;
+X = S.Lm * 1500;120;
+Y = S.Mm * 1500;100;
 Z = 2000;
 
 % tracers
-S.NPT = 3; % number of passive tracers
+S.NPT = 0; % number of passive tracers
 S.NT = 2+S.NPT; % total number of tracers
 
 % vertical stretching
@@ -127,8 +127,8 @@ bathy.L_shelf  = 20 * 1000;
 bathy.L_slope  =  50 * 1000;
 bathy.axis = 'y'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
-bathy.sl_shelf = 0.0005;
-bathy.sl_slope = 0.04;
+bathy.sl_shelf = 5e-4;
+bathy.sl_slope = 0.02;
 
 % bathymetry smoothing options
 bathy.n_points = 4;
@@ -163,8 +163,8 @@ flags.vprof_gaussian = 0;%~flags.eddy_zhang; % eddy is gaussian in vertical?
 eddy.dia    = NaN; % 2xNH/pi/f0 - determined later
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
-eddy.tamp   = 0.45; % controls gradient
-eddy.buffer_sp = 15*1000; % distance from  4.3 (2.3) *r0 to sponge edge
+eddy.tamp   = 0.20; % controls gradient
+eddy.buffer_sp = 40*1000; % distance from  4.3 (2.3) *r0 to sponge edge
 eddy.buffer = 7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
 eddy.cx     = NaN;X/2; % if NaN, determined using buffer later
 eddy.theta0 = pi/2; % surface phase anomaly from Zhang et al. (2013)
@@ -237,44 +237,44 @@ V=nc_vnames(GRDname);
 nvars=length(V.Variables);
 %  Horizontal grid variables. Read in for input GRID NetCDF file.
 
-if (S.spherical),
-  S.lon_rho = nc_read(GRDname, 'lon_rho');
-  S.lat_rho = nc_read(GRDname, 'lat_rho');
-  
-  S.lon_u   = nc_read(GRDname, 'lon_u');
-  S.lat_u   = nc_read(GRDname, 'lat_u');
-  
-  S.lon_v   = nc_read(GRDname, 'lon_v');
-  S.lat_v   = nc_read(GRDname, 'lat_v');
-else  
-  S.x_rho   = nc_read(GRDname, 'x_rho');
-  S.y_rho   = nc_read(GRDname, 'y_rho');
-  
-  S.x_u     = nc_read(GRDname, 'x_u');
-  S.y_u     = nc_read(GRDname, 'y_u');
-  
-  S.x_v     = nc_read(GRDname, 'x_v');
-  S.y_v     = nc_read(GRDname, 'y_v');  
-end
+% if (S.spherical),
+%   S.lon_rho = nc_read(GRDname, 'lon_rho');
+%   S.lat_rho = nc_read(GRDname, 'lat_rho');
+%   
+%   S.lon_u   = nc_read(GRDname, 'lon_u');
+%   S.lat_u   = nc_read(GRDname, 'lat_u');
+%   
+%   S.lon_v   = nc_read(GRDname, 'lon_v');
+%   S.lat_v   = nc_read(GRDname, 'lat_v');
+% else  
+%   S.x_rho   = nc_read(GRDname, 'x_rho');
+%   S.y_rho   = nc_read(GRDname, 'y_rho');
+%   
+%   S.x_u     = nc_read(GRDname, 'x_u');
+%   S.y_u     = nc_read(GRDname, 'y_u');
+%   
+%   S.x_v     = nc_read(GRDname, 'x_v');
+%   S.y_v     = nc_read(GRDname, 'y_v');  
+% end
 
 %  Read in Land/Sea mask, if appropriate.
 
-for n=1:nvars,
-  name=char(V.Variables(n).Name);
-  switch (name),
-    case 'mask_rho'
-      S.mask_rho = nc_read(GRDname, 'mask_rho');
-    case 'mask_u'
-      S.mask_u   = nc_read(GRDname, 'mask_u');
-    case 'mask_v'
-      S.mask_v   = nc_read(GRDname, 'mask_v');
-  end,
-end,
+% for n=1:nvars,
+%   name=char(V.Variables(n).Name);
+%   switch (name),
+%     case 'mask_rho'
+%       S.mask_rho = nc_read(GRDname, 'mask_rho');
+%     case 'mask_u'
+%       S.mask_u   = nc_read(GRDname, 'mask_u');
+%     case 'mask_v'
+%       S.mask_v   = nc_read(GRDname, 'mask_v');
+%   end,
+% end,
 
 
 %  Bathymetry.
 
-S.h = nc_read(GRDname, 'h');
+% S.h = nc_read(GRDname, 'h');
 
 %  Set vertical grid variables.
 report = 0;
@@ -306,24 +306,6 @@ S.salt = zeros([Lr Mr S.N]);
 if (~isfield(S, 'mask_rho')),  S.mask_rho = ones([Lr Mr]);  end,
 if (~isfield(S, 'mask_u'  )),  S.mask_u   = ones([Lu Mu]);  end,
 if (~isfield(S, 'mask_v'  )),  S.mask_v   = ones([Lv Mv]);  end,
-
-%---------------------------------------------------------------------------
-%  Write out grid variables.
-%---------------------------------------------------------------------------
-			 
-ncwrite(INIname,   'spherical',   S.spherical);
-
-ncwrite(INIname,   'Vtransform',  S.Vtransform);
-ncwrite(INIname,   'Vstretching', S.Vstretching);
-ncwrite(INIname,   'theta_s',     S.theta_s);
-ncwrite(INIname,   'theta_b',     S.theta_b);
-ncwrite(INIname,   'Tcline',      S.Tcline);
-ncwrite(INIname,   'hc',          S.hc);
-
-ncwrite(INIname,   's_rho',       S.s_rho);
-ncwrite(INIname,   's_w',         S.s_w);
-ncwrite(INIname,   'Cs_r',        S.Cs_r);
-ncwrite(INIname,   'Cs_w',        S.Cs_w);
 
 % salt
 S.salt = S0*ones(size(S.salt));
@@ -466,7 +448,7 @@ zwmat = z_w;
 
 clear z_r z_u z_v z_w
 
-Hz = diff(zwmat,1,3); bsxfun(@rdivide,diff(zwmat,1,3),permute(diff(S.s_w',1,1),[3 2 1]));
+Hz = diff(zwmat,1,3); %bsxfun(@rdivide,diff(zwmat,1,3),permute(diff(S.s_w',1,1),[3 2 1]));
 Z  = abs(max(S.h(:)));
 
 [rx0,rx1] = stiffness(S.h,zrmat);
@@ -806,7 +788,7 @@ if flags.eddy
                     % note there is no sponge at the inflow boundary
                     eddy.cx = X-eddy.dia/2-xtra; % center of eddy
                 else
-                    eddy.cx = 0+eddy.dia/2+xtra;
+                    eddy.cx = 0 + eddy.dia/2+xtra;
                 end
             end
             if isnan(eddy.cy)
@@ -1615,7 +1597,6 @@ toc;
 fprintf('\n Started writing files...\n');
 
 % grid file
-ncwrite(GRID_NAME,'spherical',S.spherical);
 ncwrite(GRID_NAME,'xl',X);
 ncwrite(GRID_NAME,'el',Y);
 ncwrite(GRID_NAME,'f',f);
@@ -1632,6 +1613,19 @@ ncwrite(GRID_NAME, 'mask_u',    S.mask_u);
 ncwrite(GRID_NAME, 'mask_v',    S.mask_v);
 ncwrite(GRID_NAME, 'mask_rho',  S.mask_rho);
 ncwrite(GRID_NAME, 'mask_psi',  S.mask_psi);
+
+ncwrite(INIname,   'spherical',   S.spherical);
+
+ncwrite(INIname,   'Vtransform',  S.Vtransform);
+ncwrite(INIname,   'Vstretching', S.Vstretching);
+ncwrite(INIname,   'theta_s',     S.theta_s);
+ncwrite(INIname,   'theta_b',     S.theta_b);
+ncwrite(INIname,   'Tcline',      S.Tcline);
+ncwrite(INIname,   'hc',          S.hc);
+ncwrite(INIname,   's_rho',       S.s_rho);
+ncwrite(INIname,   's_w',         S.s_w);
+ncwrite(INIname,   'Cs_r',        S.Cs_r);
+ncwrite(INIname,   'Cs_w',        S.Cs_w);
 
 ncwrite(GRID_NAME, 'lon_rho',     S.lon_rho);
 ncwrite(GRID_NAME, 'lat_rho',     S.lat_rho);

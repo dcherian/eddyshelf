@@ -1,7 +1,7 @@
 classdef runs < handle
     properties
         % dir & file names
-        dir; out_file; ltrans_file; flt_file; givenFile
+        name; dir; out_file; ltrans_file; flt_file; givenFile
         % data
         zeta; temp; usurf; vsurf;vorsurf;
         % dimensional and non-dimensional time
@@ -15,7 +15,7 @@ classdef runs < handle
         % float data
         roms; ltrans;
         % eddy track data
-        eddy;
+        eddy; noeddy;
         % initial params
         params
         % transport
@@ -57,6 +57,13 @@ classdef runs < handle
             runs.rgrid.z_vw = [];
             runs.makeVideo = 0; % no videos by default.
             
+            % make run-name
+            ind1 = strfind(runs.dir,'/run');
+            runs.name = runs.dir(ind1+4:end);
+            if runs.name(end) == '/'
+                runs.name(end) = [];
+            end
+            
             % params & bathy
             runs.params = read_params_from_ini(runs.dir);
             runs.bathy = runs.params.bathy;
@@ -91,9 +98,11 @@ classdef runs < handle
                     %|| ~exist('runs.eddy.cvx','var')
                 try
                     runs.eddy = track_eddy(dir);
+                    runs.noeddy = 0;
                 catch ME
                     disp(ME.message);
                     disp('Couldn''t run track_eddy.m');
+                    runs.noeddy = 1;
                 end
             else
                 if strfind(runs.out_file,'_004.nc')
@@ -102,34 +111,37 @@ classdef runs < handle
                     edd = load([dir '/eddytrack.mat'],'eddy');
                 end
                 runs.eddy = edd.eddy;
+                runs.noeddy = 0;
             end
             
-           if isfield(runs.eddy,'cvx')
-               if runs.eddy.cvx(1) == 0 || runs.eddy.cvy(1) == 0
-                runs.eddy.cvx(1) = NaN;
-                runs.eddy.cvy(1) = NaN;
+            if ~runs.noeddy
+               if isfield(runs.eddy,'cvx')
+                   if runs.eddy.cvx(1) == 0 || runs.eddy.cvy(1) == 0
+                    runs.eddy.cvx(1) = NaN;
+                    runs.eddy.cvy(1) = NaN;
+                   end
                end
-           end
             
-            if runs.bathy.axis == 'y'
-                edge = runs.eddy.se;
-            else
-                edge = runs.eddy.we;
+                if runs.bathy.axis == 'y'
+                    edge = runs.eddy.se;
+                else
+                    edge = runs.eddy.we;
+                end
+                % proximity to shelfbreak
+                runs.eddy.prox = (edge-runs.bathy.xsb);
+                % time of reversal
+                runs.eddy.trev = runs.time(find(runs.eddy.cvx < 0,1,'first'));
+            
+                % water depth at eddy center
+                h = runs.bathy.h(2:end-1,2:end-1);
+                ix = vecfind(runs.eddy.xr(:,1),runs.eddy.mx);
+                iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.my);
+                runs.eddy.hcen = h(sub2ind(size(runs.eddy.xr),ix,iy))';
+                % non-dimensionalized time
+                %runs.ndtime = (runs.eddy.cx - runs.eddy.cx(1))./ ...
+                %        (runs.params.bg.ubt -  ...
+                %        runs.params.phys.beta/2*(runs.eddy.dia/2),^2);
             end
-            % proximity to shelfbreak
-            runs.eddy.prox = (edge-runs.bathy.xsb);
-            % time of reversal
-            runs.eddy.trev = runs.time(find(runs.eddy.cvx < 0,1,'first'));
-            % water depth at eddy center
-            h = runs.bathy.h(2:end-1,2:end-1);
-            ix = vecfind(runs.eddy.xr(:,1),runs.eddy.mx);
-            iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.my);
-            runs.eddy.hcen = h(sub2ind(size(runs.eddy.xr),ix,iy))';
-            % non-dimensionalized time
-            %runs.ndtime = (runs.eddy.cx - runs.eddy.cx(1))./ ...
-            %        (runs.params.bg.ubt -  ...
-            %        runs.params.phys.beta/2*(runs.eddy.dia/2),^2);
-            
             if exist(runs.ltrans_file,'file')
                 runs.ltrans = floats('ltrans',runs.ltrans_file,runs.rgrid);
             end
@@ -585,50 +597,30 @@ classdef runs < handle
        %% animation functions
         
         function [] = animate_zeta(runs)
-            if runs.makeVideo
-%                 runs.mm_instance = mm_setup;
-%                 runs.mm_instance.pixelSize = [1600 900];
-%                 runs.mm_instance.outputFile = 'mm_output.avi';
-%                 runs.mm_instance.ffmpegArgs = '-q:v 1 -g 1';
-%                 runs.mm_instance.InputFrameRate = 3;
-%                 runs.mm_instance.frameRate = 3;
-                aviobj = VideoWriter('output','MPEG-4');
-                open(aviobj);
-            end
+            runs.video_init('zeta');
+            
             figure;
             ii=1;
             hz = runs.plot_zeta('pcolor',ii);
             ax = gca;
             hold on
             colorbar; freezeColors;
-            hbathy = runs.plot_bathy('contour');
+            hbathy = runs.plot_bathy('contour','k');
             he = runs.plot_eddy_contour('contour',ii);
-            ht = title([num2str(runs.rgrid.ocean_time(1)/86400)  ' days']);
+            ht = title([' SSH (m) | ' num2str(runs.time(1)/86400)  ' days']);
             xlabel('X (km)');ylabel('Y (km)');
             axis image;
-            if runs.makeVideo
-                %shading(gca,'interp');
-                disp('maximize!');
-                pause; 
-                mm_addFrame(runs.mm_instance,gcf);
-            end
+            maximize(gcf); pause(0.2);  
+            beautify([16 16 18]);
+            runs.video_update();
             for ii = 2:size(runs.zeta,3)
                 runs.update_zeta(hz,ii);
-                if runs.makeVideo, shading interp; end
                 runs.update_eddy_contour(he,ii);
-                set(ht,'String',[num2str(runs.time(ii)/86400) ' days']);
-                if runs.makeVideo
-                   % shading(gca,'interp');
-                    %mm_addFrame(runs.mm_instance,gcf);
-                    F = getframe(gcf);
-                    writeVideo(aviobj,F);
-                end
+                set(ht,'String',[' SSH (m) | ' num2str(runs.time(ii)/86400) ' days']);
+                runs.video_update();
                 pause(0.03);
             end
-            if runs.makeVideo
-               % mm_render(runs.mm_instance);
-               close(aviobj);
-            end
+            runs.video_write();
         end
         
         function [] = animate_vorsurf(runs)         
@@ -881,17 +873,21 @@ classdef runs < handle
             end
             
             [grd.xax,grd.yax,grd.zax,~] = dc_roms_extract(grids,varname,{},1);
-            if nt < 25
+            datain= 0;
+            if nt < 20
+                tic; disp('Reading data...');
                 data = roms_read_data(runs.dir,varname, ...
                         read_start,read_count,stride);
                 datain = 1;
                 var = nan([size(data,1) size(data,2) nt]);
+                toc;
             end
             % read data
             for mmm = 1:nt
-                disp(['reading & interpolating timestep ' num2str(mmm) '/' ...
-                                num2str(nt)]);
+                
                 if ~datain
+                    disp(['reading & interpolating timestep ' num2str(mmm) '/' ...
+                                num2str(nt)]);
                     data = roms_read_data(runs.dir,varname, ...
                             [read_start(1:3) read_start(4)+mmm-1], ...
                             [read_count(1:3) 1],stride);
@@ -900,6 +896,8 @@ classdef runs < handle
                     end
                     var(:,:,mmm) = dc_roms_zslice_var(data,depth,grd);
                 else
+                    disp(['interpolating timestep ' num2str(mmm) '/' ...
+                                num2str(nt)]);
                     var(:,:,mmm) = dc_roms_zslice_var(data(:,:,:,mmm),depth,grd);
                 end
             end
@@ -936,7 +934,11 @@ classdef runs < handle
             
             if strcmpi(plottype,'pcolor')
                 hplot = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.zeta(:,:,tt));
-                shading flat
+                if runs.makeVideo
+                    shading interp; 
+                else
+                    shading flat
+                end
             else
                 if strcmpi(plottype,'contourf')
                     hplot = contourf(runs.rgrid.xr/1000,runs.rgrid.yr/1000, ...
@@ -976,13 +978,33 @@ classdef runs < handle
         end
         
        %% video functions
-        function [] = video_init()
+        function [] = video_init(runs,filename)
+            if runs.makeVideo
+                runs.makeVideo
+                runs.mm_instance = mm_setup('frameDir',['videos/' runs.name '-' filename]);
+                runs.mm_instance.pixelSize = [1600 900];
+                runs.mm_instance.outputFile = ['videos/' runs.name '-' filename '.mp4'];
+                runs.mm_instance.ffmpegArgs = '-q:v 1 -g 1';
+                runs.mm_instance.InputFrameRate = 5;
+                runs.mm_instance.frameRate = 5;
+%                 aviobj = VideoWriter('output','MPEG-4');
+%                 open(aviobj);
+            end
         end
         
-        function [] = video_update()
+        function [] = video_update(runs)
+            if runs.makeVideo
+                mm_addFrame(runs.mm_instance,gcf);
+                %F = getframe(gcf);
+                %writeVideo(aviobj,F);
+            end
         end
         
-        function [] = video_write()
+        function [] = video_write(runs)
+            if runs.makeVideo
+               mm_render(runs.mm_instance);
+               %close(aviobj);
+            end
         end
         
         
