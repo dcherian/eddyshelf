@@ -169,7 +169,7 @@ classdef runs < handle
         end
         
        %% analysis
-        
+       
         function [] = transport(runs)
             % need some kind of initial time instant - probably objective
             % criterion based on distance between shelfbreak and eddy or
@@ -662,17 +662,7 @@ classdef runs < handle
         end
         
         function [] = animate_center(runs)
-           if runs.makeVideo
-%                 runs.mm_instance = mm_setup;
-%                 runs.mm_instance.pixelSize = [1600 900];
-%                 runs.mm_instance.outputFile = 'mm_output.avi';
-%                 runs.mm_instance.ffmpegArgs = '-q:v 1 -g 1';
-%                 runs.mm_instance.InputFrameRate = 3;
-%                 runs.mm_instance.frameRate = 3;
-                aviobj = VideoWriter('animate_center','MPEG-4');
-                set(aviobj,'FrameRate',8,'Quality',100);
-                open(aviobj);
-            end
+            runs.video_init('center');
             eddy = runs.eddy;
             xvec = runs.rgrid.xr(:,1);
             yvec = runs.rgrid.yr(1,:)';
@@ -719,23 +709,16 @@ classdef runs < handle
             figure;
             % first plan view of zeta
             subplot(211)
-            hz = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.zeta(:,:,1));
+            hz = runs.plot_zeta('pcolor',tt);
             shading interp
-            ax = gca;
             hold on
             colorbar; freezeColors;
-            [cc,hb] = contour(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.rgrid.h',[200 500 1000 1500 2000],'k');
-            clabel(cc,hb);
-            [~,he] = contour(runs.eddy.xr/1000,runs.eddy.yr/1000,runs.eddy.mask(:,:,1),'k');
-            if runs.bathy.axis == 'y'
-                liney(runs.bathy.xsb/1000,'shelfbreak','k');
-            else
-                linex(runs.bathy.xsb/1000,'shelfbreak','k');
-            end
-            ht1 = title(['Free surface | ' num2str(runs.rgrid.ocean_time(1)/86400)  ' days']);
+            hb = runs.plot_bathy('contour','k');
+            he = runs.plot_eddy_contour('contour',tt);
+            ht1 = title(['Free surface | ' num2str(runs.rgrid.ocean_time(tt)/86400)  ' days']);
             xlabel('X (km)');ylabel('Y (km)');
             axis image;
-            beautify([14 14 16]);
+            beautify([16 16 18]);
             
             % temp following eddy center
             levels = linspace(min(temper(:)),max(temper(:)),25);
@@ -757,15 +740,9 @@ classdef runs < handle
             ylim([-1500 0]);
             title('Cross-shore temperature anomaly - slice through eddy center');
             %h2 = liney(-eddy.Lz3(stride(4)),'3','k');
-            beautify([14 14 16]);
-            if runs.makeVideo
-                %shading(gca,'interp');
-                disp('maximize!');
-                pause; 
-%               mm_addFrame(runs.mm_instance,gcf);
-                F = getframe(gcf);
-                writeVideo(aviobj,F);
-            end
+            maximize(gcf); pause(0.2);  
+            beautify([16 16 18]);
+            
             % update plots
             for tt=2:size(temper,4)
                 if runs.bathy.axis == 'y'
@@ -776,26 +753,17 @@ classdef runs < handle
                 end
                 tstr = [num2str(runs.time(tt*stride(4))/86400) ' days'];
                 set(h1,'ydata',[-eddy.Lz2(tt*stride(4)) -eddy.Lz2(tt*stride(4))]);
-                %set(h2,'ydata',-eddy.Lz3(tt*stride(4)));
-                set(hz,'CData',runs.zeta(:,:,tt*stride(4)));
-                %if runs.makeVideo, shading interp; end
-                set(he,'ZData',runs.eddy.mask(:,:,tt*stride(4)));
+                runs.update_zeta(hz,tt*stride(4));
+                
+                runs.update_eddy_contour(he,tt*stride(4));
                 %set(ht,'String', ['(mx,my) = (', num2str(eddy.mx(tt*stride(4))/1000) ',' ...
                 %    num2str(eddy.my(tt*stride(4))/1000) ') | t = ' tstr]);
                 set(ht1,'String',['Free surface | ' tstr]);
-                if runs.makeVideo
-                   % shading(gca,'interp');
-                    %mm_addFrame(runs.mm_instance,gcf);
-                    F = getframe(gcf);
-                    writeVideo(aviobj,F);
-                end
-                pause(); 
+                runs.video_update();
+                pause(0.01); 
             end
             
-            if runs.makeVideo
-               % mm_render(runs.mm_instance);
-               close(aviobj);
-            end
+            runs.video_write();
         end
         
         function [] = animate_pt(runs)
@@ -956,11 +924,21 @@ classdef runs < handle
         end
         
         function [hplot] = plot_eddy_contour(runs,plottype,tt)
+            try 
+                mask = runs.eddy.vormask(:,:,tt);
+            catch
+                mask = runs.eddy.mask(:,:,tt);
+            end
             [~,hplot] = contour(runs.eddy.xr/1000,runs.eddy.yr/1000, ...
-                runs.eddy.mask(:,:,tt),'Color','k');
+                        mask(:,:,tt),'Color','k');
         end
         function update_eddy_contour(runs,handle,tt)
-            set(handle,'ZData',runs.eddy.mask(:,:,tt));
+            try 
+                mask = runs.eddy.vormask(:,:,tt);
+            catch
+                mask = runs.eddy.mask(:,:,tt);
+            end
+            set(handle,'ZData',mask);
         end
         
         function [hplot] = plot_bathy(runs,plottype,color)
