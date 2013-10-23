@@ -3,9 +3,9 @@
 function [] = eddytrackres()
 
     dir1 = 'runs/topoeddy/';
-    str  = 'runteb-04-hires-*';
+    str  = 'runew-11-res*';
     
-    names = ls([dir1 str]);
+    names = dir([dir1 str]);
     
     plots = 0;
     
@@ -15,9 +15,14 @@ function [] = eddytrackres()
     hf2 = figure; hold on;
     
     for ii=1:size(names,1)
-        files{ii} = [dir1 strtrim(names(ii,:))];
+        files{ii} = [dir1 strtrim(names(ii).name)];
         fname = [files{ii} '/eddytrack.mat'];
-        load(fname,'eddy');
+        try
+            load(fname,'eddy');
+        catch ME
+            legstr{ii} = '';
+            continue;
+        end
         [eddy.sq,legstr{ii}] = make_legend(eddy);
         eddies{ii} = eddy;
     end
@@ -28,6 +33,7 @@ function [] = eddytrackres()
     for ii=1:length(sort_ind)
         kk = sort_ind(ii);
         eddy = eddies{kk};
+        if isempty(eddy),continue; end
         subplot(aa,2,[1:2:bb]); hold on
         plot(eddy.cx/1000,eddy.cy/1000,'Color',colors(ii,:),'LineWidth',2);
         subplot(aa,2,2); hold on
@@ -55,7 +61,7 @@ function [] = eddytrackres()
     for kk = 1:length(sort_ind)
         eddy = eddies{kk};
         subplot(aa,2,[1:2:bb]); hold on;
-        index = find_approx(eddy.t,150);
+        index = find_approx(eddy.t,60);
         plot(eddy.cx(index)/1000,eddy.cy(index)/1000,'rx','MarkerSize',12);
     end
     beautify
