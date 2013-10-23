@@ -98,12 +98,10 @@ function [eddy] = track_eddy(dir1)
             ix2 = find_approx(xr(:,1),eddy.cx(tt-1)+lx,1);
             iy1 = find_approx(yr(1,:),eddy.cy(tt-1)-ly,1);
             iy2 = find_approx(yr(1,:),eddy.cy(tt-1)+ly,1);
-            
-            
 
             mask(ix1:ix2,iy1:iy2) = 1;
             % distance to shelfbreak in *m*
-            d_sbreak = eddy.cx(tt-1)-sbreak;
+%            d_sbreak = eddy.cx(tt-1)-sbreak;
         end
         fprintf('tt = %3d | ', tt);
         temp = eddy_diag(bsxfun(@minus,zeta(:,:,tt),zeta_bg) .* mask, ...
@@ -121,6 +119,7 @@ function [eddy] = track_eddy(dir1)
         eddy.dia(tt) = temp.dia;
         % mask for diagnostic purposes
         eddy.mask(:,:,tt) = temp.mask;
+        eddy.vormask(:,:,tt) = temp.vormask;
         % number of pixels in eddy
         eddy.n(tt) = temp.n;
         % north, south, west & east edges
@@ -232,11 +231,13 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,w)
 
     % algorithm options
     amp_thresh = 0.001; % Amplitude threshold (in m)
-    low_n  = 400;       % minimum number of pixels in eddy
-    high_n = 2500;     % maximum number of pixels in eddy
+    
+    % minimum eddy rad. = 5 km, maximum = 100 km
+    low_n  = floor(pi*(5e3)^2/dx/dy);       % minimum number of pixels in eddy
+    high_n = floor(pi*(100e3)^2/dx/dy);     % maximum number of pixels in eddy
     connectivity = 8;  % either 4 or 8
     max_dist = 400*1000;
-    thresh_loop = linspace(nanmin(zeta(:)),nanmax(zeta(:)),5); % in m
+    thresh_loop = nanmin(zeta(:)):0.005:nanmax(zeta(:)); % in m
 
     for ii=1:length(thresh_loop)
         threshold = thresh_loop(ii);
@@ -395,6 +396,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,w)
                 eddy.L    = vorprops.EquivDiameter * sqrt(dx*dy);
                 eddy.lmaj = vorprops.MajorAxisLength * sqrt(dx*dy);
                 eddy.lmin = vorprops.MinorAxisLength * sqrt(dx*dy);
+                eddy.vormask = vormaskreg;
                 % if i get here, i'm done
                 break;
             end
@@ -428,6 +430,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,w)
         eddy.L    = NaN;
         eddy.lmaj = NaN;
         eddy.lmin = NaN;
+        eddy.vormask = NaN;
         disp('Eddy not found!');
     end
     
