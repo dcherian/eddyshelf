@@ -22,7 +22,7 @@ for j=1:size(xr,2)
         end
     end
 end
-visc2(visc2>fac*bvisc) = 50;
+visc2(visc2>maxvisc) = maxvisc;
 pcolor(xr/1000,yr/1000,visc2)
 set(gca,'ydir','normal');
 axis image;shading flat;colorbar
