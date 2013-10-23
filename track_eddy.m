@@ -87,6 +87,7 @@ function [eddy] = track_eddy(dir1)
         if tt == 1,
             mask = ones(sz);
             d_sbreak = Inf;
+            thresh = nan;
         else 
             if tt ==  73,
                 disp('debug time!');
@@ -99,13 +100,14 @@ function [eddy] = track_eddy(dir1)
             iy1 = find_approx(yr(1,:),eddy.cy(tt-1)-ly,1);
             iy2 = find_approx(yr(1,:),eddy.cy(tt-1)+ly,1);
 
+            thresh = eddy.thresh(tt-1);
             mask(ix1:ix2,iy1:iy2) = 1;
             % distance to shelfbreak in *m*
 %            d_sbreak = eddy.cx(tt-1)-sbreak;
         end
         fprintf('tt = %3d | ', tt);
         temp = eddy_diag(bsxfun(@minus,zeta(:,:,tt),zeta_bg) .* mask, ...
-                            vor(:,:,tt).*mask,dx,dy,sbreak); %w(:,:,tt));
+                            vor(:,:,tt).*mask,dx,dy,sbreak,thresh); %w(:,:,tt));
 
         % [cx,cy] = location of weighted center (first moment)
         eddy.cx(tt)  = temp.cx;
@@ -119,6 +121,7 @@ function [eddy] = track_eddy(dir1)
         eddy.dia(tt) = temp.dia;
         % mask for diagnostic purposes
         eddy.mask(:,:,tt) = temp.mask;
+        eddy.thresh(tt) = temp.thresh;
         eddy.vormask(:,:,tt) = temp.vormask;
         % number of pixels in eddy
         eddy.n(tt) = temp.n;
@@ -227,7 +230,7 @@ function [E] = sinefit(x0,T,zr)
 % only finds anticyclonic eddies
 
 % this routine is called at every timestep
-function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,w)
+function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
 
     % algorithm options
     amp_thresh = 0.001; % Amplitude threshold (in m)
@@ -237,8 +240,13 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,w)
     high_n = floor(pi*(100e3)^2/dx/dy);     % maximum number of pixels in eddy
     connectivity = 8;  % either 4 or 8
     max_dist = 400*1000;
-    thresh_loop = nanmin(zeta(:)):0.005:nanmax(zeta(:)); % in m
-
+    if isnan(thresh)
+        thresh_min = nanmin(zeta(:));
+    else
+        thresh_min = thresh;
+    end
+    thresh_loop = linspace(thresh_min,nanmax(zeta(:)),10); % in m
+    %thresh_loop = linspace(nanmin(zeta(:)),nanmax(zeta(:)),10);
     for ii=1:length(thresh_loop)
         threshold = thresh_loop(ii);
         
@@ -347,7 +355,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,w)
             % I have an eddy!!!
             flag_found = 1;
             fprintf('Eddy found with threshold %.3f \n', threshold);
-            %imagesc(zreg'); pause
+            imagesc(zreg'); 
             
             % find location of maximum that is closest to shelfbreak
             ix = bsxfun(@times,ones(size(local_max)),[1:size(local_max,1)]');
@@ -372,6 +380,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,w)
             eddy.mask = maskreg;
             eddy.n    = n; % number of points
             eddy.jj   = jj;
+            eddy.thresh = threshold;
             
             % find 0 rel. vor (max. speed) contour
             vormask   = vor.*eddy.mask < 0;
@@ -431,6 +440,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,w)
         eddy.lmaj = NaN;
         eddy.lmin = NaN;
         eddy.vormask = NaN;
+        eddy.thresh =  NaN;
         disp('Eddy not found!');
     end
     
