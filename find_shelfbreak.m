@@ -3,7 +3,7 @@
 
 function [xsb,isb,hsb,ax] = find_shelfbreak(fname,type)
 
-    h = ncread(fname,'h');
+    h = ncread(fname,'h')';
     if h(2,1)-h(1,1) < 1e-3
         try
             xr = ncread(fname,'y_rho')';
