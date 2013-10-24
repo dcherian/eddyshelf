@@ -90,8 +90,9 @@ classdef runs < handle
                 end
             end
             
-            if exist(runs.flt_file,'file')
+            try
                 runs.roms = floats('roms',runs.flt_file,runs.rgrid);
+            catch
             end
             
             if ~exist([dir '/eddytrack.mat'],'file') || reset == 1 ...
@@ -403,6 +404,34 @@ classdef runs < handle
             
         end
         
+        function [] = plot_simplepv(runs)
+           % this function contours the qgpv approximation of the
+           % background pv
+           
+           if runs.bathy.axis == 'y'
+               dhdx = diff(runs.bathy.h,1,2)./diff(runs.rgrid.yr,1,2);
+               ax = 2;
+           else
+               ax = 1;
+               dhdx = diff(runs.bathy.h,1,1)./diff(runs.rgrid.xr,1,1);
+           end
+           
+           beta_t = runs.params.phys.f0 * dhdx/max(runs.rgrid.zr(:));
+           
+           q = runs.params.phys.f0 + ...
+               (runs.params.phys.beta + beta_t) .* avg1(runs.rgrid.yr,ax);
+           
+           clf;
+           subplot(211);
+           contourf(q');
+           subplot(212);
+           hold on
+           plot(q(2,:));
+           plot(-runs.bathy.h(2,:)/max(runs.bathy.h(:)),'k');
+           legend('qgpv','bathy');
+           
+        end
+        
         function [] = eddyevol(runs)
             eddy = runs.eddy;
             ii = 1; colors(1) = 'b';
@@ -682,27 +711,36 @@ classdef runs < handle
             ixmax = max(ix); ixmin = min(ix);
             iymax = max(iy); iymin = min(iy);            
             
-            disp('Reading data.');
-            tic;
             if runs.bathy.axis == 'x'
                 stride = [sxy 1 sz st];
-                temper = roms_read_data(runs.dir,'temp',[1 iymin 1 t0], ...
-                                  ceil([Inf iymax-iymin+1 Inf Inf]./stride), stride);
-                              toc;
-                strat  = roms_read_data(runs.dir,'temp',[Inf 1 1 1], ...
-                                  ceil([1 1 Inf 1]./stride),stride);
-                              toc
+                temper = dc_roms_read_data(runs.dir,'temp',[t0 st Inf], ...
+                                {'y' iymin iymax},stride);
+                strat = dc_roms_read_data(runs.dir,'temp',[1 1], ...
+                                {'y' Inf Inf},stride);
+                
+                temper = bsxfun(@minus,temper,permute(strat,[1 3 2]));
+                %temper = roms_read_data(runs.dir,'temp',[1 iymin 1 t0], ...
+                %                  ceil([Inf iymax-iymin+1 Inf Inf]./stride), stride);
+                %              toc;
+                %strat  = roms_read_data(runs.dir,'temp',[Inf 1 1 1], ...
+                %                  ceil([1 1 Inf 1]./stride),stride);
+                %              toc
+                
             else
                 stride = [1 sxy sz st];
-                temper = roms_read_data(runs.dir,'temp',[ixmin 1  1 t0], ...
-                                ceil([ixmax-ixmin+1 Inf Inf Inf]./stride),stride);
-                            toc;
-                strat  = roms_read_data(runs.dir,'temp',[1 1 1 1], ...
-                                ceil([1 Inf Inf 1]./stride),stride);               
-                            toc;
+                temper = dc_roms_read_data(runs.dir,'temp',[t0 st Inf], ...
+                                {'x' ixmin ixmax},stride);
+                strat = dc_roms_read_data(runs.dir,'temp',[1 1], ...
+                                {'y' Inf Inf},stride);
+                temper = bsxfun(@minus,temper,permute(strat,[3 1 2]));
+                            %temper = roms_read_data(runs.dir,'temp',[ixmin 1  1 t0], ...
+                %                ceil([ixmax-ixmin+1 Inf Inf Inf]./stride),stride);
+                %            toc;
+                %strat  = roms_read_data(runs.dir,'temp',[1 1 1 1], ...
+                %                ceil([1 Inf Inf 1]./stride),stride);               
+                %            toc;
             end
-
-            temper = bsxfun(@minus,temper,permute(strat,[3 1 2]));
+            
             
             % make plot
             tt = 1;
@@ -735,7 +773,8 @@ classdef runs < handle
             %ht = title(['(mx,my) = (', num2str(eddy.mx(stride(4))/1000) ',' ...
             %        num2str(eddy.my(tt*stride(4))/1000) ') km | t = ' num2str(stride(4)) ' days']);
             xlabel('y (km)'); ylabel('z (m)'); colorbar; 
-            caxis([-1 1]*max(mat2vec(abs(temper(ix-ixmin+1,:,:,1:end-10)))));
+            %caxis([-1 1]*max(mat2vec(abs(temper(ix-ixmin+1,:,:,1:end-10)))));
+            caxis([-1 1] *max(abs(temper(:))));
             h1 = liney(-eddy.Lz2(stride(4)),[],'b');
             ylim([-1500 0]);
             title('Cross-shore temperature anomaly - slice through eddy center');
