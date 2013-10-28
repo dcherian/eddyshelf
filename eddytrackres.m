@@ -11,7 +11,7 @@ function [] = eddytrackres()
     
     colors = distinguishable_colors(size(names,1));
     
-    hf1 = figure; hold on; maximize; pause(0.1)
+    hf1 = figure; hold on; maximize; pause(0.2)
 %    hf2 = figure; hold on;
     
     for ii=1:size(names,1)
@@ -53,16 +53,17 @@ function [] = eddytrackres()
     hold on;
     [cc,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.h(2:end-1,2:end-1),[500 1000 2000 2300],'k');
     clabel(cc,hh);
-    axis image;
+    %axis image;
     legend(sorted,'Location','NorthWestOutside');
-    title('center track | red crosses at t=150 days');
+    time = 120;
+    title(['center track | red crosses at t=' num2str(time) 'days']);
     xlim([0 180]);
     xlabel('x (km)'); ylabel('y (km)');
     for kk = 1:length(sort_ind)
         eddy = eddies{kk};
         subplot(ax1); hold on;
         try
-            index = find_approx(eddy.t,80);
+            index = find_approx(eddy.t,time);
             plot(eddy.cx(index)/1000,eddy.cy(index)/1000,'rx','MarkerSize',12);
         catch
         end
@@ -105,7 +106,7 @@ function [] = eddytrackres()
         export_fig eddytrackres.png
     end
 
-ac    stop
+    return;
     % compare both 0.5km runs 
     figure(hf2);
 %     subplot(121)

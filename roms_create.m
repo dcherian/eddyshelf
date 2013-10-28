@@ -4,11 +4,11 @@
 %% Parameters
 % names cannot start with number
 FOLDER    = '/media/data/Work/eddyshelf/runs/';
-prefix    = 'tea';
-GRID_NAME = [prefix '1.5km_grd'];
-INI_NAME  = [prefix '1.5km_ini'];
-BRY_NAME  = [prefix '1.5km_bry'];
-FRC_NAME  = [prefix '1.5km_frc'];
+prefix    = 'tes';
+GRID_NAME = [prefix '_grd'];
+INI_NAME  = [prefix '_ini'];
+BRY_NAME  = [prefix '_bry'];
+FRC_NAME  = [prefix '_frc'];
 
 % fix file names
 GRID_NAME = [FOLDER GRID_NAME '.nc'];% '-' num2str(ceil(X/1000)) 'x' num2str(ceil(Y/1000)) '-' num2str(S.Lm) 'x' num2str(S.Mm) 'x' num2str(S.N) '.nc'];[FOLDER GRID_NAME '.nc'];
@@ -22,13 +22,16 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 294;
-S.Mm = 120;
+S.Lm = 400;
+S.Mm = 180;
 S.N  = 40;
 
+dx = 1500;
+dy = dx;
+
 % Domain Extent (in m)
-X = S.Lm * 1500;120;
-Y = S.Mm * 1500;100;
+X = S.Lm * dx;120;
+Y = S.Mm * dy;100;
 Z = 2000;
 
 % tracers
@@ -123,12 +126,12 @@ flags.flat_bottom = 0; % set depth in Z above
 flags.crooked_bathy = 0;
 
 bathy.H_shelf  = 100;
-bathy.L_shelf  = 20 * 1000;
+bathy.L_shelf  = 40 * 1000;
 bathy.L_slope  =  50 * 1000;
 bathy.axis = 'y'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
-bathy.sl_shelf = 5e-4;
-bathy.sl_slope = 0.02;
+bathy.sl_shelf = 0;
+bathy.sl_slope = 0.04;
 
 % bathymetry smoothing options
 bathy.n_points = 4;
@@ -163,8 +166,8 @@ flags.vprof_gaussian = 0;%~flags.eddy_zhang; % eddy is gaussian in vertical?
 eddy.dia    = NaN; % 2xNH/pi/f0 - determined later
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
-eddy.tamp   = 0.20; % controls gradient
-eddy.buffer_sp = 40*1000; % distance from  4.3 (2.3) *r0 to sponge edge
+eddy.tamp   = 0.30; % controls gradient
+eddy.buffer_sp = 40*dx; % distance from  4.3 (2.3) *r0 to sponge edge
 eddy.buffer = 7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
 eddy.cx     = NaN;X/2; % if NaN, determined using buffer later
 eddy.theta0 = pi/2; % surface phase anomaly from Zhang et al. (2013)
@@ -319,10 +322,6 @@ S.temp = T0*ones(size(S.temp));
 xmid = ceil(S.Lm/2);
 ymid = ceil(S.Mm/2);
 zmid = ceil(S.N/2);
-
-% x,y grids
-dx = X/S.Lm;
-dy = Y/S.Mm;
 
 S.x_rho = repmat([-dx/2:dx:X+dx/2]',[1 S.Mm+2]);
 S.y_rho = repmat(-dy/2:dy:Y+dy/2 ,[S.Lm+2 1]);
@@ -774,11 +773,11 @@ if flags.eddy
             if isnan(eddy.cy)
                 % add deformation radius buffer away from boundary
                 % note there is no sponge at the inflow boundary
-                eddy.cy = Y-eddy.dia/2-xtra; 
+                eddy.cy = Y-eddy.dia/2-xtra-eddy.buffer_sp; 
             end
             fprintf('Distance from eastern edge = %.2f km \n', ...
                     (X-eddy.cx-xtra)/1000);
-            if X-eddy.cx-xtra < eddy.buffer_obc
+            if X-eddy.cx-xtra < eddy.buffer_sp
                 error('Eastern edge - eddy edge < buffer');
             end
         case 'y'
@@ -786,7 +785,7 @@ if flags.eddy
                 if ~flags.OBC
                     % add deformation radius buffer away from boundary
                     % note there is no sponge at the inflow boundary
-                    eddy.cx = X-eddy.dia/2-xtra; % center of eddy
+                    eddy.cx = X-eddy.dia/2-xtra-eddy.buffer_sp; % center of eddy
                 else
                     eddy.cx = 0 + eddy.dia/2+xtra;
                 end
@@ -953,11 +952,14 @@ if flags.eddy
         hfeddy = figure;
     end
     contourf(xrmat(:,:,1)./fx,yrmat(:,:,1)./fy,S.zeta,20); shading flat;
-    %axis image;
     hcb = colorbar; freezeColors; cbfreeze(hcb)
     hold on
     [C,h] = contour(xrmat(:,:,1)./fx,yrmat(:,:,1)./fy,S.h,...
                 floor(linspace(min(S.h(:)),max(S.h(:)),5)),'k');
+            
+    liney((Y-eddy.buffer_sp)/fy,'sponge');
+    linex((X-eddy.buffer_sp)/fx,'sponge');
+    
     clabel(C,h); 
     title('Zeta with eddy');
     if bathy.axis == 'y'
@@ -965,6 +967,7 @@ if flags.eddy
     else
         linex([bathy.xsl bathy.xsb]/fx);
     end
+    axis image;
     if flags.front
         linkaxes([axt(4) axt(7) axt(8)],'xy');
     end
@@ -1196,14 +1199,14 @@ xind = 30; yind = 15; zind = 30;
 VZ  = diff(S.v,1,3) ./ diff(zvmat,1,3);
 UZ  = diff(S.u,1,3) ./ diff(zumat,1,3);
         
-dx = squeeze(diff(xrmat(:,:,end),1,1));
-dy = squeeze(diff(yrmat(:,:,end),1,2));
+dxarr = squeeze(diff(xrmat(:,:,end),1,1));
+dyarr = squeeze(diff(yrmat(:,:,end),1,2));
 
 dRdx = bsxfun(@rdivide, diff_cgrid(tgrid,S.rho,1) * g/R0, avg1(f,1));
 dRdy = bsxfun(@rdivide, diff_cgrid(tgrid,S.rho,2) * g/R0, avg1(f,2));
 
-dzdx = bsxfun(@rdivide, diff(zeta0,1,1), dx);
-dzdy = bsxfun(@rdivide, diff(zeta0,1,2), dy);
+dzdx = bsxfun(@rdivide, diff(zeta0,1,1), dxarr);
+dzdy = bsxfun(@rdivide, diff(zeta0,1,2), dyarr);
 
 % PERCENTAGE error in thermal wind balance
 diff_u = (avg1(UZ,2) - avg1(avg1(dRdy,1),3))./max(abs(UZ(:))) * 100;
