@@ -35,7 +35,7 @@ Y = S.Mm * dy;100;
 Z = 2000;
 
 % tracers
-S.NPT = 0; % number of passive tracers
+S.NPT = 3; % number of passive tracers
 S.NT = 2+S.NPT; % total number of tracers
 
 % vertical stretching
@@ -131,7 +131,7 @@ bathy.L_slope  =  50 * 1000;
 bathy.axis = 'y'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
 bathy.sl_shelf = 0;
-bathy.sl_slope = 0.04;
+bathy.sl_slope = 0.02;
 
 % bathymetry smoothing options
 bathy.n_points = 4;
@@ -166,7 +166,7 @@ flags.vprof_gaussian = 0;%~flags.eddy_zhang; % eddy is gaussian in vertical?
 eddy.dia    = NaN; % 2xNH/pi/f0 - determined later
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
-eddy.tamp   = 0.30; % controls gradient
+eddy.tamp   = 0.20; % controls gradient
 eddy.buffer_sp = 40*dx; % distance from  4.3 (2.3) *r0 to sponge edge
 eddy.buffer = 7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
 eddy.cx     = NaN;X/2; % if NaN, determined using buffer later
@@ -867,8 +867,9 @@ if flags.eddy
         % SSH calculation is same for gradient wind & geostrophic balance!
         % also same for all profiles
         %S.zeta = S.zeta + TCOEF*eddy.tamp * int_Tz .* eddy.xyprof;
-        S.zeta = S.zeta + TCOEF * trapz(eddy.z, ...
+        eddy.zeta = TCOEF * trapz(eddy.z, ...
                  bsxfun(@minus,eddy.temp,eddy.temp(eddy.ix,eddy.iy,:)),3);
+        S.zeta = S.zeta + eddy.zeta;
         S.zeta = S.zeta - min(S.zeta(:));
         
         % Calculate azimuthal velocity shear (r d(theta)/dt)_z using geostrophic balance
@@ -1699,8 +1700,8 @@ fprintf('\n\n Beckmann & Haidvogel number = %f (< 0.2 , max 0.4) \n \t\t\t\tHane
 
 % From Utility/metrics.F
 % Barotropic courant number
-dt = 200;
-ndtfast = 45;
+dt = 120;
+ndtfast = 20;
 Cbt = sqrt(g*max(S.h(:))) * dt/ndtfast * sqrt(1/dx^2 + 1/dy^2);
 Cbc = sqrt(N2)*min(S.h(:))/pi * dt * sqrt(1/dx^2 + 1/dy^2);
 Cbc7 = 7 * dt * sqrt(1/dx^2 + 1/dy^2);
@@ -1724,6 +1725,7 @@ if flags.floats
    yhi = find_approx(yrmat(1,:,1),max(floaty(:))*1000,1); 
    fprintf('\n Float deployment locations : (%d:%d , %d:%d)', xlo,xhi,ylo,yhi);
 end
+if beta == 0, warning('f-plane!!!'); end
 fprintf('\n\n');
 
 %% Old sbfront code
