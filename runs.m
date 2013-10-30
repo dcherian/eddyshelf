@@ -132,6 +132,7 @@ classdef runs < handle
                 runs.eddy.prox = (edge-runs.bathy.xsb);
                 % time of reversal
                 runs.eddy.trev = runs.time(find(runs.eddy.cvx < 0,1,'first'));
+                if isempty(runs.eddy.trev), runs.eddy.trev = NaN; end
             
                 % water depth at eddy center
                 h = runs.bathy.h(2:end-1,2:end-1);
@@ -636,7 +637,8 @@ classdef runs < handle
             colorbar; freezeColors;
             hbathy = runs.plot_bathy('contour','k');
             he = runs.plot_eddy_contour('contour',ii);
-            ht = title([' SSH (m) | ' num2str(runs.time(1)/86400)  ' days']);
+            ht = runs.set_title('SSH (m)',ii);
+           
             xlabel('X (km)');ylabel('Y (km)');
             axis image;
             maximize(gcf); pause(0.2);  
@@ -645,7 +647,7 @@ classdef runs < handle
             for ii = 2:size(runs.zeta,3)
                 runs.update_zeta(hz,ii);
                 runs.update_eddy_contour(he,ii);
-                set(ht,'String',[' SSH (m) | ' num2str(runs.time(ii)/86400) ' days']);
+                runs.update_title('SSH (m)',ht,ii);
                 runs.video_update();
                 pause(0.03);
             end
@@ -978,6 +980,13 @@ classdef runs < handle
                 mask = runs.eddy.mask(:,:,tt);
             end
             set(handle,'ZData',mask);
+        end
+        
+        function [ht] = set_title(runs,titlestr,tt)
+            ht = title([titlestr ' | ' runs.name ' | ' num2str(runs.time(tt)/86400)  ' days']);
+        end
+        function update_title(runs,titlestr,ht,tt)
+            set(ht,'String',[titlestr ' | ' runs.name ' | ' num2str(runs.time(tt)/86400)  ' days']);
         end
         
         function [hplot] = plot_bathy(runs,plottype,color)
