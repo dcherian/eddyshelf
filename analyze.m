@@ -1,7 +1,7 @@
 %% read runs
 rootdir = 'runs/topoeddy/runew-';
 dirs = {... %'02-bg-dt2', '03'
-    '06','07','08','09','10'};
+    '02','03','04','05'};
 
 leg = dirs;
 % run(1) = runs('runs/topoeddy/runew-02-bg-dt2/');
@@ -51,7 +51,7 @@ for ii=1:length(run)
     %                (run(ii).params.bg.ubt -  ...
     %                run(ii).params.phys.beta/2*(run(ii).eddy.dia/2).^2);
     plot(run(ii).eddy.prox/1000,run(ii).eddy.Lz2./run(ii).eddy.Lz2(1),'*','Color',colors(ii,:));
-    
+    ii
     figure(h2)
     plot(run(ii).params.nondim.eddy.Rh,run(ii).eddy.trev/86400,'*','Color',colors(ii,:));
 end
