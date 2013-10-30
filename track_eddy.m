@@ -3,7 +3,6 @@ function [eddy] = track_eddy(dir1)
     if isdir(dir1)
         fnames = roms_find_file(dir1,'his');
         file = char([dir1 '/' char(fnames(1))]);
-        file
         [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
         tic;
         disp('Reading data');
@@ -89,7 +88,7 @@ function [eddy] = track_eddy(dir1)
             d_sbreak = Inf;
             thresh = nan;
         else 
-            if tt ==  73,
+            if tt ==  110,
                 disp('debug time!');
             end
             mask = nan(sz);
@@ -200,7 +199,7 @@ function [eddy] = track_eddy(dir1)
                     '(mvx,mvy) = velocity of (mx,my) in km/day | ' ...
                     '(we,ee,ne,se) = West, East, North and South edges of eddy (m) | ' ...
                     'Lz2,3 = Vertical scale (m) when fitting without & with linear trend | ' ...
-                    'T = temp profile at (mx,my) | '...
+                    'T = temp profile at (mx,my) | L = equiv diameter for vorticity < 0 region '...
                     'Lmin/Lmaj = minor/major axis length'];
     
     save([dir1 '/eddytrack.mat'],'eddy');
@@ -400,6 +399,10 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
                 n = length(vorregions.PixelIdxList{ll});
                 if n < low_n || n > high_n, continue; end
                 
+                % make sure that region contains eddy.mx,eddy.my
+                if vormaskreg(ix(indx,indy),iy(indx,indy)) == 0, continue; end
+                
+                % extract information
                 vorprops  = regionprops(vormaskreg,zeta,'EquivDiameter', ...
                         'MinorAxisLength','MajorAxisLength');
                 eddy.L    = vorprops.EquivDiameter * sqrt(dx*dy);
