@@ -60,8 +60,14 @@ function write_dye(file,name,var)
         ncwrite(file,name,repmat(var,[1 1 1 2 nt]));
     catch ME
         warning([name ' not found.']);
+if strfind(file,'rst')
         nccreate(file,name,'Dimensions',{'xi_rho' 'eta_rho' 's_rho' ...
                             'two' 'ocean_time'});
         ncwrite(file,name,repmat(var,[1 1 1 2 nt]));
+	else
+ nccreate(file,name,'Dimensions',{'xi_rho' 'eta_rho' 's_rho' ...
+                            'ocean_time'});
+        ncwrite(file,name,repmat(var,[1 1 1 nt]));
+end	  
     end
     disp(['wrote to file ' file]);
