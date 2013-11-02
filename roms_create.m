@@ -23,7 +23,7 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
 S.Lm = 400;
-S.Mm = 180;
+S.Mm = 220;
 S.N  = 40;
 
 dx = 1500;
@@ -35,7 +35,7 @@ Y = S.Mm * dy;100;
 Z = 2000;
 
 % tracers
-S.NPT = 3; % number of passive tracers
+S.NPT = 4; % number of passive tracers
 S.NT = 2+S.NPT; % total number of tracers
 
 % vertical stretching
@@ -48,7 +48,7 @@ S.Tcline  = 100.0;    %  S-coordinate surface/bottom stretching width (m)
 % coriolis parameters
 lat_ref = 45;
 f0    = 2 * (2*pi/86400) * sind(lat_ref);
-beta  = 6e-11;
+beta  = 0e-11;
 
 % Physical Parameters
 N2    = 1e-5;
@@ -131,7 +131,7 @@ bathy.L_slope  =  50 * 1000;
 bathy.axis = 'y'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
 bathy.sl_shelf = 0;
-bathy.sl_slope = 0.02;
+bathy.sl_slope = 0.04;
 
 % bathymetry smoothing options
 bathy.n_points = 4;
@@ -166,9 +166,9 @@ flags.vprof_gaussian = 0;%~flags.eddy_zhang; % eddy is gaussian in vertical?
 eddy.dia    = NaN; % 2xNH/pi/f0 - determined later
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
-eddy.tamp   = 0.20; % controls gradient
+eddy.tamp   = 0.40; % controls gradient
 eddy.buffer_sp = 40*dx; % distance from  4.3 (2.3) *r0 to sponge edge
-eddy.buffer = 7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
+eddy.buffer = 50.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
 eddy.cx     = NaN;X/2; % if NaN, determined using buffer later
 eddy.theta0 = pi/2; % surface phase anomaly from Zhang et al. (2013)
                     % 7/16 * pi for WCR
@@ -1031,6 +1031,26 @@ if flags.eddy
     
     spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
     
+    %% estimate speed based on van leeuwin (2007)
+    
+    % first, K.E
+    ke = 1/2 * (eddy.u.^2 + eddy.v.^2);
+    pe = 0;
+    h0 = Z/2; % average depth of upper layer
+    Ld = eddy.dia/2; % deformation radius
+    eta = eddy.temp(:,:,S.N/2);
+    num1 = 0;
+    num2 = f0^2/h0 * Ld^2 * trapz(yrmat(1,:,1),trapz(xrmat(:,1,1),eta.^2,1),2);
+    den = (2*Ld^2*trapz(yrmat(1,:,1),trapz(xrmat(:,1,1),eta,1),2));
+    
+    gamma = (num1+num2)/den;
+    
+    vr = beta * Ld^2;
+    
+    fprintf('\n Gamma = %.2f, Vr = %.2f m/s, Drift speed = %.2f m/s \n', ...
+        gamma, vr, vr*(1+gamma));
+    %%
+    
     % clear variables to save space
 %    clear rut rutz dTdr strat r rnorm rfb2 sdisc
     %eddy.tz = []; eddy.temp = []; eddy.u = []; eddy.v = [];
@@ -1272,7 +1292,7 @@ fprintf('\n Sanity checks - %4.1f MB \n\n', monitor_memory_whos);
 
 if S.NPT > 0
     % create variables first
-    names = {'shelf water','slope water'};
+    names = {'cross shelf dye'; 'z dye';'along shelf dye'; 'eddy dye'};
     try
         dc_roms_passive_tracer(S,names);
     catch ME
@@ -1286,20 +1306,40 @@ if S.NPT > 0
     % set dye_01 = cross-shelf label & dye_03 = along shelf label
     if bathy.axis == 'y'
         if flags.eddy
+            % cross-shelf dye
             dye_01 = yrmat;
         end
+        % along-shelf dye
         dye_03 = xrmat;
     else
         if flags.eddy
+            % cross shelf dye
             dye_01 = xrmat;
         end
+        % along shelf dye
         dye_03 = yrmat;
     end
     % set cross-shelf dye (dye_01) same as frontal structure
     if flags.front
         dye_01 = S.Tra;
     end
+    
+    % second dye is always z-label
     dye_02 = zrmat;
+    
+    % fourth dye tags eddy
+     % set eddy dye
+     if flags.eddy
+        dye_04 = zeros(size(yrmat));
+        %1e-3 is good threshold for tamp=0.4
+        dye_04(eddy.temp > (1e-3/0.4*eddy.tamp)) = 1;
+        % now smooth out edges
+        nfilter=5;
+        for kk=1:S.N
+            dye_04(:,:,kk) = filter2(ones(nfilter,nfilter)/nfilter.^2, ...
+                                dye_04(:,:,kk));
+        end
+      end
 %     dye_01 = zeros(size(xrmat)); dye_02 = dye_01;
 % 
 %     buffer = 6;
