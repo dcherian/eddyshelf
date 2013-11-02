@@ -2,8 +2,15 @@
 % Modified from Arango's d_initial.m
 
 %% Parameters
+
 % names cannot start with number
-FOLDER    = '/media/data/Work/eddyshelf/runs/';
+[~,machine] = system('hostname');
+if strfind(machine,'scylla')
+    FOLDER    = '/scylla-a/home/dcherian/ROMS/runs/eddyshelf/topoeddy/run-5/';
+end
+if strfind(machine,'kadal')
+    FOLDER = '/media/data/Work/eddyshelf/runs/';
+end
 prefix    = 'tes';
 GRID_NAME = [prefix '_grd'];
 INI_NAME  = [prefix '_ini'];
@@ -23,7 +30,7 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
 S.Lm = 400;
-S.Mm = 220;
+S.Mm = 180;
 S.N  = 40;
 
 dx = 1500;
@@ -48,7 +55,7 @@ S.Tcline  = 100.0;    %  S-coordinate surface/bottom stretching width (m)
 % coriolis parameters
 lat_ref = 45;
 f0    = 2 * (2*pi/86400) * sind(lat_ref);
-beta  = 0e-11;
+beta  = 6e-11;
 
 % Physical Parameters
 N2    = 1e-5;
@@ -168,7 +175,7 @@ eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
 eddy.tamp   = 0.40; % controls gradient
 eddy.buffer_sp = 40*dx; % distance from  4.3 (2.3) *r0 to sponge edge
-eddy.buffer = 50.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
+eddy.buffer = 7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
 eddy.cx     = NaN;X/2; % if NaN, determined using buffer later
 eddy.theta0 = pi/2; % surface phase anomaly from Zhang et al. (2013)
                     % 7/16 * pi for WCR
