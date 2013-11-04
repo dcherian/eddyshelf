@@ -77,14 +77,15 @@ classdef runs < handle
                 runs.zeta = roms_read_data(dir,'zeta');
                 runs.time = roms_read_data(dir,'ocean_time');
                 try
-                    runs.dye  = roms_read_data(dir,'dye_02');
+                    runs.csdye  = roms_read_data(dir,'dye_01', ...
+                        [1 1 runs.rgrid.N 1],[Inf Inf 1 Inf]);
                 catch ME
                 end
             else
                 runs.zeta = double(ncread(runs.out_file,'zeta'));
                 runs.time = double(ncread(runs.out_file,'ocean_time'));
                 try
-                    runs.csdye  = squeeze(double(ncread(runs.out_file,'dye_02', ...
+                    runs.csdye  = squeeze(double(ncread(runs.out_file,'dye_01', ...
                     [1 1 runs.rgrid.N 1],[Inf Inf 1 Inf])));
                 catch ME
                 end
@@ -133,8 +134,19 @@ classdef runs < handle
                 % time of reversal
                 runs.eddy.trev = runs.time(find(runs.eddy.cvx < 0,1,'first'));
                 if isempty(runs.eddy.trev), runs.eddy.trev = NaN; end
+                
+                % estimate southward vel.
+                % (beta * Lr^2)^2 *1/2 * 1/amp * NH/g
+                runs.eddy.Vy = -(runs.params.phys.beta*(runs.params.eddy.dia(1)/2)^2)^2/2 ...
+                                        /runs.eddy.amp(1) * ...
+                                sqrt(runs.params.phys.N2)/runs.params.phys.g*max(runs.bathy.h(:));
+                            
+%                            -(run3.params.phys.beta*(run3.params.eddy.dia(1)/2)^2)^2 ...
+%                                        *1/2 * 1/run3.eddy.amp(1) * ...
+%                                sqrt(run3.params.phys.N2)/run3.params.phys.g*max(run3.bathy.h(:))
+            %%
             
-                % water depth at eddy center
+              %%  % water depth at eddy center
                 h = runs.bathy.h(2:end-1,2:end-1);
                 ix = vecfind(runs.eddy.xr(:,1),runs.eddy.mx);
                 iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.my);
@@ -168,6 +180,34 @@ classdef runs < handle
         % create ltrans init file from roms out
         function [] = ltrans_create_from_roms(runs)
             ltrans_create_from_roms('ltrans_init_compare.txt',runs.flt_file,runs.rgrid);
+        end
+        
+        
+        % read surface velocities for animate_pt & surf vorticity plot
+        function [] = read_velsurf(runs)
+            disp('Reading surface velocity fields...');
+            tic;
+            start = [1 1 runs.rgrid.N 1];
+            count = [Inf Inf 1 Inf];
+            stride = [1 1 1 1];
+            
+            if runs.givenFile
+                runs.usurf = double(squeeze(ncread(runs.out_file, ....
+                    'u',start,count,stride)));
+            else
+                runs.usurf = roms_read_data(runs.dir,'u' ...
+                    ,start,count,stride);
+            end
+            runs.usurf = avg1(runs.usurf(:,2:end-1,:),1);
+            toc;
+            if runs.givenFile
+                runs.vsurf = double(squeeze(ncread(runs.out_file, ....
+                    'v',start,count,stride)));
+            else
+                runs.vsurf = roms_read_data(runs.dir,'v',start,count,stride);
+            end
+            runs.vsurf = avg1(runs.vsurf(2:end-1,:,:),2);
+            toc;
         end
         
        %% analysis
@@ -494,7 +534,9 @@ classdef runs < handle
             ii = num;
             colors = distinguishable_colors(10);
             aa = 6; bb = aa*2;
-            tloc = [50 60 70];
+            tloc = [100 120];
+            limx = [0 max(runs.time)/86400];
+            
             subplot(aa,2,[1:2:bb-2*2]); hold on
             %pcolorcen(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.bathy.h);            colorbar
             xlabel('X (km)'); ylabel('Y (km)');
@@ -506,35 +548,43 @@ classdef runs < handle
             %    plot(eddy.cx/1000,eddy.se/1000,'Color',colors(ii,:),'LineStyle','--');
             %end
             axis image; axis tight
+            
             subplot(aa,2,2); hold on
-            plot(eddy.t,eddy.amp,'Color',colors(ii,:));
-            ylabel('amplitude (m)');
+            plot(eddy.t,eddy.amp./eddy.amp(1),'Color',colors(ii,:));
+            ylabel('amp/amp(1) ');xlim(limx);
+            
             subplot(aa,2,4); hold on
             plot(eddy.t,eddy.dia/1000,'Color',colors(ii,:));
-            ylabel('diameter (km)');
+            ylabel('diameter (km)');xlim(limx);
+            
             subplot(aa,2,6); hold on
-            %plot(eddy.t,eddy.mvx,'Color',colors(ii,:));
-            %ylabel('x - vel (km/day)');
-            %ylim([-5 5]);
-            plot(eddy.t,eddy.cx/1000,'Color',colors(ii,:));
-            ylabel('x - center (km)');
+            plot(eddy.t,eddy.cvx,'Color',colors(ii,:));
+            ylabel('cvx(km/day)');
+            ylim([-5 5]);
+            liney(0); xlim(limx);
+            %plot(eddy.t,eddy.cx/1000,'Color',colors(ii,:));
+            %ylabel('x - center (km)');
+            
             subplot(aa,2,8); hold on
-            %plot(eddy.t,eddy.mvy,'Color',colors(ii,:));
-            %ylabel('y - vel (km/day)');
-            %ylim([-5 5]);
-            plot(eddy.t,eddy.cy/1000,'Color',colors(ii,:));
-            ylabel('y - center (km)');
+            plot(eddy.t,eddy.cvy,'Color',colors(ii,:));
+            ylabel('cvy (km/day)');xlim(limx);
+            ylim([-5 5]);
+            %plot(eddy.t,eddy.cy/1000,'Color',colors(ii,:));
+            %ylabel('y - center (km)');
+            
             subplot(aa,2,10); hold on
             plot(eddy.t,eddy.Lz2,'Color',colors(ii,:));
-            ylabel('vertical scale (m)');
+            ylabel('vertical scale (m)');xlim(limx);
             %xlabel('time (days)');
+            
             subplot(aa,2,12); hold on
             plot(eddy.t,eddy.prox/1000,'Color',colors(ii,:));
             xlabel('time (days)');
-            ylabel('Proximity (km)');
+            ylabel('Proximity (km)');xlim(limx);
             
-            subplot(aa,2,[9 11] ); hold on
-            plot(eddy.t,eddy.hcen,'Color',colors(ii,:));
+            subplot(aa,2,[9 11]); hold on
+            hp = plot(eddy.t,eddy.hcen,'Color',colors(ii,:));
+            addlegend(hp,runs.name,'SouthWest');
 %             plot(eddy.t,runs.params.phys.f0 / sqrt(runs.params.phys.N2) * runs.eddy.dia,'Color',colors(ii,:),'LineStyle','--');
 %             legend('H_{center}','f/N*dia');
             xlabel('Time (days)');
@@ -569,33 +619,6 @@ classdef runs < handle
             cblabel('Time (days)');
             beautify ([14 14 16]);
             
-        end
-        
-        % read surface velocities for animate_pt & surf vorticity plot
-        function [] = read_velsurf(runs)
-            disp('Reading surface velocity fields...');
-            tic;
-            start = [1 1 runs.rgrid.N 1];
-            count = [Inf Inf 1 Inf];
-            stride = [1 1 1 1];
-            
-            if runs.givenFile
-                runs.usurf = double(squeeze(ncread(runs.out_file, ....
-                    'u',start,count,stride)));
-            else
-                runs.usurf = roms_read_data(runs.dir,'u' ...
-                    ,start,count,stride);
-            end
-            runs.usurf = avg1(runs.usurf(:,2:end-1,:),1);
-            toc;
-            if runs.givenFile
-                runs.vsurf = double(squeeze(ncread(runs.out_file, ....
-                    'v',start,count,stride)));
-            else
-                runs.vsurf = roms_read_data(runs.dir,'v',start,count,stride);
-            end
-            runs.vsurf = avg1(runs.vsurf(2:end-1,:,:),2);
-            toc;
         end
         
         % calculate surface vorticity field
@@ -808,50 +831,33 @@ classdef runs < handle
         end
         
         function [] = animate_pt(runs)
-%             if runs.makeVideo
-% %                 runs.mm_instance = mm_setup;
-% %                 runs.mm_instance.pixelSize = [1600 900];
-% %                 runs.mm_instance.outputFile = 'mm_output.avi';
-% %                 runs.mm_instance.ffmpegArgs = '-q:v 1 -g 1';
-% %                 runs.mm_instance.InputFrameRate = 3;
-% %                 runs.mm_instance.frameRate = 3;
-%                 aviobj = VideoWriter('animate_pt','MPEG-4');
-%                 open(aviobj);
-%             end
-            if isempty(runs.usurf) || isempty(runs.vsurf)
-                runs.read_velsurf;
-            end
-            
+            runs.video_init('pt');
             
             rr = sqrt(runs.params.phys.N2)*runs.bathy.hsb/runs.rgrid.f(runs.bathy.isb,1);
             distance = 5*rr; % 5 times rossby radius
             clim = [runs.bathy.xsb/1000 runs.bathy.xsb/1000+distance/1000];
             
-            i = 1; clf;
-            hf = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.dye(:,:,i)/1000);         
+            figure;
+            i = 1;
+            hf = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.csdye(:,:,i)/1000);         
             caxis(clim);
             shading flat;
             colorbar; hold on
-            [~,hc] = contour(runs.eddy.xr/1000,runs.eddy.yr/1000,runs.eddy.mask(:,:,i),1,'k');
+            he = runs.plot_eddy_contour('contour',i);
             dxi = 5; dyi = 5;
             hq = quiver(runs.eddy.xr(1:dxi:end,1:dyi:end)/1000,runs.eddy.yr(1:dxi:end,1:dyi:end)/1000, ...
                         runs.usurf(1:dxi:end,1:dyi:end,i),runs.vsurf(1:dxi:end,1:dyi:end,i));
-            set(hc,'LineWidth',2);    
-            if runs.bathy.axis == 'y'
-                liney(runs.bathy.xsb/1000,'shelfbreak','w');
-                liney(mean(runs.eddy.se)/1000,'mean(se)','k');
-            else
-                linex(runs.bathy.xsb/1000,'shelfbreak','w');
-            end
-            ht = title(num2str(i));
+            set(he,'LineWidth',2);    
+            hbathy = runs.plot_bathy('Contour','k');
+            ht = runs.set_title('CS dye',i);
             xlabel('X (km)');ylabel('Y (km)');
             %axis image;
             beautify;
             pause();
             for i = 2:size(runs.zeta,3)
-                set(hf,'CData',runs.dye(:,:,i)/1000);
-                set(hc,'ZData',runs.eddy.mask(:,:,i));
-                set(ht,'String',num2str(i));
+                set(hf,'CData',runs.csdye(:,:,i)/1000);
+                runs.update_eddy_contour(he,i);
+                runs.update_title('CS dye',ht,i);
                 set(hq,'UData',runs.usurf(1:dxi:end,1:dyi:end,i));
                 set(hq,'VData',runs.vsurf(1:dxi:end,1:dyi:end,i));
                 pause();
@@ -997,8 +1003,10 @@ classdef runs < handle
                 clabel(cc,hplot);
                 if runs.bathy.axis == 'y'
                     liney(runs.bathy.xsb/1000,'shelfbreak',color);
+                    liney(runs.bathy.xsl/1000,'slopebreak',color);
                 else
                     linex(runs.bathy.xsb/1000,'shelfbreak',color);
+                    liney(runs.bathy.xsl/1000,'slopebreak',color);
                 end
             end
         end
@@ -1049,10 +1057,6 @@ classdef runs < handle
             ylabel('Surface Circulation');
             xlabel('Time (days)');
         end
-        
-        
-        
-       
         
     end
 end
