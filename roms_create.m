@@ -946,6 +946,16 @@ if flags.eddy
         Ro1 = vor./avg1(avg1(f,1),2);
         Ro1 = max(abs(Ro1(:)));
         fprintf('\n Max. Ro (vor/f)  = %.2f \n', Ro1);
+        
+        Lr = eddy.dia/2;
+        vgw1 = sqrt(N2) * Z;
+        vr1 = -beta * Lr^2;
+        % scaled height
+        Hs = vgw1^2/g;
+        vs1 = 14.5*vr1 * (vr1/vgw1) * nondim.eddy.Rh*86.4;
+        fprintf(['\n Southward vel = %.3f km/day | ' ...
+            'center reaches slope at t = %d days, shelfbreak at %d days\n'], ...
+            vs1,ceil((eddy.cy-bathy.xsl)/1000/vs1),ceil((eddy.cy-bathy.xsb)/1000/vs1));
 
     end
     
@@ -1216,53 +1226,57 @@ fprintf('\n ubar,vbar,pv- %4.1f MB \n\n', monitor_memory_whos);
 
 %% Sanity Checks + check thermal wind
 
-% calculate % error in thermal wind balance
-xind = 30; yind = 15; zind = 30;
+check_thermalwind = 0;
 
-% these are needed later too - calculated for geostrophic component of
-% % velocity
-% VZ  = diff(     avg1(bsxfun(@times,vgeo, cos(th)),2),1,3) ./ diff(zvmat,1,3);
-% UZ  = diff(-1 * avg1(bsxfun(@times,vgeo, sin(th)),1),1,3) ./ diff(zumat,1,3);
+if check_thermalwind
+    % calculate % error in thermal wind balance
+    xind = 30; yind = 15; zind = 30;
 
-VZ  = diff(S.v,1,3) ./ diff(zvmat,1,3);
-UZ  = diff(S.u,1,3) ./ diff(zumat,1,3);
-        
-dxarr = squeeze(diff(xrmat(:,:,end),1,1));
-dyarr = squeeze(diff(yrmat(:,:,end),1,2));
+    % these are needed later too - calculated for geostrophic component of
+    % % velocity
+    % VZ  = diff(     avg1(bsxfun(@times,vgeo, cos(th)),2),1,3) ./ diff(zvmat,1,3);
+    % UZ  = diff(-1 * avg1(bsxfun(@times,vgeo, sin(th)),1),1,3) ./ diff(zumat,1,3);
 
-dRdx = bsxfun(@rdivide, diff_cgrid(tgrid,S.rho,1) * g/R0, avg1(f,1));
-dRdy = bsxfun(@rdivide, diff_cgrid(tgrid,S.rho,2) * g/R0, avg1(f,2));
+    VZ  = diff(S.v,1,3) ./ diff(zvmat,1,3);
+    UZ  = diff(S.u,1,3) ./ diff(zumat,1,3);
 
-dzdx = bsxfun(@rdivide, diff(zeta0,1,1), dxarr);
-dzdy = bsxfun(@rdivide, diff(zeta0,1,2), dyarr);
+    dxarr = squeeze(diff(xrmat(:,:,end),1,1));
+    dyarr = squeeze(diff(yrmat(:,:,end),1,2));
 
-% PERCENTAGE error in thermal wind balance
-diff_u = (avg1(UZ,2) - avg1(avg1(dRdy,1),3))./max(abs(UZ(:))) * 100;
-diff_v = (avg1(VZ,1) + avg1(avg1(dRdx,2),3))./max(abs(VZ(:))) * 100;
-% 
-% figure;
-% subplot(211)
-% pcolorcen(squeeze(diff_v(:,yind,:))'); colorbar
-% title('% error (v_z - dT/dx * \alpha g/f)');
-% subplot(212)
-% pcolorcen(squeeze(diff_u(xind,:,:))'); colorbar
-% title('% error (-u_z - dT/dy * \alpha g/f)/max(u_z)');
+    dRdx = bsxfun(@rdivide, diff_cgrid(tgrid,S.rho,1) * g/R0, avg1(f,1));
+    dRdy = bsxfun(@rdivide, diff_cgrid(tgrid,S.rho,2) * g/R0, avg1(f,2));
 
-figure;
-subplot(221)
-pcolorcen(diff_v(:,:,zmid)'); colorbar
-title('% error (v_z - d\rho/dx * g/f/R0)|_{z=mid}');
-subplot(222)
-pcolorcen(squeeze(diff_u(:,:,zmid))'); colorbar
-title('% error (-u_z - d\rho/dy * g/f/R0)|_{z=mid}');
-subplot(223)
-pcolorcen((((avg1((dzdx ./ avg1(f,1)* g),2)-avg1(S.v(:,:,end),1)))./ ...
-                max(abs(S.v(:)))*100)'); colorbar
-title('% error (g/f d\zeta /dx - v_{z=0})');
-subplot(224)
-pcolorcen(((avg1(dzdy ./ avg1(f,2)* g,1) + avg1(S.u(:,:,end),2)) ./ ...
-            max(abs(S.u(:)))*100)'); colorbar
-title(' % error (g/f d\zeta /dy + u_{z=0})');
+    dzdx = bsxfun(@rdivide, diff(zeta0,1,1), dxarr);
+    dzdy = bsxfun(@rdivide, diff(zeta0,1,2), dyarr);
+
+    % PERCENTAGE error in thermal wind balance
+    diff_u = (avg1(UZ,2) - avg1(avg1(dRdy,1),3))./max(abs(UZ(:))) * 100;
+    diff_v = (avg1(VZ,1) + avg1(avg1(dRdx,2),3))./max(abs(VZ(:))) * 100;
+    % 
+    % figure;
+    % subplot(211)
+    % pcolorcen(squeeze(diff_v(:,yind,:))'); colorbar
+    % title('% error (v_z - dT/dx * \alpha g/f)');
+    % subplot(212)
+    % pcolorcen(squeeze(diff_u(xind,:,:))'); colorbar
+    % title('% error (-u_z - dT/dy * \alpha g/f)/max(u_z)');
+
+    figure;
+    subplot(221)
+    pcolorcen(diff_v(:,:,zmid)'); colorbar
+    title('% error (v_z - d\rho/dx * g/f/R0)|_{z=mid}');
+    subplot(222)
+    pcolorcen(squeeze(diff_u(:,:,zmid))'); colorbar
+    title('% error (-u_z - d\rho/dy * g/f/R0)|_{z=mid}');
+    subplot(223)
+    pcolorcen((((avg1((dzdx ./ avg1(f,1)* g),2)-avg1(S.v(:,:,end),1)))./ ...
+                    max(abs(S.v(:)))*100)'); colorbar
+    title('% error (g/f d\zeta /dx - v_{z=0})');
+    subplot(224)
+    pcolorcen(((avg1(dzdy ./ avg1(f,2)* g,1) + avg1(S.u(:,:,end),2)) ./ ...
+                max(abs(S.u(:)))*100)'); colorbar
+    title(' % error (g/f d\zeta /dy + u_{z=0})');
+end
 
 % sanity checks
 if min(S.temp(:)) < 3
