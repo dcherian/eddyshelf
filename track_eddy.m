@@ -354,7 +354,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
             % I have an eddy!!!
             flag_found = 1;
             fprintf('Eddy found with threshold %.3f \n', threshold);
-            imagesc(zreg'); 
+            %imagesc(zreg'); 
             
             % find location of maximum that is closest to shelfbreak
             ix = bsxfun(@times,ones(size(local_max)),[1:size(local_max,1)]');
