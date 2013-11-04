@@ -116,7 +116,7 @@ end
 flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
 flags.bg_shear = 0;
 
-bg.ubt = 0.04; % m/s barotropic velocity
+bg.ubt = 0.02; % m/s barotropic velocity
 bg.vbt = 0;-0.04; % m/s barotropic velocity
 bg.shear_fac = 0.2; 
 bg.shear = NaN; % set later as bg.shear_fac * max(eddy vorticity)
@@ -173,7 +173,7 @@ flags.vprof_gaussian = 0;%~flags.eddy_zhang; % eddy is gaussian in vertical?
 eddy.dia    = NaN; % 2xNH/pi/f0 - determined later
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
-eddy.tamp   = 0.40; % controls gradient
+eddy.tamp   = 0.10; % controls gradient
 eddy.buffer_sp = 40*dx; % distance from  4.3 (2.3) *r0 to sponge edge
 eddy.buffer = 7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
 eddy.cx     = NaN;X/2; % if NaN, determined using buffer later
@@ -953,10 +953,13 @@ if flags.eddy
         % scaled height
         Hs = vgw1^2/g;
         vs1 = 14.5*vr1 * (vr1/vgw1) * nondim.eddy.Rh*86.4;
+        vx = (bg.ubt-beta*Lr^2/2) * 86.4;
+        tsl = ceil((eddy.cy-bathy.xsl)/1000/vs1);
+        tsb = ceil((eddy.cy-bathy.xsb)/1000/vs1);
         fprintf(['\n Southward vel = %.3f km/day | ' ...
-            'center reaches slope at t = %d days, shelfbreak at %d days\n'], ...
-            vs1,ceil((eddy.cy-bathy.xsl)/1000/vs1),ceil((eddy.cy-bathy.xsb)/1000/vs1));
-
+            'center reaches slope at t = %d days @ x=%4d km,' ...
+            'shelfbreak at %d days, x=%4d km\n'], ...
+            vs1,tsl,ceil(eddy.cx/1000+vx*tsl),tsb,ceil(eddy.cx/1000+vx*tsb));
     end
     
     % check plots
