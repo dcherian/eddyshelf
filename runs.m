@@ -9,7 +9,7 @@ classdef runs < handle
         % barotropic vel (geostrophic)
         ubarg; vbarg;
         % dyes
-        csdye; asdye; zdye; % cross-shore, along-shore, z dyes
+        csdye; asdye; zdye; eddye; % cross-shore, along-shore, z dyes, eddy dye
         % grid & bathymetry
         rgrid; bathy
         % float data
@@ -76,18 +76,41 @@ classdef runs < handle
             if ~runs.givenFile
                 runs.zeta = roms_read_data(dir,'zeta');
                 runs.time = roms_read_data(dir,'ocean_time');
-                try
-                    runs.csdye  = roms_read_data(dir,'dye_01', ...
-                        [1 1 runs.rgrid.N 1],[Inf Inf 1 Inf]);
-                catch ME
-                end
+                filename = dir;
+                %try
+                %    runs.csdye  = roms_read_data(dir,'dye_01', ...
+                %        [1 1 runs.rgrid.N 1],[Inf Inf 1 Inf]);
+                %catch ME
+                %end
             else
                 runs.zeta = double(ncread(runs.out_file,'zeta'));
                 runs.time = double(ncread(runs.out_file,'ocean_time'));
-                try
-                    runs.csdye  = squeeze(double(ncread(runs.out_file,'dye_01', ...
-                    [1 1 runs.rgrid.N 1],[Inf Inf 1 Inf])));
+                filename = runs.out_file;
+            end
+            
+            % read in dye surface fields
+            for ii=1:4
+                % dye name
+                dname = ['dye_0' num2str(ii)];
+                try % see if variable exists in ini
+                    vname = [];
+                    % dye description
+                    ddesc = ncreadatt([runs.dir roms_find_file(runs.dir,'ini')], ...
+                                        dname,'long_name');
+                    if strfind(ddesc,'cross shelf'), vname = 'csdye'; end
+                    if strfind(ddesc,'z dye'), vname = 'zdye'; end
+                    if strfind(ddesc,'along shelf'), vname = 'asdye'; end
+                    if strfind(ddesc,'eddy dye'), vname = 'eddye'; end
+                    
+                    % see if variable is in output files
+                    try
+                        runs.(vname) = roms_read_data(filename,dname ...
+                           ,[1 1 runs.rgrid.N 1],[Inf Inf 1 Inf]);
+                    catch ME
+                        warning([dname 'not in output files']);
+                    end
                 catch ME
+                    warning([dname 'not found in ini file']);
                 end
             end
             
@@ -165,23 +188,6 @@ classdef runs < handle
             roms_info(runs.dir);
         end
         
-       %% floats
-        function [] = compare_floats(runs)
-            ltransc = floats('ltrans',[runs.dir '/ltrans-compare.nc'],runs.rgrid);
-            runs.roms.plot_stats;
-            ltransc.plot_stats;
-        end
-        
-        % create initial seed file for ltrans
-        function [] = ltrans_create(runs)
-            ltrans_create(runs.rgrid,runs.zeta,runs.eddy);
-        end
-        
-        % create ltrans init file from roms out
-        function [] = ltrans_create_from_roms(runs)
-            ltrans_create_from_roms('ltrans_init_compare.txt',runs.flt_file,runs.rgrid);
-        end
-        
         
         % read surface velocities for animate_pt & surf vorticity plot
         function [] = read_velsurf(runs)
@@ -209,6 +215,25 @@ classdef runs < handle
             runs.vsurf = avg1(runs.vsurf(2:end-1,:,:),2);
             toc;
         end
+        
+        
+       %% floats
+        function [] = compare_floats(runs)
+            ltransc = floats('ltrans',[runs.dir '/ltrans-compare.nc'],runs.rgrid);
+            runs.roms.plot_stats;
+            ltransc.plot_stats;
+        end
+        
+        % create initial seed file for ltrans
+        function [] = ltrans_create(runs)
+            ltrans_create(runs.rgrid,runs.zeta,runs.eddy);
+        end
+        
+        % create ltrans init file from roms out
+        function [] = ltrans_create_from_roms(runs)
+            ltrans_create_from_roms('ltrans_init_compare.txt',runs.flt_file,runs.rgrid);
+        end
+        
         
        %% analysis
        
@@ -677,6 +702,71 @@ classdef runs < handle
             runs.video_write();
         end
         
+        function [] = animate_3d(runs)
+            stride = [1 1 1 1];
+            
+            xrmat = repmat(runs.rgrid.xr(1:stride(1):end,1:stride(2):end)', ...
+                            [1 1 runs.rgrid.N]);
+            yrmat = repmat(runs.rgrid.yr(1:stride(1):end,1:stride(2):end)', ...
+                            [1 1 runs.rgrid.N]);
+            zrmat = permute(runs.rgrid.zr(1:stride(1):end,1:stride(2):end,:),[2 1 3]);
+            
+            %eddye = roms_read_data(runs.dir,'dye_04',[1 1 1 1],[Inf Inf Inf Inf], ...
+            %            stride);
+            
+            tic;csdye = ncread(runs.out_file,'dye_01');toc;
+            tic;eddye = ncread(runs.out_file,'dye_04');toc;
+            csdye = permute(csdye,[2 1 3 4]);
+            eddye = permute(eddye,[2 1 3 4]);
+            mask = zeros(size(eddye,2),size(eddye,1),size(eddye,4));
+            mask(2:end-1,2:end-1,:)=runs.eddy.vormask;
+            mask = ones(size(mask));
+            
+            %% make isosurface plot
+            
+            eddlevel = 0.8;
+            xsb = runs.bathy.xsb/1000;
+            cslevel = [xsb-10 xsb]*1000;
+            colors = distinguishable_colors(length(cslevel));
+            
+            clf; clear pcsd pedd;
+            hold on
+            hbathy = surf(runs.rgrid.xr/1000,runs.rgrid.yr/1000,-runs.bathy.h);
+            set(hbathy,'FaceColor','Flat','EdgeColor','None');
+            
+            ii=1;
+            pedd = patch(isosurface(xrmat/1000,yrmat/1000,zrmat, ...
+                    bsxfun(@times,eddye(:,:,:,1),mask(:,:,1)'),eddlevel));
+            set(pedd,'EdgeColor','none','FaceAlpha',0.5);
+            for kk=1:length(cslevel)
+                pcsd(kk) = patch(isosurface(xrmat/1000,yrmat/1000,zrmat, ...
+                                csdye(:,:,:,ii),cslevel(kk)));
+                set(pcsd(kk),'FaceColor',colors(kk,:));
+                set(pcsd(kk),'EdgeColor','none');
+                %reducepatch(pcsd(kk),0.5,'verbose');
+            end
+            [~,hedd] = contour(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.zeta(:,:,1));
+            
+            ht = runs.set_title('dyes',ii);
+            %view(-104,30);
+            view(-12,90);
+            pause();
+            for ii=2:4:size(eddye,4)
+                heddye = isosurface(xrmat/1000,yrmat/1000,zrmat, ...
+                    bsxfun(@times,eddye(:,:,:,ii),mask(:,:,ii)'),eddlevel);
+                set(pedd,'Vertices',heddye.vertices,'Faces',heddye.faces);
+                set(hedd,'ZData',runs.zeta(:,:,ii));
+                for kk=1:length(cslevel)
+                    hcsdye = isosurface(xrmat/1000,yrmat/1000,zrmat, ...
+                                csdye(:,:,:,ii),cslevel(kk));
+                    set(pcsd(kk),'Vertices',hcsdye.vertices,'Faces',hcsdye.faces);
+                end
+                runs.update_title('dyes',ht,ii);
+                pause(0.01);
+            end
+            
+        end
+        
         function [] = animate_vorsurf(runs)         
             if isempty(runs.vorsurf)
                 runs.calc_vorsurf();
@@ -831,15 +921,20 @@ classdef runs < handle
         end
         
         function [] = animate_pt(runs)
-            runs.video_init('pt');
             
+            %dye = csdye/1000;
             rr = sqrt(runs.params.phys.N2)*runs.bathy.hsb/runs.rgrid.f(runs.bathy.isb,1);
             distance = 5*rr; % 5 times rossby radius
             clim = [runs.bathy.xsb/1000 runs.bathy.xsb/1000+distance/1000];
             
+            dye = runs.eddye;
+            clim = [0 1];
+            
+            runs.video_init('pt');
+            
             figure;
             i = 1;
-            hf = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.csdye(:,:,i)/1000);         
+            hf = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000,dye(:,:,i));         
             caxis(clim);
             shading flat;
             colorbar; hold on
@@ -855,7 +950,7 @@ classdef runs < handle
             beautify;
             pause();
             for i = 2:size(runs.zeta,3)
-                set(hf,'CData',runs.csdye(:,:,i)/1000);
+                set(hf,'CData',dye(:,:,i));
                 runs.update_eddy_contour(he,i);
                 runs.update_title('CS dye',ht,i);
                 set(hq,'UData',runs.usurf(1:dxi:end,1:dyi:end,i));
