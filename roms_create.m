@@ -6,7 +6,7 @@
 % names cannot start with number
 [~,machine] = system('hostname');
 if strfind(machine,'scylla')
-    FOLDER    = '/scylla-a/home/dcherian/ROMS/runs/eddyshelf/topoeddy/run-5/';
+    FOLDER    = '/scylla-a/home/dcherian/ROMS/runs/eddyshelf/topoeddy/run-3/';
 end
 if strfind(machine,'kadal')
     FOLDER = '/media/data/Work/eddyshelf/runs/';
@@ -29,7 +29,7 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 400;
+S.Lm = 600;
 S.Mm = 180;
 S.N  = 40;
 
@@ -1231,6 +1231,10 @@ fprintf('\n ubar,vbar,pv- %4.1f MB \n\n', monitor_memory_whos);
 
 check_thermalwind = 0;
 
+
+VZ  = diff(S.v,1,3) ./ diff(zvmat,1,3);
+UZ  = diff(S.u,1,3) ./ diff(zumat,1,3);
+
 if check_thermalwind
     % calculate % error in thermal wind balance
     xind = 30; yind = 15; zind = 30;
@@ -1239,9 +1243,6 @@ if check_thermalwind
     % % velocity
     % VZ  = diff(     avg1(bsxfun(@times,vgeo, cos(th)),2),1,3) ./ diff(zvmat,1,3);
     % UZ  = diff(-1 * avg1(bsxfun(@times,vgeo, sin(th)),1),1,3) ./ diff(zumat,1,3);
-
-    VZ  = diff(S.v,1,3) ./ diff(zvmat,1,3);
-    UZ  = diff(S.u,1,3) ./ diff(zumat,1,3);
 
     dxarr = squeeze(diff(xrmat(:,:,end),1,1));
     dyarr = squeeze(diff(yrmat(:,:,end),1,2));
