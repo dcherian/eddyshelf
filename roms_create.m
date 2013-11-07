@@ -378,38 +378,84 @@ clear fnew
 
 if flags.flat_bottom
     S.h = Z * ones(size(S.h));
+    
+    bathy.xsb = 0;
+    bathy.isb = 0;
+    bathy.hsb = Z;
+    bathy.xsl = X/2;
+    bathy.hsl = Z;
 else
     % linear bathymetry
     %if flags.linear_bathymetry == 1
 
-        if flags.crooked_bathy
-            [S] = bathy2_x(S,bathy,X,Y);
-        else
-            [S] = bathy_simple(S,bathy,X,Y,bathy.axis);
-        end
+    if flags.crooked_bathy
+        [S] = bathy2_x(S,bathy,X,Y);
+    else
+        [S] = bathy_simple(S,bathy,X,Y,bathy.axis);
+    end
+    
+    switch bathy.axis
+        case 'x'
+            ax_cs = xrmat(:,1,1);
+            ax_as = yrmat(1,:,1)'; % cross-shelf axis
+            i_cs = 1; % cross shelf axis
+            i_as = 2; % along shelf axis
+            hvec = S.h(:,1);
+        case 'y'
+            ax_cs = yrmat(1,:,1)'; % cross-shelf axis
+            ax_as = xrmat(:,1,1); % along shelf axis
+            i_cs = 2; % along shelf axis
+            i_as = 1; % cross-shelf axis
+            hvec = S.h(1,:)';
+    end
+    fbathy = figure;
+    subplot(133);
+    plot(hvec,'b'); hold on
+    
+    % run smoother   
+    for i=1:bathy.n_passes
+        hvec = smooth(hvec,bathy.n_points);
+    end 
+    plot(hvec,'k');
+    
+    % smooth transition to deep water even more
+    % find end of slope
+    dh2dx2 = diff(hvec,2,1)./avg1(diff(ax_cs,1,1).^2,1);
+    [~,isl] = min(dh2dx2(:));
+    isl = isl - bathy.n_points;
+    % smooth again!
+    for i=1:bathy.n_passes
+        hvec(isl:end) = smooth(hvec(isl:end),bathy.n_points*4); 
+    end
+    % reconstruct h
+    S.h = repmat(hvec',[size(S.h,1) 1]);
+    plot(hvec,'r*');
+    
+    if bathy.axis == 'x'
+        S.h = S.h';
+    end
 
-        % run smoother   
-    %    kernel = [1 2 1];
+    % Calculate Burger numbers
+    S_sh = bathy.sl_shelf * sqrt(N2)./min(f(:)); % shelf
+    S_sl = bathy.sl_slope * sqrt(N2)./min(f(:)); % slope
 
-        for i=1:bathy.n_passes
-            for mm = 1:size(S.h,1);
-                S.h(mm,:) = smooth(S.h(mm,:),bathy.n_points);
-                %S.h(mm,:) = filter(kernel,1,S.h(mm,:));
-            end
-            for mm = 1:size(S.h,2);
-                S.h(:,mm) = smooth(S.h(:,mm),bathy.n_points);
-            end
-        end  
+    % Calculate topographic beta
+    b_sh = f0 * bathy.sl_shelf / bathy.H_shelf;
+    b_sl = f0 * bathy.sl_slope / max(S.h(:));
+    
+    % calculate for smoothed bathymetry
+    % find shelfbreak
+    dh2dx2 = diff(hvec,2,1)./avg1(diff(ax_cs,1,1).^2,1);
+    [~,bathy.isb] = max(dh2dx2(:));
+    bathy.isb = bathy.isb-1;
+    bathy.hsb = hvec(bathy.isb);
+    bathy.xsb = ax_cs(bathy.isb);
 
-        % Calculate Burger numbers
-        S_sh = bathy.sl_shelf * sqrt(N2)./min(f(:)); % shelf
-        S_sl = bathy.sl_slope * sqrt(N2)./min(f(:)); % slope
-
-        % Calculate topographic beta
-        b_sh = f0 * bathy.sl_shelf / bathy.H_shelf;
-        b_sl = f0 * bathy.sl_slope / max(S.h(:));
-
-   % end
+    % find end of slope
+    [~,bathy.isl] = min(dh2dx2(:));
+    bathy.isl = bathy.isl;
+    bathy.hsl = hvec(bathy.isl);
+    bathy.xsl = ax_cs(bathy.isl);
 end
 
 % Calculate weird stuff
@@ -461,54 +507,18 @@ Z  = abs(max(S.h(:)));
 bathy_title = sprintf(['\n\n Beckmann & Haidvogel number (r_{x0}) = %f (< 0.2 , max 0.4) \n' ...
             '\t\t\t\t Haney number (r_{x1}) = %f (< 9 , maybe 16)'], rx0,rx1);
 
-switch bathy.axis
-    case 'x'
-        ax_cs = xrmat(:,1,1);
-        ax_as = yrmat(1,:,1)'; % cross-shelf axis
-        i_cs = 1; % cross shelf axis
-        i_as = 2; % along shelf axis
-        hvec = S.h(:,1);
-    case 'y'
-        ax_cs = yrmat(1,:,1)'; % cross-shelf axis
-        ax_as = xrmat(:,1,1); % along shelf axis
-        i_cs = 2; % along shelf axis
-        i_as = 1; % cross-shelf axis
-        hvec = S.h(1,:)';
-end
-
-% find shelfbreak
-if ~flags.flat_bottom
-    dh2dx2 = diff(hvec,2,1)./avg1(diff(ax_cs,1,1).^2,1);
-    [~,bathy.isb] = max(dh2dx2(:));
-    bathy.isb = bathy.isb-1;
-    bathy.hsb = hvec(bathy.isb);
-    bathy.xsb = ax_cs(bathy.isb);
-
-    % find end of slope
-    [~,bathy.isl] = min(dh2dx2(:));
-    bathy.isl = bathy.isl-1;
-    bathy.hsl = hvec(bathy.isl);
-    bathy.xsl = ax_cs(bathy.isl);
-else
-    bathy.xsb = 0;
-    bathy.isb = 0;
-    bathy.hsb = Z;
-    bathy.xsl = X/2;
-    bathy.hsl = Z;
-end
-
-figure;
+figure(fbathy);
 subplot(131)
 if strcmp(bathy.axis,'x')
     ind = ymid;
     pcolorcen(squeeze(xrmat(:,ind,:))/fx,squeeze(zrmat(:,ind,:)),squeeze(zeros(size(xrmat(:,ind,:)))));
     xlabel(['x ' lx]);
-    linex(bathy.xsb/fx,['sb = ' num2str(floor(bathy.hsb)) 'm'],'k');
+    linex([bathy.xsb bathy.xsl]/fx);
 else 
     ind = xmid;
     pcolorcen(squeeze(yrmat(ind,:,:))/fy,squeeze(zrmat(ind,:,:)),squeeze(zeros(size(xrmat(ind,:,:)))));
     xlabel(['y ' ly]);
-    linex(bathy.xsb/fy,['sb = ' num2str(floor(bathy.hsb)) 'm'],'k');
+    linex([bathy.xsb bathy.xsl]/fx);
 end
 
 title(['Z = ' num2str(Z) ' m']);  ylabel(['z (m)']);
@@ -520,10 +530,10 @@ title(bathy_title); colorbar;
 xlabel(['x ' lx]); ylabel(['y ' ly]); zlabel('z (m)');
 beautify;
 
-subplot(133)
-contour(S.x_rho/fx,S.y_rho/fy,-S.h./f,30,'k');
-xlabel(['x ' lx]); ylabel(['y ' ly]); title('f/h');
-beautify;
+%subplot(133)
+%contour(S.x_rho/fx,S.y_rho/fy,-S.h./f,30,'k');
+%xlabel(['x ' lx]); ylabel(['y ' ly]); title('f/h');
+%beautify;
 
 spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
 
