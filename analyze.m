@@ -35,12 +35,16 @@ fig;
 subplot(121)
 hold on
 for ii=1:length(run)
-    plot(run(ii).eddy.t(1:tend),smooth(run(ii).eddy.cvy(1:tend),nsmooth),'Color',colors(ii,:));
+    
+    Lr = run(ii).params.eddy.dia/2;
+    plot(run(ii).eddy.t(1:tend),smooth(run(ii).eddy.cvx(1:tend),nsmooth),'Color',colors(ii,:));
+    vx = run(ii).params.bg.ubt-run(ii).params.phys.beta*Lr^2/2;
+    liney(vx*86.4,'',colors(ii,:));
 end
 legend(cellstr(dirs),'Location','SouthWest')
 ylabel('weighted center meridional vel (km/day)');
 xlabel('time (days)');
-
+%%
 
 vs = nan([1 length(run)]); v = vs; x = vs; y = vs;
 % plot parameterization
