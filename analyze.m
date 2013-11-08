@@ -1,7 +1,7 @@
 %% read runs
 rootdir = 'runs/topoeddy/runew-';
 dirs = {... %'02-bg-dt2', '03'
-    '06','07','08','09','10'};
+    '02','03','04','05','06-vis3','08','09'};
 
 leg = dirs;
 % run(1) = runs('runs/topoeddy/runew-02-bg-dt2/');
@@ -26,6 +26,62 @@ end
 legend(leg);
 ylabel('Proximity (km)');
 xlabel(' Time (days)');
+
+%% plot initial vel. 
+
+tend = 30; nsmooth = 3;
+
+fig;
+subplot(121)
+hold on
+for ii=1:length(run)
+    
+    Lr = run(ii).params.eddy.dia/2;
+    plot(run(ii).eddy.t(1:tend),smooth(run(ii).eddy.cvx(1:tend),nsmooth),'Color',colors(ii,:));
+    vx = run(ii).params.bg.ubt-run(ii).params.phys.beta*Lr^2/2;
+    liney(vx*86.4,'',colors(ii,:));
+end
+legend(cellstr(dirs),'Location','SouthWest')
+ylabel('weighted center meridional vel (km/day)');
+xlabel('time (days)');
+%%
+
+vs = nan([1 length(run)]); v = vs; x = vs; y = vs;
+% plot parameterization
+subplot(122);
+hold on
+for ii=1:length(run)
+    % deformation radius
+    Lr = run(ii).params.eddy.dia/2;
+    % rossby wave speed = beta LR^2
+    vr = run(ii).params.phys.beta * (Lr)^2;
+    % gravity wave speed = NH
+    vgw = sqrt(run(ii).params.phys.N2) * max(run(ii).bathy.h(:));
+    % eddy amplitude
+    amp = run(ii).eddy.amp(1);
+    
+    H = vgw^2 / run(ii).params.phys.g;
+    % v scale based on early et al. (2011)
+    vs(ii) = 14.5*86.4*vr * (vr/vgw) * run(ii).params.nondim.eddy.Rh;%
+    Rh(ii) = run(ii).params.nondim.eddy.Rh;
+    % obs vel
+    v(ii) = nanmax(abs(smooth(run(ii).eddy.cvy(1:tend),nsmooth)));
+    %nanmean(run(ii).eddy.cvy(1:15))
+    
+    x(ii) = abs(v(ii));
+    y(ii) = abs(vs(ii));
+    text(x(ii),y(ii),dirs{ii});
+    %set(gca,'XTickLabel', cellstr(dirs));
+end
+ratio = v./vs;
+plot(x,y,'.','MarkerSize',15);
+axis square
+%plot(x,y/x*x,'r*-')
+plot(xlim,xlim,'k-'); 
+title(['slope = ' num2str(x/y)]);
+xlabel('max. v (from model, km/day)');
+ylabel('v_s = 14.5 * v_r^2/v_{gw} *Rh + 0.5 (km/day)');
+
 
 %% plot tracks
 % 

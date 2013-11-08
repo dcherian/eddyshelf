@@ -5,11 +5,19 @@ function [xsb,isb,hsb,ax] = find_shelfbreak(fname,type)
 
     h = ncread(fname,'h');
     if h(2,1)-h(1,1) < 1e-3
-        xr = ncread(fname,'y_rho')';
+        try
+            xr = ncread(fname,'y_rho')';
+        catch
+            xr = ncread(fname,'lat_rho')';
+        end
         hvec = h(1,:)';
         ax = 'y';
     else
-        xr = ncread(fname,'x_rho'); 
+        try
+            xr = ncread(fname,'x_rho'); 
+        catch
+            xr = ncread(fname,'lon_rho');
+        end
         hvec = h(:,1);
         ax = 'h';
     end

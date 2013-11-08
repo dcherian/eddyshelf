@@ -4,9 +4,6 @@ function [] = modify_dye(file)
         file = 'runs/ocean_rst.nc';
     end
 
-    system(['cp ' file ' ' file '.backup']);
-    disp('Backed up file.');
-
     [xrmat,yrmat,zrmat,~,~,~] = dc_roms_var_grid(file,'rho');
     [xsb,isb,hsb,ax] = find_shelfbreak(file);
     %[xsl,isl,hsl,ax] = find_shelfbreak(file,'slope');
@@ -62,9 +59,14 @@ function write_dye(file,name,var)
         ncwrite(file,name,repmat(var,[1 1 1 2 nt]));
     catch ME
         warning([name ' not found.']);
-        nccreate(file,name,'Dimensions',{'xi_rho' 'eta_rho' 's_rho' ...
-                            'two' 'ocean_time'});
-        ncwrite(file,name,repmat(var,[1 1 1 2 nt]));
+        if strfind(file,'rst')
+            nccreate(file,name,'Dimensions',{'xi_rho' 'eta_rho' 's_rho' ...
+                                'two' 'ocean_time'});
+            ncwrite(file,name,repmat(var,[1 1 1 2 nt]));
+	else
+            nccreate(file,name,'Dimensions',{'xi_rho' 'eta_rho' 's_rho' ...
+                                'ocean_time'});
+            ncwrite(file,name,repmat(var,[1 1 1 nt]));
+        end	  
     end
     disp(['wrote to file ' file]);
-end

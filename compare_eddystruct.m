@@ -15,22 +15,27 @@ beautify;
 rn = 0:0.05:10;
 R = (1-rn.^2/2) .* exp(-rn.^2/2);
 dR = -rn .* exp(-rn.^2/2) .* (2 - rn.^2/2);
-ar = 3.337*rn*sqrt(2);
+ar = 3.337*rn;
+ar2 = ar/sqrt(2);
 aviso = (1+ar + 1/6 *ar.^2 - 1/6*ar.^3) .* exp(-ar);
+aviso2 = (1+ar2 + 1/6 *ar2.^2 - 1/6*ar2.^3) .* exp(-ar2);
 
 figure
 hold on
 plot(rn,R,'b')
 plot(avg1(rn),diff(R)./diff(rn),'r');
 plot(rn,aviso,'k');
-legend('T = R(r_n)','V = d/dr_n R(r_n)','AVISO correlation fn');
+plot(rn,aviso2,'k--');
+legend('T = R(r_n)','V = d/dr_n R(r_n)','AVISO correlation fn','AVISO | r=r/1.414');
 liney(0);
 title('Zhang et al. (2013)');
-linex( sqrt(7/2 - sqrt(33)/2));
-linex( sqrt(7/2 + sqrt(33)/2));
-linex(4.4)
+%linex( sqrt(7/2 - sqrt(33)/2));
+%linex( sqrt(7/2 + sqrt(33)/2));
+%linex(4.4)
 xlabel('r_n = r/r_0');
-beautify;
+beautify([18 18 20]);
+maximize
+pause(0.1);
 export_fig('images/zhangeddy.png');
 
 %% plot Katsman structure

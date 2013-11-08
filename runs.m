@@ -1,7 +1,7 @@
 classdef runs < handle
     properties
         % dir & file names
-        dir; out_file; ltrans_file; flt_file; givenFile
+        name; dir; out_file; ltrans_file; flt_file; givenFile
         % data
         zeta; temp; usurf; vsurf;vorsurf;
         % dimensional and non-dimensional time
@@ -9,13 +9,13 @@ classdef runs < handle
         % barotropic vel (geostrophic)
         ubarg; vbarg;
         % dyes
-        csdye; asdye; zdye; % cross-shore, along-shore, z dyes
+        csdye; asdye; zdye; eddye; % cross-shore, along-shore, z dyes, eddy dye
         % grid & bathymetry
         rgrid; bathy
         % float data
         roms; ltrans;
         % eddy track data
-        eddy;
+        eddy; noeddy;
         % initial params
         params
         % transport
@@ -57,6 +57,13 @@ classdef runs < handle
             runs.rgrid.z_vw = [];
             runs.makeVideo = 0; % no videos by default.
             
+            % make run-name
+            ind1 = strfind(runs.dir,'/run');
+            runs.name = runs.dir(ind1+4:end);
+            if runs.name(end) == '/'
+                runs.name(end) = [];
+            end
+            
             % params & bathy
             runs.params = read_params_from_ini(runs.dir);
             runs.bathy = runs.params.bathy;
@@ -69,31 +76,58 @@ classdef runs < handle
             if ~runs.givenFile
                 runs.zeta = roms_read_data(dir,'zeta');
                 runs.time = roms_read_data(dir,'ocean_time');
-                try
-                    runs.dye  = roms_read_data(dir,'dye_02');
-                catch ME
-                end
+                filename = dir;
+                %try
+                %    runs.csdye  = roms_read_data(dir,'dye_01', ...
+                %        [1 1 runs.rgrid.N 1],[Inf Inf 1 Inf]);
+                %catch ME
+                %end
             else
                 runs.zeta = double(ncread(runs.out_file,'zeta'));
                 runs.time = double(ncread(runs.out_file,'ocean_time'));
-                try
-                    runs.csdye  = squeeze(double(ncread(runs.out_file,'dye_02', ...
-                    [1 1 runs.rgrid.N 1],[Inf Inf 1 Inf])));
+                filename = runs.out_file;
+            end
+            
+            % read in dye surface fields
+            for ii=1:4
+                % dye name
+                dname = ['dye_0' num2str(ii)];
+                try % see if variable exists in ini
+                    vname = [];
+                    % dye description
+                    ddesc = ncreadatt([runs.dir roms_find_file(runs.dir,'ini')], ...
+                                        dname,'long_name');
+                    if strfind(ddesc,'cross shelf'), vname = 'csdye'; end
+                    if strfind(ddesc,'z dye'), vname = 'zdye'; end
+                    if strfind(ddesc,'along shelf'), vname = 'asdye'; end
+                    if strfind(ddesc,'eddy dye'), vname = 'eddye'; end
+                    
+                    % see if variable is in output files
+                    try
+                        runs.(vname) = roms_read_data(filename,dname ...
+                           ,[1 1 runs.rgrid.N 1],[Inf Inf 1 Inf]);
+                    catch ME
+                        warning([dname 'not in output files']);
+                    end
                 catch ME
+                    warning([dname 'not found in ini file']);
                 end
             end
             
-            if exist(runs.flt_file,'file')
+            try
                 runs.roms = floats('roms',runs.flt_file,runs.rgrid);
+            catch
             end
             
             if ~exist([dir '/eddytrack.mat'],'file') || reset == 1 ...
                     %|| ~exist('runs.eddy.cvx','var')
                 try
                     runs.eddy = track_eddy(dir);
+                    runs.noeddy = 0;
                 catch ME
                     disp(ME.message);
                     disp('Couldn''t run track_eddy.m');
+                    runs.noeddy = 1;
                 end
             else
                 if strfind(runs.out_file,'_004.nc')
@@ -102,34 +136,49 @@ classdef runs < handle
                     edd = load([dir '/eddytrack.mat'],'eddy');
                 end
                 runs.eddy = edd.eddy;
+                runs.noeddy = 0;
             end
             
-           if isfield(runs.eddy,'cvx')
-               if runs.eddy.cvx(1) == 0 || runs.eddy.cvy(1) == 0
-                runs.eddy.cvx(1) = NaN;
-                runs.eddy.cvy(1) = NaN;
+            if ~runs.noeddy
+               if isfield(runs.eddy,'cvx')
+                   if runs.eddy.cvx(1) == 0 || runs.eddy.cvy(1) == 0
+                    runs.eddy.cvx(1) = NaN;
+                    runs.eddy.cvy(1) = NaN;
+                   end
                end
-           end
             
-            if runs.bathy.axis == 'y'
-                edge = runs.eddy.se;
-            else
-                edge = runs.eddy.we;
+                if runs.bathy.axis == 'y'
+                    edge = runs.eddy.se;
+                else
+                    edge = runs.eddy.we;
+                end
+                % proximity to shelfbreak
+                runs.eddy.prox = (edge-runs.bathy.xsb);
+                % time of reversal
+                runs.eddy.trev = runs.time(find(runs.eddy.cvx < 0,1,'first'));
+                if isempty(runs.eddy.trev), runs.eddy.trev = NaN; end
+                
+                % estimate southward vel.
+                % (beta * Lr^2)^2 *1/2 * 1/amp * NH/g
+                runs.eddy.Vy = -(runs.params.phys.beta*(runs.params.eddy.dia(1)/2)^2)^2/2 ...
+                                        /runs.eddy.amp(1) * ...
+                                sqrt(runs.params.phys.N2)/runs.params.phys.g*max(runs.bathy.h(:));
+                            
+%                            -(run3.params.phys.beta*(run3.params.eddy.dia(1)/2)^2)^2 ...
+%                                        *1/2 * 1/run3.eddy.amp(1) * ...
+%                                sqrt(run3.params.phys.N2)/run3.params.phys.g*max(run3.bathy.h(:))
+            %%
+            
+              %%  % water depth at eddy center
+                h = runs.bathy.h(2:end-1,2:end-1);
+                ix = vecfind(runs.eddy.xr(:,1),runs.eddy.mx);
+                iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.my);
+                runs.eddy.hcen = h(sub2ind(size(runs.eddy.xr),ix,iy))';
+                % non-dimensionalized time
+                %runs.ndtime = (runs.eddy.cx - runs.eddy.cx(1))./ ...
+                %        (runs.params.bg.ubt -  ...
+                %        runs.params.phys.beta/2*(runs.eddy.dia/2),^2);
             end
-            % proximity to shelfbreak
-            runs.eddy.prox = (edge-runs.bathy.xsb);
-            % time of reversal
-            runs.eddy.trev = runs.time(find(runs.eddy.cvx < 0,1,'first'));
-            % water depth at eddy center
-            h = runs.bathy.h(2:end-1,2:end-1);
-            ix = vecfind(runs.eddy.xr(:,1),runs.eddy.mx);
-            iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.my);
-            runs.eddy.hcen = h(sub2ind(size(runs.eddy.xr),ix,iy))';
-            % non-dimensionalized time
-            %runs.ndtime = (runs.eddy.cx - runs.eddy.cx(1))./ ...
-            %        (runs.params.bg.ubt -  ...
-            %        runs.params.phys.beta/2*(runs.eddy.dia/2),^2);
-            
             if exist(runs.ltrans_file,'file')
                 runs.ltrans = floats('ltrans',runs.ltrans_file,runs.rgrid);
             end
@@ -138,6 +187,35 @@ classdef runs < handle
         function [] = info(runs)
             roms_info(runs.dir);
         end
+        
+        
+        % read surface velocities for animate_pt & surf vorticity plot
+        function [] = read_velsurf(runs)
+            disp('Reading surface velocity fields...');
+            tic;
+            start = [1 1 runs.rgrid.N 1];
+            count = [Inf Inf 1 Inf];
+            stride = [1 1 1 1];
+            
+            if runs.givenFile
+                runs.usurf = double(squeeze(ncread(runs.out_file, ....
+                    'u',start,count,stride)));
+            else
+                runs.usurf = roms_read_data(runs.dir,'u' ...
+                    ,start,count,stride);
+            end
+            runs.usurf = avg1(runs.usurf(:,2:end-1,:),1);
+            toc;
+            if runs.givenFile
+                runs.vsurf = double(squeeze(ncread(runs.out_file, ....
+                    'v',start,count,stride)));
+            else
+                runs.vsurf = roms_read_data(runs.dir,'v',start,count,stride);
+            end
+            runs.vsurf = avg1(runs.vsurf(2:end-1,:,:),2);
+            toc;
+        end
+        
         
        %% floats
         function [] = compare_floats(runs)
@@ -156,8 +234,9 @@ classdef runs < handle
             ltrans_create_from_roms('ltrans_init_compare.txt',runs.flt_file,runs.rgrid);
         end
         
-       %% analysis
         
+       %% analysis
+       
         function [] = transport(runs)
             % need some kind of initial time instant - probably objective
             % criterion based on distance between shelfbreak and eddy or
@@ -391,6 +470,34 @@ classdef runs < handle
             
         end
         
+        function [] = plot_simplepv(runs)
+           % this function contours the qgpv approximation of the
+           % background pv
+           
+           if runs.bathy.axis == 'y'
+               dhdx = diff(runs.bathy.h,1,2)./diff(runs.rgrid.yr,1,2);
+               ax = 2;
+           else
+               ax = 1;
+               dhdx = diff(runs.bathy.h,1,1)./diff(runs.rgrid.xr,1,1);
+           end
+           
+           beta_t = runs.params.phys.f0 * dhdx/max(runs.rgrid.zr(:));
+           
+           q = runs.params.phys.f0 + ...
+               (runs.params.phys.beta + beta_t) .* avg1(runs.rgrid.yr,ax);
+           
+           clf;
+           subplot(211);
+           contourf(q');
+           subplot(212);
+           hold on
+           plot(q(2,:));
+           plot(-runs.bathy.h(2,:)/max(runs.bathy.h(:)),'k');
+           legend('qgpv','bathy');
+           
+        end
+        
         function [] = eddyevol(runs)
             eddy = runs.eddy;
             ii = 1; colors(1) = 'b';
@@ -452,7 +559,9 @@ classdef runs < handle
             ii = num;
             colors = distinguishable_colors(10);
             aa = 6; bb = aa*2;
-            tloc = [50 60 70];
+            tloc = [100 120];
+            limx = [0 max(runs.time)/86400];
+            
             subplot(aa,2,[1:2:bb-2*2]); hold on
             %pcolorcen(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.bathy.h);            colorbar
             xlabel('X (km)'); ylabel('Y (km)');
@@ -464,35 +573,43 @@ classdef runs < handle
             %    plot(eddy.cx/1000,eddy.se/1000,'Color',colors(ii,:),'LineStyle','--');
             %end
             axis image; axis tight
+            
             subplot(aa,2,2); hold on
-            plot(eddy.t,eddy.amp,'Color',colors(ii,:));
-            ylabel('amplitude (m)');
+            plot(eddy.t,eddy.amp./eddy.amp(1),'Color',colors(ii,:));
+            ylabel('amp/amp(1) ');xlim(limx);
+            
             subplot(aa,2,4); hold on
             plot(eddy.t,eddy.dia/1000,'Color',colors(ii,:));
-            ylabel('diameter (km)');
+            ylabel('diameter (km)');xlim(limx);
+            
             subplot(aa,2,6); hold on
-            %plot(eddy.t,eddy.mvx,'Color',colors(ii,:));
-            %ylabel('x - vel (km/day)');
-            %ylim([-5 5]);
-            plot(eddy.t,eddy.cx/1000,'Color',colors(ii,:));
-            ylabel('x - center (km)');
+            plot(eddy.t,eddy.cvx,'Color',colors(ii,:));
+            ylabel('cvx(km/day)');
+            ylim([-5 5]);
+            liney(0); xlim(limx);
+            %plot(eddy.t,eddy.cx/1000,'Color',colors(ii,:));
+            %ylabel('x - center (km)');
+            
             subplot(aa,2,8); hold on
-            %plot(eddy.t,eddy.mvy,'Color',colors(ii,:));
-            %ylabel('y - vel (km/day)');
-            %ylim([-5 5]);
-            plot(eddy.t,eddy.cy/1000,'Color',colors(ii,:));
-            ylabel('y - center (km)');
+            plot(eddy.t,eddy.cvy,'Color',colors(ii,:));
+            ylabel('cvy (km/day)');xlim(limx);
+            ylim([-5 5]);
+            %plot(eddy.t,eddy.cy/1000,'Color',colors(ii,:));
+            %ylabel('y - center (km)');
+            
             subplot(aa,2,10); hold on
             plot(eddy.t,eddy.Lz2,'Color',colors(ii,:));
-            ylabel('vertical scale (m)');
+            ylabel('vertical scale (m)');xlim(limx);
             %xlabel('time (days)');
+            
             subplot(aa,2,12); hold on
             plot(eddy.t,eddy.prox/1000,'Color',colors(ii,:));
             xlabel('time (days)');
-            ylabel('Proximity (km)');
+            ylabel('Proximity (km)');xlim(limx);
             
-            subplot(aa,2,[9 11] ); hold on
-            plot(eddy.t,eddy.hcen,'Color',colors(ii,:));
+            subplot(aa,2,[9 11]); hold on
+            hp = plot(eddy.t,eddy.hcen,'Color',colors(ii,:));
+            addlegend(hp,runs.name,'SouthWest');
 %             plot(eddy.t,runs.params.phys.f0 / sqrt(runs.params.phys.N2) * runs.eddy.dia,'Color',colors(ii,:),'LineStyle','--');
 %             legend('H_{center}','f/N*dia');
             xlabel('Time (days)');
@@ -529,33 +646,6 @@ classdef runs < handle
             
         end
         
-        % read surface velocities for animate_pt & surf vorticity plot
-        function [] = read_velsurf(runs)
-            disp('Reading surface velocity fields...');
-            tic;
-            start = [1 1 runs.rgrid.N 1];
-            count = [Inf Inf 1 Inf];
-            stride = [1 1 1 1];
-            
-            if runs.givenFile
-                runs.usurf = double(squeeze(ncread(runs.out_file, ....
-                    'u',start,count,stride)));
-            else
-                runs.usurf = roms_read_data(runs.dir,'u' ...
-                    ,start,count,stride);
-            end
-            runs.usurf = avg1(runs.usurf(:,2:end-1,:),1);
-            toc;
-            if runs.givenFile
-                runs.vsurf = double(squeeze(ncread(runs.out_file, ....
-                    'v',start,count,stride)));
-            else
-                runs.vsurf = roms_read_data(runs.dir,'v',start,count,stride);
-            end
-            runs.vsurf = avg1(runs.vsurf(2:end-1,:,:),2);
-            toc;
-        end
-        
         % calculate surface vorticity field
         function [] = calc_vorsurf(runs)
             if isempty(runs.usurf) || isempty(runs.vsurf)
@@ -585,50 +675,96 @@ classdef runs < handle
        %% animation functions
         
         function [] = animate_zeta(runs)
-            if runs.makeVideo
-%                 runs.mm_instance = mm_setup;
-%                 runs.mm_instance.pixelSize = [1600 900];
-%                 runs.mm_instance.outputFile = 'mm_output.avi';
-%                 runs.mm_instance.ffmpegArgs = '-q:v 1 -g 1';
-%                 runs.mm_instance.InputFrameRate = 3;
-%                 runs.mm_instance.frameRate = 3;
-                aviobj = VideoWriter('output','MPEG-4');
-                open(aviobj);
-            end
+            runs.video_init('zeta');
+            
             figure;
             ii=1;
             hz = runs.plot_zeta('pcolor',ii);
             ax = gca;
             hold on
             colorbar; freezeColors;
-            hbathy = runs.plot_bathy('contour');
+            hbathy = runs.plot_bathy('contour','k');
             he = runs.plot_eddy_contour('contour',ii);
-            ht = title([num2str(runs.rgrid.ocean_time(1)/86400)  ' days']);
+            ht = runs.set_title('SSH (m)',ii);
+           
             xlabel('X (km)');ylabel('Y (km)');
             axis image;
-            if runs.makeVideo
-                %shading(gca,'interp');
-                disp('maximize!');
-                pause; 
-                mm_addFrame(runs.mm_instance,gcf);
-            end
+            maximize(gcf); pause(0.2);  
+            beautify([16 16 18]);
+            runs.video_update();
             for ii = 2:size(runs.zeta,3)
                 runs.update_zeta(hz,ii);
-                if runs.makeVideo, shading interp; end
                 runs.update_eddy_contour(he,ii);
-                set(ht,'String',[num2str(runs.time(ii)/86400) ' days']);
-                if runs.makeVideo
-                   % shading(gca,'interp');
-                    %mm_addFrame(runs.mm_instance,gcf);
-                    F = getframe(gcf);
-                    writeVideo(aviobj,F);
-                end
+                runs.update_title('SSH (m)',ht,ii);
+                runs.video_update();
                 pause(0.03);
             end
-            if runs.makeVideo
-               % mm_render(runs.mm_instance);
-               close(aviobj);
+            runs.video_write();
+        end
+        
+        function [] = animate_3d(runs)
+            stride = [1 1 1 1];
+            
+            xrmat = repmat(runs.rgrid.xr(1:stride(1):end,1:stride(2):end)', ...
+                            [1 1 runs.rgrid.N]);
+            yrmat = repmat(runs.rgrid.yr(1:stride(1):end,1:stride(2):end)', ...
+                            [1 1 runs.rgrid.N]);
+            zrmat = permute(runs.rgrid.zr(1:stride(1):end,1:stride(2):end,:),[2 1 3]);
+            
+            %eddye = roms_read_data(runs.dir,'dye_04',[1 1 1 1],[Inf Inf Inf Inf], ...
+            %            stride);
+            
+            tic;csdye = ncread(runs.out_file,'dye_01');toc;
+            tic;eddye = ncread(runs.out_file,'dye_04');toc;
+            csdye = permute(csdye,[2 1 3 4]);
+            eddye = permute(eddye,[2 1 3 4]);
+            mask = zeros(size(eddye,2),size(eddye,1),size(eddye,4));
+            mask(2:end-1,2:end-1,:)=runs.eddy.vormask;
+            mask = ones(size(mask));
+            
+            %% make isosurface plot
+            
+            eddlevel = 0.8;
+            xsb = runs.bathy.xsb/1000;
+            cslevel = [xsb-10 xsb]*1000;
+            colors = distinguishable_colors(length(cslevel));
+            
+            clf; clear pcsd pedd;
+            hold on
+            hbathy = surf(runs.rgrid.xr/1000,runs.rgrid.yr/1000,-runs.bathy.h);
+            set(hbathy,'FaceColor','Flat','EdgeColor','None');
+            
+            ii=1;
+            pedd = patch(isosurface(xrmat/1000,yrmat/1000,zrmat, ...
+                    bsxfun(@times,eddye(:,:,:,1),mask(:,:,1)'),eddlevel));
+            set(pedd,'EdgeColor','none','FaceAlpha',0.5);
+            for kk=1:length(cslevel)
+                pcsd(kk) = patch(isosurface(xrmat/1000,yrmat/1000,zrmat, ...
+                                csdye(:,:,:,ii),cslevel(kk)));
+                set(pcsd(kk),'FaceColor',colors(kk,:));
+                set(pcsd(kk),'EdgeColor','none');
+                %reducepatch(pcsd(kk),0.5,'verbose');
             end
+            [~,hedd] = contour(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.zeta(:,:,1));
+            
+            ht = runs.set_title('dyes',ii);
+            %view(-104,30);
+            view(-12,90);
+            pause();
+            for ii=2:4:size(eddye,4)
+                heddye = isosurface(xrmat/1000,yrmat/1000,zrmat, ...
+                    bsxfun(@times,eddye(:,:,:,ii),mask(:,:,ii)'),eddlevel);
+                set(pedd,'Vertices',heddye.vertices,'Faces',heddye.faces);
+                set(hedd,'ZData',runs.zeta(:,:,ii));
+                for kk=1:length(cslevel)
+                    hcsdye = isosurface(xrmat/1000,yrmat/1000,zrmat, ...
+                                csdye(:,:,:,ii),cslevel(kk));
+                    set(pcsd(kk),'Vertices',hcsdye.vertices,'Faces',hcsdye.faces);
+                end
+                runs.update_title('dyes',ht,ii);
+                pause(0.01);
+            end
+            
         end
         
         function [] = animate_vorsurf(runs)         
@@ -670,17 +806,7 @@ classdef runs < handle
         end
         
         function [] = animate_center(runs)
-           if runs.makeVideo
-%                 runs.mm_instance = mm_setup;
-%                 runs.mm_instance.pixelSize = [1600 900];
-%                 runs.mm_instance.outputFile = 'mm_output.avi';
-%                 runs.mm_instance.ffmpegArgs = '-q:v 1 -g 1';
-%                 runs.mm_instance.InputFrameRate = 3;
-%                 runs.mm_instance.frameRate = 3;
-                aviobj = VideoWriter('animate_center','MPEG-4');
-                set(aviobj,'FrameRate',8,'Quality',100);
-                open(aviobj);
-            end
+            runs.video_init('center');
             eddy = runs.eddy;
             xvec = runs.rgrid.xr(:,1);
             yvec = runs.rgrid.yr(1,:)';
@@ -700,50 +826,52 @@ classdef runs < handle
             ixmax = max(ix); ixmin = min(ix);
             iymax = max(iy); iymin = min(iy);            
             
-            disp('Reading data.');
-            tic;
             if runs.bathy.axis == 'x'
                 stride = [sxy 1 sz st];
-                temper = roms_read_data(runs.dir,'temp',[1 iymin 1 t0], ...
-                                  ceil([Inf iymax-iymin+1 Inf Inf]./stride), stride);
-                              toc;
-                strat  = roms_read_data(runs.dir,'temp',[Inf 1 1 1], ...
-                                  ceil([1 1 Inf 1]./stride),stride);
-                              toc
+                temper = dc_roms_read_data(runs.dir,'temp',[t0 st Inf], ...
+                                {'y' iymin iymax},stride);
+                strat = dc_roms_read_data(runs.dir,'temp',[1 1], ...
+                                {'y' Inf Inf},stride);
+                
+                temper = bsxfun(@minus,temper,permute(strat,[1 3 2]));
+                %temper = roms_read_data(runs.dir,'temp',[1 iymin 1 t0], ...
+                %                  ceil([Inf iymax-iymin+1 Inf Inf]./stride), stride);
+                %              toc;
+                %strat  = roms_read_data(runs.dir,'temp',[Inf 1 1 1], ...
+                %                  ceil([1 1 Inf 1]./stride),stride);
+                %              toc
+                
             else
                 stride = [1 sxy sz st];
-                temper = roms_read_data(runs.dir,'temp',[ixmin 1  1 t0], ...
-                                ceil([ixmax-ixmin+1 Inf Inf Inf]./stride),stride);
-                            toc;
-                strat  = roms_read_data(runs.dir,'temp',[1 1 1 1], ...
-                                ceil([1 Inf Inf 1]./stride),stride);               
-                            toc;
+                temper = dc_roms_read_data(runs.dir,'temp',[t0 st Inf], ...
+                                {'x' ixmin ixmax},stride);
+                strat = dc_roms_read_data(runs.dir,'temp',[1 1], ...
+                                {'y' Inf Inf},stride);
+                temper = bsxfun(@minus,temper,permute(strat,[3 1 2]));
+                            %temper = roms_read_data(runs.dir,'temp',[ixmin 1  1 t0], ...
+                %                ceil([ixmax-ixmin+1 Inf Inf Inf]./stride),stride);
+                %            toc;
+                %strat  = roms_read_data(runs.dir,'temp',[1 1 1 1], ...
+                %                ceil([1 Inf Inf 1]./stride),stride);               
+                %            toc;
             end
-
-            temper = bsxfun(@minus,temper,permute(strat,[3 1 2]));
+            
             
             % make plot
             tt = 1;
             figure;
             % first plan view of zeta
             subplot(211)
-            hz = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.zeta(:,:,1));
+            hz = runs.plot_zeta('pcolor',tt);
             shading interp
-            ax = gca;
             hold on
             colorbar; freezeColors;
-            [cc,hb] = contour(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.rgrid.h',[200 500 1000 1500 2000],'k');
-            clabel(cc,hb);
-            [~,he] = contour(runs.eddy.xr/1000,runs.eddy.yr/1000,runs.eddy.mask(:,:,1),'k');
-            if runs.bathy.axis == 'y'
-                liney(runs.bathy.xsb/1000,'shelfbreak','k');
-            else
-                linex(runs.bathy.xsb/1000,'shelfbreak','k');
-            end
-            ht1 = title(['Free surface | ' num2str(runs.rgrid.ocean_time(1)/86400)  ' days']);
+            hb = runs.plot_bathy('contour','k');
+            he = runs.plot_eddy_contour('contour',tt);
+            ht1 = title(['Free surface | ' num2str(runs.rgrid.ocean_time(tt)/86400)  ' days']);
             xlabel('X (km)');ylabel('Y (km)');
             axis image;
-            beautify([14 14 16]);
+            beautify([16 16 18]);
             
             % temp following eddy center
             levels = linspace(min(temper(:)),max(temper(:)),25);
@@ -760,20 +888,15 @@ classdef runs < handle
             %ht = title(['(mx,my) = (', num2str(eddy.mx(stride(4))/1000) ',' ...
             %        num2str(eddy.my(tt*stride(4))/1000) ') km | t = ' num2str(stride(4)) ' days']);
             xlabel('y (km)'); ylabel('z (m)'); colorbar; 
-            caxis([-1 1]*max(mat2vec(abs(temper(ix-ixmin+1,:,:,1:end-10)))));
+            %caxis([-1 1]*max(mat2vec(abs(temper(ix-ixmin+1,:,:,1:end-10)))));
+            caxis([-1 1] *max(abs(temper(:))));
             h1 = liney(-eddy.Lz2(stride(4)),[],'b');
             ylim([-1500 0]);
             title('Cross-shore temperature anomaly - slice through eddy center');
             %h2 = liney(-eddy.Lz3(stride(4)),'3','k');
-            beautify([14 14 16]);
-            if runs.makeVideo
-                %shading(gca,'interp');
-                disp('maximize!');
-                pause; 
-%               mm_addFrame(runs.mm_instance,gcf);
-                F = getframe(gcf);
-                writeVideo(aviobj,F);
-            end
+            maximize(gcf); pause(0.2);  
+            beautify([16 16 18]);
+            
             % update plots
             for tt=2:size(temper,4)
                 if runs.bathy.axis == 'y'
@@ -784,73 +907,52 @@ classdef runs < handle
                 end
                 tstr = [num2str(runs.time(tt*stride(4))/86400) ' days'];
                 set(h1,'ydata',[-eddy.Lz2(tt*stride(4)) -eddy.Lz2(tt*stride(4))]);
-                %set(h2,'ydata',-eddy.Lz3(tt*stride(4)));
-                set(hz,'CData',runs.zeta(:,:,tt*stride(4)));
-                %if runs.makeVideo, shading interp; end
-                set(he,'ZData',runs.eddy.mask(:,:,tt*stride(4)));
+                runs.update_zeta(hz,tt*stride(4));
+                
+                runs.update_eddy_contour(he,tt*stride(4));
                 %set(ht,'String', ['(mx,my) = (', num2str(eddy.mx(tt*stride(4))/1000) ',' ...
                 %    num2str(eddy.my(tt*stride(4))/1000) ') | t = ' tstr]);
                 set(ht1,'String',['Free surface | ' tstr]);
-                if runs.makeVideo
-                   % shading(gca,'interp');
-                    %mm_addFrame(runs.mm_instance,gcf);
-                    F = getframe(gcf);
-                    writeVideo(aviobj,F);
-                end
-                pause(); 
+                runs.video_update();
+                pause(0.01); 
             end
             
-            if runs.makeVideo
-               % mm_render(runs.mm_instance);
-               close(aviobj);
-            end
+            runs.video_write();
         end
         
         function [] = animate_pt(runs)
-%             if runs.makeVideo
-% %                 runs.mm_instance = mm_setup;
-% %                 runs.mm_instance.pixelSize = [1600 900];
-% %                 runs.mm_instance.outputFile = 'mm_output.avi';
-% %                 runs.mm_instance.ffmpegArgs = '-q:v 1 -g 1';
-% %                 runs.mm_instance.InputFrameRate = 3;
-% %                 runs.mm_instance.frameRate = 3;
-%                 aviobj = VideoWriter('animate_pt','MPEG-4');
-%                 open(aviobj);
-%             end
-            if isempty(runs.usurf) || isempty(runs.vsurf)
-                runs.read_velsurf;
-            end
             
-            
+            %dye = csdye/1000;
             rr = sqrt(runs.params.phys.N2)*runs.bathy.hsb/runs.rgrid.f(runs.bathy.isb,1);
             distance = 5*rr; % 5 times rossby radius
             clim = [runs.bathy.xsb/1000 runs.bathy.xsb/1000+distance/1000];
             
-            i = 1; clf;
-            hf = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.dye(:,:,i)/1000);         
+            dye = runs.eddye;
+            clim = [0 1];
+            
+            runs.video_init('pt');
+            
+            figure;
+            i = 1;
+            hf = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000,dye(:,:,i));         
             caxis(clim);
             shading flat;
             colorbar; hold on
-            [~,hc] = contour(runs.eddy.xr/1000,runs.eddy.yr/1000,runs.eddy.mask(:,:,i),1,'k');
+            he = runs.plot_eddy_contour('contour',i);
             dxi = 5; dyi = 5;
             hq = quiver(runs.eddy.xr(1:dxi:end,1:dyi:end)/1000,runs.eddy.yr(1:dxi:end,1:dyi:end)/1000, ...
                         runs.usurf(1:dxi:end,1:dyi:end,i),runs.vsurf(1:dxi:end,1:dyi:end,i));
-            set(hc,'LineWidth',2);    
-            if runs.bathy.axis == 'y'
-                liney(runs.bathy.xsb/1000,'shelfbreak','w');
-                liney(mean(runs.eddy.se)/1000,'mean(se)','k');
-            else
-                linex(runs.bathy.xsb/1000,'shelfbreak','w');
-            end
-            ht = title(num2str(i));
+            set(he,'LineWidth',2);    
+            hbathy = runs.plot_bathy('Contour','k');
+            ht = runs.set_title('CS dye',i);
             xlabel('X (km)');ylabel('Y (km)');
             %axis image;
             beautify;
             pause();
             for i = 2:size(runs.zeta,3)
-                set(hf,'CData',runs.dye(:,:,i)/1000);
-                set(hc,'ZData',runs.eddy.mask(:,:,i));
-                set(ht,'String',num2str(i));
+                set(hf,'CData',dye(:,:,i));
+                runs.update_eddy_contour(he,i);
+                runs.update_title('CS dye',ht,i);
                 set(hq,'UData',runs.usurf(1:dxi:end,1:dyi:end,i));
                 set(hq,'VData',runs.vsurf(1:dxi:end,1:dyi:end,i));
                 pause();
@@ -881,17 +983,21 @@ classdef runs < handle
             end
             
             [grd.xax,grd.yax,grd.zax,~] = dc_roms_extract(grids,varname,{},1);
-            if nt < 25
+            datain= 0;
+            if nt < 20
+                tic; disp('Reading data...');
                 data = roms_read_data(runs.dir,varname, ...
                         read_start,read_count,stride);
                 datain = 1;
                 var = nan([size(data,1) size(data,2) nt]);
+                toc;
             end
             % read data
             for mmm = 1:nt
-                disp(['reading & interpolating timestep ' num2str(mmm) '/' ...
-                                num2str(nt)]);
+                
                 if ~datain
+                    disp(['reading & interpolating timestep ' num2str(mmm) '/' ...
+                                num2str(nt)]);
                     data = roms_read_data(runs.dir,varname, ...
                             [read_start(1:3) read_start(4)+mmm-1], ...
                             [read_count(1:3) 1],stride);
@@ -900,17 +1006,20 @@ classdef runs < handle
                     end
                     var(:,:,mmm) = dc_roms_zslice_var(data,depth,grd);
                 else
+                    disp(['interpolating timestep ' num2str(mmm) '/' ...
+                                num2str(nt)]);
                     var(:,:,mmm) = dc_roms_zslice_var(data(:,:,:,mmm),depth,grd);
                 end
             end
             clear data
             
             % animate
-            xax = grd.xax/1000; yax=  grd.yax/1000; clear grd;
+            xax = grd.xax(:,:,1)/1000; yax=  grd.yax(:,:,1)/1000; clear grd;
             tt = 1;
-            [hc] = pcolor(xax,yax,var(:,:,tt)); shading interp
+            [~,hc] = contourf(xax,yax,var(:,:,tt));
             hold on
             he = runs.plot_eddy_contour('contour',tind(1) + tt-1);
+            shading flat;
             ht = title([varname ' | z = ' num2str(depth) ' m | t = ' ...
                 num2str(runs.time(tind(1)+tt-1)/86400) ' days']);
             axis image;
@@ -921,11 +1030,12 @@ classdef runs < handle
             runs.plot_bathy('contour','k');
             pause();
             for tt=2:nt
-                set(hc,'CData',var(:,:,tt));
+                set(hc,'ZData',var(:,:,tt));
+                shading flat
                 runs.update_eddy_contour(he,tind(1) + tt-1);
                 set(ht,'String',[varname ' | z = ' num2str(depth) ' m | t = ' ...
                 num2str(runs.time(tind(1)+tt-1)/86400) ' days']);
-                pause(0.01);
+                pause();
             end
             
         end
@@ -936,7 +1046,11 @@ classdef runs < handle
             
             if strcmpi(plottype,'pcolor')
                 hplot = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.zeta(:,:,tt));
-                shading flat
+                if runs.makeVideo
+                    shading interp; 
+                else
+                    shading flat
+                end
             else
                 if strcmpi(plottype,'contourf')
                     hplot = contourf(runs.rgrid.xr/1000,runs.rgrid.yr/1000, ...
@@ -954,11 +1068,28 @@ classdef runs < handle
         end
         
         function [hplot] = plot_eddy_contour(runs,plottype,tt)
+            try 
+                mask = runs.eddy.vormask(:,:,tt);
+            catch
+                mask = runs.eddy.mask(:,:,tt);
+            end
             [~,hplot] = contour(runs.eddy.xr/1000,runs.eddy.yr/1000, ...
-                runs.eddy.mask(:,:,tt),'Color','k');
+                        mask,'Color','k','LineWidth',1);
         end
         function update_eddy_contour(runs,handle,tt)
-            set(handle,'ZData',runs.eddy.mask(:,:,tt));
+            try 
+                mask = runs.eddy.vormask(:,:,tt);
+            catch
+                mask = runs.eddy.mask(:,:,tt);
+            end
+            set(handle,'ZData',mask);
+        end
+        
+        function [ht] = set_title(runs,titlestr,tt)
+            ht = title([titlestr ' | ' runs.name ' | ' num2str(runs.time(tt)/86400)  ' days']);
+        end
+        function update_title(runs,titlestr,ht,tt)
+            set(ht,'String',[titlestr ' | ' runs.name ' | ' num2str(runs.time(tt)/86400)  ' days']);
         end
         
         function [hplot] = plot_bathy(runs,plottype,color)
@@ -969,20 +1100,42 @@ classdef runs < handle
                 clabel(cc,hplot);
                 if runs.bathy.axis == 'y'
                     liney(runs.bathy.xsb/1000,'shelfbreak',color);
+                    liney(runs.bathy.xsl/1000,'slopebreak',color);
                 else
                     linex(runs.bathy.xsb/1000,'shelfbreak',color);
+                    liney(runs.bathy.xsl/1000,'slopebreak',color);
                 end
             end
         end
         
        %% video functions
-        function [] = video_init()
+        function [] = video_init(runs,filename)
+            if runs.makeVideo
+                runs.makeVideo
+                runs.mm_instance = mm_setup('frameDir',['videos/' runs.name '-' filename]);
+                runs.mm_instance.pixelSize = [1600 900];
+                runs.mm_instance.outputFile = ['videos/' runs.name '-' filename '.mp4'];
+                runs.mm_instance.ffmpegArgs = '-q:v 1 -g 1';
+                runs.mm_instance.InputFrameRate = 5;
+                runs.mm_instance.frameRate = 5;
+%                 aviobj = VideoWriter('output','MPEG-4');
+%                 open(aviobj);
+            end
         end
         
-        function [] = video_update()
+        function [] = video_update(runs)
+            if runs.makeVideo
+                mm_addFrame(runs.mm_instance,gcf);
+                %F = getframe(gcf);
+                %writeVideo(aviobj,F);
+            end
         end
         
-        function [] = video_write()
+        function [] = video_write(runs)
+            if runs.makeVideo
+               mm_render(runs.mm_instance);
+               %close(aviobj);
+            end
         end
         
         
@@ -1001,10 +1154,6 @@ classdef runs < handle
             ylabel('Surface Circulation');
             xlabel('Time (days)');
         end
-        
-        
-        
-       
         
     end
 end

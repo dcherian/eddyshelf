@@ -3,21 +3,26 @@
 function [] = eddytrackres()
 
     dir1 = 'runs/topoeddy/';
-    str  = 'runteb-04-hires-*';
+    str  = 'runns-01-res*';
     
-    names = ls([dir1 str]);
+    names = dir([dir1 str]);
     
     plots = 0;
     
     colors = distinguishable_colors(size(names,1));
     
-    hf1 = figure; hold on;
-    hf2 = figure; hold on;
+    hf1 = figure; hold on; maximize; pause(0.2)
+%    hf2 = figure; hold on;
     
     for ii=1:size(names,1)
-        files{ii} = [dir1 strtrim(names(ii,:))];
+        files{ii} = [dir1 strtrim(names(ii).name)];
         fname = [files{ii} '/eddytrack.mat'];
-        load(fname,'eddy');
+        try
+            load(fname,'eddy');
+        catch ME
+            legstr{ii} = '';
+            continue;
+        end
         [eddy.sq,legstr{ii}] = make_legend(eddy);
         eddies{ii} = eddy;
     end
@@ -28,7 +33,8 @@ function [] = eddytrackres()
     for ii=1:length(sort_ind)
         kk = sort_ind(ii);
         eddy = eddies{kk};
-        subplot(aa,2,[1:2:bb]); hold on
+        if isempty(eddy),continue; end
+        ax1 = subplot(aa,2,[1:2:bb]); hold on
         plot(eddy.cx/1000,eddy.cy/1000,'Color',colors(ii,:),'LineWidth',2);
         subplot(aa,2,2); hold on
         plot(eddy.t,eddy.amp,'Color',colors(ii,:));
@@ -43,20 +49,24 @@ function [] = eddytrackres()
     end
     
     xtick = 0:25:300;
-    subplot(aa,2,[1:2:bb]);
+    subplot(ax1)
     hold on;
     [cc,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.h(2:end-1,2:end-1),[500 1000 2000 2300],'k');
     clabel(cc,hh);
-    axis image;
+    %axis image;
     legend(sorted,'Location','NorthWestOutside');
-    title('center track | red crosses at t=150 days');
+    time = 120;
+    title(['center track | red crosses at t=' num2str(time) 'days']);
     xlim([0 180]);
     xlabel('x (km)'); ylabel('y (km)');
     for kk = 1:length(sort_ind)
         eddy = eddies{kk};
-        subplot(aa,2,[1:2:bb]); hold on;
-        index = find_approx(eddy.t,150);
-        plot(eddy.cx(index)/1000,eddy.cy(index)/1000,'rx','MarkerSize',12);
+        subplot(ax1); hold on;
+        try
+            index = find_approx(eddy.t,time);
+            plot(eddy.cx(index)/1000,eddy.cy(index)/1000,'rx','MarkerSize',12);
+        catch
+        end
     end
     beautify
     
@@ -96,6 +106,7 @@ function [] = eddytrackres()
         export_fig eddytrackres.png
     end
 
+    return;
     % compare both 0.5km runs 
     figure(hf2);
 %     subplot(121)
