@@ -4,6 +4,9 @@ function [] = modify_dye(file)
         file = 'runs/ocean_rst.nc';
     end
 
+    system(['cp ' file ' ' file '.backup']);
+    disp('Backed up file.');
+
     [xrmat,yrmat,zrmat,~,~,~] = dc_roms_var_grid(file,'rho');
     [xsb,isb,hsb,ax] = find_shelfbreak(file);
     %[xsl,isl,hsl,ax] = find_shelfbreak(file,'slope');
@@ -49,8 +52,7 @@ function [] = modify_dye(file)
     write_dye(file,'dye_01',dye_01);
     write_dye(file,'dye_02',dye_02);
     write_dye(file,'dye_03',dye_03);
-    
-    disp(['wrote to file ' file]);
+
 end
 
 function write_dye(file,name,var)
@@ -65,3 +67,4 @@ function write_dye(file,name,var)
         ncwrite(file,name,repmat(var,[1 1 1 2 nt]));
     end
     disp(['wrote to file ' file]);
+end
