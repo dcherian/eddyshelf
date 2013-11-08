@@ -29,7 +29,7 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 600;
+S.Lm = 400;
 S.Mm = 180;
 S.N  = 40;
 
@@ -173,7 +173,7 @@ flags.vprof_gaussian = 0;%~flags.eddy_zhang; % eddy is gaussian in vertical?
 eddy.dia    = NaN; % 2xNH/pi/f0 - determined later
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
-eddy.tamp   = 0.10; % controls gradient
+eddy.tamp   = 0.40; % controls gradient
 eddy.buffer_sp = 40*dx; % distance from  4.3 (2.3) *r0 to sponge edge
 eddy.buffer = 7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
 eddy.cx     = NaN;X/2; % if NaN, determined using buffer later
@@ -424,10 +424,10 @@ else
     [~,isl] = min(dh2dx2(:));
     isl = isl - bathy.n_points;
     % smooth again!
-    for i=1:bathy.n_passes
-        hvec(isl:end) = smooth(hvec(isl:end),bathy.n_points*4); 
-    end
-    % reconstruct h
+%    for i=1:bathy.n_passes
+%       hvec(isl:end) = smooth(hvec(isl:end),bathy.n_points*4); 
+%    end
+%    reconstruct h
     S.h = repmat(hvec',[size(S.h,1) 1]);
     plot(hvec,'r*');
     
@@ -503,32 +503,31 @@ clear z_r z_u z_v z_w
 Hz = diff(zwmat,1,3); %bsxfun(@rdivide,diff(zwmat,1,3),permute(diff(S.s_w',1,1),[3 2 1]));
 Z  = abs(max(S.h(:)));
 
-[rx0,rx1] = stiffness(S.h,zrmat);
+[rx0,rx1,rx0mat,rx1mat] = stiffness(S.h,zrmat);
 bathy_title = sprintf(['\n\n Beckmann & Haidvogel number (r_{x0}) = %f (< 0.2 , max 0.4) \n' ...
-            '\t\t\t\t Haney number (r_{x1}) = %f (< 9 , maybe 16)'], rx0,rx1);
+            ' Haney number (r_{x1}) = %f (< 9 , maybe 16)'], rx0,rx1);
 
 figure(fbathy);
 subplot(131)
 if strcmp(bathy.axis,'x')
     ind = ymid;
-    pcolorcen(squeeze(xrmat(:,ind,:))/fx,squeeze(zrmat(:,ind,:)),squeeze(zeros(size(xrmat(:,ind,:)))));
+    pcolorcen(squeeze(xrmat(:,ind,:))/fx,squeeze(zrmat(:,ind,:)),squeeze(rx1mat(:,ind,:)));
     xlabel(['x ' lx]);
     linex([bathy.xsb bathy.xsl]/fx);
 else 
     ind = xmid;
-    pcolorcen(squeeze(yrmat(ind,:,:))/fy,squeeze(zrmat(ind,:,:)),squeeze(zeros(size(xrmat(ind,:,:)))));
+    pcolorcen(squeeze(yrmat(ind,:,:))/fy,squeeze(zrmat(ind,:,:)),squeeze(rx1mat(ind,:,:)));
     xlabel(['y ' ly]);
     linex([bathy.xsb bathy.xsl]/fx);
 end
-
+colorbar;
 title(['Z = ' num2str(Z) ' m']);  ylabel(['z (m)']);
-shading faceted; beautify;
 
 subplot(132)
 surf(S.x_rho/fx,S.y_rho/fy,-S.h); shading interp
 title(bathy_title); colorbar;
 xlabel(['x ' lx]); ylabel(['y ' ly]); zlabel('z (m)');
-beautify;
+%beautify;
 
 %subplot(133)
 %contour(S.x_rho/fx,S.y_rho/fy,-S.h./f,30,'k');
