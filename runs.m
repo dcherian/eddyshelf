@@ -1014,11 +1014,12 @@ classdef runs < handle
             clear data
             
             % animate
-            xax = grd.xax/1000; yax=  grd.yax/1000; clear grd;
+            xax = grd.xax(:,:,1)/1000; yax=  grd.yax(:,:,1)/1000; clear grd;
             tt = 1;
-            [hc] = pcolor(xax,yax,var(:,:,tt)); shading interp
+            [~,hc] = contourf(xax,yax,var(:,:,tt));
             hold on
             he = runs.plot_eddy_contour('contour',tind(1) + tt-1);
+            shading flat;
             ht = title([varname ' | z = ' num2str(depth) ' m | t = ' ...
                 num2str(runs.time(tind(1)+tt-1)/86400) ' days']);
             axis image;
@@ -1029,11 +1030,12 @@ classdef runs < handle
             runs.plot_bathy('contour','k');
             pause();
             for tt=2:nt
-                set(hc,'CData',var(:,:,tt));
+                set(hc,'ZData',var(:,:,tt));
+                shading flat
                 runs.update_eddy_contour(he,tind(1) + tt-1);
                 set(ht,'String',[varname ' | z = ' num2str(depth) ' m | t = ' ...
                 num2str(runs.time(tind(1)+tt-1)/86400) ' days']);
-                pause(0.01);
+                pause();
             end
             
         end
@@ -1072,7 +1074,7 @@ classdef runs < handle
                 mask = runs.eddy.mask(:,:,tt);
             end
             [~,hplot] = contour(runs.eddy.xr/1000,runs.eddy.yr/1000, ...
-                        mask(:,:,tt),'Color','k');
+                        mask,'Color','k','LineWidth',1);
         end
         function update_eddy_contour(runs,handle,tt)
             try 
