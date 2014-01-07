@@ -16,8 +16,16 @@ classdef floats < handle
             disp('Reading float data.');
             tic;
             if strcmpi(type,'roms')
-                floats.x = ncread(file,'x')';
-                floats.y = ncread(file,'y')';
+                try
+                    floats.x = ncread(file,'lon')';
+                catch ME
+                    floats.x = ncread(file,'x');
+                end
+                try
+                    floats.y = ncread(file,'lat')';
+                catch ME
+                    floats.y = ncread(file,'y');
+                end
                 floats.z = ncread(file,'depth')';
                 floats.time = ncread(file,'ocean_time');
                 floats.temp = ncread(file,'temp')';
@@ -182,28 +190,31 @@ classdef floats < handle
                 'fac = number float timesteps per ROMS output timestep'];
             
             % calculate fac
-            dtroms = rgrid.ocean_time(2)-rgrid.ocean_time(1);
-            dtltr  = floats.time(2,1)-floats.time(1,1);
-            floats.fac = dtroms/dtltr;
-            
+            try
+                dtroms = rgrid.ocean_time(2)-rgrid.ocean_time(1);
+                dtltr  = floats.time(2,1)-floats.time(1,1);
+                floats.fac = dtroms/dtltr;
+            catch ME
+                 warning('havent calculated fac');
+            end
             % initial locations and seeding time
             initmask = find([zeros([1 size(floats.x,2)]); abs(diff((cumsum(repnan(floats.x,0)) >= 1)))] == 1);
             floats.init = [floats.x(initmask) floats.y(initmask) floats.z(initmask) tmat(initmask)];
-%             tic;
-%             indices = max(bsxfun(@times,abs(diff(isnan(floats.x),1,1)),[1:size(floats.x,1)-1]'+1));
-%             for ii = 1:size(floats.x,2)
-%                 clear ind
-%                 ind = find(floats.x(:,ii) > 0);
-%                 if isempty(ind)
-%                     ind = 1;
-%                 else
-%                     ind = ind(1);
-%                 end
-% 
-%                 floats.init(ii,:) = [floats.x(ind,ii) floats.y(ind,ii) floats.z(ind,ii) floats.time(ind)];
-%             end
-             disp(['Finished processing ' upper(type) ' floats.']);
-             toc;
+    %             tic;
+    %             indices = max(bsxfun(@times,abs(diff(isnan(floats.x),1,1)),[1:size(floats.x,1)-1]'+1));
+    %             for ii = 1:size(floats.x,2)
+    %                 clear ind
+    %                 ind = find(floats.x(:,ii) > 0);
+    %                 if isempty(ind)
+    %                     ind = 1;
+    %                 else
+    %                     ind = ind(1);
+    %                 end
+    % 
+    %                 floats.init(ii,:) = [floats.x(ind,ii) floats.y(ind,ii) floats.z(ind,ii) floats.time(ind)];
+    %             end
+            disp(['Finished processing ' upper(type) ' floats.']);
+            toc;
         end % read_floats   
         
         % plots displacements
