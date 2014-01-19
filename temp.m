@@ -38,3 +38,34 @@ ubt = bg.shear * yvec.^2/2 + C1 * yvec;
 
 plot(yvec/1000,ubt)
 
+%% internal wave dispersion relation as modified by discretization
+
+vector = linspace(0,4*pi,30);
+[kd,ld] = meshgrid(vector,vector);
+
+RRd = 40;
+
+exact = sqrt(1 + ...
+        (RRd)^2*(kd.^2 + ld.^2));
+cgrid = sqrt(cos(kd/2).^2 .* cos(ld/2).^2 + ...
+         4*(RRd)^2*(sin(kd/2).^2 + sin(ld/2).^2));
+
+subplot(131)
+pcolorcen(kd/pi,ld/pi,exact);
+title('exact')
+colorbar;axis square;
+ylabel('l\Delta x/\pi');
+xlabel('k\Delta x/\pi');
+clim = caxis;
+subplot(132)
+pcolorcen(kd/pi,ld/pi,cgrid);
+title('cgrid');
+xlabel('k\Delta x/\pi');
+colorbar;axis square; caxis(clim);
+subplot(133)
+pcolorcen(kd/pi,ld/pi,cgrid./exact);
+title('cgrid/exact');
+xlabel('k\Delta x/\pi');
+colorbar;axis square
+maximize; pause(0.2);
+spaceplots(0.06*ones([1 4]),0.05*ones([1 2]))
