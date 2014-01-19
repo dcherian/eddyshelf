@@ -155,7 +155,12 @@ classdef runs < handle
                 % proximity to shelfbreak
                 runs.eddy.prox = (edge-runs.bathy.xsb);
                 % time of reversal
-                runs.eddy.trev = runs.time(find(runs.eddy.cvx < 0,1,'first'));
+                try
+                    runs.eddy.trevind = find(runs.eddy.cvx < 0,1,'first');
+                    runs.eddy.trev = runs.time(runs.eddy.trevind);
+                catch ME
+                    runs.eddy.trev = nan;
+                end
                 if isempty(runs.eddy.trev), runs.eddy.trev = NaN; end
                 
                 % estimate southward vel.
@@ -243,13 +248,14 @@ classdef runs < handle
             % some sort
             runs.eutrans = [];
             t0 = 1;
+            revind = runs.eddy.trevind;
             h = runs.bathy.h(2:end-1,2:end-1);
             
             ix = vecfind(runs.eddy.xr(:,1),runs.eddy.mx(t0:end));
             iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.my(t0:end));
             hcen = h(sub2ind(size(runs.eddy.xr),ix,iy))';
             
-            ix = vecfind(runs.eddy.xr(:,1),runs.eddy.mx(t0:end));
+%redundant            ix = vecfind(runs.eddy.xr(:,1),runs.eddy.mx(t0:end));
             iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.se(t0:end));
             hedge = h(sub2ind(size(runs.eddy.xr),ix,iy))';
             % rossby radius
@@ -257,61 +263,82 @@ classdef runs < handle
             distance = 5*rr; % 5 times rossby radius
             
             if runs.params.bathy.axis == 'x'
+                csvelid = 'u';
                 error(' not built for north-south isobaths');
             else
-                loc = sort([nanmean(runs.eddy.se(t0:end)) nanmean(runs.eddy.cy(t0:end)) ...
+                csvelid = 'v';
+                loc = sort([nanmean(runs.eddy.se(revind:end)) ...
+                        nanmean(runs.eddy.cy(revind:end)) ...
                         runs.bathy.xsb  ... 
-                        runs.rgrid.y_rho(vecfind(runs.bathy.h(1,:),[250 1000]),1)']);
+                        runs.bathy.xsl]); 
+                    %runs.rgrid.y_rho(vecfind(runs.bathy.h(1,:),[250 1000]),1)']);
             end
             
+            % save locations
             runs.eutrans.x = loc;
+            % save indices for locations
             runs.eutrans.ix = vecfind(runs.rgrid.yr(1,:),loc);%find_approx(runs.rgrid.yr(1,:),loc,1);
+            % save isobath values
             runs.eutrans.h = ceil(runs.bathy.h(1,runs.eutrans.ix));
-            
+            % find west edge indices
+            iwest = vecfind(runs.eddy.xr(:,1),runs.eddy.we);
             dx = runs.rgrid.xr(2,1)-runs.rgrid.xr(1,1);
-            % cross-shore velocity
+            
+            % loop over all isobaths
             for kk=1:length(loc)
-                cs_vel = double(squeeze(ncread(runs.out_file,'v', ...
-                    [1 runs.eutrans.ix(kk) 1 t0],[Inf 1 Inf Inf])));
+                % read along-shore section of cross-shore vel.
                 % dimensions = (x/y , z , t )
-                mask = nan(size(cs_vel));
-                iwest = vecfind(runs.eddy.xr(:,1),runs.eddy.we);
+                cs_vel = double(squeeze(ncread(runs.out_file,csvelid, ...
+                    [1 runs.eutrans.ix(kk) 1 t0],[Inf 1 Inf Inf])));
+                mask = nan(size(cs_vel)); 
                 for tt=1:size(cs_vel,3)
                     mask(1:iwest(tt),:,tt) = 1;
                 end
-                
+                % restrict calculation to region above shelfbreak depth
                 zmask = (abs(squeeze(runs.rgrid.z_r(:,runs.eutrans.ix(kk),:))   )' ...
                                 < runs.bathy.hsb);
                 mask = bsxfun(@times,mask,fillnan(zmask,0));
 
 %                 runs.eutrans.trans(:,:,kk) = squeeze( ...
 %                      trapz(runs.rgrid.z_r(:,runs.eutrans.ix(kk),1),mask .* cs_vel,2));
-                runs.eutrans.trans(:,:,kk) = squeeze( ...
-                            nansum(bsxfun(@times,avg1(mask .* cs_vel,2), ...
-                            diff(runs.rgrid.z_r(:,runs.eutrans.ix(kk),1))'),2));
+                %runs.eutrans.trans(:,:,kk) = squeeze( ...
+                %            nansum(bsxfun(@times,avg1(mask .* cs_vel,2), ...
+                 %           diff(runs.rgrid.z_r(:,runs.eutrans.ix(kk),1))'),2));
+                runs.eutrans.nodye.trans(:,:,kk) = squeeze(trapz( ...
+                                runs.rgrid.z_r(:,runs.eutrans.ix(kk),1), ...
+                                mask .* cs_vel,2));
 
-                runs.eutrans.Itrans(:,kk) = squeeze(nansum(runs.eutrans.trans(:,:,kk) .* dx,1))';
+                runs.eutrans.nodye.Itrans(:,kk) = squeeze(nansum( ...
+                    runs.eutrans.nodye.trans(:,:,kk) ...
+                                            .* dx,1))';
                 
                 % if I have passive tracer info I can calculate transport
                 % using that
                 if ~isempty(runs.csdye)
                     mask = nan(size(cs_vel));
+                    % mark eastern edge as edge of region I'm interested in
+                    % removes streamer associated with cyclone running away
                     ieast = vecfind(runs.eddy.xr(:,1),runs.eddy.ee);
                     for tt=1:size(cs_vel,3)
                         mask(1:ieast(tt),:,tt) = 1;
                     end
                     
                     mask = bsxfun(@times,mask,fillnan(zmask,0));
-
-                    dye = double(squeeze(ncread(runs.out_file,'dye_02', ...
-                    [1 runs.eutrans.ix(kk) 1 t0],[Inf 1 Inf Inf])));
-                    dyemask = (dye >= runs.bathy.xsb) & (dye <=(runs.bathy.xsb + distance));
+                    % dye_01 is always cross-shore dye
+                    dye = double(squeeze(ncread(runs.out_file,'dye_01', ...
+                        [1 runs.eutrans.ix(kk) 1 t0],[Inf 1 Inf Inf])));
+                    dyemask = (dye >= runs.bathy.xsb) & ...
+                                (dye <=(runs.bathy.xsb + distance));
                     mask = mask .* fillnan(dyemask,0); 
-                    runs.eutrans.dye.trans(:,:,kk) = squeeze( ...
-                            nansum(bsxfun(@times,avg1(mask .* cs_vel,2), ...
-                            diff(runs.rgrid.z_r(:,runs.eutrans.ix(kk),1))'),2));
+                    runs.eutrans.trans(:,:,kk) = squeeze(trapz( ...
+                            runs.rgrid.z_r(:,runs.eutrans.ix(kk),1), ...
+                            mask .* cs_vel,2));
+                    %runs.eutrans.trans(:,:,kk) = squeeze( ...
+                    %        nansum(bsxfun(@times,avg1(mask .* cs_vel,2), ...
+                    %        diff(runs.rgrid.z_r(:,runs.eutrans.ix(kk),1))'),2));
                         
-                    runs.eutrans.dye.Itrans(:,kk) = squeeze(nansum(runs.eutrans.dye.trans(:,:,kk) .* dx,1))';
+                    runs.eutrans.Itrans(:,kk) = squeeze(nansum( ...
+                                runs.eutrans.trans(:,:,kk) .* dx,1))';
                 end
             end
 
@@ -330,14 +357,15 @@ classdef runs < handle
                 '| mean eddy edge isobath = ' num2str(mean(hedge)) 'm']);
             beautify;
             subplot(6,1,[3 4 5])
-            plot(runs.rgrid.ocean_time/86400,runs.eutrans.dye.Itrans/1e6,'-');
+            plot(runs.rgrid.ocean_time/86400,runs.eutrans.Itrans/1e6,'-');
             limx = xlim;
             legend(num2str(runs.eutrans.h'),'Location','NorthWest');
             ylabel('Dye Transport (Sv)');
             ylim([-0.05 0.3]); liney(0.1,[])
             beautify;
             subplot(6,1,6)
-            [ax,~,~] = plotyy(runs.eddy.t,runs.eddy.prox/1000,runs.eddy.t,runs.eddy.hcen);
+            [ax,~,~] = plotyy(runs.eddy.t,runs.eddy.prox/1000,runs.eddy.t, ...
+                    runs.eddy.hcen);
             set(ax(1),'XLim',limx);set(ax(2),'XLim',limx);
             set(ax(1),'XTickLabel',[]); axes(ax(2));
             set(get(ax(1),'ylabel'),'String','Proximity (km)');
@@ -348,13 +376,13 @@ classdef runs < handle
             % make plot cleaner
             arr = [1:length(loc)];
             for kk=1:length(loc)
-                if median(runs.eutrans.dye.Itrans(:,kk)) < 1
+                if median(runs.eutrans.Itrans(:,kk)) < 1
                     arr(arr == kk) = [];
                 end
             end
             figure
-            plot(runs.rgrid.ocean_time(t0:end)/86400,(runs.eutrans.Itrans(:,arr) - runs.eutrans.dye.Itrans(:,arr)) ...
-                ./ runs.eutrans.dye.Itrans(:,arr) * 100);
+            plot(runs.rgrid.ocean_time(t0:end)/86400,(runs.eutrans.nodye.Itrans(:,arr) - runs.eutrans.Itrans(:,arr)) ...
+                ./ runs.eutrans.Itrans(:,arr) * 100);
             ylim([-100 700]); liney(0);
             legend(num2str(runs.eutrans.h(:,arr)'),'Location','NorthWest');
             title('percentage over-estimation = (eulerian - dye)/ dye');
@@ -561,18 +589,24 @@ classdef runs < handle
             aa = 6; bb = aa*2;
             tloc = [100 120];
             limx = [0 max(runs.time)/86400];
-            
-            subplot(aa,2,[1:2:bb-2*2]); hold on
+            hold on
+            subplot(aa,2,[1:2:bb-4]); hold all
             %pcolorcen(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.bathy.h);            colorbar
             xlabel('X (km)'); ylabel('Y (km)');
-            plot(eddy.cx/1000,eddy.cy/1000,'Color',colors(ii,:),'LineWidth',2);
-            plot(eddy.cx(tloc)/1000,eddy.cy(tloc)/1000,'*','MarkerSize',12,'Color',colors(ii,:),'LineWidth',2);
-            %if runs.bathy.axis == 'x'
+            plot((eddy.cx-eddy.cx(1))/1000, ...
+                (eddy.cy-eddy.cy(1))/1000,'Color',colors(ii,:),'LineWidth',2);
+            hold all;
+            try
+                plot((eddy.cx(tloc)-eddy.cx(1))/1000,...
+                    (eddy.cy(tloc)-eddy.cy(1))/1000,'*','MarkerSize',12,'Color',colors(ii,:),'LineWidth',2);
+            catch ME
+            end
+                %if runs.bathy.axis == 'x'
             %    plot(eddy.we/1000,eddy.cy/1000,'Color',colors(ii,:),'LineStyle','--');
             %else
             %    plot(eddy.cx/1000,eddy.se/1000,'Color',colors(ii,:),'LineStyle','--');
             %end
-            axis image; axis tight
+            %axis image; axis tight
             
             subplot(aa,2,2); hold on
             plot(eddy.t,eddy.amp./eddy.amp(1),'Color',colors(ii,:));
@@ -889,12 +923,21 @@ classdef runs < handle
             
             beta = runs.params.phys.beta;
             
+            % for depth integration
+            h = runs.bathy.h(2:end-1,2:end-1);
+            csr = runs.rgrid.Cs_r(2:end-1); 
+            csw = runs.rgrid.Cs_w(2:end-1);
             
             xavg = avg1(avg1(xvor,1),2)/1000; yavg = avg1(avg1(yvor,1),2)/1000;
             
-            range = 1:2:size(runs.zeta,3);
-            for kk=1:length(range)
-                tt = range(kk);
+            depthRange = [100 -max(runs.bathy.h(:))];
+            trange = 1:2:size(runs.zeta,3);
+            
+            disp(['starting from t instant = ' num2str(trange(1))]);
+            for kk=1:length(trange)
+                tt = trange(kk);
+                zeta = runs.zeta(2:end-1,2:end-1,tt);
+                
                 % read data
                 u1 = double(ncread(runs.out_file,'u',[1 1 1 tt],[Inf Inf Inf 2]));
                 v1 = double(ncread(runs.out_file,'v',[1 1 1 tt],[Inf Inf Inf 2]));
@@ -918,13 +961,22 @@ classdef runs < handle
                 rvor = vx-uy; rv1 = v1x-u1y;
                 rvx = diff_cgrid(gridrv,rvor,1); rvy = diff_cgrid(gridrv,rvor,2);
                     rvz = diff_cgrid(gridrv,rvor,3);
-
+                    
+                    
+                % check continuity
+                cont = ux(:,2:end-1,:) + vy(2:end-1,:,:) + wz(2:end-1,2:end-1,:);
+                contfrac = cont./wz(2:end-1,2:end-1,:);
+                [~,CONT] = roms_depthIntegrate(cont,csr,csw,h,zeta,depthRange);
+                
                 % form terms - avg to interior RHO points
-                adv = avg1(avg1(avg1(u(:,:,2:end-1),1),2) .* rvx,2) + ...
-                        avg1(avg1(avg1(v(:,:,2:end-1),1),2).* rvy,1) + ...
-                            avg1(avg1(avg1(avg1(avg1(w(:,:,2:end-1),1),2),3) .* rvz,1),2);
-                str = avg1(avg1(avg1(bsxfun(@plus,rvor,avg1(avg1(runs.rgrid.f',1),2)) ...
-                        .* avg1(avg1(wz,1),2),1),2),3);
+                adv = avg1( avg1(avg1(u(:,:,2:end-1),1),2) .* rvx,2) + ...
+                        avg1( avg1(avg1(v(:,:,2:end-1),1),2) .* rvy,1) + ...
+                            avg1(avg1( avg1(avg1(avg1(w(:,:,2:end-1),1),2),3) ...
+                                   .* rvz    ,1),2);
+                str = avg1(avg1( ...
+                        avg1(   bsxfun(@plus,rvor,avg1(avg1(runs.rgrid.f',1),2)) ...
+                                .* avg1(avg1(wz,1),2)   ,1) ...
+                                    ,2),3);
 
                 bet = avg1(beta * v(2:end-1,:,2:end-1),2);
 
@@ -935,21 +987,18 @@ classdef runs < handle
                         avg1(rv1-rvor,3)./diff(runs.rgrid.ocean_time(1:2)) ,1),2);
                 
                 % depth integrate
-                h = runs.bathy.h(2:end-1,2:end-1);
-                zeta = runs.zeta(2:end-1,2:end-1,tt);
-                depthRange = [100 -max(runs.bathy.h(:))];
-                csr = runs.rgrid.Cs_r(2:end-1); 
-                csw = runs.rgrid.Cs_w(2:end-1);
-
                 [ubar,vbar] = uv_barotropic(u,v,runs.rgrid.Hz);
                 [rint,ravg] = roms_depthIntegrate(avg1(avg1(rvor,1),2), ...
                                 csr,csw,h,zeta,depthRange);
-                [~,ADV]  = roms_depthIntegrate(adv ,csr,csw,h,zeta,depthRange);
-                [~,STR]  = roms_depthIntegrate(str ,csr,csw,h,zeta,depthRange);
-                [~,BET]  = roms_depthIntegrate(bet ,csr,csw,h,zeta,depthRange);
-                [~,TILT] = roms_depthIntegrate(tilt,csr,csw,h,zeta,depthRange);
-                [~,TEND]   = roms_depthIntegrate(tend,csr,csw,h,zeta,depthRange);
-                rplot = ravg;
+                [ADV ,~] = roms_depthIntegrate(adv ,csr,csw,h,zeta,depthRange);
+                [STR ,~] = roms_depthIntegrate(str ,csr,csw,h,zeta,depthRange);
+                [BET ,~] = roms_depthIntegrate(bet ,csr,csw,h,zeta,depthRange);
+                [TILT,~] = roms_depthIntegrate(tilt,csr,csw,h,zeta,depthRange);
+                [TEND,~] = roms_depthIntegrate(tend,csr,csw,h,zeta,depthRange);
+                rplot = rint; 
+                
+                budget = tend+adv+bet-tilt-str;
+                BUD = TEND+ADV+BET-TILT-STR;
                 
                 ubar = avg1(ubar(:,2:end-1),1);
                 vbar = avg1(vbar(2:end-1,:),2);
@@ -976,10 +1025,10 @@ classdef runs < handle
                     caxis([-1 1] * max(abs(BET(:))));
                     title('- \beta V');
                     
-                    ax(3) = subplot(2,4,4);
-                    xran = 1:3:size(xavg,1); yran = 1:3:size(yavg,2);
+                    ax(3) = subplot(2,4,4); cla
+                    xran = 1:6:size(xavg,1); yran = 1:4:size(yavg,2);
                     hquiv = quiver(xavg(xran,yran),yavg(xran,yran), ...
-                            ubar(xran,yran), vbar(xran,yran),0.5);
+                            ubar(xran,yran), vbar(xran,yran),1.5);
                     title('(ubar,vbar)');
                     he(3) = runs.plot_eddy_contour('contour',tt);
                     hbathy = runs.plot_bathy('contour','k');
@@ -1154,24 +1203,44 @@ classdef runs < handle
         
         function [] = animate_pt(runs)
             
+            
+            if isempty(runs.usurf) || isempty(runs.vsurf)
+                runs.read_velsurf;
+            end
+            
             %dye = csdye/1000;
             rr = sqrt(runs.params.phys.N2)*runs.bathy.hsb/runs.rgrid.f(runs.bathy.isb,1);
             distance = 5*rr; % 5 times rossby radius
             clim = [runs.bathy.xsb/1000 runs.bathy.xsb/1000+distance/1000];
             
             dye = runs.eddye;
-            clim = [0 1];
             
             runs.video_init('pt');
+            %%
+            cmedd = cbrewer('seq','Greys',32);%flipud(cbrewer('div', 'RdYlGn', 32));
+            cmcsd = haxby;
+            cmcsd = cmcsd(1:end-3,:,:);
+            clim_edd = [0 1];
+            clim_csd = [0 runs.bathy.xsb/1000 + 50];
             
             figure;
             i = 1;
-            hf = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000,dye(:,:,i));         
-            caxis(clim);
+            heddye = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000, ...
+                        -addnan(-dye(:,:,i),-0.1));
+            ylim([0 130]);
             shading flat;
-            colorbar; hold on
+            caxis(clim_edd);colormap(cmedd);freezeColors;
+            hcb1 = colorbar; cbunits(hcb1,'Eddy');cbfreeze(hcb1);
+            hold on
             he = runs.plot_eddy_contour('contour',i);
-            dxi = 5; dyi = 5;
+            
+            hcsdye = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000, ...
+                        fillnan((runs.csdye(:,:,i)/1000 < clim_csd(2)) ...
+                        .* runs.csdye(:,:,i)/1000,0));
+            shading flat;
+            caxis(clim_csd);colormap(cmcsd); freezeColors; 
+            hcb2 = colorbar; cbunits(hcb2,'Cross-shore dye');cbfreeze(hcb2);
+            dxi = 5; dyi = 3;
             hq = quiver(runs.eddy.xr(1:dxi:end,1:dyi:end)/1000,runs.eddy.yr(1:dxi:end,1:dyi:end)/1000, ...
                         runs.usurf(1:dxi:end,1:dyi:end,i),runs.vsurf(1:dxi:end,1:dyi:end,i));
             set(he,'LineWidth',2);    
@@ -1182,12 +1251,17 @@ classdef runs < handle
             beautify;
             pause();
             for i = 2:size(runs.zeta,3)
-                set(hf,'CData',dye(:,:,i));
+                set(hcsdye,'CData',fillnan( ...
+                        (runs.csdye(:,:,i)/1000 < clim_csd(2)) ...
+                        .* runs.csdye(:,:,i)/1000,0));
+                caxis(clim_csd);colormap(cmcsd); freezeColors; 
+                set(heddye,'CData',-addnan(-dye(:,:,i),-0.1));
+                caxis(clim_edd);colormap(cmedd);freezeColors;
                 runs.update_eddy_contour(he,i);
                 runs.update_title('CS dye',ht,i);
                 set(hq,'UData',runs.usurf(1:dxi:end,1:dyi:end,i));
                 set(hq,'VData',runs.vsurf(1:dxi:end,1:dyi:end,i));
-                pause();
+                pause(0.01);
             end
         end
         
