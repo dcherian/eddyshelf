@@ -45,7 +45,7 @@ legend(cellstr(dirs),'Location','SouthWest')
 ylabel('weighted center meridional vel (km/day)');
 xlabel('time (days)');
 %%
-
+tend = 30;nsmooth = 3;
 vs = nan([1 length(run)]); v = vs; x = vs; y = vs;
 % plot parameterization
 subplot(122);
@@ -62,7 +62,7 @@ for ii=1:length(run)
     
     H = vgw^2 / run(ii).params.phys.g;
     % v scale based on early et al. (2011)
-    vs(ii) = 14.5*86.4*vr * (vr/vgw) * run(ii).params.nondim.eddy.Rh;%
+    vs(ii) = 86.4*vr/run(ii).params.nondim.eddy.Rh;%
     Rh(ii) = run(ii).params.nondim.eddy.Rh;
     % obs vel
     v(ii) = nanmax(abs(smooth(run(ii).eddy.cvy(1:tend),nsmooth)));
@@ -77,7 +77,7 @@ ratio = v./vs;
 plot(x,y,'.','MarkerSize',15);
 axis square
 %plot(x,y/x*x,'r*-')
-plot(xlim,xlim,'k-'); 
+%plot(xlim,xlim,'k-'); 
 title(['slope = ' num2str(x/y)]);
 xlabel('max. v (from model, km/day)');
 ylabel('v_s = 14.5 * v_r^2/v_{gw} *Rh + 0.5 (km/day)');
