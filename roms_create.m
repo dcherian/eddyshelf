@@ -6,7 +6,7 @@
 % names cannot start with number
 [~,machine] = system('hostname');
 if strfind(machine,'scylla')
-    FOLDER    = '/scylla-a/home/dcherian/ROMS/runs/eddyshelf/topoeddy/run-3/';
+    FOLDER    = '/scylla-a/home/dcherian/ROMS/runs/eddyshelf/topoeddy/run-4/';
 end
 if strfind(machine,'kadal')
     FOLDER = '/media/data/Work/eddyshelf/runs/';
@@ -30,7 +30,7 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
 S.Lm = 400;
-S.Mm = 180;
+S.Mm = 210;
 S.N  = 40;
 
 dx = 1500;
@@ -173,13 +173,13 @@ flags.vprof_gaussian = 0;%~flags.eddy_zhang; % eddy is gaussian in vertical?
 eddy.dia    = NaN; % 2xNH/pi/f0 - determined later
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
-eddy.tamp   = 0.40; % controls gradient
+eddy.tamp   = 0.45; % controls gradient
 eddy.buffer_sp = 40*dx; % distance from  4.3 (2.3) *r0 to sponge edge
-eddy.buffer = 7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
-eddy.cx     = NaN;X/2; % if NaN, determined using buffer later
+eddy.buffer = NaN;7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
+eddy.cx     = X/2-60000; % if NaN, determined using buffer later
+eddy.cy     = NaN;Y/2; %              "
 eddy.theta0 = pi/2; % surface phase anomaly from Zhang et al. (2013)
                     % 7/16 * pi for WCR
-eddy.cy     = NaN;Y/2; %              "
 eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
                 ' of temp. perturbation | a = alpha in Katsman et al. (2003)' ...
                 ' | (cx,cy) = (x,y) location of center | (ix,iy) = indices of center | ' ...
@@ -377,12 +377,16 @@ f = fnew + beta * (S.y_rho - S.y_rho(1,ymid));
 clear fnew
 
 if flags.flat_bottom
-    S.h = Z * ones(size(S.h));
+    S.h = Z * ones(size(S.x_rho));
     
     bathy.xsb = 0;
     bathy.isb = 0;
     bathy.hsb = Z;
-    bathy.xsl = X/2;
+    if bathy.axis == 'x'
+        bathy.xsl = X/2;
+    else
+        bathy.xsl = Y/2;
+    end
     bathy.hsl = Z;
 else
     % linear bathymetry
@@ -507,7 +511,11 @@ Z  = abs(max(S.h(:)));
 bathy_title = sprintf(['\n\n Beckmann & Haidvogel number (r_{x0}) = %f (< 0.2 , max 0.4) \n' ...
             ' Haney number (r_{x1}) = %f (< 9 , maybe 16)'], rx0,rx1);
 
-figure(fbathy);
+if ~exist('fbathy','var')
+    fbathy = figure; 
+else
+    figure(fbathy);
+end
 subplot(131)
 if strcmp(bathy.axis,'x')
     ind = ymid;
@@ -780,6 +788,12 @@ if flags.eddy
     else
         xtra = (2.3)*eddy.dia/2;
     end
+
+    if isnan(eddy.buffer) 
+        %start eddy 1 deformation radius away
+        %from shelfbreak
+        eddy.buffer = eddy.dia/2;
+    end
     
     switch bathy.axis % cross-shore axis
         case 'x'
@@ -803,11 +817,15 @@ if flags.eddy
                     % note there is no sponge at the inflow boundary
                     eddy.cx = X-eddy.dia/2-xtra-eddy.buffer_sp; % center of eddy
                 else
-                    eddy.cx = 0 + eddy.dia/2+xtra;
+                    eddy.cx = eddy.buffer_sp + eddy.dia/2+xtra;
                 end
             end
             if isnan(eddy.cy)
-                eddy.cy = bathy.xsl+eddy.buffer+xtra; %597000; %    "
+                if flags.flat_bottom
+                    eddy.cy = Y/5 + xtra;
+                else
+                    eddy.cy = bathy.xsl+eddy.buffer+xtra; %597000;
+                end
             end
             fprintf('Distance from northern edge = %.2f km \n', ...
                     (Y-eddy.cy-xtra)/1000);
@@ -1783,8 +1801,10 @@ fprintf('\n\n (dt)_bt < %.2f s | (dt)_bc < %.2f s\n\n', DX/(sqrt(g*min(S.h(:))))
 fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, C_bt = %.3f | C_bc = %.3f  | C_bc7 = %.3f\n\n Min. Ri = %.2f', dt,ndtfast,Cbt,Cbc,Cbc7,min(Ri(:)));
 
 fprintf('\n Bathy Parameters');
-fprintf('\n\t\t S_shelf = %.2f | S_slope = %.2f | Beta_shelf = %1.2e | Beta_slope = %1.2e \n', ...
+if ~flags.flat_bottom
+    fprintf('\n\t\t S_shelf = %.2f | S_slope = %.2f | Beta_shelf = %1.2e | Beta_slope = %1.2e \n', ...
     S_sh,S_sl,b_sh,b_sl);
+end
 if flags.wind, cprintf('Red',sprintf('Wind tau0 = %.2e \n\n',wind.tau0)); end
 if flags.eddy, 
     fprintf('\n Eddy Parameters: ');
