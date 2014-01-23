@@ -7,11 +7,17 @@
 [~,machine] = system('hostname');
 if strfind(machine,'scylla')
     FOLDER    = '/scylla-a/home/dcherian/ROMS/runs/eddyshelf/topoeddy/run-4/';
+    prefix    = 'tes';
 end
 if strfind(machine,'kadal')
     FOLDER = '/media/data/Work/eddyshelf/runs/';
+    prefix    = 'tea';
 end
-prefix    = 'tes';
+if strfind(machine,'login')
+    FOLDER = '/mit/dcherian/ROMS/runs/eddyshelf/topoeddy/run-1/';
+    prefix    = 'tea';
+end
+
 GRID_NAME = [prefix '_grd'];
 INI_NAME  = [prefix '_ini'];
 BRY_NAME  = [prefix '_bry'];
