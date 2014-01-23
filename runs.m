@@ -1177,7 +1177,7 @@ classdef runs < handle
             %h2 = liney(-eddy.Lz3(stride(4)),'3','k');
             maximize(gcf); pause(0.2);  
             beautify([16 16 18]);
-            
+            runs.video_update();
             % update plots
             for tt=2:size(temper,4)
                 if runs.bathy.axis == 'y'
@@ -1201,32 +1201,70 @@ classdef runs < handle
             runs.video_write();
         end
         
-        function [] = animate_pt(runs)
+        function [] = animate_pt(runs,depth,t0)
             
+            if ~exist('depth','var'), depth = 0; end
+            if ~exist('t0','var'), t0 = 1; end
             
-            if isempty(runs.usurf) || isempty(runs.vsurf)
-                runs.read_velsurf;
-            end
+            runs.video_init(['pt-z-' num2str(abs(depth))]);
             
             %dye = csdye/1000;
             rr = sqrt(runs.params.phys.N2)*runs.bathy.hsb/runs.rgrid.f(runs.bathy.isb,1);
             distance = 5*rr; % 5 times rossby radius
-            clim = [runs.bathy.xsb/1000 runs.bathy.xsb/1000+distance/1000];
-            
-            dye = runs.eddye;
-            
-            runs.video_init('pt');
-            %%
+                                   
             cmedd = cbrewer('seq','Greys',32);%flipud(cbrewer('div', 'RdYlGn', 32));
             cmcsd = haxby;
             cmcsd = cmcsd(1:end-3,:,:);
             clim_edd = [0 1];
             clim_csd = [0 runs.bathy.xsb/1000 + 50];
             
+            % stride for quiver
+            dxi = 5; dyi = 3;
+            
             figure;
-            i = 1;
+            i = t0;
+            if depth == 0
+                if isempty(runs.usurf) || isempty(runs.vsurf)
+                    runs.read_velsurf;
+                end
+                dye = runs.eddye(:,:,i);
+                csdye = runs.csdye(:,:,i);
+                u = runs.usurf(1:dxi:end,1:dyi:end,i);
+                v = runs.vsurf(1:dxi:end,1:dyi:end,i);
+            else
+                grdr.xax = repmat(runs.rgrid.xr,[1 1 runs.rgrid.N]);
+                grdr.yax = repmat(runs.rgrid.yr,[1 1 runs.rgrid.N]);
+                grdr.zax = permute(runs.rgrid.z_r,[3 2 1]);
+                
+                grdu.xax = repmat(runs.rgrid.x_u',[1 1 runs.rgrid.N]);
+                grdu.yax = repmat(runs.rgrid.y_u',[1 1 runs.rgrid.N]);
+                grdu.zax = permute(runs.rgrid.z_u,[3 2 1]);
+                
+                grdv.xax = repmat(runs.rgrid.x_v',[1 1 runs.rgrid.N]);
+                grdv.yax = repmat(runs.rgrid.y_v',[1 1 runs.rgrid.N]);
+                grdv.zax = permute(runs.rgrid.z_v,[3 2 1]);
+                
+                % read and interpolate
+                disp(['Reading and interpolating ' num2str(i)]);
+                dye = dc_roms_zslice_var( ...
+                    dc_roms_read_data(runs.dir,'dye_04',i), depth,grdr);
+                csdye = dc_roms_zslice_var( ...
+                    dc_roms_read_data(runs.dir,'dye_01',i), depth,grdr);
+                u = dc_roms_zslice_var( ...
+                    dc_roms_read_data(runs.dir,'u',i), depth,grdu);
+                v = dc_roms_zslice_var( ...
+                    dc_roms_read_data(runs.dir,'v',i), depth,grdv);
+                % get on interior RHO points
+                u = avg1(u(:,2:end-1),1);
+                v = avg1(v(2:end-1,:),2);
+                % decimate for quiver
+                u = u(1:dxi:end,1:dyi:end);
+                v = v(1:dxi:end,1:dyi:end);
+            end
+            % first get z-slice out
             heddye = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000, ...
-                        -addnan(-dye(:,:,i),-0.1));
+                        -addnan(-dye,-0.1));
+                    
             ylim([0 130]);
             shading flat;
             caxis(clim_edd);colormap(cmedd);freezeColors;
@@ -1235,34 +1273,60 @@ classdef runs < handle
             he = runs.plot_eddy_contour('contour',i);
             
             hcsdye = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000, ...
-                        fillnan((runs.csdye(:,:,i)/1000 < clim_csd(2)) ...
-                        .* runs.csdye(:,:,i)/1000,0));
+                        fillnan((csdye/1000 < clim_csd(2)) .* csdye/1000,0));
             shading flat;
             caxis(clim_csd);colormap(cmcsd); freezeColors; 
             hcb2 = colorbar; cbunits(hcb2,'Cross-shore dye');cbfreeze(hcb2);
-            dxi = 5; dyi = 3;
+            
             hq = quiver(runs.eddy.xr(1:dxi:end,1:dyi:end)/1000,runs.eddy.yr(1:dxi:end,1:dyi:end)/1000, ...
-                        runs.usurf(1:dxi:end,1:dyi:end,i),runs.vsurf(1:dxi:end,1:dyi:end,i));
+                        u,v);
             set(he,'LineWidth',2);    
             hbathy = runs.plot_bathy('Contour','k');
-            ht = runs.set_title('CS dye',i);
+            ht = runs.set_title(['CS dye | z = ' num2str(depth) 'm'],i);
             xlabel('X (km)');ylabel('Y (km)');
             %axis image;
             beautify;
             pause();
-            for i = 2:size(runs.zeta,3)
+            runs.video_update();
+            for i = t0+1:size(runs.zeta,3)
+                if depth == 0
+                    dye = runs.eddye(:,:,i);
+                    csdye = runs.csdye(:,:,i);
+                    u = runs.usurf(1:dxi:end,1:dyi:end,i);
+                    v = runs.vsurf(1:dxi:end,1:dyi:end,i);
+                else
+                    % read and interpolate
+                    disp(['Reading and interpolating ' num2str(i)]);
+                    dye = dc_roms_zslice_var( ...
+                        dc_roms_read_data(runs.dir,'dye_04',i), depth,grdr);
+                    csdye = dc_roms_zslice_var( ...
+                        dc_roms_read_data(runs.dir,'dye_01',i), depth,grdr);
+                    u = dc_roms_zslice_var( ...
+                        dc_roms_read_data(runs.dir,'u',i), depth,grdu);
+                    v = dc_roms_zslice_var( ...
+                        dc_roms_read_data(runs.dir,'v',i), depth,grdv);
+                    % get on interior RHO points
+                    u = avg1(u(:,2:end-1),1);
+                    v = avg1(v(2:end-1,:),2);
+                    % decimate for quiver
+                    u = u(1:dxi:end,1:dyi:end);
+                    v = v(1:dxi:end,1:dyi:end);
+                end
                 set(hcsdye,'CData',fillnan( ...
-                        (runs.csdye(:,:,i)/1000 < clim_csd(2)) ...
-                        .* runs.csdye(:,:,i)/1000,0));
+                        (csdye/1000 < clim_csd(2)) ...
+                        .* csdye/1000,0));
                 caxis(clim_csd);colormap(cmcsd); freezeColors; 
-                set(heddye,'CData',-addnan(-dye(:,:,i),-0.1));
+                set(heddye,'CData',-addnan(-dye,-0.1));
                 caxis(clim_edd);colormap(cmedd);freezeColors;
                 runs.update_eddy_contour(he,i);
-                runs.update_title('CS dye',ht,i);
-                set(hq,'UData',runs.usurf(1:dxi:end,1:dyi:end,i));
-                set(hq,'VData',runs.vsurf(1:dxi:end,1:dyi:end,i));
+                runs.update_title(['CS dye | z = ' num2str(depth) 'm'],ht,i);
+                set(hq,'UData',u);
+                set(hq,'VData',v);
+                runs.video_update();
                 pause(0.01);
             end
+            
+            runs.video_write();
         end
         
         function [] = animate_floats(runs,type)
