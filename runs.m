@@ -192,8 +192,7 @@ classdef runs < handle
         function [] = info(runs)
             roms_info(runs.dir);
         end
-        
-        
+         
         % read surface velocities for animate_pt & surf vorticity plot
         function [] = read_velsurf(runs)
             disp('Reading surface velocity fields...');
@@ -220,8 +219,7 @@ classdef runs < handle
             runs.vsurf = avg1(runs.vsurf(2:end-1,:,:),2);
             toc;
         end
-        
-        
+             
        %% floats
         function [] = compare_floats(runs)
             ltransc = floats('ltrans',[runs.dir '/ltrans-compare.nc'],runs.rgrid);
@@ -238,7 +236,6 @@ classdef runs < handle
         function [] = ltrans_create_from_roms(runs)
             ltrans_create_from_roms('ltrans_init_compare.txt',runs.flt_file,runs.rgrid);
         end
-        
         
        %% analysis
        
@@ -704,6 +701,18 @@ classdef runs < handle
         
             runs.vbarg =      9.81 .* bsxfun(@rdivide,diff(runs.zeta,1,1), ...
                                 avg1(runs.rgrid.f',1).*diff(runs.rgrid.xr,1,1));
+        end
+        
+        % distribution of cs-z dyes
+        function [] = distrib_csz(runs)
+            % lets subtract out mean at each z-level to account for near
+            % surface and near bottom upwelling.
+            % This has to be done after interpolating to constant z-level
+            % because you can't take a constant z-level mean otherwise
+            zdye = double(ncread(runs.out_file,'dye_02'));
+            plot(squeeze(mean(mean( ...
+                    runs.zdye(2:end-1,2:end-1,:) .* runs.eddy.vormask ...
+                    ,1),2)));
         end
                 
        %% animation functions
