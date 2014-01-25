@@ -709,10 +709,37 @@ classdef runs < handle
             % surface and near bottom upwelling.
             % This has to be done after interpolating to constant z-level
             % because you can't take a constant z-level mean otherwise
-            zdye = double(ncread(runs.out_file,'dye_02'));
-            plot(squeeze(mean(mean( ...
-                    runs.zdye(2:end-1,2:end-1,:) .* runs.eddy.vormask ...
-                    ,1),2)));
+            zdye = double(ncread(runs.out_file,'dye_02', ...
+                            [1 1 1 runs.eddy.trevind],[Inf Inf Inf 20]));
+            csdye = double(ncread(runs.out_file,'dye_01', ...
+                            [1 1 1 runs.eddy.trevind],[Inf Inf Inf 20]))/1000;
+                        
+           
+            depth = 100;
+            [grd.xax,grd.yax,grd.zax,~,~,~] = dc_roms_var_grid(runs.rgrid,'temp');
+            
+            figure;
+            for tt = 1:size(zdye,4)
+                clf;
+                tind = runs.eddy.trevind + tt;
+                % interpolate to a given depth
+                zdyein = dc_roms_zslice_var(zdye(:,:,:,tt),depth,grd);
+                csdyein = dc_roms_zslice_var(csdye(:,:,:,tt),depth,grd);
+                
+                % define streamer
+                xsb = runs.bathy.xsb/1000;
+                streamer = fillnan((csdyein > xsb-10) & (csdyein < xsb+30) ...
+                            & (runs.rgrid.x_rho' < runs.eddy.cx(tind)),0);
+                        
+                % remove mean to show up/down-welling
+                zdyein = zdyein - nanmean(zdyein(:));
+                
+                % visualize
+                pcolorcen((zdyein .* streamer)');
+                hold on
+                contour(runs.eddy.mask(:,:,tind)','k','LineWidth',2);
+                pause();
+            end
         end
                 
        %% animation functions
