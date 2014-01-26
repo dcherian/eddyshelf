@@ -20,6 +20,8 @@ classdef runs < handle
         params
         % transport
         eutrans;
+        % rossby radius
+        rrdeep;
         % make video?
         makeVideo; mm_instance;
         %
@@ -67,6 +69,8 @@ classdef runs < handle
             % params & bathy
             runs.params = read_params_from_ini(runs.dir);
             runs.bathy = runs.params.bathy;
+            runs.rrdeep = sqrt(runs.params.phys.N2)*runs.bathy.hsb ...
+                        /mean(runs.rgrid.f(:));
             
             % fill bathy
             [runs.bathy.xsb,runs.bathy.isb,runs.bathy.hsb] = find_shelfbreak(runs.out_file);
@@ -163,6 +167,8 @@ classdef runs < handle
                 end
                 if isempty(runs.eddy.trev), runs.eddy.trev = NaN; end
                 
+       
+                
                 % estimate southward vel.
                 % (beta * Lr^2)^2 *1/2 * 1/amp * NH/g
                 runs.eddy.Vy = -(runs.params.phys.beta*(runs.params.eddy.dia(1)/2)^2)^2/2 ...
@@ -172,9 +178,8 @@ classdef runs < handle
 %                            -(run3.params.phys.beta*(run3.params.eddy.dia(1)/2)^2)^2 ...
 %                                        *1/2 * 1/run3.eddy.amp(1) * ...
 %                                sqrt(run3.params.phys.N2)/run3.params.phys.g*max(run3.bathy.h(:))
-            %%
             
-              %%  % water depth at eddy center
+              %  % water depth at eddy center
                 h = runs.bathy.h(2:end-1,2:end-1);
                 ix = vecfind(runs.eddy.xr(:,1),runs.eddy.mx);
                 iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.my);
@@ -255,9 +260,10 @@ classdef runs < handle
 %redundant            ix = vecfind(runs.eddy.xr(:,1),runs.eddy.mx(t0:end));
             iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.se(t0:end));
             hedge = h(sub2ind(size(runs.eddy.xr),ix,iy))';
-            % rossby radius
-            rr = sqrt(runs.params.phys.N2)*runs.bathy.hsb/runs.rgrid.f(runs.bathy.isb,1);
-            distance = 5*rr; % 5 times rossby radius
+            % rossby radius @ SHELFBREAK
+            rr =  sqrt(runs.params.phys.N2)*runs.bathy.hsb ...
+                        /runs.rgrid.f(runs.bathy.isb,1)
+            distance = 5*runs.rr; % 5 times rossby radius
             
             if runs.params.bathy.axis == 'x'
                 csvelid = 'u';
@@ -709,39 +715,102 @@ classdef runs < handle
             % surface and near bottom upwelling.
             % This has to be done after interpolating to constant z-level
             % because you can't take a constant z-level mean otherwise
-            zdye = double(ncread(runs.out_file,'dye_02', ...
-                            [1 1 1 runs.eddy.trevind],[Inf Inf Inf 20]));
-            csdye = double(ncread(runs.out_file,'dye_01', ...
-                            [1 1 1 runs.eddy.trevind],[Inf Inf Inf 20]))/1000;
-                        
-           
+            zdye = ncread(runs.out_file,'dye_02', ...
+                            [1 1 1 runs.eddy.trevind],[Inf Inf Inf 20]);
+            csdye = ncread(runs.out_file,'dye_01', ...
+                            [1 1 1 runs.eddy.trevind],[Inf Inf Inf 20])/1000;
+            % read, then average w in the vertical to RHO levels
+            w = avg1(ncread(runs.out_file,'w', ...
+                            [1 1 1 runs.eddy.trevind],[Inf Inf Inf 20]),3);
+            %asdye = double(ncread(runs.out_file,'dye_03', ...
+            %                [1 1 1 runs.eddy.trevind],[Inf Inf Inf 20]))/1000;
+                    
             depth = 100;
+            xsb = runs.bathy.xsb/1000;
             [grd.xax,grd.yax,grd.zax,~,~,~] = dc_roms_var_grid(runs.rgrid,'temp');
             
-            figure;
-            for tt = 1:size(zdye,4)
-                clf;
-                tind = runs.eddy.trevind + tt;
-                % interpolate to a given depth
-                zdyein = dc_roms_zslice_var(zdye(:,:,:,tt),depth,grd);
-                csdyein = dc_roms_zslice_var(csdye(:,:,:,tt),depth,grd);
-                
-                % define streamer
-                xsb = runs.bathy.xsb/1000;
-                streamer = fillnan((csdyein > xsb-10) & (csdyein < xsb+30) ...
-                            & (runs.rgrid.x_rho' < runs.eddy.cx(tind)),0);
+%             figure;
+%             for tt = 1:size(zdye,4)
+%                 clf;
+%                 tind = runs.eddy.trevind + tt;
+%                 % interpolate to a given depth
+%                 zdyein = dc_roms_zslice_var(zdye(:,:,:,tt),depth,grd);
+%                 csdyein = dc_roms_zslice_var(csdye(:,:,:,tt),depth,grd);
+%                 
+%                 % define streamer
+%                 streamer = fillnan((csdyein > xsb-10) & (csdyein < xsb+30) ...
+%                             & (runs.rgrid.x_rho' < runs.eddy.cx(tind)),0);
+%                 %streamer = fillnan( csdyein < xsb, 0);
+%                 
+%                 % remove mean to show up/down-welling
+%                 zdyein_demean = zdyein - nanmean(zdyein(:));
+%                 
+%                 % visualize
+%                 pcolorcen((zdyein_demean .* streamer)');
+%                 hold on
+%                 contour(runs.eddy.mask(:,:,tind)','k','LineWidth',2);
+%                 pause();
+%             end
+%             
+            % mask of points west of eddy center
+            west_mask = bsxfun(@lt,repmat(runs.rgrid.x_rho',[1 1 runs.rgrid.N]), ...
+                            permute(runs.eddy.cx(runs.eddy.trevind:runs.eddy.trevind+19), [1 3 4 2]));
                         
-                % remove mean to show up/down-welling
-                zdyein = zdyein - nanmean(zdyein(:));
-                
-                % visualize
-                pcolorcen((zdyein .* streamer)');
-                hold on
-                contour(runs.eddy.mask(:,:,tind)','k','LineWidth',2);
+            % (xs,ys,zs) are the Eulerian x,y,z values
+            %xs = bsxfun(@times, streamer, grd.xax)/1000;
+            ys = bsxfun(@times, streamer, grd.yax)/1000;
+            %zs = bsxfun(@times, streamer, grd.zax);
+            
+            % (as,cs,z) dyes contain the Lagrangian labels
+            % some distance metric between the two will give me an idea of
+            % what's happening
+            if runs.bathy.axis == 'y'
+            %    das = asdye - xs;
+                dcs = csdye - ys;
+            else
+            %    das = asdye - ys;
+                dcs = csdye - xs;
+            end
+            %dz = zdye - zs;
+            
+            % identify streamer again, but now with 4D data
+            streamer = fillnan( (csdye > xsb-10) & (csdye < xsb+30) ...
+                            & west_mask, 0);
+            
+            ws = w.* streamer;
+            
+            WS = squeeze( nansum( bsxfun(@times,w.*streamer, ...
+                        diff(permute(runs.rgrid.z_w,[3 2 1]),1,3) ), 3) );
+                    
+            xr = runs.rgrid.xr/1000; yr = runs.rgrid.yr/1000;
+            
+            figure; 
+           %% animate depth integrated w in streamer
+            clf; ii=1;
+            hws = pcolorcen(xr,yr,double(WS(:,:,ii))); shading flat;
+            hold on;
+            [~,hs] = contour(xr,yr,repnan(streamer(:,:,40,ii),0), ...
+                            1,'b','LineWidth',2);
+            he = runs.plot_eddy_contour('contour',ii+runs.eddy.trevind);
+            %runs.plot_bathy('contour','k');
+            colormap(flipud(cbrewer('div','RdBu',32)));
+            caxis([-1 1] * max(abs([nanmin(WS(:)) nanmax(WS(:))])));
+            cbunits('m^2/s'); colorbar;
+            xlim([100 300]); ylim([0 140]);
+            pause();         
+            for ii=2:size(WS,3)
+                set(hws,'CData',double(WS(:,:,ii)));
+                set(hs ,'ZData',repnan(streamer(:,:,40,ii),0));
+                runs.update_eddy_contour(he, ii+runs.eddy.trevind);
                 pause();
             end
-        end
+            
+            %%
+            
+            animate(das(:,:,40,:));
                 
+        end
+        
        %% animation functions
         
         function [] = animate_zeta(runs)
