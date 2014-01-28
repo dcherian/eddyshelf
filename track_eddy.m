@@ -121,7 +121,7 @@ function [eddy] = track_eddy(dir1)
         % mask for diagnostic purposes
         eddy.mask(:,:,tt) = temp.mask;
         eddy.thresh(tt) = temp.thresh;
-        eddy.vormask(:,:,tt) = temp.vormask;
+        eddy.vormask(:,:,tt) = temp.vor.mask;
         % number of pixels in eddy
         eddy.n(tt) = temp.n;
         % north, south, west & east edges
@@ -129,10 +129,20 @@ function [eddy] = track_eddy(dir1)
         eddy.ee(tt) = temp.ee;
         eddy.ne(tt) = temp.ne;
         eddy.se(tt) = temp.se;
-        eddy.L(tt)  = temp.L;
-        eddy.lmin(tt) = temp.lmin;
-        eddy.lmaj(tt) = temp.lmaj;
         
+        eddy.vor.we(tt) = temp.vor.we;
+        eddy.vor.ee(tt) = temp.vor.ee;
+        eddy.vor.ne(tt) = temp.vor.ne;
+        eddy.vor.se(tt) = temp.vor.se;
+        
+        %eddy.L(tt)  = temp.L;
+        eddy.vor.lmin(tt) = temp.vor.lmin;
+        eddy.vor.lmaj(tt) = temp.vor.lmaj;
+        eddy.vor.dia(tt)  = temp.vor.dia;
+        
+        eddy.vor.amp(tt) = temp.vor.amp;
+        eddy.vor.cx(tt) = temp.vor.cx;
+        eddy.vor.cy(tt) = temp.vor.cy;
         % diagnose vertical scale (fit Gaussian)
         imx = find_approx(xr(:,1),eddy.mx(tt),1);
         imy = find_approx(yr(1,:),eddy.my(tt),1);
@@ -405,11 +415,26 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
                 % extract information
                 vorprops  = regionprops(vormaskreg,zeta,'EquivDiameter', ...
                         'MinorAxisLength','MajorAxisLength');
-                eddy.L    = vorprops.EquivDiameter * sqrt(dx*dy);
-                eddy.lmaj = vorprops.MajorAxisLength * sqrt(dx*dy);
-                eddy.lmin = vorprops.MinorAxisLength * sqrt(dx*dy);
-                eddy.vormask = vormaskreg;
-                % if i get here, i'm done
+                % now eddy.vor.dia
+                %eddy.L    = vorprops.EquivDiameter * sqrt(dx*dy);
+                eddy.vor.lmaj = vorprops.MajorAxisLength * sqrt(dx*dy);
+                eddy.vor.lmin = vorprops.MinorAxisLength * sqrt(dx*dy);
+                                
+                xmax = fillnan(vormaskreg(:).*ix(:),0);
+                ymax = fillnan(vormaskreg(:).*iy(:),0);
+
+                % store eddy properties for return
+                eddy.vor.cx   = cx; % weighted center
+                eddy.vor.cy   = cy; %     "
+                
+                eddy.vor.we   = nanmin(xmax) * dx; % west edge
+                eddy.vor.ee   = nanmax(xmax) * dx; % east edge
+                eddy.vor.ne   = nanmax(ymax) * dy; % south edge
+                eddy.vor.se   = nanmin(ymax) * dy; % north edge
+                eddy.vor.amp  = amp;
+                eddy.vor.dia  = props.EquivDiameter * sqrt(dx*dy);
+                eddy.vor.mask = vormaskreg;
+                % If I get here, I'm done.
                 break;
             end
             
