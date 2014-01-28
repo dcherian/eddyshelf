@@ -143,6 +143,10 @@ classdef runs < handle
                 runs.noeddy = 0;
             end
             
+            if ~isfield(runs.eddy,'vor')
+                runs.eddy = track_eddy(dir);
+            end
+            
             if ~runs.noeddy
                if isfield(runs.eddy,'cvx')
                    if runs.eddy.cvx(1) == 0 || runs.eddy.cvy(1) == 0
@@ -166,9 +170,7 @@ classdef runs < handle
                     runs.eddy.trev = nan;
                 end
                 if isempty(runs.eddy.trev), runs.eddy.trev = NaN; end
-                
-       
-                
+                                
                 % estimate southward vel.
                 % (beta * Lr^2)^2 *1/2 * 1/amp * NH/g
                 runs.eddy.Vy = -(runs.params.phys.beta*(runs.params.eddy.dia(1)/2)^2)^2/2 ...
@@ -715,20 +717,32 @@ classdef runs < handle
             % surface and near bottom upwelling.
             % This has to be done after interpolating to constant z-level
             % because you can't take a constant z-level mean otherwise
+            yend = find_approx(runs.rgrid.y_rho(:,1),100*1000);
+            t0 = runs.eddy.trevind-25;
+            read_start = [1 1 1 t0];
+            read_count = [Inf yend Inf 40];
+            
             zdye = ncread(runs.out_file,'dye_02', ...
-                            [1 1 1 runs.eddy.trevind],[Inf Inf Inf 20]);
+                            read_start,read_count);
             csdye = ncread(runs.out_file,'dye_01', ...
-                            [1 1 1 runs.eddy.trevind],[Inf Inf Inf 20])/1000;
-            % read, then average w in the vertical to RHO levels
-            w = avg1(ncread(runs.out_file,'w', ...
-                            [1 1 1 runs.eddy.trevind],[Inf Inf Inf 20]),3);
+                            read_start, read_count)/1000;
+            w = ncread(runs.out_file,'w', ...
+                            read_start, read_count);
             %asdye = double(ncread(runs.out_file,'dye_03', ...
             %                [1 1 1 runs.eddy.trevind],[Inf Inf Inf 20]))/1000;
-                    
+            
+            % depth to interpolate to
             depth = 100;
             xsb = runs.bathy.xsb/1000;
             [grd.xax,grd.yax,grd.zax,~,~,~] = dc_roms_var_grid(runs.rgrid,'temp');
+            grd.xax = grd.xax(:,1:yend,:);
+            grd.yax = grd.yax(:,1:yend,:);
+            grd.zax = grd.zax(:,1:yend,:);
             
+            % grid matrices required for plotting        
+            xr = runs.rgrid.xr(:,1:yend)/1000; yr = runs.rgrid.yr(:,1:yend)/1000;
+            yzw = repmat(yr(1,:)', [1 runs.rgrid.N+1]);
+            yzr = repmat(yr(1,:)', [1 runs.rgrid.N]);
 %             figure;
 %             for tt = 1:size(zdye,4)
 %                 clf;
@@ -753,13 +767,19 @@ classdef runs < handle
 %             end
 %             
             % mask of points west of eddy center
-            west_mask = bsxfun(@lt,repmat(runs.rgrid.x_rho',[1 1 runs.rgrid.N]), ...
-                            permute(runs.eddy.cx(runs.eddy.trevind:runs.eddy.trevind+19), [1 3 4 2]));
+            %west_mask = bsxfun(@lt,repmat(runs.rgrid.x_rho',[1 1 runs.rgrid.N]), ...
+            %               permute(runs.eddy.cx(runs.eddy.trevind:runs.eddy.trevind+19), [1 3 4 2]));
                         
+            
+            % identify streamer again, but now with 4D data
+            streamer = fillnan( (csdye > xsb-10) & (csdye < xsb+30) ...
+                           , 0);
+            % number of west of eddy's west edge for streamer cross section
+            dx = 4;
             % (xs,ys,zs) are the Eulerian x,y,z values
             %xs = bsxfun(@times, streamer, grd.xax)/1000;
             ys = bsxfun(@times, streamer, grd.yax)/1000;
-            %zs = bsxfun(@times, streamer, grd.zax);
+            zs = bsxfun(@times, streamer, grd.zax);
             
             % (as,cs,z) dyes contain the Lagrangian labels
             % some distance metric between the two will give me an idea of
@@ -773,48 +793,149 @@ classdef runs < handle
             end
             %dz = zdye - zs;
             
-            % identify streamer again, but now with 4D data
-            streamer = fillnan( (csdye > xsb-10) & (csdye < xsb+30) ...
-                            & west_mask, 0);
+            zw = permute(runs.rgrid.z_w(:,1:yend,:),[3 2 1]);
             
-            ws = w.* streamer;
+            % vertically integrated w in streamer
+            WS = squeeze( nansum( bsxfun(@times,avg1(w,3).*streamer, diff(zw,1,3) ) ...
+                                    , 3) );
+                                
+            % index of western & eastern edges
+            wind = vecfind(xr(:,1), runs.eddy.vor.we/1000);
+            eind = vecfind(xr(:,1), runs.eddy.vor.ee/1000);
             
-            WS = squeeze( nansum( bsxfun(@times,w.*streamer, ...
-                        diff(permute(runs.rgrid.z_w,[3 2 1]),1,3) ), 3) );
-                    
-            xr = runs.rgrid.xr/1000; yr = runs.rgrid.yr/1000;
+            % colorbar for vertical vel cross-section
+            wcolor = sort( [-1 1] * max(max(abs( ...
+                                log10(abs(w(sort([eind wind]),:))) ))) )/2;
             
             figure; 
            %% animate depth integrated w in streamer
-            clf; ii=1;
+            clf; ii=1; maximize();
+            %subplot(231); subplot(232); subplot(233);
+            %subplot(234); subplot(235); subplot(236);
+            %spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
+            tindex = t0+ii-1;
+            windex = wind(tindex)-dx; % for cross-section
+            eindex = eind(tindex)-dx; % for cross-section
+            zlimit = [-1000 0];
+            
+            subplot(231)
+            titlestr = 'Depth integrated w in streamer (blue)';
             hws = pcolorcen(xr,yr,double(WS(:,:,ii))); shading flat;
+            hxw = linex(xr(windex,1));
+            hxe = linex(xr(eindex,1));
             hold on;
             [~,hs] = contour(xr,yr,repnan(streamer(:,:,40,ii),0), ...
                             1,'b','LineWidth',2);
-            he = runs.plot_eddy_contour('contour',ii+runs.eddy.trevind);
-            %runs.plot_bathy('contour','k');
+            he = runs.plot_eddy_contour('contour',tindex);
+            runs.plot_bathy('contour','k');
             colormap(flipud(cbrewer('div','RdBu',32)));
             caxis([-1 1] * max(abs([nanmin(WS(:)) nanmax(WS(:))])));
-            cbunits('m^2/s'); colorbar;
-            xlim([100 300]); ylim([0 140]);
+            colorbar; %cbunits('m^2/s'); 
+            ht = runs.set_title(titlestr,tindex);
+            
+            
+            % depth of 'streamer'
+            subplot(234)
+            hz = pcolorcen(xr,yr,double(max(abs(zs(:,:,:,ii)),[],3)));
+            hold on;
+            hcb = colorbar;  caxis([0 max(abs(zs(:)))]);cbunits('[m]');
+            hzeta = runs.plot_zeta('contour',tindex);
+            title('Depth of ''streamer''');
+            %colormap(cbrewer('seq','Blues',32));
+            %xlim([100 400]); 
+            %ylim([0 140]);
+            
+            % vertical vel - west cross-section
+            subplot(232)
+            [hwcs] = pcolorcen(yzw,squeeze(zw(1,:,:)), ...
+                            double(squeeze( ...
+                                sign(w(windex,:,:,ii)) .* log10(abs(w(windex,:,:,ii))) ...
+                                    )));
+            colorbar; caxis(wcolor);
+            ylim(zlimit); linex(runs.bathy.xsl/1000,'slopebreak','w');
+            hcw = linex(runs.eddy.vor.cy(tindex)/1000);
+            ylabel('Z (m)'); xlabel('Y (km)');
+            title('cross-section of log_{10}(w)');
+            
+            % vertical vel - east cross-section
+            subplot(235)
+            [hecs] = pcolorcen(yzw,squeeze(zw(1,:,:)), ...
+                            double(squeeze( ...
+                            sign(w(eindex,:,:,ii)) .* log10(abs( w(eindex,:,:,ii) )) ...
+                            )));
+            colorbar; caxis(wcolor);
+            ylim(zlimit); 
+            linex(runs.bathy.xsl/1000,'slopebreak','w');
+            hce = linex(runs.eddy.vor.cy(tindex)/1000);
+            ylabel('Z (m)'); xlabel('Y (km)');
+            title('cross-section of log_{10}(w)');
+            
+            
+            % z-dye - west cross-section
+            subplot(233)
+            [~,hwz] = contourf(yzr,squeeze(grd.zax(1,:,:)), ...
+                            double(squeeze(zdye(windex,:,:,ii))), ...
+                            linspace(zlimit(1),zlimit(2),20));
+            colorbar; caxis(zlimit);
+            ylim(zlimit); linex(runs.bathy.xsl/1000,'slopebreak','w');
+            hcw = linex(runs.eddy.vor.cy(tindex)/1000);
+            ylabel('Z (m)'); xlabel('Y (km)');
+            title('cross-section of z-dye | need to adjust for BC');
+            
+            % zdye - east cross-section
+            subplot(236)
+            [~,hez] = contourf(yzr,squeeze(grd.zax(1,:,:)), ...
+                            double(squeeze( zdye(eindex,:,:,ii) )), ....
+                            linspace(zlimit(1),zlimit(2),20));
+            colorbar; caxis(zlimit);
+            ylim(zlimit); 
+            linex(runs.bathy.xsl/1000,'slopebreak','w');
+            hce = linex(runs.eddy.vor.cy(tindex)/1000);
+            ylabel('Z (m)'); xlabel('Y (km)');
+            title('cross-section of z-dye | need to adjust for BC');
+            
+            spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
             pause();         
+            
             for ii=2:size(WS,3)
-                set(hws,'CData',double(WS(:,:,ii)));
-                set(hs ,'ZData',repnan(streamer(:,:,40,ii),0));
-                runs.update_eddy_contour(he, ii+runs.eddy.trevind);
+                tindex = t0+ii-1;
+                % for cross-section
+                windex = wind(tindex)-dx; 
+                eindex = eind(tindex)+dx;
+                
+                set(hws ,'CData',double(WS(:,:,ii)));
+                set(hs  ,'ZData',repnan(streamer(:,:,40,ii),0));
+                
+                set(hz  ,'CData',double(max(abs(zs(:,:,:,ii)),[],3)));
+                
+                set(hwcs,'CData',double(squeeze( ...
+                    sign(w(eindex,:,:,ii)) .* log10(abs( w(windex,:,:,ii) )) )));
+                set(hecs,'CData',double(squeeze( ...
+                    sign(w(eindex,:,:,ii)) .* log10(abs( w(eindex,:,:,ii))) )));
+                
+                set(hwz ,'ZData',double(squeeze( zdye(windex,:,:,ii) )));
+                set(hez ,'ZData',double(squeeze( zdye(eindex,:,:,ii) )));
+                
+                set(hxw ,'XData',[1 1]*xr(windex,1));
+                set(hxe ,'XData',[1 1]*xr(eindex,1));
+                set(hce ,'XData',[1 1]*runs.eddy.vor.cy(tindex)/1000);
+                set(hcw ,'XData',[1 1]*runs.eddy.vor.cy(tindex)/1000);
+                
+                runs.update_zeta(hzeta,tindex);
+                runs.update_eddy_contour(he, tindex);
+                runs.update_title(ht,titlestr,tindex);
                 pause();
             end
             
-            %%
-            
-            animate(das(:,:,40,:));
-                
+                            
         end
         
        %% animation functions
         
         function [] = animate_zeta(runs)
             runs.video_init('zeta');
+            
+            titlestr = 'SSH (m)';
             
             figure;
             ii=1;
@@ -824,7 +945,7 @@ classdef runs < handle
             colorbar; freezeColors;
             hbathy = runs.plot_bathy('contour','k');
             he = runs.plot_eddy_contour('contour',ii);
-            ht = runs.set_title('SSH (m)',ii);
+            ht = runs.set_title(titlestr,ii);
            
             xlabel('X (km)');ylabel('Y (km)');
             axis image;
@@ -834,7 +955,7 @@ classdef runs < handle
             for ii = 2:size(runs.zeta,3)
                 runs.update_zeta(hz,ii);
                 runs.update_eddy_contour(he,ii);
-                runs.update_title('SSH (m)',ht,ii);
+                runs.update_title(ht,titlestr,ii);
                 runs.video_update();
                 pause(0.03);
             end
@@ -894,7 +1015,8 @@ classdef runs < handle
             end
             [~,hedd] = contour(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.zeta(:,:,1));
             
-            ht = runs.set_title('dyes',ii);
+            titlestr = 'dyes';
+            ht = runs.set_title(titlestr,ii);
             %view(-104,30);
             view(-150,66);
             xlim([min(xrmat(:)) max(xrmat(:))]/1000)
@@ -911,7 +1033,7 @@ classdef runs < handle
                                 csdye(:,:,:,ii),cslevel(kk));
                     set(pcsd(kk),'Vertices',hcsdye.vertices,'Faces',hcsdye.faces);
                 end
-                runs.update_title('dyes',ht,ii);
+                runs.update_title(ht,titlestr,ii);
                 pause();
             end
             
@@ -958,10 +1080,11 @@ classdef runs < handle
             rplot = ravg;
             
             figure;
+            titlestr = 'Depth avg rvor';
             xvor = avg1(avg1(runs.rgrid.xr,1),2);
             yvor = avg1(avg1(runs.rgrid.yr,1),2);
             hvor = pcolor(xvor/1000,yvor/1000,rplot); hold on; shading flat;
-            ht = runs.set_title('Depth avg rvor',tt);
+            ht = runs.set_title(titlestr,tt);
             he = runs.plot_eddy_contour('contour',tt);
             hbathy = runs.plot_bathy('contour','k');
             shading flat
@@ -979,7 +1102,7 @@ classdef runs < handle
                 set(hvor,'cdata',rplot);
                 runs.update_eddy_contour(he,tt);
                 
-                runs.update_title('Depth avg rvor',ht,tt);
+                runs.update_title(ht,titelstr,tt);
                 toc;
                 pause(0.1);
             end
@@ -1109,7 +1232,7 @@ classdef runs < handle
                 vbar = avg1(vbar(2:end-1,:),2);
                 
                 limy = [0 150];
-            
+                titlestr = 'Depth avg rvor';
                 % plot
                 if kk == 1
                     figure;
@@ -1185,7 +1308,7 @@ classdef runs < handle
                     end
                     
                     runs.update_eddy_contour(he,tt);
-                    runs.update_title('Depth avg rvor',ht,tt);
+                    runs.update_title(ht,titlestr,tt);
                     pause();
                 end
             end
@@ -1387,7 +1510,8 @@ classdef runs < handle
                         u,v);
             set(he,'LineWidth',2);    
             hbathy = runs.plot_bathy('Contour','k');
-            ht = runs.set_title(['CS dye | z = ' num2str(depth) 'm'],i);
+            titlestr = ['CS dye | z = ' num2str(depth) 'm'];
+            ht = runs.set_title(titlestr,i);
             xlabel('X (km)');ylabel('Y (km)');
             %axis image;
             beautify;
@@ -1424,7 +1548,7 @@ classdef runs < handle
                 set(heddye,'CData',-addnan(-dye,-0.1));
                 caxis(clim_edd);colormap(cmedd);freezeColors;
                 runs.update_eddy_contour(he,i);
-                runs.update_title(['CS dye | z = ' num2str(depth) 'm'],ht,i);
+                runs.update_title(ht,titlestr,i);
                 set(hq,'UData',u);
                 set(hq,'VData',v);
                 runs.video_update();
@@ -1527,9 +1651,9 @@ classdef runs < handle
                     shading flat
                 end
             else
-                if strcmpi(plottype,'contourf')
-                    hplot = contourf(runs.rgrid.xr/1000,runs.rgrid.yr/1000, ...
-                        runs.zeta(:,:,tt));
+                if strcmpi(plottype,'contourf') || strcmpi(plottype,'contour')
+                    eval(['[cc,hplot] = ' plottype '(runs.rgrid.xr/1000,runs.rgrid.yr/1000,'...
+                        'runs.zeta(:,:,tt));']);
                     shading flat
                 end
             end
@@ -1566,7 +1690,7 @@ classdef runs < handle
         function [ht] = set_title(runs,titlestr,tt)
             ht = title([titlestr ' | ' runs.name ' | ' num2str(runs.time(tt)/86400)  ' days']);
         end
-        function update_title(runs,titlestr,ht,tt)
+        function update_title(runs,ht,titlestr,tt)
             set(ht,'String',[titlestr ' | ' runs.name ' | ' num2str(runs.time(tt)/86400)  ' days']);
         end
         
@@ -1575,7 +1699,7 @@ classdef runs < handle
             if strcmpi(plottype,'contour')
                 [cc,hplot] = contour(runs.rgrid.xr/1000,runs.rgrid.yr/1000, ...
                                 runs.rgrid.h',[200 500 1000 1500 2000],'k');
-                clabel(cc,hplot);
+                clabel(cc,hplot,'LabelSpacing',108*3);
                 if runs.bathy.axis == 'y'
                     liney(runs.bathy.xsb/1000,'shelfbreak',color);
                     liney(runs.bathy.xsl/1000,'slopebreak',color);
