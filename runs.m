@@ -718,9 +718,9 @@ classdef runs < handle
             % This has to be done after interpolating to constant z-level
             % because you can't take a constant z-level mean otherwise
             yend = find_approx(runs.rgrid.y_rho(:,1),100*1000);
-            t0 = runs.eddy.trevind-25;
+            t0 = runs.eddy.trevind;
             read_start = [1 1 1 t0];
-            read_count = [Inf yend Inf 40];
+            read_count = [Inf yend Inf Inf];
             
             zdye = ncread(runs.out_file,'dye_02', ...
                             read_start,read_count);
@@ -743,6 +743,8 @@ classdef runs < handle
             xr = runs.rgrid.xr(:,1:yend)/1000; yr = runs.rgrid.yr(:,1:yend)/1000;
             yzw = repmat(yr(1,:)', [1 runs.rgrid.N+1]);
             yzr = repmat(yr(1,:)', [1 runs.rgrid.N]);
+            zw = permute(runs.rgrid.z_w(:,1:yend,:),[3 2 1]);
+            
 %             figure;
 %             for tt = 1:size(zdye,4)
 %                 clf;
@@ -772,10 +774,13 @@ classdef runs < handle
                         
             
             % identify streamer again, but now with 4D data
+            % this is more general compared to streamer2
             streamer = fillnan( (csdye > xsb-10) & (csdye < xsb+30) ...
                            , 0);
+                                   
             % number of west of eddy's west edge for streamer cross section
             dx = 4;
+            
             % (xs,ys,zs) are the Eulerian x,y,z values
             %xs = bsxfun(@times, streamer, grd.xax)/1000;
             ys = bsxfun(@times, streamer, grd.yax)/1000;
@@ -793,7 +798,51 @@ classdef runs < handle
             end
             %dz = zdye - zs;
             
-            zw = permute(runs.rgrid.z_w(:,1:yend,:),[3 2 1]);
+            % make streamer section - with more processing
+            % NEED TO ACCOUNT FOR TILTING IN VERTICAL?
+            cx = runs.eddy.cx(t0:t0+read_count(end)-1)/1000;
+            cy = runs.eddy.cy(t0:t0+read_count(end)-1)/1000;
+            ee = runs.eddy.ee(t0:t0+read_count(end)-1)/1000;
+            % hack if eddy center is outside extracted domain
+            cy(cy > max(yr(:))) = max(yr(:));
+            cxind = vecfind(xr(:,1),cx);
+            cyind = vecfind(yr(1,:),cy)';
+            
+            %r = sqrt(bsxfun(@minus,xr,permute(cx,[3 1 2])).^2 ...
+            %       + bsxfun(@minus,yr,permute(cy,[3 1 2])).^2);
+            % picking only western streamer
+            streamer2 = squeeze(streamer(:,:,end,:)  ... % streamer
+                        ... % parcels have moved more than 5 km in the cross-shelf dirn.
+                             .* (abs(dcs(:,:,end,:))>5)) ...
+                        ... % remove eastern half
+                             .* ( bsxfun(@lt, xr, ...
+                                  permute(ee + runs.params.eddy.dia/2000,[3 1 2])));
+                              
+             stream = repnan(streamer2(:,:,end),0);
+           
+%             streamer2 = fillnan(streamer2,0); 
+%             xs2 = bsxfun(@times, streamer2, xr);
+%             ys2 = bsxfun(@times, streamer2, yr);
+%             rstreamer = r .* streamer2;
+%             find mean r in along-stream direction.
+%             rs = squeeze(nanmean(rstreamer,1));
+%             
+%             divide streamer into E-W & N-S halves to account for
+%             multiple valued contour
+%             for tt = 1:size(streamer2,3)
+%                 xsect = [squeeze(nanmean(xs2(1:cxind,1:end,tt),1)) ...
+%                          ... %cut_nan(squeeze(nanmean(xs2(1:cxind,cyind+1:end,tt),1))) ...
+%                          squeeze(nanmean(xs2(cxind+1:end,1:end,tt),1))];% ...
+%                          ...%cut_nan(squeeze(nanmean(xs2(cxind+1:end,cyind+1:end,tt),1)))]; 
+%                 ysect = fillnan(~isnan(xsect),0) .* [yr(1,:) yr(1,:)];     
+%                 xsect = cut_nan(xsect);
+%                 ysect = cut_nan(ysect);
+%                 ysect = [cut_nan(squeeze(nanmean(ys2(1:cxind,1:cyind,tt),2)))' ...
+%                        cut_nan(squeeze(nanmean(ys2(1:cxind,cyind+1:end,tt),2)))' ...
+%                         cut_nan(squeeze(nanmean(ys2(cxind+1:end,1:cyind,tt),2)))' ...
+%                         cut_nan(squeeze(nanmean(ys2(cxind+1:end,cyind+1:end,tt),2)))']; 
+%             end
+            
             
             % vertically integrated w in streamer
             WS = squeeze( nansum( bsxfun(@times,avg1(w,3).*streamer, diff(zw,1,3) ) ...
@@ -809,7 +858,7 @@ classdef runs < handle
             
             figure; 
            %% animate depth integrated w in streamer
-            clf; ii=1; maximize();
+            figure;clf; ii=1; maximize();
             %subplot(231); subplot(232); subplot(233);
             %subplot(234); subplot(235); subplot(236);
             %spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
