@@ -1,4 +1,4 @@
-classdef runs < handle
+    classdef runs < handle
     properties
         % dir & file names
         name; dir; out_file; ltrans_file; flt_file; givenFile
@@ -51,7 +51,23 @@ classdef runs < handle
             runs.flt_file = [dir '/ocean_flt.nc'];
             runs.ltrans_file = [dir '/ltrans.nc'];
             
-            runs.rgrid = roms_get_grid(runs.out_file,runs.out_file,0,1);
+            if ~runs.givenFile
+                runs.zeta = roms_read_data(dir,'zeta');
+                runs.time = roms_read_data(dir,'ocean_time');
+                filename = dir;
+                %try
+                %    runs.csdye  = roms_read_data(dir,'dye_01', ...
+                %        [1 1 runs.rgrid.N 1],[Inf Inf 1 Inf]);
+                %catch ME
+                %end
+            else
+                runs.zeta = double(ncread(runs.out_file,'zeta'));
+                runs.time = double(ncread(runs.out_file,'ocean_time'));
+                filename = runs.out_file;
+            end
+            
+            runs.rgrid = roms_get_grid(runs.out_file,runs.out_file, ...
+                            runs.zeta(:,:,1)',1);
             runs.rgrid.xr = runs.rgrid.x_rho';
             runs.rgrid.yr = runs.rgrid.y_rho';
             runs.rgrid.zr = permute(runs.rgrid.z_r,[3 2 1]);
@@ -73,24 +89,13 @@ classdef runs < handle
                         /mean(runs.rgrid.f(:));
             
             % fill bathy
-            [runs.bathy.xsb,runs.bathy.isb,runs.bathy.hsb] = find_shelfbreak(runs.out_file);
-            [runs.bathy.xsl,runs.bathy.isl,runs.bathy.hsl] = find_shelfbreak(runs.out_file,'slope');
+            [runs.bathy.xsb,runs.bathy.isb,runs.bathy.hsb] = ...
+                            find_shelfbreak(runs.out_file);
+            [runs.bathy.xsl,runs.bathy.isl,runs.bathy.hsl] = ...
+                            find_shelfbreak(runs.out_file,'slope');
             runs.bathy.h = runs.rgrid.h';
             
-            if ~runs.givenFile
-                runs.zeta = roms_read_data(dir,'zeta');
-                runs.time = roms_read_data(dir,'ocean_time');
-                filename = dir;
-                %try
-                %    runs.csdye  = roms_read_data(dir,'dye_01', ...
-                %        [1 1 runs.rgrid.N 1],[Inf Inf 1 Inf]);
-                %catch ME
-                %end
-            else
-                runs.zeta = double(ncread(runs.out_file,'zeta'));
-                runs.time = double(ncread(runs.out_file,'ocean_time'));
-                filename = runs.out_file;
-            end
+            
             
             % read in dye surface fields
             for ii=1:4
@@ -242,6 +247,45 @@ classdef runs < handle
         % create ltrans init file from roms out
         function [] = ltrans_create_from_roms(runs)
             ltrans_create_from_roms('ltrans_init_compare.txt',runs.flt_file,runs.rgrid);
+        end
+        
+        %% conservation checks
+        function [] = check_temp(runs)
+            
+            
+            visc2 = ncread(runs.out_file,'visc2_r');
+            visc2 = visc2 - min(visc2(:));
+            
+            figure;
+            subplot(121)
+            pcolorcen(runs.zeta(:,:,1)');
+            hold on
+            contour(visc2',[1 1]*3,'k');
+            caxis([min(runs.zeta(:)) max(runs.zeta(:))]);
+            
+            n = 15;
+            [x,y] = ginput(n);
+            xi = ceil(x); yi = ceil(y);
+            plot(xi,yi,'x','MarkerSize',12);
+            
+            for ii=1:n
+                text(xi(ii),yi(ii),num2str(ii));
+                temp(:,:,ii) = dc_roms_read_data(runs.dir,'temp', [], ...
+                        {'x' xi(ii) xi(ii); 'y' yi(ii) yi(ii)});
+                    
+                dz(:,ii) = diff(runs.rgrid.z_w(:,yi(ii),xi(ii)));
+            end
+            
+            % depth integrated
+            itemp = squeeze(sum( ...
+                        bsxfun(@times, temp, permute(dz,[1 3 2])), 1));
+                    
+            % depth averaged
+            atemp = bsxfun(@rdivide,itemp,diag(runs.rgrid.h(yi,xi))');
+            subplot(122)
+            plot(bsxfun(@minus,atemp, mean(atemp,1)));
+            legend(gca,'show');
+            xlabel('Time (days)'); ylabel('Depth averaged temperature (without mean)');
         end
         
        %% analysis
