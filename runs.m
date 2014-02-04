@@ -252,7 +252,6 @@
         %% conservation checks
         function [] = check_temp(runs)
             
-            
             visc2 = ncread(runs.out_file,'visc2_r');
             visc2 = visc2 - min(visc2(:));
             
@@ -639,7 +638,7 @@
             tloc = [100 120];
             limx = [0 max(runs.time)/86400];
             hold on
-            subplot(aa,2,[1:2:bb-4]); hold all
+            subplot(aa,2,1); hold all
             %pcolorcen(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.bathy.h);            colorbar
             xlabel('X (km)'); ylabel('Y (km)');
             plot((eddy.cx-eddy.cx(1))/1000, ...
@@ -658,11 +657,11 @@
             %axis image; axis tight
             
             subplot(aa,2,2); hold on
-            plot(eddy.t,eddy.amp./eddy.amp(1),'Color',colors(ii,:));
+            plot(eddy.t,eddy.vor.amp./eddy.amp(1),'Color',colors(ii,:));
             ylabel('amp/amp(1) ');xlim(limx);
             
             subplot(aa,2,4); hold on
-            plot(eddy.t,eddy.dia/1000,'Color',colors(ii,:));
+            plot(eddy.t,eddy.vor.dia/1000,'Color',colors(ii,:));
             ylabel('diameter (km)');xlim(limx);
             
             subplot(aa,2,6); hold on
@@ -690,7 +689,7 @@
             xlabel('time (days)');
             ylabel('Proximity (km)');xlim(limx);
             
-            subplot(aa,2,[9 11]); hold on
+            subplot(aa,2,11); hold on
             hp = plot(eddy.t,eddy.hcen,'Color',colors(ii,:));
             addlegend(hp,runs.name,'SouthWest');
 %             plot(eddy.t,runs.params.phys.f0 / sqrt(runs.params.phys.N2) * runs.eddy.dia,'Color',colors(ii,:),'LineStyle','--');
@@ -761,17 +760,24 @@
             % surface and near bottom upwelling.
             % This has to be done after interpolating to constant z-level
             % because you can't take a constant z-level mean otherwise
-            yend = find_approx(runs.rgrid.y_rho(:,1),100*1000);
-            t0 = runs.eddy.trevind;
+            yend = find_approx(runs.rgrid.y_rho(:,1),130*1000);
+            t0 = 65;runs.eddy.trevind;
             read_start = [1 1 1 t0];
-            read_count = [Inf yend Inf Inf];
+            read_count = [Inf yend Inf 10];
             
-            zdye = ncread(runs.out_file,'dye_02', ...
-                            read_start,read_count);
-            csdye = ncread(runs.out_file,'dye_01', ...
-                            read_start, read_count)/1000;
-            w = ncread(runs.out_file,'w', ...
-                            read_start, read_count);
+            zdye = dc_roms_read_data(runs.dir, 'dye_02', ...
+                        [t0 t0+read_count(end)-1],{'y' 1 yend});
+            csdye = dc_roms_read_data(runs.dir, 'dye_01', ...
+                        [t0 t0+read_count(end)-1],{'y' 1 yend})/1000;
+            w = dc_roms_read_data(runs.dir, 'w', ...
+                        [t0 t0+read_count(end)-1],{'y' 1 yend});
+            
+            %zdye = ncread(runs.out_file,'dye_02', ...
+            %                read_start,read_count);
+            %csdye = ncread(runs.out_file,'dye_01', ...
+            %                read_start, read_count)/1000;
+            %w = ncread(runs.out_file,'w', ...
+            %                read_start, read_count);
             %asdye = double(ncread(runs.out_file,'dye_03', ...
             %                [1 1 1 runs.eddy.trevind],[Inf Inf Inf 20]))/1000;
             
@@ -861,8 +867,59 @@
                         ... % remove eastern half
                              .* ( bsxfun(@lt, xr, ...
                                   permute(ee + runs.params.eddy.dia/2000,[3 1 2])));
-                              
-             stream = repnan(streamer2(:,:,end),0);
+             %%                 
+             tt = size(streamer2,3);
+             stream = repnan(streamer2(:,:,tt),0);
+
+             % get biggest part - assume it's what i'm interested in
+             strcomps = bwconncomp(stream);
+             numPixels = cellfun(@numel,strcomps.PixelIdxList);
+             [biggest,idx] = max(numPixels);
+             stream(strcomps.PixelIdxList{idx}) = 2;
+             stream(stream < 2) = 0; stream(stream == 2) = 1;
+             
+             % code from
+             % http://blogs.mathworks.com/steve/2014/01/07/automating-data-extraction-2/
+             skeleton = bwmorph(stream,'skel','inf');
+             branchPoints = bwmorph(skeleton,'branchpoints');
+             branchPoints = imdilate(branchPoints,strel('disk',3));
+             %now i've broken skeleton into branches
+             skel = skeleton & ~branchPoints;
+             skelcomps = bwconncomp(skel);
+             %%find distance from eddy center?
+             distcen = sqrt( (skel.*xr - cx(tt)).^2 + (skel.*yr - cy(tt)).^2 );
+             distcen = distcen .* fillnan(skel,0);
+             for ii = 1:skelcomps.NumObjects
+                meandist(ii) = nanmean(distcen(skelcomps.PixelIdxList{ii}));
+             end
+             % sort by distance, then chuck top 20%
+             [sorted,sortidx] = sort(meandist);
+             indices = skelcomps.PixelIdxList{ sortidx(1: floor(0.8*length(sortidx)) ) };
+             skel2 = zeros(size(skel));
+             skel2(indices) = 1;
+             dx = 1.5; dy = 1.5;
+             ixstr = cut_nan(skel2(:) .* xr(:)/dx);
+             iystr = cut_nan(skel2(:) .* yr(:)/dy);
+             
+             % distance from perimeter
+             distper = bwdist(~stream);
+             cxind(tt) = 187;
+             [~,index1] = max(distper(1:cxind(tt),:));
+             [~,index2] = max(distper(cxind(tt):end,:));
+             index1(index1 == 1) = NaN;
+             index2(index2 == 1) = NaN;
+             index2 = index2+cxind(tt);
+             idxx = [index1(:); index2(:)]';
+             idxy = [1:size(streamer,2) 1:size(streamer,2)];
+             
+             subplot(121)
+             imagesc(double(stream'));
+             hold on;
+             plot(idxx,idxy,'bx','markersize',8);
+             plot(ixstr,iystr,'ko','markersize',8);
+             
+             %%
+             
            
 %             streamer2 = fillnan(streamer2,0); 
 %             xs2 = bsxfun(@times, streamer2, xr);
@@ -1022,6 +1079,7 @@
             
                             
         end
+        
         
        %% animation functions
         
