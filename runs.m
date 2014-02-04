@@ -756,21 +756,19 @@
         
         % distribution of cs-z dyes
         function [] = distrib_csz(runs)
-            % lets subtract out mean at each z-level to account for near
-            % surface and near bottom upwelling.
-            % This has to be done after interpolating to constant z-level
-            % because you can't take a constant z-level mean otherwise
+            
+            % upper y-limit to save memory
             yend = find_approx(runs.rgrid.y_rho(:,1),130*1000);
             t0 = 65;runs.eddy.trevind;
-            read_start = [1 1 1 t0];
-            read_count = [Inf yend Inf 10];
+            read_start = [1 1 1 t0-20];
+            read_count = [Inf yend Inf 30];
+            tindices = [t0 t0+read_count(end)-1];
             
-            zdye = dc_roms_read_data(runs.dir, 'dye_02', ...
-                        [t0 t0+read_count(end)-1],{'y' 1 yend});
-            csdye = dc_roms_read_data(runs.dir, 'dye_01', ...
-                        [t0 t0+read_count(end)-1],{'y' 1 yend})/1000;
-            w = dc_roms_read_data(runs.dir, 'w', ...
-                        [t0 t0+read_count(end)-1],{'y' 1 yend});
+            % read csdye to identify streamer
+            csdye = dc_roms_read_data(runs.dir, 'dye_01', tindices, {'y' 1 yend})/1000;
+            % read 2 to calculate dpeth integrated upwelling/downwelling
+            % before time loop
+            w = dc_roms_read_data(runs.dir, 'w', tindices, {'y' 1 yend});
             
             %zdye = ncread(runs.out_file,'dye_02', ...
             %                read_start,read_count);
@@ -781,8 +779,7 @@
             %asdye = double(ncread(runs.out_file,'dye_03', ...
             %                [1 1 1 runs.eddy.trevind],[Inf Inf Inf 20]))/1000;
             
-            % depth to interpolate to
-            depth = 100;
+            % co-ordinate axes
             xsb = runs.bathy.xsb/1000;
             [grd.xax,grd.yax,grd.zax,~,~,~] = dc_roms_var_grid(runs.rgrid,'temp');
             grd.xax = grd.xax(:,1:yend,:);
@@ -791,33 +788,12 @@
             
             % grid matrices required for plotting        
             xr = runs.rgrid.xr(:,1:yend)/1000; yr = runs.rgrid.yr(:,1:yend)/1000;
+            ix = repmat([1:size(xr,1)]',[1 yend]);
+            iy = repmat([1:yend],[size(xr,1) 1]);
             yzw = repmat(yr(1,:)', [1 runs.rgrid.N+1]);
             yzr = repmat(yr(1,:)', [1 runs.rgrid.N]);
             zw = permute(runs.rgrid.z_w(:,1:yend,:),[3 2 1]);
             
-%             figure;
-%             for tt = 1:size(zdye,4)
-%                 clf;
-%                 tind = runs.eddy.trevind + tt;
-%                 % interpolate to a given depth
-%                 zdyein = dc_roms_zslice_var(zdye(:,:,:,tt),depth,grd);
-%                 csdyein = dc_roms_zslice_var(csdye(:,:,:,tt),depth,grd);
-%                 
-%                 % define streamer
-%                 streamer = fillnan((csdyein > xsb-10) & (csdyein < xsb+30) ...
-%                             & (runs.rgrid.x_rho' < runs.eddy.cx(tind)),0);
-%                 %streamer = fillnan( csdyein < xsb, 0);
-%                 
-%                 % remove mean to show up/down-welling
-%                 zdyein_demean = zdyein - nanmean(zdyein(:));
-%                 
-%                 % visualize
-%                 pcolorcen((zdyein_demean .* streamer)');
-%                 hold on
-%                 contour(runs.eddy.mask(:,:,tind)','k','LineWidth',2);
-%                 pause();
-%             end
-%             
             % mask of points west of eddy center
             %west_mask = bsxfun(@lt,repmat(runs.rgrid.x_rho',[1 1 runs.rgrid.N]), ...
             %               permute(runs.eddy.cx(runs.eddy.trevind:runs.eddy.trevind+19), [1 3 4 2]));
@@ -827,10 +803,7 @@
             % this is more general compared to streamer2
             streamer = fillnan( (csdye > xsb-10) & (csdye < xsb+30) ...
                            , 0);
-                                   
-            % number of west of eddy's west edge for streamer cross section
-            dx = 4;
-            
+                      
             % (xs,ys,zs) are the Eulerian x,y,z values
             %xs = bsxfun(@times, streamer, grd.xax)/1000;
             ys = bsxfun(@times, streamer, grd.yax)/1000;
@@ -867,60 +840,261 @@
                         ... % remove eastern half
                              .* ( bsxfun(@lt, xr, ...
                                   permute(ee + runs.params.eddy.dia/2000,[3 1 2])));
-             %%                 
-             tt = size(streamer2,3);
-             stream = repnan(streamer2(:,:,tt),0);
+                              
+            % vertically integrated w - plan view - in streamer
+            WS = squeeze( nansum( bsxfun(@times,avg1(w,3).*streamer2, diff(zw,1,3) ) ...
+                                   , 3) );
+                             
+             for tt = 1:size(streamer2,3);
+               
+                 stream = repnan(streamer2(:,:,tt),0);
 
-             % get biggest part - assume it's what i'm interested in
-             strcomps = bwconncomp(stream);
-             numPixels = cellfun(@numel,strcomps.PixelIdxList);
-             [biggest,idx] = max(numPixels);
-             stream(strcomps.PixelIdxList{idx}) = 2;
-             stream(stream < 2) = 0; stream(stream == 2) = 1;
-             
-             % code from
-             % http://blogs.mathworks.com/steve/2014/01/07/automating-data-extraction-2/
-             skeleton = bwmorph(stream,'skel','inf');
-             branchPoints = bwmorph(skeleton,'branchpoints');
-             branchPoints = imdilate(branchPoints,strel('disk',3));
-             %now i've broken skeleton into branches
-             skel = skeleton & ~branchPoints;
-             skelcomps = bwconncomp(skel);
-             %%find distance from eddy center?
-             distcen = sqrt( (skel.*xr - cx(tt)).^2 + (skel.*yr - cy(tt)).^2 );
-             distcen = distcen .* fillnan(skel,0);
-             for ii = 1:skelcomps.NumObjects
-                meandist(ii) = nanmean(distcen(skelcomps.PixelIdxList{ii}));
+                 % get biggest part - assume it's what i'm interested in
+                 strcomps = bwconncomp(stream);
+                 numPixels = cellfun(@numel,strcomps.PixelIdxList);
+                 [biggest,idx] = max(numPixels);
+                 stream(strcomps.PixelIdxList{idx}) = 2;
+                 stream(stream < 2) = 0; stream(stream == 2) = 1;
+
+                 % code from
+                 % http://blogs.mathworks.com/steve/2014/01/07/automating-data-extraction-2/
+                 skeleton = bwmorph(stream,'skel','inf');
+                 branchPoints = bwmorph(skeleton,'branchpoints');
+                 branchPoints = imdilate(branchPoints,strel('disk',3));
+                 %now i've broken skeleton into branches
+                 skel = skeleton & ~branchPoints;
+                 skelcomps = bwconncomp(skel);
+                 %%find distance from eddy center?
+                 distcen = sqrt( (skel.*xr - cx(tt)).^2 + (skel.*yr - cy(tt)).^2 );
+                 distcen = distcen .* fillnan(skel,0);
+                 clear meandist
+                 for ii = 1:skelcomps.NumObjects
+                    meandist(ii) = nanmean(distcen(skelcomps.PixelIdxList{ii}));
+                 end
+                 % sort by distance
+                 [sorted,sortdist] = sort(meandist);
+                 %, then chuck top 20%
+                 %indices = cat(1, ...
+                 %    skelcomps.PixelIdxList{ sortdist(1: floor(0.8*length(sortdist)) ) });
+                 %indices = skelcomps.PixelIdxList{sortdist(1)};
+                 numPixels = cellfun(@numel,skelcomps.PixelIdxList);
+                 [~,sortnum] = sort(numPixels);
+                 
+                 % remove farthest away segment for sure
+                 sortnum( sortnum == sortdist(end) ) = NaN;
+                 sortnum = cut_nan(sortnum);
+                 
+                 indices = skelcomps.PixelIdxList{sortnum(end)};
+                 skel2 = zeros(size(skel));
+                 skel2(indices) = 1;
+                 ixstr = cut_nan(fillnan(skel2(:) .* ix(:),0));
+                 iystr = cut_nan(fillnan(skel2(:) .* iy(:),0));
+
+                 % distance from perimeter - NOT QUITE AS GOOD
+%                  distper = bwdist(~stream);
+%                  cxind(tt) = 187;
+%                  [~,index1] = max(distper(1:cxind(tt),:));
+%                  [~,index2] = max(distper(cxind(tt):end,:));
+%                  index1(index1 == 1) = NaN;
+%                  index2(index2 == 1) = NaN;
+%                  index2 = index2+cxind(tt);
+%                  idxx = [index1(:); fliplr(index2(:))]';
+%                  idxy = [1:size(streamer,2) fliplr(1:size(streamer,2))];
+%                  polyline = [cut_nan(idxx)' (cut_nan(idxy .* idxx)./cut_nan(idxx))'];
+%                   % testing streamer cross-section detection
+%                  clf
+%                  subplot(211)
+%                  imagesc(double(stream'));
+%                  set(gca,'ydir','normal');
+%                  hold on;
+%                  plot(idxx,idxy,'bx','markersize',8);
+%                  plot(ixstr,iystr,'ko','markersize',8);
+%                  title(num2str(tt));
+%                  subplot(212)
+%                  imagesc(double(skel2'));
+%                  set(gca,'ydir','normal');
+
+                    % streamer has been identified - now extract data section
+
+                    volume = {'x' min(ixstr) max(ixstr);
+                              'y' min(iystr) max(iystr)};
+
+                    %wstr = avg1(dc_roms_read_data(runs.dir, 'w', t0+tt-1,volume),3);
+                    % w was read earlier - just extract once
+                    wstr = w(volume{1,2}:volume{1,3}, volume{2,2}:volume{2,3}, :,tt);
+                    zdye = dc_roms_read_data(runs.dir, 'dye_02', t0+tt-1,volume);
+                    zr = permute(runs.rgrid.z_r(:,volume{2,2}:volume{2,3}, ...
+                                volume{1,2}:volume{1,3}),[3 2 1]);
+
+                    sz = [size(wstr,1) size(wstr,2)];
+                    wstr = reshape(wstr, sz(1) * sz(2), size(wstr,3));
+                    zdye = reshape(wstr, sz(1) * sz(2), size(zdye,3));
+                    zr = reshape(zr, sz(1) * sz(2), size(zr,3));
+
+                    % extract streamer section - indicated by suffix 'ex'
+                    inc = sub2ind(sz, ixstr - min(ixstr(:)) + 1, ...
+                                iystr - min(iystr(:)) + 1);
+                    wex = wstr(inc,:);
+                    zdyeex = zdye(inc,:);
+                    zrex = zr(inc,:);
+                    xex = repmat([1:size(zrex,1)]',[1 size(zrex,2)]);
+        
+                    % index of western & eastern edges
+                    %wind = vecfind(xr(:,1), runs.eddy.vor.we/1000);
+                    %eind = vecfind(xr(:,1), runs.eddy.vor.ee/1000);
+
+                    % colorbar for vertical vel cross-section
+                    wcolor = sort( [-1 1] * max(max(abs( ...
+                                        log10(abs(w(sort([eind wind]),:))) ))) )/2;
+
+                   %% animate depth integrated w in streamer
+                    figure;clf; ii=1; maximize();
+                    %subplot(231); subplot(232); subplot(233);
+                    %subplot(234); subplot(235); subplot(236);
+                    %spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
+                    tindex = t0+ii-1;
+                    windex = wind(tindex)-dx; % for cross-section
+                    eindex = eind(tindex)-dx; % for cross-section
+                    zlimit = [-1000 0];
+
+                    if tt == 1
+                        subplot(231)
+                        titlestr = 'Depth integrated w in streamer (blue)';
+                        hws = pcolorcen(xr,yr,double(WS(:,:,ii))); shading flat;
+                        hxw = linex(xr(windex,1));
+                        hxe = linex(xr(eindex,1));
+                        hold on;
+                        [~,hs] = contour(xr,yr,repnan(streamer(:,:,40,ii),0), ...
+                                        1,'b','LineWidth',2);
+                        he = runs.plot_eddy_contour('contour',tindex);
+                        runs.plot_bathy('contour','k');
+                        colormap(flipud(cbrewer('div','RdBu',32)));
+                        caxis([-1 1] * max(abs([nanmin(WS(:)) nanmax(WS(:))])));
+                        colorbar; %cbunits('m^2/s'); 
+                        ht = runs.set_title(titlestr,tindex);
+
+
+                        % depth of 'streamer'
+                        subplot(234)
+                        hz = pcolorcen(xr,yr,double(max(abs(zs(:,:,:,ii)),[],3)));
+                        hold on;
+                        hcb = colorbar;  caxis([0 max(abs(zs(:)))]);cbunits('[m]');
+                        hzeta = runs.plot_zeta('contour',tindex);
+                        title('Depth of ''streamer''');
+                        %colormap(cbrewer('seq','Blues',32));
+                        %xlim([100 400]); 
+                        %ylim([0 140]);
+
+                        % vertical vel - west cross-section
+                        subplot(232)
+                        [hwcs] = pcolorcen(yzw,squeeze(zw(1,:,:)), ...
+                                        double(squeeze( ...
+                                            sign(w(windex,:,:,ii)) .* log10(abs(w(windex,:,:,ii))) ...
+                                                )));
+                        colorbar; caxis(wcolor);
+                        ylim(zlimit); linex(runs.bathy.xsl/1000,'slopebreak','w');
+                        hcw = linex(runs.eddy.vor.cy(tindex)/1000);
+                        ylabel('Z (m)'); xlabel('Y (km)');
+                        title('cross-section of log_{10}(w)');
+
+                        % vertical vel - east cross-section
+                        subplot(235)
+                        [hecs] = pcolorcen(yzw,squeeze(zw(1,:,:)), ...
+                                        double(squeeze( ...
+                                        sign(w(eindex,:,:,ii)) .* log10(abs( w(eindex,:,:,ii) )) ...
+                                        )));
+                        colorbar; caxis(wcolor);
+                        ylim(zlimit); 
+                        linex(runs.bathy.xsl/1000,'slopebreak','w');
+                        hce = linex(runs.eddy.vor.cy(tindex)/1000);
+                        ylabel('Z (m)'); xlabel('Y (km)');
+                        title('cross-section of log_{10}(w)');
+
+
+                        % z-dye - west cross-section
+                        subplot(233)
+                        [~,hwz] = contourf(yzr,squeeze(grd.zax(1,:,:)), ...
+                                        double(squeeze(zdye(windex,:,:,ii))), ...
+                                        linspace(zlimit(1),zlimit(2),20));
+                        colorbar; caxis(zlimit);
+                        ylim(zlimit); linex(runs.bathy.xsl/1000,'slopebreak','w');
+                        hcw = linex(runs.eddy.vor.cy(tindex)/1000);
+                        ylabel('Z (m)'); xlabel('Y (km)');
+                        title('cross-section of z-dye | need to adjust for BC');
+
+                        % zdye - east cross-section
+                        subplot(236)
+                        [~,hez] = contourf(yzr,squeeze(grd.zax(1,:,:)), ...
+                                        double(squeeze( zdye(eindex,:,:,ii) )), ....
+                                        linspace(zlimit(1),zlimit(2),20));
+                        colorbar; caxis(zlimit);
+                        ylim(zlimit); 
+                        linex(runs.bathy.xsl/1000,'slopebreak','w');
+                        hce = linex(runs.eddy.vor.cy(tindex)/1000);
+                        ylabel('Z (m)'); xlabel('Y (km)');
+                        title('cross-section of z-dye | need to adjust for BC');
+
+                        spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
+                        pause();         
+
+                    else
+                        tindex = t0+tt-1;
+                        % for cross-section
+                        windex = wind(tindex)-dx; 
+                        eindex = eind(tindex)+dx;
+
+                        set(hws ,'CData',double(WS(:,:,tt)));
+                        set(hs  ,'ZData',repnan(streamer(:,:,40,tt),0));
+
+                        set(hz  ,'CData',double(max(abs(zs(:,:,:,ii)),[],3)));
+
+                        set(hwcs,'CData',double(squeeze( ...
+                            sign(w(eindex,:,:,ii)) .* log10(abs( w(windex,:,:,ii) )) )));
+                        set(hecs,'CData',double(squeeze( ...
+                            sign(w(eindex,:,:,ii)) .* log10(abs( w(eindex,:,:,ii))) )));
+
+                        set(hwz ,'ZData',double(squeeze( zdye(windex,:,:,ii) )));
+                        set(hez ,'ZData',double(squeeze( zdye(eindex,:,:,ii) )));
+
+                        set(hxw ,'XData',[1 1]*xr(windex,1));
+                        set(hxe ,'XData',[1 1]*xr(eindex,1));
+                        set(hce ,'XData',[1 1]*runs.eddy.vor.cy(tindex)/1000);
+                        set(hcw ,'XData',[1 1]*runs.eddy.vor.cy(tindex)/1000);
+
+                        runs.update_zeta(hzeta,tindex);
+                        runs.update_eddy_contour(he, tindex);
+                        runs.update_title(ht,titlestr,tindex);
+                        pause();
+                    end
              end
-             % sort by distance, then chuck top 20%
-             [sorted,sortidx] = sort(meandist);
-             indices = skelcomps.PixelIdxList{ sortidx(1: floor(0.8*length(sortidx)) ) };
-             skel2 = zeros(size(skel));
-             skel2(indices) = 1;
-             dx = 1.5; dy = 1.5;
-             ixstr = cut_nan(skel2(:) .* xr(:)/dx);
-             iystr = cut_nan(skel2(:) .* yr(:)/dy);
-             
-             % distance from perimeter
-             distper = bwdist(~stream);
-             cxind(tt) = 187;
-             [~,index1] = max(distper(1:cxind(tt),:));
-             [~,index2] = max(distper(cxind(tt):end,:));
-             index1(index1 == 1) = NaN;
-             index2(index2 == 1) = NaN;
-             index2 = index2+cxind(tt);
-             idxx = [index1(:); index2(:)]';
-             idxy = [1:size(streamer,2) 1:size(streamer,2)];
-             
-             subplot(121)
-             imagesc(double(stream'));
-             hold on;
-             plot(idxx,idxy,'bx','markersize',8);
-             plot(ixstr,iystr,'ko','markersize',8);
-             
-             %%
-             
-           
+            
+            %% old stuff
+            %             figure;
+%             for tt = 1:size(zdye,4)
+%                 clf;
+%                 tind = runs.eddy.trevind + tt;
+%                 % interpolate to a given depth
+%                 zdyein = dc_roms_zslice_var(zdye(:,:,:,tt),depth,grd);
+%                 csdyein = dc_roms_zslice_var(csdye(:,:,:,tt),depth,grd);
+%                 
+%                 % define streamer
+%                 streamer = fillnan((csdyein > xsb-10) & (csdyein < xsb+30) ...
+%                             & (runs.rgrid.x_rho' < runs.eddy.cx(tind)),0);
+%                 %streamer = fillnan( csdyein < xsb, 0);
+%                 
+%                 % remove mean to show up/down-welling
+%                 zdyein_demean = zdyein - nanmean(zdyein(:));
+%                 
+%                 % visualize
+%                 pcolorcen((zdyein_demean .* streamer)');
+%                 hold on
+%                 contour(runs.eddy.mask(:,:,tind)','k','LineWidth',2);
+%                 pause();
+%             end
+%             
+
+            %% another streamer attempt
+                          
 %             streamer2 = fillnan(streamer2,0); 
 %             xs2 = bsxfun(@times, streamer2, xr);
 %             ys2 = bsxfun(@times, streamer2, yr);
@@ -943,141 +1117,7 @@
 %                         cut_nan(squeeze(nanmean(ys2(cxind+1:end,1:cyind,tt),2)))' ...
 %                         cut_nan(squeeze(nanmean(ys2(cxind+1:end,cyind+1:end,tt),2)))']; 
 %             end
-            
-            
-            % vertically integrated w in streamer
-            WS = squeeze( nansum( bsxfun(@times,avg1(w,3).*streamer, diff(zw,1,3) ) ...
-                                    , 3) );
-                                
-            % index of western & eastern edges
-            wind = vecfind(xr(:,1), runs.eddy.vor.we/1000);
-            eind = vecfind(xr(:,1), runs.eddy.vor.ee/1000);
-            
-            % colorbar for vertical vel cross-section
-            wcolor = sort( [-1 1] * max(max(abs( ...
-                                log10(abs(w(sort([eind wind]),:))) ))) )/2;
-            
-            figure; 
-           %% animate depth integrated w in streamer
-            figure;clf; ii=1; maximize();
-            %subplot(231); subplot(232); subplot(233);
-            %subplot(234); subplot(235); subplot(236);
-            %spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
-            tindex = t0+ii-1;
-            windex = wind(tindex)-dx; % for cross-section
-            eindex = eind(tindex)-dx; % for cross-section
-            zlimit = [-1000 0];
-            
-            subplot(231)
-            titlestr = 'Depth integrated w in streamer (blue)';
-            hws = pcolorcen(xr,yr,double(WS(:,:,ii))); shading flat;
-            hxw = linex(xr(windex,1));
-            hxe = linex(xr(eindex,1));
-            hold on;
-            [~,hs] = contour(xr,yr,repnan(streamer(:,:,40,ii),0), ...
-                            1,'b','LineWidth',2);
-            he = runs.plot_eddy_contour('contour',tindex);
-            runs.plot_bathy('contour','k');
-            colormap(flipud(cbrewer('div','RdBu',32)));
-            caxis([-1 1] * max(abs([nanmin(WS(:)) nanmax(WS(:))])));
-            colorbar; %cbunits('m^2/s'); 
-            ht = runs.set_title(titlestr,tindex);
-            
-            
-            % depth of 'streamer'
-            subplot(234)
-            hz = pcolorcen(xr,yr,double(max(abs(zs(:,:,:,ii)),[],3)));
-            hold on;
-            hcb = colorbar;  caxis([0 max(abs(zs(:)))]);cbunits('[m]');
-            hzeta = runs.plot_zeta('contour',tindex);
-            title('Depth of ''streamer''');
-            %colormap(cbrewer('seq','Blues',32));
-            %xlim([100 400]); 
-            %ylim([0 140]);
-            
-            % vertical vel - west cross-section
-            subplot(232)
-            [hwcs] = pcolorcen(yzw,squeeze(zw(1,:,:)), ...
-                            double(squeeze( ...
-                                sign(w(windex,:,:,ii)) .* log10(abs(w(windex,:,:,ii))) ...
-                                    )));
-            colorbar; caxis(wcolor);
-            ylim(zlimit); linex(runs.bathy.xsl/1000,'slopebreak','w');
-            hcw = linex(runs.eddy.vor.cy(tindex)/1000);
-            ylabel('Z (m)'); xlabel('Y (km)');
-            title('cross-section of log_{10}(w)');
-            
-            % vertical vel - east cross-section
-            subplot(235)
-            [hecs] = pcolorcen(yzw,squeeze(zw(1,:,:)), ...
-                            double(squeeze( ...
-                            sign(w(eindex,:,:,ii)) .* log10(abs( w(eindex,:,:,ii) )) ...
-                            )));
-            colorbar; caxis(wcolor);
-            ylim(zlimit); 
-            linex(runs.bathy.xsl/1000,'slopebreak','w');
-            hce = linex(runs.eddy.vor.cy(tindex)/1000);
-            ylabel('Z (m)'); xlabel('Y (km)');
-            title('cross-section of log_{10}(w)');
-            
-            
-            % z-dye - west cross-section
-            subplot(233)
-            [~,hwz] = contourf(yzr,squeeze(grd.zax(1,:,:)), ...
-                            double(squeeze(zdye(windex,:,:,ii))), ...
-                            linspace(zlimit(1),zlimit(2),20));
-            colorbar; caxis(zlimit);
-            ylim(zlimit); linex(runs.bathy.xsl/1000,'slopebreak','w');
-            hcw = linex(runs.eddy.vor.cy(tindex)/1000);
-            ylabel('Z (m)'); xlabel('Y (km)');
-            title('cross-section of z-dye | need to adjust for BC');
-            
-            % zdye - east cross-section
-            subplot(236)
-            [~,hez] = contourf(yzr,squeeze(grd.zax(1,:,:)), ...
-                            double(squeeze( zdye(eindex,:,:,ii) )), ....
-                            linspace(zlimit(1),zlimit(2),20));
-            colorbar; caxis(zlimit);
-            ylim(zlimit); 
-            linex(runs.bathy.xsl/1000,'slopebreak','w');
-            hce = linex(runs.eddy.vor.cy(tindex)/1000);
-            ylabel('Z (m)'); xlabel('Y (km)');
-            title('cross-section of z-dye | need to adjust for BC');
-            
-            spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
-            pause();         
-            
-            for ii=2:size(WS,3)
-                tindex = t0+ii-1;
-                % for cross-section
-                windex = wind(tindex)-dx; 
-                eindex = eind(tindex)+dx;
-                
-                set(hws ,'CData',double(WS(:,:,ii)));
-                set(hs  ,'ZData',repnan(streamer(:,:,40,ii),0));
-                
-                set(hz  ,'CData',double(max(abs(zs(:,:,:,ii)),[],3)));
-                
-                set(hwcs,'CData',double(squeeze( ...
-                    sign(w(eindex,:,:,ii)) .* log10(abs( w(windex,:,:,ii) )) )));
-                set(hecs,'CData',double(squeeze( ...
-                    sign(w(eindex,:,:,ii)) .* log10(abs( w(eindex,:,:,ii))) )));
-                
-                set(hwz ,'ZData',double(squeeze( zdye(windex,:,:,ii) )));
-                set(hez ,'ZData',double(squeeze( zdye(eindex,:,:,ii) )));
-                
-                set(hxw ,'XData',[1 1]*xr(windex,1));
-                set(hxe ,'XData',[1 1]*xr(eindex,1));
-                set(hce ,'XData',[1 1]*runs.eddy.vor.cy(tindex)/1000);
-                set(hcw ,'XData',[1 1]*runs.eddy.vor.cy(tindex)/1000);
-                
-                runs.update_zeta(hzeta,tindex);
-                runs.update_eddy_contour(he, tindex);
-                runs.update_title(ht,titlestr,tindex);
-                pause();
-            end
-            
-                            
+                          
         end
         
         
