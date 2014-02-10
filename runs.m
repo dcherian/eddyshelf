@@ -776,18 +776,20 @@ methods
         yend = find_approx(runs.rgrid.y_rho(:,1),130*1000);
         t0 = runs.eddy.trevind;
         %read_start = [1 1 1 t0-20];
-        slab = 10;
-        tindices = [t0 t0+slab-1];
-
-        runs.streamer.time = runs.time(t0:t0+slab-1);
+        slab = 20;
+        
         runs.streamer.yend = yend;
-        csdye = dc_roms_read_data(runs.dir, 'dye_01', tindices, ...
-                    {'y' 1 yend})/1000;
-        zdye  = dc_roms_read_data(runs.dir, 'dye_02', tindices, ...
-                    {'y' 1 yend});
-        %asdye = dc_roms_read_data(runs.dir, 'dye_03', tindices, ...
-        %            {'y' 1 yend});
-
+        
+        szeta = size(runs.zeta);
+        
+        % allocate memory
+        nanvec = nan(size(runs.time));
+        runs.streamer.time = nanvec;
+        runs.streamer.west.vol = nanvec;
+        runs.streamer.west.zcen = nanvec;
+        runs.streamer.west.zdcen = nanvec;
+        % runs.streamer.west.mask = nan(szeta(1), szeta(2), runs.rgrid.N, szeta(3));
+        
         % grid matrices required for plotting     
         xsb = runs.bathy.xsb/1000;
         xr = runs.rgrid.xr(:,1:yend)/1000; 
@@ -795,198 +797,239 @@ methods
         zr = permute(runs.rgrid.z_r(:,1:yend,:),[3 2 1]);
         ix = repmat([1:size(xr,1)]',[1 yend]);
         iy = repmat([1:yend],[size(xr,1) 1]);  
+       
 
         runs.streamer.xr = xr;
         runs.streamer.yr = yr;
         runs.streamer.zr = zr;
+        
+        % size matrices to make processing easier
+        runs.streamer.szfull = [size(zr) slab];
+        runs.streamer.szsparse = [numel(zr) slab];
+        runs.streamer.sz3dsp = [numel(zr) 1];
+        runs.streamer.sz3dfull = size(zr);
+        
+        sz4dfull = runs.streamer.szfull;
+        sz4dsp = runs.streamer.szsparse;
+        sz3dsp = runs.streamer.sz3dsp;
+        sz3dfull = runs.streamer.sz3dfull;
+        
+        % grid cell volume
+        dVs = reshape(runs.rgrid.dV(:,1:runs.streamer.yend,:), sz3dsp); 
 
-        % identify streamer again, but now with 4D data
-        % this is more general compared to streamer2
-        % preliminary detection
-        streamer1 = fillnan( (csdye > xsb-10) & (csdye < xsb+30) ...
-                       , 0);
+        for ii=1:floor(szeta(3)/slab)
+            
+            tstart = t0+ii-1;
+            tend = tstart+slab-1;
+            
+            runs.streamer.time(tstart:tend) = runs.time(tstart:tend);
+            tindices = [tstart tend];
+            
+            csdye = dc_roms_read_data(runs.dir, 'dye_01', tindices, ...
+                        {'y' 1 yend})/1000;
+            zdye  = dc_roms_read_data(runs.dir, 'dye_02', tindices, ...
+                        {'y' 1 yend});
+            %asdye = dc_roms_read_data(runs.dir, 'dye_03', tindices, ...
+            %            {'y' 1 yend});
 
-        % (xs,ys,zs) are the Eulerian x,y,z values
-        %xs = bsxfun(@times, streamer, grd.xax)/1000;
-        ys = bsxfun(@times, streamer1, yr);
-        %zs = bsxfun(@times, streamer, grd.zax);
+            % identify streamer with 4D data
+            % preliminary detection
+            % I use cross-shore label to roughly filter first
+            % eliminate this step somehow and remove the temporary array?
+            streamer1 = (csdye > xsb-10) & (csdye < xsb+30);
 
-        % (as,cs,z) dyes contain the Lagrangian labels
-        % some distance metric between the two will give me an idea of
-        % what's happening
-        if runs.bathy.axis == 'y'
-        %    das = asdye - xs;
-            dcs = csdye - ys;
-        else
-        %    das = asdye - ys;
-            dcs = csdye - xs;
-        end
-        %dz = zdye - zs;
+            % (xs,ys,zs) are the Eulerian x,y,z values
+            %xs = bsxfun(@times, streamer, grd.xax)/1000;
+            %ys = bsxfun(@times, streamer1, yr);
+            %zs = bsxfun(@times, streamer, grd.zax);
 
-        % NEED TO ACCOUNT FOR TILTING IN VERTICAL?
-        cx = runs.eddy.cx(t0:t0+slab-1)/1000;
-        cy = runs.eddy.cy(t0:t0+slab-1)/1000;
-        ee = runs.eddy.ee(t0:t0+slab-1)/1000;
-        % hack if eddy center is outside extracted domain
-        cy(cy > max(yr(:))) = max(yr(:));
-        cxind = vecfind(xr(:,1),cx);
-        cyind = vecfind(yr(1,:),cy)';
+            % (as,cs,z) dyes contain the Lagrangian labels
+            % some distance metric between the two will give me an idea of
+            % what's happening
+            %if runs.bathy.axis == 'y'
+            %    das = asdye - xs;
+            %    dcs = csdye - ys;
+            %else
+            %    das = asdye - ys;
+            %    dcs = csdye - xs;
+            %end
+            %dz = zdye - zs;
 
-        % pick out western streamer by chucking points that are >
-        % eastern edge + initial radius. This allows streamer to wrap
-        % around eddy and not be chopped off.
-        west_mask = bsxfun(@lt, repmat(xr,[1 1 runs.rgrid.N]), ...
-                      permute(ee + runs.params.eddy.dia/2000,[3 4 1 2]));
-        % mask of points west of eddy center - OLD ATTEMPT
-        %west_mask = bsxfun(@lt,repmat(runs.rgrid.x_rho',[1 1 runs.rgrid.N]), ...
-        %               permute(runs.eddy.cx(runs.eddy.trevind:runs.eddy.trevind+19), [1 3 4 2]));
+            % NEED TO ACCOUNT FOR TILTING IN VERTICAL?
+            cx = runs.eddy.cx(tstart:tend)/1000;
+            cy = runs.eddy.cy(tstart:tend)/1000;
+            ee = runs.eddy.ee(tstart:tend)/1000;
+            % hack if eddy center is outside extracted domain
+            cy(cy > max(yr(:))) = max(yr(:));
+            %cxind = vecfind(xr(:,1),cx);
+            %cyind = vecfind(yr(1,:),cy)';
+
+            % pick out western streamer by chucking points that are >
+            % eastern edge + initial radius. This allows streamer to wrap
+            % around eddy and not be chopped off.
+            west_mask = bsxfun(@lt, repmat(xr,[1 1 runs.rgrid.N]), ...
+                          permute(ee + runs.params.eddy.dia/2000,[3 4 1 2]));
+                      
+            % mask of points west of eddy center - OLD ATTEMPT
+            %west_mask = bsxfun(@lt,repmat(runs.rgrid.x_rho',[1 1 runs.rgrid.N]), ...
+            %               permute(runs.eddy.cx(runs.eddy.trevind:runs.eddy.trevind+19), [1 3 4 2]));
 
 
-        %r = sqrt(bsxfun(@minus,xr,permute(cx,[3 1 2])).^2 ...
-        %       + bsxfun(@minus,yr,permute(cy,[3 1 2])).^2);
+            %r = sqrt(bsxfun(@minus,xr,permute(cx,[3 1 2])).^2 ...
+            %       + bsxfun(@minus,yr,permute(cy,[3 1 2])).^2);
 
-        % picking only western streamer
-        runs.streamer.west.mask = squeeze(streamer1  ... % original streamer
-                    ... % parcels have moved more than 5 km 
-                    ... %   in the cross-shelf dirn.
-                         .* (abs(dcs)>5)) ...
-                    ... % remove eastern half
-                         .* (west_mask);
-                    %...     % streamer depth is not total depth
-                    %.* squeeze(bsxfun(@lt,max(abs(zs),[],3), runs.rgrid.h(1:yend,:)'));
+            % picking only western streamer
+            runs.streamer.west.mask = sparse(reshape( ... % optimize storage!
+                        squeeze(streamer1  ... % original streamer
+                        ... % parcels have moved more than 5 km 
+                        ... %   in the cross-shelf dirn.
+                             .* (abs(csdye - bsxfun(@times,streamer1,yr))>5)) ...
+                        ... % remove eastern half
+                             .* (west_mask), ...
+                        sz4dsp));
+                        %...     % streamer depth is not total depth
+                        %.* squeeze(bsxfun(@lt,max(abs(zs),[],3), runs.rgrid.h(1:yend,:)'));
 
-        % compress somehow
-        streamnan = fillnan(runs.streamer.west.mask,0);
-        % calculate statistics
-        %xs = bsxfun(@times, streamnan, xr);
-        %ys = bsxfun(@times, streamnan, yr);
-        zs = bsxfun(@times, streamnan, zr);
+            clear west_mask streamer1;
+            % compress somehow
+            %streamnan = fillnan(runs.streamer.west.mask,0);
+            % calculate statistics
+            %xs = bsxfun(@times, streamnan, xr);
+            %ys = bsxfun(@times, streamnan, yr);
+            zs = bsxfun(@times, runs.streamer.west.mask, reshape(zr,sz3dsp));
 
-        %zdyestr = bsxfun(@times, streamnan, zdye);
-        %csdyestr = bsxfun(@times, streamnan, csdye);
+            zdyestr = bsxfun(@times, runs.streamer.west.mask, ...
+                            reshape(zdye,sz4dsp));
+            %csdyestr = bsxfun(@times, streamnan, csdye);
 
-        %dcs  = abs(csdyestr - ys);
-        %dzd  = abs(zdyestr - zs);
+            %dcs  = abs(csdyestr - ys);
+            %dzd  = abs(zdyestr - zs);
 
-        dVs = runs.rgrid.dV(:,1:runs.streamer.yend,:);
-        % calculate volume
-        % volume of grid cells
-        sz = size(runs.streamer.west.mask);
-        runs.streamer.west.vol = runs.domain_integrate( ...
-            runs.streamer.west.mask, dVs);
+            % calculate volume
+            % volume of grid cells
+            
+            runs.streamer.west.vol(tstart:tend) = runs.domain_integratesp( ...
+                runs.streamer.west.mask, dVs);
 
-        % Haven't used temperature yet
+            % Haven't used temperature yet
 
-        % suffix cen = just centroids
-        % suffix dcen = centroid weighted by dye value
-        runs.streamer.west.zcen = bsxfun(@rdivide, ...
-            runs.domain_integrate(zs,dVs), runs.streamer.west.vol);
-        runs.streamer.west.zdcen = bsxfun(@rdivide,...
-            runs.domain_integrate(zdyestr,dVs), runs.streamer.west.vol);
+            % suffix cen = just centroids
+            % suffix dcen = centroid weighted by dye value
+            runs.streamer.west.zcen(tstart:tend) = bsxfun(@rdivide, ...
+                runs.domain_integratesp(zs,dVs), ...
+                runs.streamer.west.vol(tstart:tend));
+            runs.streamer.west.zdcen(tstart:tend) = bsxfun(@rdivide,...
+                runs.domain_integratesp(zdyestr,dVs), ...
+                runs.streamer.west.vol(tstart:tend));
 
-        % volume v/s depth plot for streamer
-        disp('Binning streamer volume...');
-        tic;
-        dbin = 20;
-        bins = -1*[0:dbin:1000];
-        Vbin = nan([length(bins)-1 sz(4)]);
-        for kk=1:length(bins)-1
-            Vbin(kk,:) = nansum(reshape( ...
-                        bsxfun(@times, (zs <= bins(kk) & zs > bins(kk+1)), ...
-                            dVs), [prod(sz(1:end-1)) sz(end)]),1);
-        end
-        toc;
-
-        %% find points for streamer section
-        for tt=1:slab
-            % now pick ONLY SURFACE
-            stream = repnan(runs.streamer.west.mask(:,:,end,tt),0);
-
-            % get biggest part - assume it's what i'm interested in
-            strcomps = bwconncomp(stream);
-            numPixels = cellfun(@numel,strcomps.PixelIdxList);
-            [~,bigidx] = max(numPixels);
-            stream(strcomps.PixelIdxList{bigidx}) = 2;
-            stream(stream < 2) = 0; stream(stream == 2) = 1;
-
-            % code from
-            % http://blogs.mathworks.com/steve/2014/01/07/automating-data-extraction-2/
-            skeleton = bwmorph(stream,'skel','inf');
-            branchPoints = bwmorph(skeleton,'branchpoints');
-            branchPoints = imdilate(branchPoints,strel('disk',3));
-            %now i've broken skeleton into branches
-            skel = skeleton & ~branchPoints;
-            skelcomps = bwconncomp(skel);
-            %%find distance from eddy center?
-            distcen = sqrt( (skel.*xr - cx(tt)).^2 + (skel.*yr - cy(tt)).^2 );
-            distcen = distcen .* fillnan(skel,0);
-            meandist = nan([skelcomps.NumObjects 1]);
-            for ii = 1:skelcomps.NumObjects
-                meandist(ii) = nanmean(distcen(skelcomps.PixelIdxList{ii}));
+            % volume v/s depth plot for streamer
+            % VECTORIZE SOMEHOW
+            disp('Binning streamer volume...');
+            tic;
+            dbin = 20;
+            bins = -1*[0:dbin:1000];
+            sz = size(runs.streamer.west.mask);
+            Vbin = nan([length(bins)-1 sz(4)]);
+            for kk=1:length(bins)-1
+                runs.streamer.west.Vbin(kk,tstart:tend) = nansum(reshape( ...
+                            bsxfun(@times, (zs <= bins(kk) & zs > bins(kk+1)), ...
+                                dVs), [prod(sz(1:end-1)) sz(end)]),1);
             end
-            % sort by distance
-            [~,sortdist] = sort(meandist);
-            %, then chuck top 20%
-            %indices = cat(1, ...
-            %    skelcomps.PixelIdxList{ sortdist(1: floor(0.8*length(sortdist)) ) });
-            %indices = skelcomps.PixelIdxList{sortdist(1)};
-            numPixels = cellfun(@numel,skelcomps.PixelIdxList);
-            [~,sortnum] = sort(numPixels);
+            toc;
 
-            % remove farthest away segment for sure
-            sortnum( sortnum == sortdist(end) ) = NaN;
-            sortnum = cut_nan(sortnum);
-
-            indices = skelcomps.PixelIdxList{sortnum(end)};
-            skel2 = zeros(size(skel));
-            skel2(indices) = 1;
-            ixstr = cut_nan(fillnan(skel2(:) .* ix(:),0));
-            iystr = cut_nan(fillnan(skel2(:) .* iy(:),0));
-
-            xstr = xr(ixstr,1);
-            ystr = yr(1,iystr)';
-            dstr = hypot(xstr-xstr(1), ystr-ystr(1));
-
-            % distance from perimeter - NOT QUITE AS GOOD
-            distper = bwdist(~stream);
-            cxind(tt) = 187;
-            [~,index1] = max(distper(1:cxind(tt),:));
-            [~,index2] = max(distper(cxind(tt):end,:));
-            index1(index1 == 1) = NaN;
-            index2(index2 == 1) = NaN;
-            index2 = index2+cxind(tt);
-            idxx = [index1(:); fliplr(index2(:))]';
-            idxy = [1:size(stream,2) fliplr(1:size(stream,2))];
-            %polyline = [cut_nan(idxx)' (cut_nan(idxy .* idxx)./cut_nan(idxx))'];
-            % testing streamer cross-section detection
-            if debug_plot
-                 clf
-                 subplot(211)
-                 imagesc(double(stream'));
-                 set(gca,'ydir','normal');
-                 hold on;
-                 plot(idxx,idxy,'bx','markersize',8);
-                 plot(ixstr,iystr,'ko','markersize',8);
-                 title(num2str(tt));
-                 subplot(212)
-                 imagesc(double(skel2'));
-                 set(gca,'ydir','normal');
-                 pause();
-            end
-
-            % save in class               
-            runs.streamer.xstr{tt}  = xstr;
-            runs.streamer.ystr{tt}  = ystr;
-            runs.streamer.ixstr{tt} = ixstr;
-            runs.streamer.iystr{tt} = iystr;
-            runs.streamer.dstr{tt}  = dstr;
-            runs.streamer.comment   = ...
-                    [' contour = 1 in streamer, 0 outside | ' ...
-                     ' (xstr,ystr) = cross-section through streamer (cell array) | ' ...
-                     ' (ixstr,iystr) = indices corresponding to (xstr,ystr) ' ...
-                     ' - (cell array) | dstr = along-streamer distance (cell array)'];
+            %% find points for streamer section
+%             for tt=1:slab
+%                 % now pick ONLY SURFACE
+%                 stream = repnan(runs.streamer.west.mask(:,:,end,tt),0);
+% 
+%                 % get biggest part - assume it's what i'm interested in
+%                 strcomps = bwconncomp(stream);
+%                 numPixels = cellfun(@numel,strcomps.PixelIdxList);
+%                 [~,bigidx] = max(numPixels);
+%                 stream(strcomps.PixelIdxList{bigidx}) = 2;
+%                 stream(stream < 2) = 0; stream(stream == 2) = 1;
+% 
+%                 % code from
+%                 % http://blogs.mathworks.com/steve/2014/01/07/automating-data-extraction-2/
+%                 skeleton = bwmorph(stream,'skel','inf');
+%                 branchPoints = bwmorph(skeleton,'branchpoints');
+%                 branchPoints = imdilate(branchPoints,strel('disk',3));
+%                 %now i've broken skeleton into branches
+%                 skel = skeleton & ~branchPoints;
+%                 skelcomps = bwconncomp(skel);
+%                 %%find distance from eddy center?
+%                 distcen = sqrt( (skel.*xr - cx(tt)).^2 + (skel.*yr - cy(tt)).^2 );
+%                 distcen = distcen .* fillnan(skel,0);
+%                 meandist = nan([skelcomps.NumObjects 1]);
+%                 for ii = 1:skelcomps.NumObjects
+%                     meandist(ii) = nanmean(distcen(skelcomps.PixelIdxList{ii}));
+%                 end
+%                 % sort by distance
+%                 [~,sortdist] = sort(meandist);
+%                 %, then chuck top 20%
+%                 %indices = cat(1, ...
+%                 %    skelcomps.PixelIdxList{ sortdist(1: floor(0.8*length(sortdist)) ) });
+%                 %indices = skelcomps.PixelIdxList{sortdist(1)};
+%                 numPixels = cellfun(@numel,skelcomps.PixelIdxList);
+%                 [~,sortnum] = sort(numPixels);
+% 
+%                 % remove farthest away segment for sure
+%                 if skelcomps.NumObjects > 1
+%                     sortnum( sortnum == sortdist(end) ) = NaN;
+%                 end
+%                 sortnum = cut_nan(sortnum);
+% 
+%                 indices = skelcomps.PixelIdxList{sortnum(end)};
+%                 skel2 = zeros(size(skel));
+%                 skel2(indices) = 1;
+%                 ixstr = cut_nan(fillnan(skel2(:) .* ix(:),0));
+%                 iystr = cut_nan(fillnan(skel2(:) .* iy(:),0));
+% 
+%                 xstr = xr(ixstr,1);
+%                 ystr = yr(1,iystr)';
+%                 dstr = hypot(xstr-xstr(1), ystr-ystr(1));
+% 
+%                 % distance from perimeter - NOT QUITE AS GOOD
+%                 distper = bwdist(~stream);
+%                 cxind(tt) = 187;
+%                 [~,index1] = max(distper(1:cxind(tt),:));
+%                 [~,index2] = max(distper(cxind(tt):end,:));
+%                 index1(index1 == 1) = NaN;
+%                 index2(index2 == 1) = NaN;
+%                 index2 = index2+cxind(tt);
+%                 idxx = [index1(:); fliplr(index2(:))]';
+%                 idxy = [1:size(stream,2) fliplr(1:size(stream,2))];
+%                 %polyline = [cut_nan(idxx)' (cut_nan(idxy .* idxx)./cut_nan(idxx))'];
+%                 % testing streamer cross-section detection
+%                 if debug_plot
+%                      clf
+%                      subplot(211)
+%                      imagesc(double(stream'));
+%                      set(gca,'ydir','normal');
+%                      hold on;
+%                      plot(idxx,idxy,'bx','markersize',8);
+%                      plot(ixstr,iystr,'ko','markersize',8);
+%                      title(num2str(tt));
+%                      subplot(212)
+%                      imagesc(double(skel2'));
+%                      set(gca,'ydir','normal');
+%                      pause();
+%                 end
+% 
+%                 % save in class               
+%                 runs.streamer.xstr{tt}  = xstr;
+%                 runs.streamer.ystr{tt}  = ystr;
+%                 runs.streamer.ixstr{tt} = ixstr;
+%                 runs.streamer.iystr{tt} = iystr;
+%                 runs.streamer.dstr{tt}  = dstr;
+%                 runs.streamer.comment   = ...
+%                         [' contour = 1 in streamer, 0 outside | ' ...
+%                          ' (xstr,ystr) = cross-section through streamer (cell array) | ' ...
+%                          ' (ixstr,iystr) = indices corresponding to (xstr,ystr) ' ...
+%                          ' - (cell array) | dstr = along-streamer distance (cell array)'];
+%             end
+         %end
         end
-
          %% plot streamer profiles
         figure
         subplot(121)
@@ -1010,7 +1053,18 @@ methods
         legend('z centroid','z-dye centroid');
         ylabel(' Depth (m) '); xlabel('day');
     end
+    
+    % domain integration for sparse matrix input
+    function [out] = domain_integratesp(runs,in, dV)
 
+        if ~exist('dV','var') % not good idea
+            dV = reshape(runs.rgrid.dV, runs.streamer.sz3dsp);
+        end
+
+        out = full(sum( bsxfun(@times, in, dV)));
+    end
+
+    % domain integration for full matrix input
     function [out] = domain_integrate(runs,in, dV)
 
         if ~exist('dV','var'), dV = runs.rgrid.dV; end
@@ -1166,16 +1220,17 @@ methods
                 pause(0.01);
             end
          end
+    end
 
-        function [] = distrib_csz_old(runs)
-                        % lets subtract out mean at each z-level to account for near
+    function [] = distrib_csz_old(runs)
+        % lets subtract out mean at each z-level to account for near
         % surface and near bottom upwelling.
         % This has to be done after interpolating to constant z-level
         % because you can't take a constant z-level mean otherwise
         yend = find_approx(runs.rgrid.y_rho(:,1),100*1000);
         t0 = runs.eddy.trevind;
         read_start = [1 1 1 t0];
-        read_count = [Inf yend Inf Inf];
+        read_count = [Inf yend Inf 35];
 
         zdye = ncread(runs.out_file,'dye_02', ...
                         read_start,read_count);
@@ -1200,29 +1255,29 @@ methods
         yzr = repmat(yr(1,:)', [1 runs.rgrid.N]);
         zw = permute(runs.rgrid.z_w(:,1:yend,:),[3 2 1]);
 
-%             figure;
-%             for tt = 1:size(zdye,4)
-%                 clf;
-%                 tind = runs.eddy.trevind + tt;
-%                 % interpolate to a given depth
-%                 zdyein = dc_roms_zslice_var(zdye(:,:,:,tt),depth,grd);
-%                 csdyein = dc_roms_zslice_var(csdye(:,:,:,tt),depth,grd);
-%                 
-%                 % define streamer
-%                 streamer = fillnan((csdyein > xsb-10) & (csdyein < xsb+30) ...
-%                             & (runs.rgrid.x_rho' < runs.eddy.cx(tind)),0);
-%                 %streamer = fillnan( csdyein < xsb, 0);
-%                 
-%                 % remove mean to show up/down-welling
-%                 zdyein_demean = zdyein - nanmean(zdyein(:));
-%                 
-%                 % visualize
-%                 pcolorcen((zdyein_demean .* streamer)');
-%                 hold on
-%                 contour(runs.eddy.mask(:,:,tind)','k','LineWidth',2);
-%                 pause();
-%             end
-%             
+    %             figure;
+    %             for tt = 1:size(zdye,4)
+    %                 clf;
+    %                 tind = runs.eddy.trevind + tt;
+    %                 % interpolate to a given depth
+    %                 zdyein = dc_roms_zslice_var(zdye(:,:,:,tt),depth,grd);
+    %                 csdyein = dc_roms_zslice_var(csdye(:,:,:,tt),depth,grd);
+    %                 
+    %                 % define streamer
+    %                 streamer = fillnan((csdyein > xsb-10) & (csdyein < xsb+30) ...
+    %                             & (runs.rgrid.x_rho' < runs.eddy.cx(tind)),0);
+    %                 %streamer = fillnan( csdyein < xsb, 0);
+    %                 
+    %                 % remove mean to show up/down-welling
+    %                 zdyein_demean = zdyein - nanmean(zdyein(:));
+    %                 
+    %                 % visualize
+    %                 pcolorcen((zdyein_demean .* streamer)');
+    %                 hold on
+    %                 contour(runs.eddy.mask(:,:,tind)','k','LineWidth',2);
+    %                 pause();
+    %             end
+    %             
         % mask of points west of eddy center
         %west_mask = bsxfun(@lt,repmat(runs.rgrid.x_rho',[1 1 runs.rgrid.N]), ...
         %               permute(runs.eddy.cx(runs.eddy.trevind:runs.eddy.trevind+19), [1 3 4 2]));
@@ -1275,28 +1330,28 @@ methods
 
          stream = repnan(streamer2(:,:,end),0);
 
-%             streamer2 = fillnan(streamer2,0); 
-%             xs2 = bsxfun(@times, streamer2, xr);
-%             ys2 = bsxfun(@times, streamer2, yr);
-%             rstreamer = r .* streamer2;
-%             find mean r in along-stream direction.
-%             rs = squeeze(nanmean(rstreamer,1));
-%             
-%             divide streamer into E-W & N-S halves to account for
-%             multiple valued contour
-%             for tt = 1:size(streamer2,3)
-%                 xsect = [squeeze(nanmean(xs2(1:cxind,1:end,tt),1)) ...
-%                          ... %cut_nan(squeeze(nanmean(xs2(1:cxind,cyind+1:end,tt),1))) ...
-%                          squeeze(nanmean(xs2(cxind+1:end,1:end,tt),1))];% ...
-%                          ...%cut_nan(squeeze(nanmean(xs2(cxind+1:end,cyind+1:end,tt),1)))]; 
-%                 ysect = fillnan(~isnan(xsect),0) .* [yr(1,:) yr(1,:)];     
-%                 xsect = cut_nan(xsect);
-%                 ysect = cut_nan(ysect);
-%                 ysect = [cut_nan(squeeze(nanmean(ys2(1:cxind,1:cyind,tt),2)))' ...
-%                        cut_nan(squeeze(nanmean(ys2(1:cxind,cyind+1:end,tt),2)))' ...
-%                         cut_nan(squeeze(nanmean(ys2(cxind+1:end,1:cyind,tt),2)))' ...
-%                         cut_nan(squeeze(nanmean(ys2(cxind+1:end,cyind+1:end,tt),2)))']; 
-%             end
+    %             streamer2 = fillnan(streamer2,0); 
+    %             xs2 = bsxfun(@times, streamer2, xr);
+    %             ys2 = bsxfun(@times, streamer2, yr);
+    %             rstreamer = r .* streamer2;
+    %             find mean r in along-stream direction.
+    %             rs = squeeze(nanmean(rstreamer,1));
+    %             
+    %             divide streamer into E-W & N-S halves to account for
+    %             multiple valued contour
+    %             for tt = 1:size(streamer2,3)
+    %                 xsect = [squeeze(nanmean(xs2(1:cxind,1:end,tt),1)) ...
+    %                          ... %cut_nan(squeeze(nanmean(xs2(1:cxind,cyind+1:end,tt),1))) ...
+    %                          squeeze(nanmean(xs2(cxind+1:end,1:end,tt),1))];% ...
+    %                          ...%cut_nan(squeeze(nanmean(xs2(cxind+1:end,cyind+1:end,tt),1)))]; 
+    %                 ysect = fillnan(~isnan(xsect),0) .* [yr(1,:) yr(1,:)];     
+    %                 xsect = cut_nan(xsect);
+    %                 ysect = cut_nan(ysect);
+    %                 ysect = [cut_nan(squeeze(nanmean(ys2(1:cxind,1:cyind,tt),2)))' ...
+    %                        cut_nan(squeeze(nanmean(ys2(1:cxind,cyind+1:end,tt),2)))' ...
+    %                         cut_nan(squeeze(nanmean(ys2(cxind+1:end,1:cyind,tt),2)))' ...
+    %                         cut_nan(squeeze(nanmean(ys2(cxind+1:end,cyind+1:end,tt),2)))']; 
+    %             end
 
 
         % vertically integrated w in streamer
@@ -1431,9 +1486,6 @@ methods
             pause();
         end
 
-
-        end
-
         %% old stuff
         %             figure;
 %             for tt = 1:size(zdye,4)
@@ -1483,9 +1535,7 @@ methods
 %                         cut_nan(squeeze(nanmean(ys2(cxind+1:end,1:cyind,tt),2)))' ...
 %                         cut_nan(squeeze(nanmean(ys2(cxind+1:end,cyind+1:end,tt),2)))']; 
 %             end
-
     end
-
 
    %% animation functions
 
