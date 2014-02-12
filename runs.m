@@ -770,7 +770,7 @@ methods
     function [] = detect_streamer(runs)
 
         % make plots to check?
-        debug_plot = 1;
+        debug_plot = 0;
 
         % upper y-limit to save memory
         yend = find_approx(runs.rgrid.y_rho(:,1),130*1000);
@@ -814,7 +814,7 @@ methods
         dVs = reshape(runs.rgrid.dV(:,1:runs.streamer.yend,:), ...
                         runs.streamer.sz3dsp); 
 
-        for ii=2:floor(szeta(3)/slab)
+        for ii=1:floor(szeta(3)/slab)
             
             tstart = t0+slab*(ii-1);
             tend = tstart+slab-1;
@@ -931,10 +931,12 @@ methods
             tic;
             dbin = 20;
             bins = -1*[0:dbin:1000];
+            % required so that 0 bin doesn't get a ton of points
+            zsf = fillnan(full(zs),0);
             sz = size(runs.streamer.west.mask(:,tstart:tend));
             for kk=1:length(bins)-1
                 runs.streamer.west.Vbin(kk,tstart:tend) =  ...
-                            sum(bsxfun(@times, (zs <= bins(kk) & zs > bins(kk+1)), ...
+                            sum(bsxfun(@times, (zsf <= bins(kk) & zsf > bins(kk+1)), ...
                                 dVs),1);
             end
             runs.streamer.bins = bins;
@@ -1042,7 +1044,8 @@ methods
             
         end
     end
-    %% plot streamer profiles
+    
+    % plot streamer profiles
     function [] = plot_streamer(runs)
         bins = runs.streamer.bins;
         figure
