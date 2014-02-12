@@ -883,18 +883,38 @@ methods
             %       + bsxfun(@minus,yr,permute(cy,[3 1 2])).^2);
 
             % picking only western streamer
-            runs.streamer.west.mask(:,tstart:tend) = sparse(reshape( ... % optimize storage!
-                        squeeze(streamer1  ... % original streamer
+            streamer1 = squeeze(streamer1  ... % original streamer
                         ... % parcels have moved more than 5 km 
                         ... %   in the cross-shelf dirn.
                              .* (abs(csdye - bsxfun(@times,streamer1,yr))>5)) ...
                         ... % remove eastern half
-                             .* (west_mask), ...
-                        sz4dsp));
+                             .* (west_mask);
                         %...     % streamer depth is not total depth
                         %.* squeeze(bsxfun(@lt,max(abs(zs),[],3), runs.rgrid.h(1:yend,:)'));
 
-            clear west_mask streamer1;
+            % pick out biggest surface piece
+            % it looks like the surface is the biggest so we look for
+            % only look for everything under it - i.e., hopefully no
+            % tilting
+            stream = streamer1(:,:,40,:);
+            for tt=1:size(stream,4)
+                % get biggest part - assume it's what i'm interested in
+                strtemp = stream(:,:,1,tt);
+                strcomps = bwconncomp(strtemp);
+                numPixels = cellfun(@numel,strcomps.PixelIdxList);
+                [~,bigidx] = max(numPixels);
+                strtemp(strcomps.PixelIdxList{bigidx}) = 2;
+                strtemp(strtemp < 2) = 0; 
+                strtemp(strtemp == 2) = 1;
+                stream(:,:,1,tt) = strtemp;
+            end
+            
+            % filter and save
+            runs.streamer.west.mask(:,tstart:tend) = sparse(reshape( ...
+                            bsxfun(@times,streamer1,stream), ...
+                            sz4dsp));
+            %clear west_mask streamer1 stream strtemp;
+            
             % compress somehow
             %streamnan = fillnan(runs.streamer.west.mask,0);
             % calculate statistics
@@ -924,25 +944,25 @@ methods
             runs.streamer.west.zdcen(tstart:tend) = bsxfun(@rdivide,...
                 runs.domain_integratesp(zdyestr,dVs), ...
                 runs.streamer.west.vol(tstart:tend));
-
+            
             % volume v/s depth plot for streamer
             % VECTORIZE SOMEHOW
             disp('Binning streamer volume...');
             tic;
             dbin = 20;
-            bins = -1*[0:dbin:1000];
+            bins = -1*0:dbin:1000;
             % required so that 0 bin doesn't get a ton of points
-            zsf = fillnan(full(zs),0);
+            %zsf = fillnan(full(zs),0);
             sz = size(runs.streamer.west.mask(:,tstart:tend));
             for kk=1:length(bins)-1
-                runs.streamer.west.Vbin(kk,tstart:tend) =  ...
-                            sum(bsxfun(@times, (zsf <= bins(kk) & zsf > bins(kk+1)), ...
-                                dVs),1);
+               runs.streamer.west.Vbin(kk,tstart:tend) =  ...
+                           sum(bsxfun(@times, (zs < bins(kk) & zs >= bins(kk+1)), ...
+                               dVs),1);
             end
             runs.streamer.bins = bins;
             toc;
 
-            %% find points for streamer section
+           %% find points for streamer section
             for tt=1:(tend-tstart+1)
                 tind = tstart + tt - 1;
                 % now pick ONLY SURFACE
@@ -956,22 +976,15 @@ methods
                     continue; 
                 end
                 
-                % get biggest part - assume it's what i'm interested in
-                strcomps = bwconncomp(stream);
-                numPixels = cellfun(@numel,strcomps.PixelIdxList);
-                [~,bigidx] = max(numPixels);
-                stream(strcomps.PixelIdxList{bigidx}) = 2;
-                stream(stream < 2) = 0; stream(stream == 2) = 1;
-                
                 % code from
                 % http://blogs.mathworks.com/steve/2014/01/07/automating-data-extraction-2/
                 skeleton = bwmorph(stream,'skel','inf');
                 branchPoints = bwmorph(skeleton,'branchpoints');
                 branchPoints = imdilate(branchPoints,strel('disk',3));
-                %now i've broken skeleton into branches
+                % now i've broken skeleton into branches
                 skel = skeleton & ~branchPoints;
                 skelcomps = bwconncomp(skel);
-                %%find distance from eddy center?
+                % find distance from eddy center?
                 distcen = sqrt( (skel.*xr - cx(tt)).^2 + (skel.*yr - cy(tt)).^2 );
                 distcen = distcen .* fillnan(skel,0);
                 meandist = nan([skelcomps.NumObjects 1]);
