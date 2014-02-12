@@ -767,10 +767,7 @@ methods
     end
 
     % detect streamer contour and figure out cross-section points
-    function [] = detect_streamer(runs)
-
-        % make plots to check?
-        debug_plot = 0;
+    function [] = detect_streamer_mask(runs)
 
         % upper y-limit to save memory
         yend = find_approx(runs.rgrid.y_rho(:,1),130*1000);
@@ -860,13 +857,13 @@ methods
             %dz = zdye - zs;
 
             % NEED TO ACCOUNT FOR TILTING IN VERTICAL?
-            cx = runs.eddy.cx(tstart:tend)/1000;
-            cy = runs.eddy.cy(tstart:tend)/1000;
+            %cx = runs.eddy.cx(tstart:tend)/1000;
+            %cy = runs.eddy.cy(tstart:tend)/1000;
             ee = runs.eddy.ee(tstart:tend)/1000;
             % hack if eddy center is outside extracted domain
-            cy(cy > max(yr(:))) = max(yr(:));
-            cxind = vecfind(xr(:,1),cx);
-            cyind = vecfind(yr(1,:),cy)';
+            %cy(cy > max(yr(:))) = max(yr(:));
+            %cxind = vecfind(xr(:,1),cx);
+            %cyind = vecfind(yr(1,:),cy)';
 
             % pick out western streamer by chucking points that are >
             % eastern edge + initial radius. This allows streamer to wrap
@@ -954,7 +951,7 @@ methods
             bins = -1*0:dbin:1000;
             % required so that 0 bin doesn't get a ton of points
             %zsf = fillnan(full(zs),0);
-            sz = size(runs.streamer.west.mask(:,tstart:tend));
+            %sz = size(runs.streamer.west.mask(:,tstart:tend));
             for kk=1:length(bins)-1
                runs.streamer.west.Vbin(kk,tstart:tend) =  ...
                            sum(bsxfun(@times, (zs < bins(kk) & zs >= bins(kk+1)), ...
@@ -962,105 +959,157 @@ methods
             end
             runs.streamer.bins = bins;
             toc;
-
-           %% find points for streamer section
-            for tt=1:(tend-tstart+1)
-                tind = tstart + tt - 1;
-                % now pick ONLY SURFACE
-                stream = reshape(full(runs.streamer.west.mask(:,tind)), ...
-                                sz3dfull);
-                stream = stream(:,:,end); % SURFACE ONLY
-                
-                % if no streamer or too small, skip
-                if isequal(stream,zeros(size(stream))) ...
-                        || numel(find(stream(:) ~= 0)) < 150
-                    continue; 
-                end
-                
-                % code from
-                % http://blogs.mathworks.com/steve/2014/01/07/automating-data-extraction-2/
-                skeleton = bwmorph(stream,'skel','inf');
-                branchPoints = bwmorph(skeleton,'branchpoints');
-                branchPoints = imdilate(branchPoints,strel('disk',3));
-                % now i've broken skeleton into branches
-                skel = skeleton & ~branchPoints;
-                skelcomps = bwconncomp(skel);
-                % find distance from eddy center?
-                distcen = sqrt( (skel.*xr - cx(tt)).^2 + (skel.*yr - cy(tt)).^2 );
-                distcen = distcen .* fillnan(skel,0);
-                meandist = nan([skelcomps.NumObjects 1]);
-                for ii = 1:skelcomps.NumObjects
-                    meandist(ii) = nanmean(distcen(skelcomps.PixelIdxList{ii}));
-                end
-                % sort by distance
-                [~,sortdist] = sort(meandist);
-                %, then chuck top 20%
-                %indices = cat(1, ...
-                %    skelcomps.PixelIdxList{ sortdist(1: floor(0.8*length(sortdist)) ) });
-                %indices = skelcomps.PixelIdxList{sortdist(1)};
-                numPixels = cellfun(@numel,skelcomps.PixelIdxList);
-                [~,sortnum] = sort(numPixels);
-                
-                % remove farthest away segment for sure
-                if skelcomps.NumObjects > 1
-                    sortnum( sortnum == sortdist(end) ) = NaN;
-                end
-                sortnum = cut_nan(sortnum);
-                
-                indices = skelcomps.PixelIdxList{sortnum(end)};
-                skel2 = zeros(size(skel));
-                skel2(indices) = 1;
-                ixstr = cut_nan(fillnan(skel2(:) .* ix(:),0));
-                iystr = cut_nan(fillnan(skel2(:) .* iy(:),0));
-                
-                xstr = xr(ixstr,1);
-                ystr = yr(1,iystr)';
-                dstr = hypot(xstr-xstr(1), ystr-ystr(1));
-                
-                % distance from perimeter - NOT QUITE AS GOOD
-                distper = bwdist(~stream);
-                [~,index1] = max(distper(1:cxind(tt),:));
-                [~,index2] = max(distper(cxind(tt):end,:));
-                index1(index1 == 1) = NaN;
-                index2(index2 == 1) = NaN;
-                index2 = index2+cxind(tt);
-                idxx = [index1(:); fliplr(index2(:))]';
-                idxy = [1:size(stream,2) fliplr(1:size(stream,2))];
-                %polyline = [cut_nan(idxx)' (cut_nan(idxy .* idxx)./cut_nan(idxx))'];
-                % testing streamer cross-section detection
-                if debug_plot
-                    clf
-                    subplot(211)
-                    imagesc(double(stream'));
-                    set(gca,'ydir','normal');
-                    hold on;
-                    plot(idxx,idxy,'bx','markersize',8);
-                    plot(ixstr,iystr,'ko','markersize',8);
-                    title(num2str(tind));
-                    subplot(212)
-                    imagesc(double(skel2'));
-                    set(gca,'ydir','normal');
-                    pause();
-                end
-                
-                % save in class
-                runs.streamer.xstr{tind}  = xstr;
-                runs.streamer.ystr{tind}  = ystr;
-                runs.streamer.ixstr{tind} = ixstr;
-                runs.streamer.iystr{tind} = iystr;
-                runs.streamer.dstr{tind}  = dstr;
-                runs.streamer.comment   = ...
-                    [' contour = 1 in streamer, 0 outside | ' ...
-                    ' (xstr,ystr) = cross-section through streamer (cell array) | ' ...
-                    ' (ixstr,iystr) = indices corresponding to (xstr,ystr) ' ...
-                    ' - (cell array) | dstr = along-streamer distance (cell array)'];
+        end
+    end
+    
+    % extract points for streamer section
+    function [] = build_streamer_section(runs)
+        
+        % make plots to check?
+        debug_plot = 1;
+        
+        tstart = 1;
+        tend = size(runs.streamer.west.mask,2);
+        
+        yend = runs.streamer.yend;
+        xr = runs.rgrid.xr(:,1:yend)/1000; 
+        yr = runs.rgrid.yr(:,1:yend)/1000;
+        
+        cy = runs.eddy.cy/1000;
+        cy(cy > max(yr(:))) = max(yr(:));
+        
+        cxind = vecfind(xr(:,1),runs.eddy.cx/1000);
+        cyind = vecfind(yr(1,:),cy)';
+        
+        for tt=1:(tend-tstart+1)
+            tind = tstart + tt - 1;
+            % now pick ONLY SURFACE
+            stream = reshape(full(runs.streamer.west.mask(:,tind)), ...
+                runs.streamer.sz3dfull);
+            stream = stream(:,:,end); % SURFACE ONLY
+            
+            % if no streamer or too small, skip
+            if isequal(stream,zeros(size(stream))) ...
+                    || numel(find(stream(:) ~= 0)) < 150
+                continue;
             end
             
+            % code from
+            % http://blogs.mathworks.com/steve/2014/01/07/automating-data-extraction-2/x
+            skeleton = bwmorph(stream,'skel','inf');
+            skel = breakapart(skeleton);
+            skelcomps = bwconncomp(skel);
+            % find distance from eddy center?
+            distcen = sqrt( (skel.*xr - runs.eddy.cx(tt)).^2 +  ...
+                            (skel.*yr - runs.eddy.cy(tt)).^2 );
+            distcen = distcen .* fillnan(skel,0);
+            meandist = nan([skelcomps.NumObjects 1]);
+            for mm = 1:skelcomps.NumObjects
+                meandist(mm) = nanmean(distcen(skelcomps.PixelIdxList{mm}));
+                
+                [ixtemp,iytemp] = ind2sub(size(skel), ...
+                    skelcomps.PixelIdxList{mm});
+                % don't remap to preserve order of points crossing the
+                % horizontal axis
+                tempang = atan2d( iytemp-cyind(tt),ixtemp-cxind(tt));
+                %tempang(tempang < 0) = tempang(tempang < 0) + 360;
+                [~,sorttang] = sort(tempang,'descend');
+                skelcomps.PixelIdxList{mm} = skelcomps.PixelIdxList{mm}(sorttang);
+                %meanangle(mm) = mean(tempang(:));
+            end
+            % sort by distance
+            [~,sortdist] = sort(meandist);
+            %, then chuck top 20%
+            %indices = cat(1, ...
+            %    skelcomps.PixelIdxList{ sortdist(1: floor(0.8*length(sortdist)) ) });
+            %indices = skelcomps.PixelIdxList{sortdist(1)};
+            numPixels = cellfun(@numel,skelcomps.PixelIdxList);
+            % throw out small branches
+            numPixels(numPixels < 10) = NaN;
+            [~,sortnum] = sort(numPixels);
+            nanindices = cut_nan(fillnan(isnan(numPixels) ...
+                .* (1:skelcomps.NumObjects),0));
+            for mm=1:length(nanindices)
+                sortnum(sortnum == nanindices(mm)) = NaN;
+            end
+            
+            % remove farthest away segment for sure
+            if skelcomps.NumObjects > 1
+                sortnum( sortnum == sortdist(end) ) = NaN;
+                
+            end
+            % chuck out indices I'm not interested in
+            sortnum = cut_nan(sortnum);
+            
+            % if region is too small, exit
+            if isempty(sortnum)
+                warning(['skipping @ tt=' num2str(tt)]);
+                continue;
+            end
+            % now actually select the remaining regions and figure out
+            % (x,y) co-ordinates
+            % use angleSort to order regions appropriately
+            %meanangle = meanangle;
+            %[~,sortang] = sort(meanangle(sortnum),'descend');
+            indices = cat(1,skelcomps.PixelIdxList{sortnum});
+            [ixstr,iystr] = ind2sub(size(skel),indices);
+            sortedPoints = flipdim( angleSort([ixstr iystr], ...
+                centroid(ixstr,iystr),-pi/2),1);
+            ixstr = sortedPoints(:,1); iystr = sortedPoints(:,2);
+            
+            xstr = xr(ixstr,1);
+            ystr = yr(1,iystr)';
+            dstr = cumsum(hypot(diff(xstr),diff(ystr)));
+            
+            % distance from perimeter - NOT QUITE AS GOOD
+            %{
+            distper = bwdist(~stream);
+            [~,index1] = max(distper(1:cxind(tt),:));
+            [~,index2] = max(distper(cxind(tt):end,:));
+            index1(index1 == 1) = NaN;
+            index2(index2 == 1) = NaN;
+            index2 = index2+cxind(tt);
+            idxx = [index1(:); fliplr(index2(:))]';
+            idxy = [1:size(stream,2) fliplr(1:size(stream,2))];
+            %}
+            %polyline = [cut_nan(idxx)' (cut_nan(idxy .* idxx)./cut_nan(idxx))'];
+            % testing streamer cross-section detection
+            if debug_plot
+                skelfinal = zeros(size(skel));
+                skelfinal(indices) = 1;
+                clf
+                subplot(211)
+                imagesc(double(stream'));
+                set(gca,'ydir','normal');
+                hold on;
+                plot(cxind(tt),cyind(tt),'b.','MarkerSize',16);
+                %plot(idxx,idxy,'bx','markersize',8);
+                plot(ixstr,iystr,'k-');
+                title(num2str(tind));
+                subplot(212)
+                imagesc(double(skelfinal'));
+                set(gca,'ydir','normal');
+                hold on;
+                plot(cxind(tt),cyind(tt),'b.','MarkerSize',16);
+                pause();
+            end
+            
+            % save locations in runs object
+            runs.streamer.west.xstr{tind}  = xstr;
+            runs.streamer.west.ystr{tind}  = ystr;
+            runs.streamer.west.ixstr{tind} = ixstr;
+            runs.streamer.west.iystr{tind} = iystr;
+            runs.streamer.west.dstr{tind}  = dstr;
+            runs.streamer.comment   = ...
+                [' contour = 1 in streamer, 0 outside | ' ...
+                ' (xstr,ystr) = cross-section through streamer (cell array) | ' ...
+                ' (ixstr,iystr) = indices corresponding to (xstr,ystr) ' ...
+                ' - (cell array) | dstr = along-streamer distance (cell array)'];
         end
     end
     
     % plot streamer profiles
-    function [] = plot_streamer(runs)
+    function [] = plot_streamerstats(runs)
         bins = runs.streamer.bins;
         figure
         subplot(121)
