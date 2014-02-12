@@ -896,6 +896,7 @@ methods
             % it looks like the surface is the biggest so we look for
             % only look for everything under it - i.e., hopefully no
             % tilting
+            
             stream = streamer1(:,:,40,:);
             for tt=1:size(stream,4)
                 % get biggest part - assume it's what i'm interested in
