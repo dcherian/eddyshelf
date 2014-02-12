@@ -903,16 +903,14 @@ methods
             zs = bsxfun(@times, runs.streamer.west.mask(:,tstart:tend), ...
                             reshape(zr,sz3dsp));
 
-            zdyestr = bsxfun(@times, runs.streamer.west.mask(tstart:tend), ...
-                            reshape(zdye,sz4dsp));
+            zdyestr = runs.streamer.west.mask(:,tstart:tend) .* ...
+                            reshape(zdye,sz4dsp);
             %csdyestr = bsxfun(@times, streamnan, csdye);
 
             %dcs  = abs(csdyestr - ys);
             %dzd  = abs(zdyestr - zs);
 
             % calculate volume
-            % volume of grid cells
-            
             runs.streamer.west.vol(tstart:tend) = runs.domain_integratesp( ...
                 runs.streamer.west.mask(:,tstart:tend), dVs);
 
