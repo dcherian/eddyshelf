@@ -978,7 +978,7 @@ methods
         cxind = vecfind(xr(:,1),runs.eddy.mx/1000);
         cyind = vecfind(yr(1,:),cy)';
         
-        for tind=61:size(runs.streamer.west.mask,2)
+        for tind=1:size(runs.streamer.west.mask,2)
             % now pick ONLY SURFACE
             stream = reshape(full(runs.streamer.west.mask(:,tind)), ...
                 runs.streamer.sz3dfull);
@@ -1024,8 +1024,7 @@ methods
                 %[~,sorttang] = sort(tempang,'descend');
                 %skelcomps.PixelIdxList{mm} = skelcomps.PixelIdxList{mm}(sorttang);
                 %if ~isclockwise(ixtemp,iytemp)
-                
-                
+                                
                 % sort points in each branch clockwise. This is imposed by
                 % setting the reference angle (w.r.t eddy center) to be the
                 % minimum of all point angles in the branch
@@ -1050,7 +1049,7 @@ methods
             % measure number of pixels in each branch and 
             % throw out small branches
             numPixels = cellfun(@numel,skelcomps.PixelIdxList);
-            numPixels(numPixels < 10) = NaN;
+            numPixels(numPixels < 5) = NaN;
             [~,sortnum] = sort(numPixels);
             nanindices = cut_nan(fillnan(isnan(numPixels) ...
               .* (1:skelcomps.NumObjects),0));
@@ -1080,8 +1079,27 @@ methods
             
             % now actually select the remaining regions and figure out
             % (x,y) co-ordinates
-            indices = cat(1,skelcomps.PixelIdxList{sortnum(sortcen)});
-            [ixstr,iystr] = ind2sub(size(skel),indices);
+            sortnum = sortnum(sortcen);
+            
+            % old version without joining
+            %indices = cat(1,skelcomps.PixelIdxList{sortnum});
+            %[ixstr,iystr] = ind2sub(size(skel),indices);
+            
+            % sortnum should be final sorted order here
+            [ixstr, iystr] = ind2sub(size(skel), skelcomps.PixelIdxList{sortnum(1)});
+            for mm = 1:length(sortnum)-1
+                ix1 = ixstr(end);
+                iy1 = iystr(end);
+                                
+                [ix2,iy2] = ind2sub(size(skel), ...
+                                    skelcomps.PixelIdxList{sortnum(mm+1)});
+                
+                % use Bresenham's algorithm to join
+                [jx,jy] = bresenham(ix1,iy1,ix2(1),iy2(1));
+                
+                ixstr = [ixstr; jx; ix2];
+                iystr = [iystr; jy; iy2];
+            end
             
             xstr = xr(ixstr,1);
             ystr = yr(1,iystr)';
@@ -1103,7 +1121,7 @@ methods
             % testing streamer cross-section detection
             if debug_plot
                 skelfinal = zeros(size(skel));
-                skelfinal(indices) = 1;
+                skelfinal(sub2ind(size(skel),ixstr,iystr)) = 1;
                 clf
                 subplot(211)
                 imagesc(double(stream'));
@@ -1112,6 +1130,7 @@ methods
                 plot(cxind(tind),cyind(tind),'ko','MarkerSize',16);
                 %plot(idxx,idxy,'bx','markersize',8);
                 plot(ixstr,iystr,'k-');
+                
                 circ = CircleFitByPratt([ixstr iystr]);
                 %drawCircle(circ(1),circ(2),circ(3));
                 ell = EllipseDirectFit([ixstr iystr]);
@@ -1119,9 +1138,13 @@ methods
                 d = ell(4); e = ell(5); f = ell(6);
                 x0 = (c*d - b*f)/(b^2-a*c);
                 y0 = (a*f - b*d)/(b^2-a*c);
+                
                 title(num2str(tind));
                 subplot(212)
-                imagesc(double(skelfinal'));
+                for mm=1:length(sortnum)
+                    testBranch(skelcomps.PixelIdxList{sortnum(mm)}, ...
+                        size(skel),sortnum(mm));
+                end
                 set(gca,'ydir','normal');
                 hold on;
                 plot(cxind(tind),cyind(tind),'ko','MarkerSize',16);
