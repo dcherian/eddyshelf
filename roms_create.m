@@ -6,8 +6,9 @@
 % names cannot start with number
 [~,machine] = system('hostname');
 if strfind(machine,'scylla')
-    FOLDER    = '/scylla-a/home/dcherian/ROMS/runs/eddyshelf/topoeddy/run-4/';
+    FOLDER    = '/scylla-a/home/dcherian/ROMS/runs/eddyshelf/topoeddy/run-5/';
     prefix    = 'tes';
+    addpath(genpath('/scylla-a/home/dcherian/tools/'));
 end
 if strfind(machine,'kadal')
     FOLDER = '/media/data/Work/eddyshelf/runs/';
@@ -17,6 +18,9 @@ if strfind(machine,'login')
     FOLDER = '/mit/dcherian/ROMS/runs/eddyshelf/topoeddy/run-1/';
     prefix    = 'tea';
 end
+
+fprintf('\n Writing to %s. ', FOLDER);
+input('Are you sure?');
 
 GRID_NAME = [prefix '_grd'];
 INI_NAME  = [prefix '_ini'];
@@ -31,13 +35,14 @@ FRC_NAME  = [FOLDER FRC_NAME  '.nc'];
 
 % Grid Parameters
 S.spherical = 0; % 0 - Cartesian, 1 - Spherical
+S.uniform = 1; % uniform grid
 
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
 S.Lm = 400;
 S.Mm = 210;
-S.N  = 40;
+S.N  = 60;
 
 dx = 1500;
 dy = dx;
@@ -55,7 +60,7 @@ S.NT = 2+S.NPT; % total number of tracers
 S.Vtransform = 2;
 S.Vstretching = 4;
 S.theta_s = 3.0;     %  S-coordinate surface control parameter.
-S.theta_b = 3.0;     %  S-coordinate bottom  control parameter.
+S.theta_b = 0.5;     %  S-coordinate bottom  control parameter.
 S.Tcline  = 100.0;    %  S-coordinate surface/bottom stretching width (m)
 
 % coriolis parameters
@@ -138,7 +143,7 @@ bg.comment = ['shear = shear_fac * max(eddy vorticity) | ', ...
 flags.flat_bottom = 0; % set depth in Z above
 flags.crooked_bathy = 0;
 
-bathy.H_shelf  = 100;
+bathy.H_shelf  = 200;
 bathy.L_shelf  = 40 * 1000;
 bathy.L_slope  =  50 * 1000;
 bathy.axis = 'y'; % CROSS SHELF AXIS
@@ -179,10 +184,10 @@ flags.vprof_gaussian = 0;%~flags.eddy_zhang; % eddy is gaussian in vertical?
 eddy.dia    = NaN; % 2xNH/pi/f0 - determined later
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
-eddy.tamp   = 0.45; % controls gradient
+eddy.tamp   = 0.3; % controls gradient
 eddy.buffer_sp = 40*dx; % distance from  4.3 (2.3) *r0 to sponge edge
 eddy.buffer = NaN;7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
-eddy.cx     = X/2-60000; % if NaN, determined using buffer later
+eddy.cx     = X/2; % if NaN, determined using buffer later
 eddy.cy     = NaN;Y/2; %              "
 eddy.theta0 = pi/2; % surface phase anomaly from Zhang et al. (2013)
                     % 7/16 * pi for WCR
