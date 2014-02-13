@@ -968,21 +968,17 @@ methods
         % make plots to check?
         debug_plot = 1;
         
-        tstart = 1;
-        tend = size(runs.streamer.west.mask,2);
-        
         yend = runs.streamer.yend;
         xr = runs.rgrid.xr(:,1:yend)/1000; 
         yr = runs.rgrid.yr(:,1:yend)/1000;
         
-        cy = runs.eddy.cy/1000;
+        cy = runs.eddy.my/1000;
         cy(cy > max(yr(:))) = max(yr(:));
         
-        cxind = vecfind(xr(:,1),runs.eddy.cx/1000);
+        cxind = vecfind(xr(:,1),runs.eddy.mx/1000);
         cyind = vecfind(yr(1,:),cy)';
         
-        for tt=1:(tend-tstart+1)
-            tind = tstart + tt - 1;
+        for tind=61:size(runs.streamer.west.mask,2)
             % now pick ONLY SURFACE
             stream = reshape(full(runs.streamer.west.mask(:,tind)), ...
                 runs.streamer.sz3dfull);
@@ -1000,10 +996,14 @@ methods
             skel = breakapart(skeleton);
             skelcomps = bwconncomp(skel);
             % find distance from eddy center?
-            distcen = sqrt( (skel.*xr - runs.eddy.cx(tt)).^2 +  ...
-                            (skel.*yr - runs.eddy.cy(tt)).^2 );
+            distcen = sqrt( (skel.*xr - runs.eddy.cx(tind)).^2 +  ...
+                            (skel.*yr - runs.eddy.cy(tind)).^2 );
             distcen = distcen .* fillnan(skel,0);
             meandist = nan([skelcomps.NumObjects 1]);
+            
+            icen = nan(skelcomps.NumObjects,2);
+            % process the branches for mean distance, centroid, and sort
+            % clockwise
             for mm = 1:skelcomps.NumObjects
                 meandist(mm) = nanmean(distcen(skelcomps.PixelIdxList{mm}));
                 
@@ -1011,51 +1011,77 @@ methods
                     skelcomps.PixelIdxList{mm});
                 % don't remap to preserve order of points crossing the
                 % horizontal axis
-                tempang = atan2d( iytemp-cyind(tt),ixtemp-cxind(tt));
+                %[~,sorttang] = angleSort([ixtemp iytemp], ...
+                %                [cxind(tind) cyind(tind)],-pi/2);
+                %sorttang = flipdim(sorttang,1);
+                % works with 0 crossing
+                tempang = atan2(iytemp-cyind(tind),ixtemp-cxind(tind));
+                
+                if max(diff(tempang) > 5.9)
+                    tempang = mod(tempang + 2*pi,2*pi);
+                end
                 %tempang(tempang < 0) = tempang(tempang < 0) + 360;
-                [~,sorttang] = sort(tempang,'descend');
-                skelcomps.PixelIdxList{mm} = skelcomps.PixelIdxList{mm}(sorttang);
-                %meanangle(mm) = mean(tempang(:));
+                %[~,sorttang] = sort(tempang,'descend');
+                %skelcomps.PixelIdxList{mm} = skelcomps.PixelIdxList{mm}(sorttang);
+                %if ~isclockwise(ixtemp,iytemp)
+                
+                
+                % sort points in each branch clockwise. This is imposed by
+                % setting the reference angle (w.r.t eddy center) to be the
+                % minimum of all point angles in the branch
+                refAngle = min(tempang(:));
+                [out,~] = angleSort([ixtemp iytemp], ...
+                    [cxind(tind) cyind(tind)],refAngle);
+                skelcomps.PixelIdxList{mm} = sub2ind(size(skel), ...
+                    flipud(out(:,1)),flipud(out(:,2)));
+                %testBranch(skelcomps.PixelIdxList{mm},size(skel));
+                
+                % store centroid and find it's angle w.r.t eddy center
+                icen(mm,:) = centroid([ixtemp(:) iytemp(:)]);
             end
+            
             % sort by distance
             [~,sortdist] = sort(meandist);
             %, then chuck top 20%
             %indices = cat(1, ...
             %    skelcomps.PixelIdxList{ sortdist(1: floor(0.8*length(sortdist)) ) });
             %indices = skelcomps.PixelIdxList{sortdist(1)};
-            numPixels = cellfun(@numel,skelcomps.PixelIdxList);
+            
+            % measure number of pixels in each branch and 
             % throw out small branches
+            numPixels = cellfun(@numel,skelcomps.PixelIdxList);
             numPixels(numPixels < 10) = NaN;
             [~,sortnum] = sort(numPixels);
             nanindices = cut_nan(fillnan(isnan(numPixels) ...
-                .* (1:skelcomps.NumObjects),0));
+              .* (1:skelcomps.NumObjects),0));
             for mm=1:length(nanindices)
-                sortnum(sortnum == nanindices(mm)) = NaN;
+              sortnum(sortnum == nanindices(mm)) = NaN;
             end
             
             % remove farthest away segment for sure
             if skelcomps.NumObjects > 1
                 sortnum( sortnum == sortdist(end) ) = NaN;
-                
             end
             % chuck out indices I'm not interested in
             sortnum = cut_nan(sortnum);
             
             % if region is too small, exit
             if isempty(sortnum)
-                warning(['skipping @ tt=' num2str(tt)]);
+                warning(['skipping @ tt=' num2str(tind)]);
                 continue;
             end
+            
+            % use angleSort on branch centroids to order regions appropriately
+            [~,sortcen] = angleSort(icen(sortnum,:), ...
+                            [cxind(tind) cyind(tind)],-pi/2);
+            sortcen = flipdim(sortcen,1);
+            % alternative to above - sortcen code
+            %[~,sortang] = sort(meanangle(sortnum),'descend');
+            
             % now actually select the remaining regions and figure out
             % (x,y) co-ordinates
-            % use angleSort to order regions appropriately
-            %meanangle = meanangle;
-            %[~,sortang] = sort(meanangle(sortnum),'descend');
-            indices = cat(1,skelcomps.PixelIdxList{sortnum});
+            indices = cat(1,skelcomps.PixelIdxList{sortnum(sortcen)});
             [ixstr,iystr] = ind2sub(size(skel),indices);
-            sortedPoints = flipdim( angleSort([ixstr iystr], ...
-                centroid(ixstr,iystr),-pi/2),1);
-            ixstr = sortedPoints(:,1); iystr = sortedPoints(:,2);
             
             xstr = xr(ixstr,1);
             ystr = yr(1,iystr)';
@@ -1073,6 +1099,7 @@ methods
             idxy = [1:size(stream,2) fliplr(1:size(stream,2))];
             %}
             %polyline = [cut_nan(idxx)' (cut_nan(idxy .* idxx)./cut_nan(idxx))'];
+            
             % testing streamer cross-section detection
             if debug_plot
                 skelfinal = zeros(size(skel));
@@ -1082,15 +1109,23 @@ methods
                 imagesc(double(stream'));
                 set(gca,'ydir','normal');
                 hold on;
-                plot(cxind(tt),cyind(tt),'b.','MarkerSize',16);
+                plot(cxind(tind),cyind(tind),'ko','MarkerSize',16);
                 %plot(idxx,idxy,'bx','markersize',8);
                 plot(ixstr,iystr,'k-');
+                circ = CircleFitByPratt([ixstr iystr]);
+                %drawCircle(circ(1),circ(2),circ(3));
+                ell = EllipseDirectFit([ixstr iystr]);
+                a = ell(1); b = ell(2); c = ell(3); 
+                d = ell(4); e = ell(5); f = ell(6);
+                x0 = (c*d - b*f)/(b^2-a*c);
+                y0 = (a*f - b*d)/(b^2-a*c);
                 title(num2str(tind));
                 subplot(212)
                 imagesc(double(skelfinal'));
                 set(gca,'ydir','normal');
                 hold on;
-                plot(cxind(tt),cyind(tt),'b.','MarkerSize',16);
+                plot(cxind(tind),cyind(tind),'ko','MarkerSize',16);
+                plot(icen(:,1),icen(:,2),'k*','MarkerSize',8);
                 pause();
             end
             
