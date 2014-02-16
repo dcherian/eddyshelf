@@ -39,6 +39,7 @@ function [S] = bathy_simple(S,B,X,Y,axis)
     S.h = (B.H_shelf + B.sl_shelf * ax_shelf) .* mask_shelf;
     hmax = max(S.h(:)); 
     S.h = S.h + (B.sl_slope *(ax_shelf-B.L_shelf) + hmax) .* ~mask_shelf; 
-    hdeep = hmax + B.sl_slope * B.L_slope;
-    S.h = S.h .* ~mask_deep + hdeep * mask_deep;
+    hmax = hmax + B.sl_slope * B.L_slope;
+    hdeep = hmax + B.sl_deep * (ax-B.L_shelf-B.L_slope);
+    S.h = S.h .* ~mask_deep + hdeep .* mask_deep;
     
