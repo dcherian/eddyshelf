@@ -1806,66 +1806,78 @@ methods
             % get section locations & make grid matrices
             xstr = runs.streamer.west.xstr{tind};
             ystr = runs.streamer.west.ystr{tind};
-            dstr = repmat(runs.streamer.west.dstr{tind},[1 runs.rgrid.N]);
-            if size(dstr,1) ~= size(xstr,1)
-                dstr(2:end+1,:) = dstr;
-                dstr(1,:) = 0;
-            end
-            ixstr = runs.streamer.west.ixstr{tind};
-            iystr = runs.streamer.west.iystr{tind};
-            indices = sub2ind(sz4dfull(1:2),ixstr,iystr);
+            dstr = repmat(runs.streamer.west.dstr{tind}',[1 runs.rgrid.N]);
             
-            zlin = reshape(zr,sz3d2d);
-            zstr = zlin(indices,:);
-            clear zlin;
+            if runs.streamer.west.fit_circle
+                bstr = interp2(xr',yr',runs.bathy.h(:,1:yend)',xstr,ystr);
+            else
+                ixstr = runs.streamer.west.ixstr{tind};
+                iystr = runs.streamer.west.iystr{tind};
+                indices = sub2ind(sz4dfull(1:2),ixstr,iystr);
+
+                zlin = reshape(zr,sz3d2d);
+                zstr = zlin(indices,:);
+                clear zlin;
+                
+                bstr = runs.bathy.h(indices)';
+            end
+            
+            ixmin = find_approx(xr(:,1),min(xstr));
+            ixmax = find_approx(xr(:,1),max(xstr));
+            iymin = find_approx(yr(1,:),min(ystr));
+            iymax = find_approx(yr(1,:),max(ystr));
             
             % bathy-patch
-            bpatch = [-runs.bathy.h(indices)' -max(runs.bathy.h(:))-100 ...
+            bpatch = [bstr -max(runs.bathy.h(:))-100 ...
                                     -max(runs.bathy.h(:))-100];
             dpatch = [dstr(:,1)' dstr(end,1) 0];
-            
-            % new sizes - from now on I read in only data for required
-            % section
-            
+                        
             % streamer has been identified - now extract data section
-            volume = {'x' min(ixstr) max(ixstr);
-                      'y' min(iystr) max(iystr)};
-            
-            %windex = wind(tindex)-dx; % for cross-section
-            %eindex = eind(tindex)-dx; % for cross-section
+            volume = {'x' ixmin ixmax;
+                      'y' iymin iymax};
+                  
             tindex = t0+tt-1;
             zlimit = [-1000 0];
-            
-            % extract streamer at surface
+
             streamer = reshape(full(runs.streamer.west.mask(:,t0+tt-1)) ...
-                ,sz3dfull);
-            % streamer mask vertical section - along-streamer section
-            % points
-            strlin = reshape(streamer,sz3d2d);
-            strstr = strlin(indices,:);
+                            ,sz3dfull);
+                        
+            % read velocities & dyes in block form
+            sznew3d = [(ixmax-ixmin+1) (iymax-iymin+1) 40];
+            sznew2d = [sznew3d(1)*sznew3d(2) sznew3d(3)];
+            u = dc_roms_read_data(runs.dir,'u', ...
+                tind,volume,[],runs.rgrid);
+            v = dc_roms_read_data(runs.dir,'v', ...
+                tind,volume,[],runs.rgrid);
+            csdye = dc_roms_read_data(runs.dir, 'dye_01', ...
+                tind,volume,[],runs.rgrid);
+            zdye = dc_roms_read_data(runs.dir, 'dye_02', ...
+                tind,volume,[],runs.rgrid);
+                  
+            if runs.streamer.west.fit_circle
+                strstr = 
+            else
+                % streamer mask vertical section - along-streamer section
+                % points
+                strlin = reshape(streamer,sz3d2d);
+                strstr = strlin(indices,:);
+
+                ixnew = ixstr - ixmin + 1;
+                iynew = iystr - iymin + 1;
+                % extract variables at streamer points
+                u = reshape(u,sznew2d);
+                v = reshape(v,sznew2d);
+                csdye = reshape(csdye,sznew2d);
+                zdye = reshape(csdye,sznew2d);
+                indnew = sub2ind(sznew3d(1:2),ixnew,iynew);
+                ustr = u(indnew,:);
+                vstr = v(indnew,:);
+                zdstr = zdye(indnew,:);
+                csstr = csdye(indnew,:);
+            end
+                        
             % streamer mask at surface
             streamer = streamer(:,:,40);
-            
-            % read velocities & dyes in block form
-            ixnew = ixstr - min(ixstr) + 1;
-            iynew = iystr - min(iystr) + 1;
-            sznew3d = [(max(ixstr)-min(ixstr)+1) (max(iystr)-min(iystr)+1) 40];
-            sznew2d = [sznew3d(1)*sznew3d(2) sznew3d(3)];
-            u = reshape(dc_roms_read_data(runs.dir,'u', ...
-                tind,volume,[],runs.rgrid), sznew2d);
-            v = reshape(dc_roms_read_data(runs.dir,'v', ...
-                tind,volume,[],runs.rgrid), sznew2d);
-            csdye = reshape(dc_roms_read_data(runs.dir, 'dye_01', ...
-                tind,volume,[],runs.rgrid), sznew2d);
-            zdye = reshape(dc_roms_read_data(runs.dir, 'dye_02', ...
-                tind,volume,[],runs.rgrid), sznew2d);
-            
-            % extract variables at streamer points
-            indnew = sub2ind(sznew3d(1:2),ixnew,iynew);
-            ustr = u(indnew,:);
-            vstr = v(indnew,:);
-            zdstr = zdye(indnew,:);
-            csstr = csdye(indnew,:);
             
             % rotate velocities to along & cross-streamer dirns.
             angle = atan2d(diff(ystr),diff(xstr));
