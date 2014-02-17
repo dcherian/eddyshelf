@@ -1808,30 +1808,11 @@ methods
             ystr = runs.streamer.west.ystr{tind};
             dstr = repmat(runs.streamer.west.dstr{tind}',[1 runs.rgrid.N]);
             
-            if runs.streamer.west.fit_circle
-                bstr = interp2(xr',yr',runs.bathy.h(:,1:yend)',xstr,ystr);
-            else
-                ixstr = runs.streamer.west.ixstr{tind};
-                iystr = runs.streamer.west.iystr{tind};
-                indices = sub2ind(sz4dfull(1:2),ixstr,iystr);
-
-                zlin = reshape(zr,sz3d2d);
-                zstr = zlin(indices,:);
-                clear zlin;
-                
-                bstr = runs.bathy.h(indices)';
-            end
-            
             ixmin = find_approx(xr(:,1),min(xstr));
             ixmax = find_approx(xr(:,1),max(xstr));
             iymin = find_approx(yr(1,:),min(ystr));
             iymax = find_approx(yr(1,:),max(ystr));
-            
-            % bathy-patch
-            bpatch = [bstr -max(runs.bathy.h(:))-100 ...
-                                    -max(runs.bathy.h(:))-100];
-            dpatch = [dstr(:,1)' dstr(end,1) 0];
-                        
+                     
             % streamer has been identified - now extract data section
             volume = {'x' ixmin ixmax;
                       'y' iymin iymax};
@@ -1845,18 +1826,65 @@ methods
             % read velocities & dyes in block form
             sznew3d = [(ixmax-ixmin+1) (iymax-iymin+1) 40];
             sznew2d = [sznew3d(1)*sznew3d(2) sznew3d(3)];
-            u = dc_roms_read_data(runs.dir,'u', ...
+            [u,xumat,yumat,zumat] = dc_roms_read_data(runs.dir,'u', ...
                 tind,volume,[],runs.rgrid);
-            v = dc_roms_read_data(runs.dir,'v', ...
+            [v,xvmat,yvmat,zvmat] = dc_roms_read_data(runs.dir,'v', ...
                 tind,volume,[],runs.rgrid);
-            csdye = dc_roms_read_data(runs.dir, 'dye_01', ...
+            [csdye,xrmat,yrmat,zrmat] = dc_roms_read_data(runs.dir, 'dye_01', ...
                 tind,volume,[],runs.rgrid);
             zdye = dc_roms_read_data(runs.dir, 'dye_02', ...
                 tind,volume,[],runs.rgrid);
                   
             if runs.streamer.west.fit_circle
-                strstr = 
+                N = runs.rgrid.N;
+                % zgrid along streamer - RHO points
+                zstr = squeeze(set_depth(2,4,runs.rgrid.theta_s, ...
+                                runs.rgrid.theta_b,runs.rgrid.hc,N,1,bstr,...
+                                zeros(size(bstr)),0));
+                
+                % bathymetry along streamer
+                bstr = interp2(xr',yr',runs.bathy.h(:,1:yend)',xstr,ystr);
+                
+                xin = nan([numel(zstr) 1]);
+                yin = xin; zin = xin;
+                % build grid vectors
+                for mmm=1:length(xstr)
+                    start = N*(mmm-1) + 1;
+                    stop = start+N-1;
+                    
+                    xin(start:stop) = xstr(mmm); 
+                    yin(start:stop) = ystr(mmm);
+                    zin(start:stop) = zstr(mmm,:);
+                end
+                
+                % now interpolate
+                F = scatteredInterpolant(xumat(:),yumat(:),zumat(:),u(:),'nearest')
+                ustr = reshape(F(xin,yin,zin), [N numel(xin)/N])';
+                
+                F = scatteredInterpolant(xvmat(:),yvmat(:),zvmat(:),v(:),'nearest')
+                vstr = reshape(F(xin,yin,zin), [N numel(xin)/N])';
+                
+                F = scatteredInterpolant(xrmat(:),yrmat(:),zrmat(:),csdye(:),'nearest')
+                csdstr = reshape(F(xin,yin,zin), [N numel(xin)/N])';
+                
+                F = scatteredInterpolant(xrmat(:),yrmat(:),zrmat(:),zdye(:),'nearest')
+                zdstr = reshape(F(xin,yin,zin), [N numel(xin)/N])';
+                
+                strex = streamer(ixmin:ixmax,iymin:iymax,:);
+                F = scatteredInterpolant(xrmat(:),yrmat(:),zrmat(:),strex(:),'linear');
+                strstr = round(reshape(F(xin,yin,zin), [N numel(xin)/N])');
+                
             else
+                ixstr = runs.streamer.west.ixstr{tind};
+                iystr = runs.streamer.west.iystr{tind};
+                indices = sub2ind(sz4dfull(1:2),ixstr,iystr);
+
+                zlin = reshape(zr,sz3d2d);
+                zstr = zlin(indices,:);
+                clear zlin;
+                
+                bstr = runs.bathy.h(indices)';
+                
                 % streamer mask vertical section - along-streamer section
                 % points
                 strlin = reshape(streamer,sz3d2d);
@@ -1876,6 +1904,12 @@ methods
                 csstr = csdye(indnew,:);
             end
                         
+            
+            % bathy-patch
+            bpatch = [bstr -max(runs.bathy.h(:))-100 ...
+                                    -max(runs.bathy.h(:))-100];
+            dpatch = [dstr(:,1)' dstr(end,1) 0];
+            
             % streamer mask at surface
             streamer = streamer(:,:,40);
             
