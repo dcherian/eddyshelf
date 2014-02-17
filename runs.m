@@ -52,11 +52,22 @@ methods
         end
         runs.flt_file = [dir '/ocean_flt.nc'];
         runs.ltrans_file = [dir '/ltrans.nc'];
+        
+        % get grid
+        zeta0 = double(ncread(runs.out_file,'zeta',[1 1 1],[Inf Inf 1]));
+        runs.rgrid = roms_get_grid(runs.out_file,runs.out_file, ...
+                        zeta0,1);
+        runs.rgrid.xr = runs.rgrid.x_rho';
+        runs.rgrid.yr = runs.rgrid.y_rho';
+        runs.rgrid.zr = permute(runs.rgrid.z_r,[3 2 1]);
+        runs.rgrid.z_uw = [];
+        runs.rgrid.z_vw = [];
+        runs.rgrid.zeta = [];
 
+        % read zeta
         if ~runs.givenFile
-            runs.zeta = roms_read_data(dir,'zeta');
-            runs.time = roms_read_data(dir,'ocean_time');
-            filename = dir;
+            runs.zeta = dc_roms_read_data(dir,'zeta',[],{},[],runs.rgrid);
+            runs.time = roms_read_data(dir,'ocean_time');%,[],{},[],runs.rgrid);
             %try
             %    runs.csdye  = roms_read_data(dir,'dye_01', ...
             %        [1 1 runs.rgrid.N 1],[Inf Inf 1 Inf]);
@@ -65,17 +76,8 @@ methods
         else
             runs.zeta = double(ncread(runs.out_file,'zeta'));
             runs.time = double(ncread(runs.out_file,'ocean_time'));
-            filename = runs.out_file;
         end
 
-        runs.rgrid = roms_get_grid(runs.out_file,runs.out_file, ...
-                        runs.zeta(:,:,1)',1);
-        runs.rgrid.xr = runs.rgrid.x_rho';
-        runs.rgrid.yr = runs.rgrid.y_rho';
-        runs.rgrid.zr = permute(runs.rgrid.z_r,[3 2 1]);
-        runs.rgrid.z_uw = [];
-        runs.rgrid.z_vw = [];
-        runs.rgrid.zeta = [];
 
         warning('Assuming uniform grid for dx,dy');
         runs.rgrid.dx = mean(diff(runs.rgrid.xr(:,1),1,1));
@@ -1676,7 +1678,6 @@ methods
     end
 
    %% animation functions
-
     function [] = animate_zeta(runs)
         runs.video_init('zeta');
 
@@ -1706,7 +1707,7 @@ methods
         end
         runs.video_write();
     end
-
+    
     function [] = animate_3d(runs)
         stride = [1 1 1 1];
 

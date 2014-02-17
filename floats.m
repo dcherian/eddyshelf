@@ -29,7 +29,11 @@ classdef floats < handle
                 floats.z = ncread(file,'depth')';
                 floats.time = ncread(file,'ocean_time');
                 floats.temp = ncread(file,'temp')';
-                floats.salt = ncread(file,'salt')';
+                try
+                    floats.salt = ncread(file,'salt')';
+                catch
+                    floats.salt = nan(size(floats.temp));
+                end
                 floats.type = 'roms';
                 disp('Read data. Now processing.');
                 toc;tic;
