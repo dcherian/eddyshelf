@@ -41,7 +41,7 @@ S.uniform = 1; % uniform grid
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
 S.Lm = 400;
-S.Mm = 210;
+S.Mm = 240;
 S.N  = 60;
 
 dx = 1500;
@@ -60,7 +60,7 @@ S.NT = 2+S.NPT; % total number of tracers
 S.Vtransform = 2;
 S.Vstretching = 4;
 S.theta_s = 3.0;     %  S-coordinate surface control parameter.
-S.theta_b = 0.5;     %  S-coordinate bottom  control parameter.
+S.theta_b = 3.0;     %  S-coordinate bottom  control parameter.
 S.Tcline  = 100.0;    %  S-coordinate surface/bottom stretching width (m)
 
 % coriolis parameters
@@ -150,6 +150,7 @@ bathy.axis = 'y'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
 bathy.sl_shelf = 0;
 bathy.sl_slope = 0.04;
+bathy.sl_deep = 0;1/8 * f0/sqrt(N2);
 
 % bathymetry smoothing options
 bathy.n_points = 4;
@@ -164,13 +165,14 @@ end
 
 bathy.comment = ['H_shelf = depth at coast | L_shelf = shelf width | ' ...
                  'L_slope = slope width | axis = cross-shelf axis for bathy ' ...
-                 ' | loc = High/Low end of axis | sl_* = slope of shelf/slope' ...
+                 ' | loc = High/Low end of axis | sl_* = slope of shelf/slope/deep bottom' ...
                  ' L_shelf2 = width for smaller shelf (crooked isobaths) | ' ...
                  ' L_tile = length over which shelf width changes | ' ...
                  ' L_entry = length of smaller shelf | n_points = number ' ...
                  ' of points to smooth over | n_passes = number of smoothing' ...
                  ' passes | isb,xsb,hsb = index,axis loc, depth at shelfbreak' ...
-                 ' isl,xsl,hsl = index, axis loc, depth at end of continental slope'];
+                 ' isl,xsl,hsl = index, axis loc, depth at end of ' ...
+                 'continental slope'];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EDDY
 % eddy momentum balance options
