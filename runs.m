@@ -970,6 +970,8 @@ methods
         % make plots to check?
         debug_plot = 1;
         
+        runs.streamer.west.fit_circle = 1;
+        
         if ~isfield(runs.streamer,'yend')
             runs.detect_streamer_mask();
         end
@@ -977,6 +979,7 @@ methods
         xr = runs.rgrid.xr(:,1:yend)/1000; 
         yr = runs.rgrid.yr(:,1:yend)/1000;
         
+        cx = runs.eddy.mx/1000;
         cy = runs.eddy.my/1000;
         cy(cy > max(yr(:))) = max(yr(:));
         
@@ -1007,6 +1010,7 @@ methods
             meandist = nan([skelcomps.NumObjects 1]);
             
             icen = nan(skelcomps.NumObjects,2);
+            
             % process the branches for mean distance, centroid, and sort
             % clockwise
             for mm = 1:skelcomps.NumObjects
@@ -1075,39 +1079,66 @@ methods
                 continue;
             end
             
-            % use angleSort on branch centroids to order regions appropriately
-            [~,sortcen] = angleSort(icen(sortnum,:), ...
-                            [cxind(tind) cyind(tind)],-pi/2);
-            sortcen = flipdim(sortcen,1);
-            % alternative to above - sortcen code
-            %[~,sortang] = sort(meanangle(sortnum),'descend');
-            
-            % now actually select the remaining regions and figure out
-            % (x,y) co-ordinates
-            sortnum = sortnum(sortcen);
-            
-            % old version without joining
-            %indices = cat(1,skelcomps.PixelIdxList{sortnum});
-            %[ixstr,iystr] = ind2sub(size(skel),indices);
-            
-            % sortnum should be final sorted order here
-            [ixstr, iystr] = ind2sub(size(skel), skelcomps.PixelIdxList{sortnum(1)});
-            for mm = 1:length(sortnum)-1
-                ix1 = ixstr(end);
-                iy1 = iystr(end);
-                                
-                [ix2,iy2] = ind2sub(size(skel), ...
-                                    skelcomps.PixelIdxList{sortnum(mm+1)});
+            if runs.streamer.west.fit_circle
+                % first get discrete points
+                % old version without joining
+                indices = cat(1,skelcomps.PixelIdxList{sortnum});
+                [ixstr,iystr] = ind2sub(size(skel),indices);
+                xstr = xr(ixstr,1);
+                ystr = yr(1,iystr)';
                 
-                % use Bresenham's algorithm to join
-                [jx,jy] = bresenham(ix1,iy1,ix2(1),iy2(1));
+                % fit circle
+                circ = CircleFitByPratt([xstr ystr]);
+                Cx = circ(1); Cy = circ(2); R = circ(3);
+                theta0 = unwrap(atan2(ystr-Cy,xstr-Cx));
+                % i want 2 km resolution i.e., R * dtheta = 2 km
+                dtheta = 2/R;
+                theta = min(theta0(:)):dtheta:max(theta0(:));
+                xstr = Cx + R .* cos(theta);
+                ystr = Cy + R .* sin(theta);
                 
-                ixstr = [ixstr; jx; ix2];
-                iystr = [iystr; jy; iy2];
+                strmask = round(interp2(xr',yr',stream',xstr,ystr));
+                xstr(strmask == 0) = [];
+                ystr(strmask == 0) = [];
+                
+                if ~isclockwise(xstr,ystr)
+                    xstr = fliplr(xstr);
+                    ystr = fliplr(ystr);
+                end
+                
+                ixstr = []; iystr = [];
+            else
+                % use angleSort on branch centroids to order regions appropriately
+                [~,sortcen] = angleSort(icen(sortnum,:), ...
+                                [cxind(tind) cyind(tind)],-pi/2);
+                sortcen = flipdim(sortcen,1);
+                % alternative to above - sortcen code
+                %[~,sortang] = sort(meanangle(sortnum),'descend');
+
+                % now actually select the remaining regions and figure out
+                % (x,y) co-ordinates
+                sortnum = sortnum(sortcen);
+
+                % sortnum should be final sorted order here
+                [ixstr, iystr] = ind2sub(size(skel), skelcomps.PixelIdxList{sortnum(1)});
+                for mm = 1:length(sortnum)-1
+                    ix1 = ixstr(end);
+                    iy1 = iystr(end);
+
+                    [ix2,iy2] = ind2sub(size(skel), ...
+                                        skelcomps.PixelIdxList{sortnum(mm+1)});
+
+                    % use Bresenham's algorithm to join
+                    [jx,jy] = bresenham(ix1,iy1,ix2(1),iy2(1));
+
+                    ixstr = [ixstr; jx; ix2];
+                    iystr = [iystr; jy; iy2];
+                end
+
+                xstr = xr(ixstr,1)';
+                ystr = yr(1,iystr);
             end
             
-            xstr = xr(ixstr,1);
-            ystr = yr(1,iystr)';
             % fix the starting!!!
             dstr = [0 cumsum(hypot(diff(xstr),diff(ystr)))];
             
@@ -1126,18 +1157,14 @@ methods
             
             % testing streamer cross-section detection
             if debug_plot
-                skelfinal = zeros(size(skel));
-                skelfinal(sub2ind(size(skel),ixstr,iystr)) = 1;
                 clf
                 subplot(211)
-                imagesc(double(stream'));
-                set(gca,'ydir','normal');
+                pcolorcen(xr,yr,double(stream));
                 hold on;
-                plot(cxind(tind),cyind(tind),'ko','MarkerSize',16);
+                plot(cx(tind),cy(tind),'ko','MarkerSize',16);
                 %plot(idxx,idxy,'bx','markersize',8);
-                plot(ixstr,iystr,'k-');
+                plot(xstr,ystr,'k*');
                 
-                circ = CircleFitByPratt([ixstr iystr]);
                 drawCircle(circ(1),circ(2),circ(3));
                 %ell = EllipseDirectFit([ixstr iystr]);
                 %a = ell(1); b = ell(2); c = ell(3); 
@@ -1749,21 +1776,21 @@ methods
         
         % grid matrices required for plotting
         xr = runs.rgrid.xr(:,1:yend)/1000; yr = runs.rgrid.yr(:,1:yend)/1000;
-        ix = repmat([1:size(xr,1)]',[1 yend]);
-        iy = repmat([1:yend],[size(xr,1) 1]);
-        yzw = repmat(yr(1,:)', [1 runs.rgrid.N+1]);
-        yzr = repmat(yr(1,:)', [1 runs.rgrid.N]);
+        %ix = repmat([1:size(xr,1)]',[1 yend]);
+        %iy = repmat([1:yend],[size(xr,1) 1]);
+        %yzw = repmat(yr(1,:)', [1 runs.rgrid.N+1]);
+        %yzr = repmat(yr(1,:)', [1 runs.rgrid.N]);
         zw = permute(runs.rgrid.z_w(:,1:yend,:),[3 2 1]);
         zr = permute(runs.rgrid.z_r(:,1:yend,:),[3 2 1]);
         
         % NEED TO ACCOUNT FOR TILTING IN VERTICAL?
-        cx = runs.eddy.cx(t0:tend)/1000;
-        cy = runs.eddy.cy(t0:tend)/1000;
-        ee = runs.eddy.ee(t0:tend)/1000;
+        %cx = runs.eddy.cx(t0:tend)/1000;
+        %cy = runs.eddy.cy(t0:tend)/1000;
+        %ee = runs.eddy.ee(t0:tend)/1000;
         % hack if eddy center is outside extracted domain
-        cy(cy > max(yr(:))) = max(yr(:));
-        cxind = vecfind(xr(:,1),cx);
-        cyind = vecfind(yr(1,:),cy)';
+        %cy(cy > max(yr(:))) = max(yr(:));
+        %cxind = vecfind(xr(:,1),cx);
+        %cyind = vecfind(yr(1,:),cy)';
         
         % vertically integrated w - plan view - in streamer
         WS = squeeze( nansum( bsxfun(@times, ...
