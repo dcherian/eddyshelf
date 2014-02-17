@@ -1108,7 +1108,8 @@ methods
             
             xstr = xr(ixstr,1);
             ystr = yr(1,iystr)';
-            dstr = cumsum(hypot(diff(xstr),diff(ystr)));
+            % fix the starting!!!
+            dstr = [0 cumsum(hypot(diff(xstr),diff(ystr)))];
             
             % distance from perimeter - NOT QUITE AS GOOD
             %{
@@ -1713,6 +1714,7 @@ methods
     
     function [] = animate_streamer_section(runs)
         
+        debug_plot = 0;
         if ~isfield(runs.streamer.west,'mask')
             runs.build_streamer_section();
         end
@@ -1724,6 +1726,7 @@ methods
         
         sz4dfull = runs.streamer.sz4dfull;
         sz4dsp = runs.streamer.sz4dsp;
+        sz3dfull = runs.streamer.sz3dfull;
         sz3dsp = runs.streamer.sz3dsp;
         
         sz4dfull(4) = tend-t0+1;
@@ -1734,17 +1737,17 @@ methods
         % read to calculate depth integrated upwelling/downwelling
         % before time loop
         w = avg1(dc_roms_read_data(runs.dir, 'w', tindices, ...
-                    {'y' 1 yend},[],runs.rgrid),3);
+            {'y' 1 yend},[],runs.rgrid),3);
         wstr = reshape(w,sz4dsp) .* runs.streamer.west.mask(:,t0:tend);
         clear w
         % co-ordinate axes
-
+        
         %[grd.xax,grd.yax,grd.zax,~,~,~] = dc_roms_var_grid(runs.rgrid,'temp');
         %grd.xax = grd.xax(:,1:yend,:);
         %grd.yax = grd.yax(:,1:yend,:);
         %grd.zax = grd.zax(:,1:yend,:);
-
-        % grid matrices required for plotting        
+        
+        % grid matrices required for plotting
         xr = runs.rgrid.xr(:,1:yend)/1000; yr = runs.rgrid.yr(:,1:yend)/1000;
         ix = repmat([1:size(xr,1)]',[1 yend]);
         iy = repmat([1:yend],[size(xr,1) 1]);
@@ -1752,153 +1755,221 @@ methods
         yzr = repmat(yr(1,:)', [1 runs.rgrid.N]);
         zw = permute(runs.rgrid.z_w(:,1:yend,:),[3 2 1]);
         zr = permute(runs.rgrid.z_r(:,1:yend,:),[3 2 1]);
-
+        
         % NEED TO ACCOUNT FOR TILTING IN VERTICAL?
-        cx = runs.eddy.cx(t0:t0+read_count(end)-1)/1000;
-        cy = runs.eddy.cy(t0:t0+read_count(end)-1)/1000;
-        ee = runs.eddy.ee(t0:t0+read_count(end)-1)/1000;
+        cx = runs.eddy.cx(t0:tend)/1000;
+        cy = runs.eddy.cy(t0:tend)/1000;
+        ee = runs.eddy.ee(t0:tend)/1000;
         % hack if eddy center is outside extracted domain
         cy(cy > max(yr(:))) = max(yr(:));
         cxind = vecfind(xr(:,1),cx);
         cyind = vecfind(yr(1,:),cy)';
-
+        
         % vertically integrated w - plan view - in streamer
         WS = squeeze( nansum( bsxfun(@times, ...
-                                reshape(full(wstr),sz4dfull), ...
-                                diff(zw,1,3) ), 3) );
-
-         hfig = figure;
-         maximize();
-
-         for tt = 1:sz4dsp(end)
-             tind = t0+tt-1;
-             
-             % get section locations & make grid matrices
-             xstr = repmat(runs.streamer.west.xstr{tind},[1 runs.rgrid.N]);
-             ystr = repmat(runs.streamer.west.ystr{tind},[1 runs.rgrid.N]);
-             ixstr = runs.streamer.west.ixstr{tind};
-             iystr = runs.streamer.west.iystr{tind};
-             indices = sub2ind(sz4dfull(1:2),ixstr,iystr);
-             
-             zlin = reshape(zr,sz3d2d);
-             zstr = zlin(indices,:);
-             clear zlin;
-             
-             % new sizes - from now on I read in only data for required
-             % section
-             
+            reshape(full(wstr),sz4dfull), ...
+            diff(zw,1,3) ), 3) );
+        
+        hfig = figure;
+        maximize();
+        
+        for tt = 1:sz4dsp(end)
+            tind = t0+tt-1;
+            
+            % get section locations & make grid matrices
+            xstr = runs.streamer.west.xstr{tind};
+            ystr = runs.streamer.west.ystr{tind};
+            dstr = repmat(runs.streamer.west.dstr{tind},[1 runs.rgrid.N]);
+            if size(dstr,1) ~= size(xstr,1)
+                dstr(2:end+1,:) = dstr;
+                dstr(1,:) = 0;
+            end
+            ixstr = runs.streamer.west.ixstr{tind};
+            iystr = runs.streamer.west.iystr{tind};
+            indices = sub2ind(sz4dfull(1:2),ixstr,iystr);
+            
+            zlin = reshape(zr,sz3d2d);
+            zstr = zlin(indices,:);
+            clear zlin;
+            
+            % bathy-patch
+            bpatch = [-runs.bathy.h(indices)' -max(runs.bathy.h(:))-100 ...
+                                    -max(runs.bathy.h(:))-100];
+            dpatch = [dstr(:,1)' dstr(end,1) 0];
+            
+            % new sizes - from now on I read in only data for required
+            % section
+            
             % streamer has been identified - now extract data section
             volume = {'x' min(ixstr) max(ixstr);
                       'y' min(iystr) max(iystr)};
-
-            %wstr = avg1(dc_roms_read_data(runs.dir, 'w', t0+tt-1,volume),3);
-            % w was read earlier - just extract once
-            zdye = dc_roms_read_data(runs.dir, ...
-                        'dye_02', tind,volume,[],runs.rgrid);
-            %zr = permute(runs.rgrid.z_r(:,volume{2,2}:volume{2,3}, ...
-            %            volume{1,2}:volume{1,3}),[3 2 1]);
-
-            %sz = [size(wstr,1) size(wstr,2)];
-            %wstr = reshape(wstr, sz(1) * sz(2), size(wstr,3));
-            %zdye = reshape(zdye, sz(1) * sz(2), size(zdye,3));
-            %zr = reshape(zr, sz(1) * sz(2), size(zr,3));
-
-            % extract streamer section - indicated by suffix 'ex'
-            %inc = sub2ind(sz, ixstr - min(ixstr(:)) + 1, ...
-            %            iystr - min(iystr(:)) + 1);
-            %wex = wstr(inc,:);
-            %zrex = zr(inc,:);
-            %zdyeex = zdye(inc,:) - zrex;
-            %xex = repmat(dstr,[1 size(zrex,2)]);
-
-            % index of western & eastern edges
-            %wind = vecfind(xr(:,1), runs.eddy.vor.we/1000);
-            %eind = vecfind(xr(:,1), runs.eddy.vor.ee/1000);
-
-            % colorbar for vertical vel cross-section
-            %wcolor = sort( [-1 1  ] * max(max(abs( ...
-            %                    log10(abs(w(sort([eind wind]),:))) ))) )/2;
-
-           %% animate depth integrated w in streamer
-
+            
             %windex = wind(tindex)-dx; % for cross-section
             %eindex = eind(tindex)-dx; % for cross-section
             tindex = t0+tt-1;
             zlimit = [-1000 0];
-
+            
+            % extract streamer at surface
             streamer = reshape(full(runs.streamer.west.mask(:,t0+tt-1)) ...
-                                ,sz4dfull);
+                ,sz3dfull);
+            % streamer mask vertical section - along-streamer section
+            % points
+            strlin = reshape(streamer,sz3d2d);
+            strstr = strlin(indices,:);
+            % streamer mask at surface
             streamer = streamer(:,:,40);
             
-            % read horizontal velocities
-            ixnew = ;
-            iynew = ;
-            sznew = 19*29;
+            % read velocities & dyes in block form
+            ixnew = ixstr - min(ixstr) + 1;
+            iynew = iystr - min(iystr) + 1;
+            sznew3d = [(max(ixstr)-min(ixstr)+1) (max(iystr)-min(iystr)+1) 40];
+            sznew2d = [sznew3d(1)*sznew3d(2) sznew3d(3)];
             u = reshape(dc_roms_read_data(runs.dir,'u', ...
-                    tind,volume,[],runs.rgrid), sznew);
+                tind,volume,[],runs.rgrid), sznew2d);
             v = reshape(dc_roms_read_data(runs.dir,'v', ...
-                tind,volume,[],runs.rgrid), sznew);
+                tind,volume,[],runs.rgrid), sznew2d);
+            csdye = reshape(dc_roms_read_data(runs.dir, 'dye_01', ...
+                tind,volume,[],runs.rgrid), sznew2d);
+            zdye = reshape(dc_roms_read_data(runs.dir, 'dye_02', ...
+                tind,volume,[],runs.rgrid), sznew2d);
             
+            % extract variables at streamer points
+            indnew = sub2ind(sznew3d(1:2),ixnew,iynew);
+            ustr = u(indnew,:);
+            vstr = v(indnew,:);
+            zdstr = zdye(indnew,:);
+            csstr = csdye(indnew,:);
+            
+            % rotate velocities to along & cross-streamer dirns.
+            angle = atan2d(diff(ystr),diff(xstr));
+            angle(end+1) = angle(end);
+            angle = repmat(angle,[1 size(ustr,2)]);
+            if debug_plot
+                figure;
+                plot(xstr,ystr); hold on;
+                dx = 4;
+                for ii=1:size(xstr,1)
+                    text(xstr(ii),ystr(ii),num2str(angle(ii,1)));
+                end
+            end
+            % normal vel
+            Unstr = ustr .* cosd(angle) - vstr .* sind(angle);
+            % tangential vel
+            Utstr = ustr .* sind(angle) + vstr .* cosd(angle);
+            
+            % replace values in the vertical that aren't associated with
+            % the streamer with NaNs
+            Utstr(strstr == 0) = NaN;
+            Unstr(strstr == 0) = NaN;
+            zdstr(strstr == 0) = NaN;
+            csstr(strstr == 0) = NaN;
             
             figure(hfig);
             if tt == 1
-                subplot(221)
-                titlestr = 'Depth integrated w in streamer (blue)';
-                hws = pcolorcen(xr,yr,double(WS(:,:,ii))); shading flat;
+                limy = [0 nanmax(cat(1,runs.streamer.west.ystr{:}))+ ...
+                            10*runs.rgrid.dy/1000];
+                limx = [nanmin(cat(1,runs.streamer.west.xstr{:})) ...
+                        400]; % CHANGE THIS
+                limz = [-1000 0];
+                
+                % normalized depth integrated w
+                ax(1) = subplot(231);
+                titlestr = 'NORMALIZED \int w dz in streamer (blue)';
+                hws = pcolorcen(xr,yr,double(WS(:,:,tt))./...
+                    nanmax(nanmax(abs(WS(:,:,tt))))); shading flat;
                 hold on;
-                [~,hs] = contour(xr,yr,repnan(streamer(:,:,40,ii),0), ...
-                                1,'b','LineWidth',2);
+                [~,hs] = contour(xr,yr,repnan(streamer,0), ...
+                    1,'b','LineWidth',2);
                 he = runs.plot_eddy_contour('contour',tindex);
                 hstr = plot(xstr,ystr,'kx');
                 runs.plot_bathy('contour','k');
                 colormap(flipud(cbrewer('div','RdBu',32)));
-                caxis([-1 1] * max(abs([nanmin(WS(:)) nanmax(WS(:))])));
-                colorbar; %cbunits('m^2/s'); 
+                caxis([-1 1]);
+                xlim(limx); ylim(limy);
+                %caxis([-1 1] * max(abs([nanmin(WS(:)) nanmax(WS(:))])));
+                colorbar; %cbunits('m^2/s');
                 ht = runs.set_title(titlestr,tindex);
-
-                % depth of 'streamer'
-                subplot(223)
-                hz = pcolorcen(xr,yr,double(max(abs(zs(:,:,:,ii)),[],3)));
+                
+                % un=normalized depth integrated w
+                ax(2) = subplot(234);
+                hws2 = pcolorcen(xr,yr,double(WS(:,:,tt))); shading flat;
                 hold on;
-                hcb = colorbar;  caxis([0 max(abs(zs(:)))]);cbunits('[m]');
-                hzeta = runs.plot_zeta('contour',tindex);
-                title('Depth of ''streamer''');
-
+                [~,hs2] = contour(xr,yr,repnan(streamer,0), ...
+                    1,'b','LineWidth',2);
+                he2 = runs.plot_eddy_contour('contour',tindex);
+                runs.plot_bathy('contour','k');
+                colormap(flipud(cbrewer('div','RdBu',32)));
+                title('\int w dz in streamer (blue)');
+                xlim(limx); ylim(limy);
+                caxis([-1 1] * max(abs([nanmin(WS(:)) nanmax(WS(:))])));
+                colorbar; %cbunits('m^2/s');
+                
                 % zdye - streamer section
-                subplot(222)
-                [~,hzdye] = contourf(xex,zrex,zdyeex);
-                colorbar;
+                ax(3) = subplot(232);
+                [~,hzdye] = contourf(dstr,zstr,zdstr - zstr);
+                colorbar; ylim(limz); caxis([-50 50]);
                 ylabel('Z (m)'); xlabel('Along-streamer dist (km)');
                 title('\Delta z-dye');
-
-                % vertical vel - streamer section
-                subplot(224)
-                [~,hw] = contourf(xex,zrex,avg1(wex,2));
-                colorbar;
+                hold on;
+                hpatch(3) = patch(dpatch,bpatch,'k');
+                
+                % cross-shelf dye - streamer section
+                ax(4) = subplot(235);
+                [~,hcsd] = contourf(dstr,zstr,csstr/1000 - runs.bathy.xsb/1000);
+                colorbar; ylim(limz); caxis([-10 40]);
                 ylabel('Z (m)'); xlabel('Along-streamer dist (km)');
-                title('vertical velocity');
-
-                spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
-                pause(0.01);         
-
+                title('Cross-shelf dye - X_{shelfbreak} (km)');
+                hold on;
+                hpatch(4) = patch(dpatch,bpatch,'k');
+                
+                % velocities - streamer section
+                ax(5) = subplot(233);
+                [~,hun] = contourf(dstr,zstr,Unstr);
+                colorbar; ylim(limz);caxis([-1 1]*0.1);
+                ylabel('Z (m)'); xlabel('Along-streamer dist (km)');
+                title('Normal velocity (m/s)');
+                hold on;
+                hpatch(5) = patch(dpatch,bpatch,'k');
+                
+                ax(6) = subplot(236);
+                [~,hut] = contourf(dstr,zstr,Utstr);
+                colorbar; ylim(limz); caxis([-1 1]*0.1);
+                ylabel('Z (m)'); xlabel('Along-streamer dist (km)');
+                title('Tangential velocity (m/s)');
+                hold on;
+                hpatch(6) = patch(dpatch,bpatch,'k');
+                
+                %spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
+                pause();
+                
             else
-                set(hws ,'CData',double(WS(:,:,tt)));
-                set(hs  ,'ZData',repnan(streamer(:,:,40,tt),0));
-
-                set(hz  ,'CData',double(max(abs(zs(:,:,:,tt)),[],3)));
-
+                set(hws ,'CData',double(WS(:,:,tt))./...
+                    nanmax(nanmax(abs(WS(:,:,tt)))));
+                set(hs  ,'ZData',repnan(streamer,0));
                 set(hstr,'XData',xstr,'YData',ystr);
-
-                % streamer sections
-                set(hzdye,'XData',xex,'YData',zrex,'ZData',zdyeex);
-                set(hw  , 'XData',xex,'YData',zrex, 'ZData',avg1(wex,2));
-
-                runs.update_zeta(hzeta,tindex);
+                
+                for mmm=3:6
+                    set(ax(mmm),'XLim',[0 max(dstr(:,1))]);
+                    set(hpatch(mmm),'XData',dpatch,'YData',bpatch);
+                end
+                
+                set(hws2, 'CData', double(WS(:,:,tt)));
+                set(hs2 ,'ZData',repnan(streamer,0));
+                
+                set(hzdye,'XData',dstr,'YData',zstr,'ZData', zdstr - zstr);
+                set(hcsd,'XData',dstr,'YData',zstr,'ZData', ...
+                    csstr/1000 - runs.bathy.xsb/1000);
+                
+                set(hun ,'XData',dstr,'YData',zstr,'ZData',Unstr);
+                set(hut ,'XData',dstr,'YData',zstr,'ZData',Utstr);
+                
+                %runs.update_zeta(hzeta,tindex);
+                runs.update_eddy_contour(he2, tindex);
                 runs.update_eddy_contour(he, tindex);
                 runs.update_title(ht,titlestr,tindex);
-                pause(0.01);
+                pause();
             end
-         end
+        end
     end
     
     function [] = animate_3d(runs)
