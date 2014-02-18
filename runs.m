@@ -1742,7 +1742,11 @@ methods
     function [] = animate_streamer_section(runs)
         
         debug_plot = 0;
-        if ~isfield(runs.streamer.west,'mask')
+        try
+            if ~isfield(runs.streamer.west,'mask')
+                runs.build_streamer_section();
+            end
+        catch
             runs.build_streamer_section();
         end
         yend = runs.streamer.yend;
@@ -1793,6 +1797,11 @@ methods
             ixmax = find_approx(xr(:,1),max(xstr));
             iymin = find_approx(yr(1,:),min(ystr));
             iymax = find_approx(yr(1,:),max(ystr));
+            
+            ixmin = max(ixmin-5,1);
+            ixmax = min(ixmax+5,size(runs.bathy.h,1));
+            iymin = max(iymin-5,1);
+            iymax = min(iymax+5,size(runs.bathy.h,2));
                      
             % streamer has been identified - now extract data section
             volume = {'x' ixmin ixmax;
@@ -1815,6 +1824,10 @@ methods
                 tind,volume,[],runs.rgrid);
             zdye = dc_roms_read_data(runs.dir, 'dye_02', ...
                 tind,volume,[],runs.rgrid);
+            
+            xumat = xumat/1000; yumat = yumat/1000;
+            xvmat = xvmat/1000; yvmat = yvmat/1000;
+            xrmat = xrmat/1000; yrmat = yrmat/1000;
                   
             if runs.streamer.west.fit_circle
                 N = runs.rgrid.N;
@@ -1822,41 +1835,91 @@ methods
                 % bathymetry along streamer
                 bstr = interp2(xr',yr',runs.bathy.h(:,1:yend)',xstr,ystr);
                 
-                % zgrid along streamer - RHO points
+%               % zgrid along streamer - RHO points
                 zstr = squeeze(set_depth(2,4,runs.rgrid.theta_s, ...
-                                runs.rgrid.theta_b,runs.rgrid.hc,N,1,bstr,...
-                                zeros(size(bstr)),0));
+                                 runs.rgrid.theta_b,runs.rgrid.hc,N,1,bstr,...
+                                 zeros(size(bstr)),0));
                 
+                [I.XR,I.YR] = ndgrid(xstr,ystr);
+                hin = interp2(xr',yr',runs.bathy.h(:,1:yend)',I.XR,I.YR);
+                zetain = interp2(xr',yr',runs.zeta(:,1:yend,tind)',I.XR,I.YR);
+                I.ZR = set_depth(2,4,runs.rgrid.theta_s, ...
+                                 runs.rgrid.theta_b,runs.rgrid.hc,N,1,hin,...
+                                 zetain,0);
                 
-                xin = nan([numel(zstr) 1]);
-                yin = xin; zin = xin;
-                % build grid vectors
-                for mmm=1:length(xstr)
-                    start = N*(mmm-1) + 1;
-                    stop = start+N-1;
-                    
-                    xin(start:stop) = xstr(mmm); 
-                    yin(start:stop) = ystr(mmm);
-                    zin(start:stop) = zstr(mmm,:);
-                end
+                % structure for interp_field.m                
+                % doesn't change
+                I.Vname = 'does not matter';
+                I.nvdims = ndims(u);
+                I.Dmask = ones(size(u)); I.Rmask = ones(size(u));
+                I.Zsur = max(I.ZR(:));
+                I.Zbot = min(I.ZR(:));                
+                % indices to extract section
+                lstr = length(xstr);
+                indin = sub2ind([lstr lstr],[1:lstr],[1:lstr]);
                 
+                % now interp variables
+                I.VD = u; 
+                I.XD = xumat; I.YD = yumat; I.ZD = zumat;
+                ustr = reshape(interp_field(I),[lstr*lstr N]);
+                ustr = ustr(indin,:);
+                
+                I.VD = v; 
+                I.XD = xvmat; I.YD = yvmat; I.ZD = zvmat;
+                vstr = reshape(interp_field(I),[lstr*lstr N]);
+                vstr = vstr(indin,:);
+                
+                I.VD = zdye; 
+                I.XD = xrmat; I.YD = yrmat; I.ZD = zrmat;
+                zdstr = reshape(interp_field(I),[lstr*lstr N]);
+                zdstr = zdstr(indin,:);
+                
+                I.VD = csdye; 
+                csstr = reshape(interp_field(I),[lstr*lstr N]);
+                csstr = csstr(indin,:);
+                
+                I.VD = streamer(ixmin:ixmax,iymin:iymax,:);
+                strstr = reshape(interp_field(I),[lstr*lstr N]);
+                strstr = round(strstr(indin,:));
+                
+                % first interpolate in horizontal on original grid levels                 
+%                 xin = nan([numel(zstr) 1]);
+%                 yin = xin; zin = xin;
+%                 % build grid vectors
+%                 for mmm=1:length(xstr)
+%                     start = N*(mmm-1) + 1;
+%                     stop = start+N-1;
+%                     
+%                     xin(start:stop) = xstr(mmm); 
+%                     yin(start:stop) = ystr(mmm);
+%                     zin(start:stop) = zstr(mmm,:);
+%                 end
+%                 for nn=1:N
+%                     nel = [numel(xumat(:,:,nn)) 1];
+%                     Fu = scatteredInterpolant( ...
+%                         reshape(xumat(:,:,nn), nel), ...
+%                         reshape(yumat(:,:,nn), nel), ...
+%                         reshape(u(:,:,nn), nel));
+%                     ui(:,nn) = Fu(xstr,ystr);
+%                 end
+                              
                 % now interpolate
-                F = scatteredInterpolant(xumat(:),yumat(:),zumat(:),u(:),'nearest')
-                ustr = reshape(F(xin,yin,zin), [N numel(xin)/N])';
+%                 Fu = scatteredInterpolant(xumat(:),yumat(:),zumat(:),u(:));
+%                 ustr = reshape(Fu(xin,yin,zin), [N numel(xin)/N])';
+%                 
+%                 Fv = scatteredInterpolant(xvmat(:),yvmat(:),zvmat(:),v(:),'nearest');
+%                 vstr = reshape(Fv(xin,yin,zin), [N numel(xin)/N])';
+%                 
+%                 Fcs = scatteredInterpolant(xrmat(:),yrmat(:),zrmat(:),csdye(:),'nearest');
+%                 csstr = reshape(Fcs(xin,yin,zin), [N numel(xin)/N])';
+%                 
+%                 Fz = scatteredInterpolant(xrmat(:),yrmat(:),zrmat(:),zdye(:),'nearest');
+%                 zdstr = reshape(Fz(xin,yin,zin), [N numel(xin)/N])';
                 
-                F = scatteredInterpolant(xvmat(:),yvmat(:),zvmat(:),v(:),'nearest')
-                vstr = reshape(F(xin,yin,zin), [N numel(xin)/N])';
-                
-                F = scatteredInterpolant(xrmat(:),yrmat(:),zrmat(:),csdye(:),'nearest')
-                csstr = reshape(F(xin,yin,zin), [N numel(xin)/N])';
-                
-                F = scatteredInterpolant(xrmat(:),yrmat(:),zrmat(:),zdye(:),'nearest')
-                zdstr = reshape(F(xin,yin,zin), [N numel(xin)/N])';
-                
-                % interpolating streamer mask doesn't work
-                zmin = min(runs.streamer.zr .* streamer,[],3);
-                zminstr = interp2(xr',yr',zmin',xstr,ystr);
-                strstr = bsxfun(@gt,zstr,zminstr);
+%                 % interpolating streamer mask doesn't work
+%                 zmin = min(runs.streamer.zr .* streamer,[],3);
+%                 zminstr = interp2(xr',yr',zmin',xstr,ystr);
+%                 strstr = bsxfun(@gt,zstr,zminstr);
                 %strex = streamer(ixmin:ixmax,iymin:iymax,:);
                 %F = scatteredInterpolant(xrmat(:),yrmat(:),zrmat(:),strex(:),'linear');
                 %strstr = round(reshape(F(xin,yin,zin), [N numel(xin)/N])');
@@ -1877,8 +1940,8 @@ methods
                 strlin = reshape(streamer,sz3d2d);
                 strstr = strlin(indices,:);
 
-                ixnew = ixstr - ixmin + 1;
-                iynew = iystr - iymin + 1;
+                ixnew = ixstr - min(ixstr(:)) + 1;
+                iynew = iystr - min(iystr(:)) + 1;
                 % extract variables at streamer points
                 u = reshape(u,sznew2d);
                 v = reshape(v,sznew2d);
@@ -1892,7 +1955,7 @@ methods
             end
             
             % bathy-patch
-            bpatch = [bstr' -max(runs.bathy.h(:))-100 ...
+            bpatch = [-bstr' -max(runs.bathy.h(:))-100 ...
                                     -max(runs.bathy.h(:))-100];
             dpatch = [dstr(:,1)' dstr(end,1) 0];
             
@@ -1918,10 +1981,10 @@ methods
             
             % replace values in the vertical that aren't associated with
             % the streamer with NaNs
-            Utstr(strstr == 0) = NaN;
-            Unstr(strstr == 0) = NaN;
-            zdstr(strstr == 0) = NaN;
-            csstr(strstr == 0) = NaN;
+            %Utstr(strstr == 0) = NaN;
+            %Unstr(strstr == 0) = NaN;
+            %zdstr(strstr == 0) = NaN;
+            %csstr(strstr == 0) = NaN;
             
             figure(hfig);
             if tt == 1
@@ -1970,6 +2033,8 @@ methods
                 ylabel('Z (m)'); xlabel('Along-streamer dist (km)');
                 title('\Delta z-dye');
                 hold on;
+                [~,hstrz1] = contour(dstr,zstr,strstr,[1 1],'k');
+                set(hstrz1,'LineWidth',2);
                 hpatch(3) = patch(dpatch,bpatch,'k');
                 
                 % cross-shelf dye - streamer section
@@ -1979,6 +2044,8 @@ methods
                 ylabel('Z (m)'); xlabel('Along-streamer dist (km)');
                 title('Cross-shelf dye - X_{shelfbreak} (km)');
                 hold on;
+                [~,hstrz2] = contour(dstr,zstr,strstr,[1 1],'k');
+                set(hstrz2,'LineWidth',2);
                 hpatch(4) = patch(dpatch,bpatch,'k');
                 
                 % velocities - streamer section
@@ -1988,6 +2055,8 @@ methods
                 ylabel('Z (m)'); xlabel('Along-streamer dist (km)');
                 title('Normal velocity (m/s)');
                 hold on;
+                [~,hstrz3] = contour(dstr,zstr,strstr,[1 1],'k');
+                set(hstrz3,'LineWidth',2);
                 hpatch(5) = patch(dpatch,bpatch,'k');
                 
                 ax(6) = subplot(236);
@@ -1996,6 +2065,8 @@ methods
                 ylabel('Z (m)'); xlabel('Along-streamer dist (km)');
                 title('Tangential velocity (m/s)');
                 hold on;
+                [~,hstrz4] = contour(dstr,zstr,strstr,[1 1],'k');
+                set(hstrz4,'LineWidth',2);
                 hpatch(6) = patch(dpatch,bpatch,'k');
                 
                 %spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
@@ -2021,6 +2092,12 @@ methods
                 
                 set(hun ,'XData',dstr,'YData',zstr,'ZData',Unstr);
                 set(hut ,'XData',dstr,'YData',zstr,'ZData',Utstr);
+                
+                % update streamer depth contour
+                set(hstrz1,'XData',dstr,'YData',zstr,'ZData',strstr);
+                set(hstrz2,'XData',dstr,'YData',zstr,'ZData',strstr);
+                set(hstrz3,'XData',dstr,'YData',zstr,'ZData',strstr);
+                set(hstrz4,'XData',dstr,'YData',zstr,'ZData',strstr);
                 
                 %runs.update_zeta(hzeta,tindex);
                 runs.update_eddy_contour(he2, tindex);
