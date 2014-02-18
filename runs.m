@@ -1102,8 +1102,8 @@ methods
                 ystr(strmask == 0) = [];
                 
                 if ~isclockwise(xstr,ystr)
-                    xstr = fliplr(xstr);
-                    ystr = fliplr(ystr);
+                    xstr = fliplr(xstr)';
+                    ystr = fliplr(ystr)';
                 end
                 
                 ixstr = []; iystr = [];
@@ -1135,12 +1135,12 @@ methods
                     iystr = [iystr; jy; iy2];
                 end
 
-                xstr = xr(ixstr,1)';
-                ystr = yr(1,iystr);
+                xstr = xr(ixstr,1);
+                ystr = yr(1,iystr)';
             end
             
             % fix the starting!!!
-            dstr = [0 cumsum(hypot(diff(xstr),diff(ystr)))];
+            dstr = [0; cumsum(hypot(diff(xstr),diff(ystr)))];
             
             % distance from perimeter - NOT QUITE AS GOOD
             %{
@@ -1767,30 +1767,11 @@ methods
             {'y' 1 yend},[],runs.rgrid),3);
         wstr = reshape(w,sz4dsp) .* runs.streamer.west.mask(:,t0:tend);
         clear w
-        % co-ordinate axes
-        
-        %[grd.xax,grd.yax,grd.zax,~,~,~] = dc_roms_var_grid(runs.rgrid,'temp');
-        %grd.xax = grd.xax(:,1:yend,:);
-        %grd.yax = grd.yax(:,1:yend,:);
-        %grd.zax = grd.zax(:,1:yend,:);
         
         % grid matrices required for plotting
         xr = runs.rgrid.xr(:,1:yend)/1000; yr = runs.rgrid.yr(:,1:yend)/1000;
-        %ix = repmat([1:size(xr,1)]',[1 yend]);
-        %iy = repmat([1:yend],[size(xr,1) 1]);
-        %yzw = repmat(yr(1,:)', [1 runs.rgrid.N+1]);
-        %yzr = repmat(yr(1,:)', [1 runs.rgrid.N]);
         zw = permute(runs.rgrid.z_w(:,1:yend,:),[3 2 1]);
         zr = permute(runs.rgrid.z_r(:,1:yend,:),[3 2 1]);
-        
-        % NEED TO ACCOUNT FOR TILTING IN VERTICAL?
-        %cx = runs.eddy.cx(t0:tend)/1000;
-        %cy = runs.eddy.cy(t0:tend)/1000;
-        %ee = runs.eddy.ee(t0:tend)/1000;
-        % hack if eddy center is outside extracted domain
-        %cy(cy > max(yr(:))) = max(yr(:));
-        %cxind = vecfind(xr(:,1),cx);
-        %cyind = vecfind(yr(1,:),cy)';
         
         % vertically integrated w - plan view - in streamer
         WS = squeeze( nansum( bsxfun(@times, ...
@@ -1806,7 +1787,7 @@ methods
             % get section locations & make grid matrices
             xstr = runs.streamer.west.xstr{tind};
             ystr = runs.streamer.west.ystr{tind};
-            dstr = repmat(runs.streamer.west.dstr{tind}',[1 runs.rgrid.N]);
+            dstr = repmat(runs.streamer.west.dstr{tind},[1 runs.rgrid.N]);
             
             ixmin = find_approx(xr(:,1),min(xstr));
             ixmax = find_approx(xr(:,1),max(xstr));
@@ -1837,13 +1818,15 @@ methods
                   
             if runs.streamer.west.fit_circle
                 N = runs.rgrid.N;
+                
+                % bathymetry along streamer
+                bstr = interp2(xr',yr',runs.bathy.h(:,1:yend)',xstr,ystr);
+                
                 % zgrid along streamer - RHO points
                 zstr = squeeze(set_depth(2,4,runs.rgrid.theta_s, ...
                                 runs.rgrid.theta_b,runs.rgrid.hc,N,1,bstr,...
                                 zeros(size(bstr)),0));
                 
-                % bathymetry along streamer
-                bstr = interp2(xr',yr',runs.bathy.h(:,1:yend)',xstr,ystr);
                 
                 xin = nan([numel(zstr) 1]);
                 yin = xin; zin = xin;
@@ -1865,14 +1848,18 @@ methods
                 vstr = reshape(F(xin,yin,zin), [N numel(xin)/N])';
                 
                 F = scatteredInterpolant(xrmat(:),yrmat(:),zrmat(:),csdye(:),'nearest')
-                csdstr = reshape(F(xin,yin,zin), [N numel(xin)/N])';
+                csstr = reshape(F(xin,yin,zin), [N numel(xin)/N])';
                 
                 F = scatteredInterpolant(xrmat(:),yrmat(:),zrmat(:),zdye(:),'nearest')
                 zdstr = reshape(F(xin,yin,zin), [N numel(xin)/N])';
                 
-                strex = streamer(ixmin:ixmax,iymin:iymax,:);
-                F = scatteredInterpolant(xrmat(:),yrmat(:),zrmat(:),strex(:),'linear');
-                strstr = round(reshape(F(xin,yin,zin), [N numel(xin)/N])');
+                % interpolating streamer mask doesn't work
+                zmin = min(runs.streamer.zr .* streamer,[],3);
+                zminstr = interp2(xr',yr',zmin',xstr,ystr);
+                strstr = bsxfun(@gt,zstr,zminstr);
+                %strex = streamer(ixmin:ixmax,iymin:iymax,:);
+                %F = scatteredInterpolant(xrmat(:),yrmat(:),zrmat(:),strex(:),'linear');
+                %strstr = round(reshape(F(xin,yin,zin), [N numel(xin)/N])');
                 
             else
                 ixstr = runs.streamer.west.ixstr{tind};
@@ -1903,10 +1890,9 @@ methods
                 zdstr = zdye(indnew,:);
                 csstr = csdye(indnew,:);
             end
-                        
             
             % bathy-patch
-            bpatch = [bstr -max(runs.bathy.h(:))-100 ...
+            bpatch = [bstr' -max(runs.bathy.h(:))-100 ...
                                     -max(runs.bathy.h(:))-100];
             dpatch = [dstr(:,1)' dstr(end,1) 0];
             
