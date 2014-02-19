@@ -816,13 +816,18 @@ methods
         
         zdye = reshape(zdye,sz4dsp);
 
-        % first with vormask - assumes that eddy extends to bottom
+        % first with vormask
         zdyevor = zdye .* vormask;
+        zedd = bsxfun(@times, vormask, reshape(permute( ...
+            runs.rgrid.z_r(:,iym:iyM,ixm:ixM),[3 2 1]), sz3dsp));
         runs.eddy.vor.vol = full(squeeze(sum(bsxfun(@times,vormask,dV),1))');
         runs.eddy.vor.zdcen = runs.domain_integratesp(zdyevor, dV)' ...
                         ./ runs.eddy.vor.vol;
+        runs.eddy.vor.zcen = runs.domain_integratesp(zedd,dV)' ...
+                        ./ runs.eddy.vor.vol;
 
-        % then with ssh mask
+        % then with ssh mask - though really vormask is what i'm looking
+        % for
         if use_sshmask
             mask = sparse(reshape(repmat( ...
                permute(runs.eddy.mask(ixm-1:ixM-1,iym-1:iyM-1,:),[1 2 4 3]) ...
@@ -834,8 +839,10 @@ methods
         end
 
         figure;
-        plotyy(runs.time/86400,runs.eddy.vor.vol, ...
-               runs.time/86400,runs.eddy.vor.zdcen);
+        plotyyy(runs.time/86400,runs.eddy.vor.vol, ...
+               runs.time/86400,runs.eddy.vor.zdcen, ...
+               runs.time/86400,runs.eddy.vor.zcen, ...
+               {'volume (m^3)'; 'dye centroid (m)'; 'grid centroid (m)'});
     end
     
     % detect streamer contour and figure out cross-section points
