@@ -587,7 +587,8 @@ methods
        legend('qgpv','bathy');
 
     end
-
+    
+    % plot eddy parameters with time - good for comparison
     function [] = eddyevol(runs)
         eddy = runs.eddy;
         ii = 1; colors(1) = 'b';
@@ -712,6 +713,7 @@ methods
         ylabel('H_{center}(m)');
     end
 
+    % this is incomplete
     function [] = tracer_budget(runs)
         tracer = roms_read_data(runs.out_file,'dye_02');
         s = size(tracer);
@@ -767,7 +769,75 @@ methods
         runs.vbarg =      9.81 .* bsxfun(@rdivide,diff(runs.zeta,1,1), ...
                             avg1(runs.rgrid.f',1).*diff(runs.rgrid.xr,1,1));
     end
+    
+    % calculate upwelling in eddy
+    function [] = eddy_upwelling(runs)
+        
+        % two possibilities here - use eddye as a 
+        % 1 - use mask
+        % 2 - use vormask
+        xr = runs.eddy.xr;
+        yr = runs.eddy.yr;
+        
+        use_sshmask = 0;
+                
+        ixmin = vecfind(runs.rgrid.xr(:,1),runs.eddy.vor.we);
+        ixmax = vecfind(runs.rgrid.xr(:,1),runs.eddy.vor.ee);
+        iymin = vecfind(runs.rgrid.yr(1,:),runs.eddy.vor.se);
+        iymax = vecfind(runs.rgrid.yr(1,:),runs.eddy.vor.ne);
+        
+        ixm = min(ixmin); ixM = max(ixmax);
+        iym = min(iymin); iyM = max(iymax);
+        
+        volume = {'x' ixm ixM; 'y' iym iyM};
+        zdye = dc_roms_read_data(runs.dir, 'dye_02', [], volume, [], runs.rgrid);
+        
+        % from animate_pt output it looks like vormask tracks the edge of
+        % eddye contour pretty well. I don't get the stuff that spreads
+        % along shelf but get the eddy pretty well.
+        try
+            eddye = dc_roms_read_data(runs.dir,'dye_04', [], volume, [], runs.rgrid);
+        catch ME
+            warning('no eddy dye (dye_04) found');
+            return;
+        end
 
+        sz4dfull = size(zdye);
+        sz4dsp = [prod(sz4dfull(1:3)) sz4dfull(end)];
+        sz3dsp = [sz4dsp(1) 1];
+
+        % make my mask matrices 4d and sparse
+        eddye = sparse(reshape(eddye > 0.7, sz4dsp));
+        vormask = sparse(reshape(repmat( ...
+            permute(runs.eddy.vormask(ixm-1:ixM-1,iym-1:iyM-1,:),[1 2 4 3]) ...
+            , [1 1 runs.rgrid.N 1]), sz4dsp));
+
+        dV = reshape(runs.rgrid.dV(ixm:ixM,iym:iyM,:),sz3dsp);
+        
+        zdye = reshape(zdye,sz4dsp);
+
+        % first with vormask - assumes that eddy extends to bottom
+        zdyevor = zdye .* vormask;
+        runs.eddy.vor.vol = full(squeeze(sum(bsxfun(@times,vormask,dV),1))');
+        runs.eddy.vor.zdcen = runs.domain_integratesp(zdyevor, dV)' ...
+                        ./ runs.eddy.vor.vol;
+
+        % then with ssh mask
+        if use_sshmask
+            mask = sparse(reshape(repmat( ...
+               permute(runs.eddy.mask(ixm-1:ixM-1,iym-1:iyM-1,:),[1 2 4 3]) ...
+               , [1 1 runs.rgrid.N 1]), sz4dsp));
+            zdyessh = zdye .* mask;
+            runs.eddy.vol = full(squeeze(sum(bsxfun(@times,mask,dV) ,1))');
+            runs.eddy.zdcen = runs.domain_integratesp(zdyessh, reshape(dV,sz3dsp))' ...
+                           ./ runs.eddy.vol;
+        end
+
+        figure;
+        plotyy(runs.time/86400,runs.eddy.vor.vol, ...
+               runs.time/86400,runs.eddy.vor.zdcen);
+    end
+    
     % detect streamer contour and figure out cross-section points
     function [] = detect_streamer_mask(runs)
 
@@ -2084,10 +2154,10 @@ methods
                 end
                 
                 set(hws2, 'CData', double(WS(:,:,tt)));
-                set(hs2 ,'ZData',repnan(streamer,0));
+                set(hs2  ,'ZData',repnan(streamer,0));
                 
                 set(hzdye,'XData',dstr,'YData',zstr,'ZData', zdstr - zstr);
-                set(hcsd,'XData',dstr,'YData',zstr,'ZData', ...
+                set(hcsd ,'XData',dstr,'YData',zstr,'ZData', ...
                     csstr/1000 - runs.bathy.xsb/1000);
                 
                 set(hun ,'XData',dstr,'YData',zstr,'ZData',Unstr);
@@ -2885,7 +2955,6 @@ methods
            %close(aviobj);
         end
     end
-
 
     function [] = imageEffect(runs)
         dx = runs.rgrid.xr(2,1)-runs.rgrid.xr(1,1);
