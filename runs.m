@@ -22,6 +22,8 @@ properties
     eutrans;
     % streamer properties
     streamer;
+    % water mass statistics
+    water;
     % rossby radii
     rrdeep; rrshelf
     % make video?
@@ -1274,6 +1276,104 @@ methods
                 ' (ixstr,iystr) = indices corresponding to (xstr,ystr) ' ...
                 ' - (cell array) | dstr = along-streamer distance (cell array)'];
         end
+    end
+    
+    % offshore water census
+    function [] = water_census(runs)
+        
+        tic;
+        % if dye_04 > thresh then it is "eddy water"
+        % else i classify it as "mixed"
+        eddye_thresh = 0.7;
+        
+        % my region boundaries are based on location of shelfbreak and
+        % slopebreak. Let's make it easy.
+        xsl = runs.bathy.xsl; 
+        isl = runs.bathy.isl;
+        xsb = runs.bathy.xsb;
+        isb = runs.bathy.isb;
+        
+        slab = 10; % read 10 at a time
+        
+        sz4dfull = [fliplr(size(runs.rgrid.z_r)) slab];
+        sz4dsp = [prod(sz4dfull(1:3)) slab];
+        sz3dsp = [sz4dsp(1) 1];
+        
+        % define cross-shore grid co-ordinate
+        if runs.bathy.axis == 'y'
+            cs = repmat(runs.rgrid.yr,[1 1 runs.rgrid.N]);
+        else
+            cs = repmat(runs.rgrid.xr,[1 1 runs.rgrid.N]);
+        end
+        
+        % define regions 
+        % deep region
+        regdp = sparse(reshape(cs > xsl, sz3dsp));
+        regsl = sparse(reshape(cs <= xsl & cs > xsb, sz3dsp));
+        regsh = sparse(reshape(cs <=xsb, sz3dsp));
+        
+        dV = reshape(runs.rgrid.dV, sz3dsp);
+        totvol = sum(dV(:));
+        
+        for tt=1:slab:length(runs.time)
+            tend = tt + slab -1;
+            if tend > length(runs.time)
+                tend = Inf;
+            end
+            csdye = dc_roms_read_data(runs.dir,'dye_01',[tt tend],{},[],runs.rgrid);
+            eddye = dc_roms_read_data(runs.dir,'dye_04',[tt tend],{},[],runs.rgrid);
+            % define water masses
+            % offshore water
+            maskoff = sparse(reshape(csdye > xsl, sz4dsp));
+            % slope water
+            masksl = sparse(reshape(csdye <= xsl & csdye > xsb, sz4dsp));
+            % shelf water
+            masksh = sparse(reshape(csdye <= xsb, sz4dsp));
+            % eddy water
+            masked = sparse(reshape(eddye > eddye_thresh, sz4dsp));
+            % "mixed water"
+            maskmix = sparse(reshape(eddye <= eddye_thresh,sz4dsp));
+            
+            % now census in each region
+            % first deep water region
+            runs.water.off.deep = full(sum( ...
+                bsxfun(@times, maskoff, regdp .* dV),1));
+            runs.water.sl.deep = full(sum( ...
+                bsxfun(@times, masksl, regdp .* dV),1));
+            runs.water.sh.deep = full(sum( ...
+                bsxfun(@times, masksh, regdp .* dV),1));
+            runs.water.edd.deep = full(sum( ...
+                bsxfun(@times, masked, regdp .* dV),1));
+            runs.water.mix.deep = full(sum( ...
+                bsxfun(@times, maskmix, regdp .* dV),1));
+            
+            % now slope region
+            runs.water.off.slope = full(sum( ...
+                bsxfun(@times, maskoff, regsl .* dV),1));
+            runs.water.sl.slope = full(sum( ...
+                bsxfun(@times, masksl, regsl .* dV),1));
+            runs.water.sh.slope = full(sum( ...
+                bsxfun(@times, masksh, regsl .* dV),1));
+            runs.water.edd.slope = full(sum( ...
+                bsxfun(@times, masked, regsl .* dV),1));
+            runs.water.mix.slope = full(sum( ...
+                bsxfun(@times, maskmix, regsl .* dV),1));
+            
+            % now shelf region            
+            runs.water.off.shelf = full(sum( ...
+                bsxfun(@times, maskoff, regsh .* dV),1));
+            runs.water.sl.shelf = full(sum( ...
+                bsxfun(@times, masksl, regsh .* dV),1));
+            runs.water.sh.shelf = full(sum( ...
+                bsxfun(@times, masksh, regsh .* dV),1));
+            runs.water.edd.shelf = full(sum( ...
+                bsxfun(@times, masked, regsh .* dV),1));
+            runs.water.mix.slope = full(sum( ...
+                bsxfun(@times, maskmix, regsh .* dV),1));
+        end
+        toc;
+        
+        figure;
     end
     
     % plot streamer profiles
