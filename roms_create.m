@@ -6,7 +6,7 @@
 % names cannot start with number
 [~,machine] = system('hostname');
 if strfind(machine,'scylla')
-    FOLDER    = '/scylla-a/home/dcherian/ROMS/runs/eddyshelf/topoeddy/run-5/';
+    FOLDER    = '/scylla-a/home/dcherian/ROMS/runs/eddyshelf/topoeddy/run-6/';
     prefix    = 'tes';
     addpath(genpath('/scylla-a/home/dcherian/tools/'));
 end
@@ -40,8 +40,8 @@ S.uniform = 1; % uniform grid
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 400;
-S.Mm = 240;
+S.Lm = 600;
+S.Mm = 320;
 S.N  = 60;
 
 dx = 1500;
@@ -60,8 +60,8 @@ S.NT = 2+S.NPT; % total number of tracers
 S.Vtransform = 2;
 S.Vstretching = 4;
 S.theta_s = 3.0;     %  S-coordinate surface control parameter.
-S.theta_b = 3.0;     %  S-coordinate bottom  control parameter.
-S.Tcline  = 100.0;    %  S-coordinate surface/bottom stretching width (m)
+S.theta_b = 1.5;     %  S-coordinate bottom  control parameter.
+S.Tcline  = 500;    %  S-coordinate surface/bottom stretching width (m)
 
 % coriolis parameters
 lat_ref = 45;
@@ -189,7 +189,7 @@ eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined 
 eddy.tamp   = 0.3; % controls gradient
 eddy.buffer_sp = 40*dx; % distance from  4.3 (2.3) *r0 to sponge edge
 eddy.buffer = NaN;7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
-eddy.cx     = X/2; % if NaN, determined using buffer later
+eddy.cx     = X/2-150*1000; % if NaN, determined using buffer later
 eddy.cy     = NaN;Y/2; %              "
 eddy.theta0 = pi/2; % surface phase anomaly from Zhang et al. (2013)
                     % 7/16 * pi for WCR
