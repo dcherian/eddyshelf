@@ -1708,30 +1708,16 @@ ncwrite(GRID_NAME,'xl',X);
 ncwrite(GRID_NAME,'el',Y);
 ncwrite(GRID_NAME,'f',f);
 ncwrite(GRID_NAME,'h',S.h);
-ncwrite(GRID_NAME, 'x_rho',       S.x_rho);
-ncwrite(GRID_NAME, 'y_rho',       S.y_rho);
-ncwrite(GRID_NAME, 'x_u',         S.x_u);
-ncwrite(GRID_NAME, 'y_u',         S.y_u);
-ncwrite(GRID_NAME, 'x_v',         S.x_v);
-ncwrite(GRID_NAME, 'y_v',         S.y_v);
-ncwrite(GRID_NAME, 'x_psi',       S.x_psi);
-ncwrite(GRID_NAME, 'y_psi',       S.y_psi);
 ncwrite(GRID_NAME, 'mask_u',    S.mask_u);
 ncwrite(GRID_NAME, 'mask_v',    S.mask_v);
 ncwrite(GRID_NAME, 'mask_rho',  S.mask_rho);
 ncwrite(GRID_NAME, 'mask_psi',  S.mask_psi);
-ncwrite(GRID_NAME, 'spherical',   S.spherical);
-ncwrite(GRID_NAME, 'lon_rho',     S.lon_rho);
-ncwrite(GRID_NAME, 'lat_rho',     S.lat_rho);
-ncwrite(GRID_NAME, 'lon_u',       S.lon_u);
-ncwrite(GRID_NAME, 'lat_u',       S.lat_u);
-ncwrite(GRID_NAME, 'lon_v',       S.lon_v);
-ncwrite(GRID_NAME, 'lat_v',       S.lat_v);
-ncwrite(GRID_NAME, 'pm',       S.pm);
-ncwrite(GRID_NAME, 'pn',       S.pn);
-ncwrite(GRID_NAME, 'dndx',       S.dndx);
-ncwrite(GRID_NAME, 'dmde',       S.dmde);
-ncwrite(GRID_NAME, 'angle', S.angle);
+ncwrite(GRID_NAME, 'spherical', S.spherical);
+ncwrite(GRID_NAME, 'pm',        S.pm);
+ncwrite(GRID_NAME, 'pn',        S.pn);
+ncwrite(GRID_NAME, 'dndx',      S.dndx);
+ncwrite(GRID_NAME, 'dmde',      S.dmde);
+ncwrite(GRID_NAME, 'angle',     S.angle);
 
 ncwrite(INIname,   'spherical',   S.spherical);
 ncwrite(INIname,   'Vtransform',  S.Vtransform);
@@ -1752,23 +1738,38 @@ IniRec = 1;                               % NetCDF time record
 S.ocean_time = 0;                % initial conditions time (s)
 
 ncwrite(INIname, 'ocean_time', S.ocean_time);
-
 ncwrite(INIname,   'h',           S.h);
 
 if (S.spherical),
-  ncwrite(INIname, 'lon_rho',     S.lon_rho);
-  ncwrite(INIname, 'lat_rho',     S.lat_rho);
-  ncwrite(INIname, 'lon_u',       S.lon_u);
-  ncwrite(INIname, 'lat_u',       S.lat_u);
-  ncwrite(INIname, 'lon_v',       S.lon_v);
-  ncwrite(INIname, 'lat_v',       S.lat_v);
+    ncwrite(INIname, 'lon_rho',     S.lon_rho);
+    ncwrite(INIname, 'lat_rho',     S.lat_rho);
+    ncwrite(INIname, 'lon_u',       S.lon_u);
+    ncwrite(INIname, 'lat_u',       S.lat_u);
+    ncwrite(INIname, 'lon_v',       S.lon_v);
+    ncwrite(INIname, 'lat_v',       S.lat_v);
+    
+    ncwrite(GRID_NAME, 'lon_rho',     S.lon_rho);
+    ncwrite(GRID_NAME, 'lat_rho',     S.lat_rho);
+    ncwrite(GRID_NAME, 'lon_u',       S.lon_u);
+    ncwrite(GRID_NAME, 'lat_u',       S.lat_u);
+    ncwrite(GRID_NAME, 'lon_v',       S.lon_v);
+    ncwrite(GRID_NAME, 'lat_v',       S.lat_v);
 else
-  ncwrite(INIname, 'x_rho',       S.x_rho);
-  ncwrite(INIname, 'y_rho',       S.y_rho);
-  ncwrite(INIname, 'x_u',         S.x_u);
-  ncwrite(INIname, 'y_u',         S.y_u);
-  ncwrite(INIname, 'x_v',         S.x_v);
-  ncwrite(INIname, 'y_v',         S.y_v);
+    ncwrite(INIname, 'x_rho',       S.x_rho);
+    ncwrite(INIname, 'y_rho',       S.y_rho);
+    ncwrite(INIname, 'x_u',         S.x_u);
+    ncwrite(INIname, 'y_u',         S.y_u);
+    ncwrite(INIname, 'x_v',         S.x_v);
+    ncwrite(INIname, 'y_v',         S.y_v);
+    
+    ncwrite(GRID_NAME, 'x_rho',       S.x_rho);
+    ncwrite(GRID_NAME, 'y_rho',       S.y_rho);
+    ncwrite(GRID_NAME, 'x_u',         S.x_u);
+    ncwrite(GRID_NAME, 'y_u',         S.y_u);
+    ncwrite(GRID_NAME, 'x_v',         S.x_v);
+    ncwrite(GRID_NAME, 'y_v',         S.y_v);
+    ncwrite(GRID_NAME, 'x_psi',       S.x_psi);
+    ncwrite(GRID_NAME, 'y_psi',       S.y_psi);
 end,
 fprintf('\n Grid stuff written \n');
 toc;
