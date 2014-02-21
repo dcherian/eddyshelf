@@ -60,7 +60,7 @@ S.NT = 2+S.NPT; % total number of tracers
 S.Vtransform = 2;
 S.Vstretching = 4;
 S.theta_s = 3.0;     %  S-coordinate surface control parameter.
-S.theta_b = 3.0;     %  S-coordinate bottom  control parameter.
+S.theta_b = 2.0;     %  S-coordinate bottom  control parameter.
 S.Tcline  = 100.0;    %  S-coordinate surface/bottom stretching width (m)
 
 % coriolis parameters
@@ -336,9 +336,7 @@ S.salt = S0*ones(size(S.salt));
 % temperature
 S.temp = T0*ones(size(S.temp));
 
-%Fix grids
-
-% for future use
+% Fix grids for future use
 xmid = ceil(S.Lm/2);
 ymid = ceil(S.Mm/2);
 zmid = ceil(S.N/2);
@@ -383,7 +381,7 @@ toc;
 fprintf('\n Initialization - %4.1f MB \n\n', monitor_memory_whos);   
 
 %% Bathymetry + Coriolis + more grid stuff
-
+S.angle = zeros(size(S.x_rho));
 % Coriolis with beta. f = f0 @ y=ymid
 fnew = f0*ones(size(S.x_rho));
 f = fnew + beta * (S.y_rho - S.y_rho(1,ymid));
@@ -1722,9 +1720,20 @@ ncwrite(GRID_NAME, 'mask_u',    S.mask_u);
 ncwrite(GRID_NAME, 'mask_v',    S.mask_v);
 ncwrite(GRID_NAME, 'mask_rho',  S.mask_rho);
 ncwrite(GRID_NAME, 'mask_psi',  S.mask_psi);
+ncwrite(GRID_NAME, 'spherical',   S.spherical);
+ncwrite(GRID_NAME, 'lon_rho',     S.lon_rho);
+ncwrite(GRID_NAME, 'lat_rho',     S.lat_rho);
+ncwrite(GRID_NAME, 'lon_u',       S.lon_u);
+ncwrite(GRID_NAME, 'lat_u',       S.lat_u);
+ncwrite(GRID_NAME, 'lon_v',       S.lon_v);
+ncwrite(GRID_NAME, 'lat_v',       S.lat_v);
+ncwrite(GRID_NAME, 'pm',       S.pm);
+ncwrite(GRID_NAME, 'pn',       S.pn);
+ncwrite(GRID_NAME, 'dndx',       S.dndx);
+ncwrite(GRID_NAME, 'dmde',       S.dmde);
+ncwrite(GRID_NAME, 'angle', S.angle);
 
 ncwrite(INIname,   'spherical',   S.spherical);
-
 ncwrite(INIname,   'Vtransform',  S.Vtransform);
 ncwrite(INIname,   'Vstretching', S.Vstretching);
 ncwrite(INIname,   'theta_s',     S.theta_s);
@@ -1735,19 +1744,6 @@ ncwrite(INIname,   's_rho',       S.s_rho);
 ncwrite(INIname,   's_w',         S.s_w);
 ncwrite(INIname,   'Cs_r',        S.Cs_r);
 ncwrite(INIname,   'Cs_w',        S.Cs_w);
-
-ncwrite(GRID_NAME, 'lon_rho',     S.lon_rho);
-ncwrite(GRID_NAME, 'lat_rho',     S.lat_rho);
-ncwrite(GRID_NAME, 'lon_u',       S.lon_u);
-ncwrite(GRID_NAME, 'lat_u',       S.lat_u);
-ncwrite(GRID_NAME, 'lon_v',       S.lon_v);
-ncwrite(GRID_NAME, 'lat_v',       S.lat_v);
-
-ncwrite(GRID_NAME, 'pm',       S.pm);
-ncwrite(GRID_NAME, 'pn',       S.pn);
-ncwrite(GRID_NAME, 'dndx',       S.dndx);
-ncwrite(GRID_NAME, 'dmde',       S.dmde);
-ncwrite(GRID_NAME, 'angle', zeros(size(S.h)));
 
 % IC file
 
@@ -1805,8 +1801,8 @@ fprintf('\n\n Beckmann & Haidvogel number = %f (< 0.2 , max 0.4) \n \t\t\t\tHane
 
 % From Utility/metrics.F
 % Barotropic courant number
-dt = 120;
-ndtfast = 20;
+dt = 75;
+ndtfast = 17;
 Cbt = sqrt(g*max(S.h(:))) * dt/ndtfast * sqrt(1/dx^2 + 1/dy^2);
 Cbc = sqrt(N2)*min(S.h(:))/pi * dt * sqrt(1/dx^2 + 1/dy^2);
 Cbc7 = 7 * dt * sqrt(1/dx^2 + 1/dy^2);
