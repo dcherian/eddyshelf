@@ -39,14 +39,13 @@
 % legend('original','bigsp','big','big2');
 
 
-%dirs = {'runs/topoeddy/runew-06-scylla/';
-%        'runs/topoeddy/runew-06-big/';
-%        'runs/topoeddy/runew-06-bigsp/'; };
-%clear grd dz
-%for ii=1:length(dirs)
-%    grd(ii) = roms_get_grid([dirs{ii} '/ocean_avg.nc'],[]);
-%    dz{ii} = permute(diff(grd(ii).z_uw,1,1),[3 2 1]);
-%end
+dirs = {'runs/topoeddy/spen/runew-03/';
+       'runs/topoeddy/runew-03/'};
+clear grd dz
+for ii=1:length(dirs)
+   grd(ii) = roms_get_grid([dirs{ii} '/ocean_avg.nc'],[]);
+   dz{ii} = permute(diff(grd(ii).z_uw,1,1),[3 2 1]);
+end
 
 %%
 figure; maximize;
@@ -68,10 +67,10 @@ for tt=1:120
             caxis([-1 1] * 0.07); colorbar;
             [~,hc(ii)] = contour(avg1(zeta,1)', ...
                     linspace(zmin,zmax,15),'k');
-            xlim([0 600]);
-            ylim([0 300]);
-            linex(400-40,[],'b');liney(200-40,[],'b');
-            linex(600-40,[],'k'); liney(300-40,[],'k');
+            xlim([0 400]);
+            ylim([0 212]);
+            linex(400-40,[],'b');liney(180-40,[],'b');
+            linex(400-40,[],'k'); liney(210-40,[],'k');
             liney(find_shelfbreak([dirs{ii} '/ocean_avg.nc'])/1500,[],'g');
         else
             set(hu(ii),'CData',U');
