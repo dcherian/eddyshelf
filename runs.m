@@ -172,9 +172,18 @@ methods
         
         % load streamer data if it exists.
         if exist([dir '/streamer.mat'], 'file') && reset ~= 1
+            disp('Loading streamer data');
             streamer = load([dir '/streamer.mat'],'streamer');
             runs.streamer = streamer.streamer;
             clear streamer;
+        end
+        
+        % load water mass data
+        if exist([dir '/watermass.mat'],'file') && reset ~= 1
+            disp('Loading water mass data');
+            water = load([dir '/watermass.mat'], 'water');
+            runs.water = water.water;
+            clear water
         end
 
         % extra processing of eddy track
@@ -243,7 +252,7 @@ methods
             runs.usurf = double(squeeze(ncread(runs.out_file, ....
                 'u',start,count,stride)));
         else
-            runs.usurf = roms_read_data(runs.dir,'u' ...
+            runs.usurf = dc_roms_read_data(runs.dir,'u' ...
                 ,start,count,stride);
         end
         runs.usurf = avg1(runs.usurf(:,2:end-1,:),1);
@@ -2036,6 +2045,7 @@ methods
         runs.video_write();
     end
     
+    % depth section through streamer
     function [] = animate_streamer_section(runs)
         
         debug_plot = 0;
@@ -2898,6 +2908,14 @@ methods
             if isempty(runs.usurf) || isempty(runs.vsurf)
                 runs.read_velsurf;
             end
+            if isempty(runs.eddye)
+                runs.eddye = dc_roms_read_data(runs.dir,'dye_04', ...
+                    [],{'z' runs.rgrid.N runs.rgrid.N},[],runs.rgrid);
+            end
+            if isempty(runs.csdye)
+                runs.csdye = dc_roms_read_data(runs.dir,'dye_01', ...
+                    [],{'z' runs.rgrid.N runs.rgrid.N},[],runs.rgrid);
+            end
             dye = runs.eddye(:,:,i);
             csdye = runs.csdye(:,:,i);
             u = runs.usurf(1:dxi:end,1:dyi:end,i);
@@ -2918,19 +2936,35 @@ methods
             % read and interpolate
             disp(['Reading and interpolating ' num2str(i)]);
             dye = dc_roms_zslice_var( ...
-                dc_roms_read_data(runs.dir,'dye_04',i), depth,grdr);
+                dc_roms_read_data(runs.dir,'dye_04',i,{},[],runs.rgrid), ...
+                depth,grdr);
             csdye = dc_roms_zslice_var( ...
-                dc_roms_read_data(runs.dir,'dye_01',i), depth,grdr);
+                dc_roms_read_data(runs.dir,'dye_01',i,{},[],runs.rgrid), ...
+                depth,grdr);
             u = dc_roms_zslice_var( ...
-                dc_roms_read_data(runs.dir,'u',i), depth,grdu);
+                dc_roms_read_data(runs.dir,'u',i,{},[],runs.rgrid), depth,grdu);
             v = dc_roms_zslice_var( ...
-                dc_roms_read_data(runs.dir,'v',i), depth,grdv);
+                dc_roms_read_data(runs.dir,'v',i,{},[],runs.rgrid), depth,grdv);
             % get on interior RHO points
             u = avg1(u(:,2:end-1),1);
             v = avg1(v(2:end-1,:),2);
             % decimate for quiver
             u = u(1:dxi:end,1:dyi:end);
             v = v(1:dxi:end,1:dyi:end);
+        end
+        
+        % get scale for u,v
+        if ~isempty(runs.usurf)
+            uref = max(max(abs(runs.usurf(:,:,1))));
+        else
+            uref = ncread(runs.out_file,'u',[1 1 40 1],[Inf Inf 1 1]);
+            uref = max(abs(uref(:)));
+        end
+        if ~isempty(runs.vsurf)
+            vref = max(max(abs(runs.vsurf(:,:,1))));
+        else
+            vref = ncread(runs.out_file,'v',[1 1 40 1],[Inf Inf 1 1]);
+            vref = max(abs(vref(:)));
         end
         % first get z-slice out
         heddye = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000, ...
@@ -2942,6 +2976,7 @@ methods
         hcb1 = colorbar; cbunits(hcb1,'Eddy');cbfreeze(hcb1);
         hold on
         he = runs.plot_eddy_contour('contour',i);
+        set(he,'LineColor',[1 0 0],'LineWidth',1)
 
         hcsdye = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000, ...
                     fillnan((csdye/1000 < clim_csd(2)) .* csdye/1000,0));
@@ -2950,7 +2985,7 @@ methods
         hcb2 = colorbar; cbunits(hcb2,'Cross-shore dye');cbfreeze(hcb2);
 
         hq = quiver(runs.eddy.xr(1:dxi:end,1:dyi:end)/1000,runs.eddy.yr(1:dxi:end,1:dyi:end)/1000, ...
-                    u,v);
+                    u./uref, v./vref);
         set(he,'LineWidth',2);    
         hbathy = runs.plot_bathy('Contour','k');
         titlestr = ['CS dye | z = ' num2str(depth) 'm'];
