@@ -144,6 +144,7 @@ methods
         catch
         end
 
+        % load eddy track
         if ~exist([dir '/eddytrack.mat'],'file') || reset == 1 ...
                 %|| ~exist('runs.eddy.cvx','var')
             try
@@ -163,11 +164,20 @@ methods
             runs.eddy = edd.eddy;
             runs.noeddy = 0;
         end
-
+        
+        % rerun track_eddy if not new enough
         if ~isfield(runs.eddy,'vor')
             runs.eddy = track_eddy(dir);
         end
+        
+        % load streamer data if it exists.
+        if exist([dir '/streamer.mat'], 'file') && reset ~= 1
+            streamer = load([dir '/streamer.mat'],'streamer');
+            runs.streamer = streamer.streamer;
+            clear streamer;
+        end
 
+        % extra processing of eddy track
         if ~runs.noeddy
            if isfield(runs.eddy,'cvx')
                if runs.eddy.cvx(1) == 0 || runs.eddy.cvy(1) == 0
@@ -306,11 +316,11 @@ methods
    %% analysis
 
     function [] = transport(runs)
-        % need some kind of initial time instant - probably objective
-        % criterion based on distance between shelfbreak and eddy or
-        % some sort
+        % need some kind of initial time instant - decided by streamer mask
+        % now
         runs.eutrans = [];
-        t0 = 1;
+        t0 = find(repnan(runs.streamer.time,0) == 0,1,'last') + 1;
+        tinf = length(runs.time);
         revind = runs.eddy.trevind;
         h = runs.bathy.h(2:end-1,2:end-1);
 
@@ -318,13 +328,9 @@ methods
         iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.my(t0:end));
         hcen = h(sub2ind(size(runs.eddy.xr),ix,iy))';
 
-%redundant            ix = vecfind(runs.eddy.xr(:,1),runs.eddy.mx(t0:end));
         iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.se(t0:end));
         hedge = h(sub2ind(size(runs.eddy.xr),ix,iy))';
-        % rossby radius @ SHELFBREAK
-        rr =  sqrt(runs.params.phys.N2)*runs.bathy.hsb ...
-                    /runs.rgrid.f(runs.bathy.isb,1)
-        distance = 5*runs.rr; % 5 times rossby radius
+        distance = 5*runs.rrshelf; % 5 times rossby radius
 
         if runs.params.bathy.axis == 'x'
             csvelid = 'u';
@@ -346,14 +352,23 @@ methods
         runs.eutrans.h = ceil(runs.bathy.h(1,runs.eutrans.ix));
         % find west edge indices
         iwest = vecfind(runs.eddy.xr(:,1),runs.eddy.we);
-        dx = runs.rgrid.xr(2,1)-runs.rgrid.xr(1,1);
+        
+        % initialize
+        runs.eutrans.Itrans = nan([tinf length(loc)]);
+        runs.eutrans.nodye.Itrans = nan([tinf length(loc)]);
+        
+        % extract streamer mask
+        strmask = reshape(full(runs.streamer.west.mask), runs.streamer.sz4dfull);
 
         % loop over all isobaths
         for kk=1:length(loc)
             % read along-shore section of cross-shore vel.
             % dimensions = (x/y , z , t )
-            cs_vel = double(squeeze(ncread(runs.out_file,csvelid, ...
-                [1 runs.eutrans.ix(kk) 1 t0],[Inf 1 Inf Inf])));
+            %cs_vel = double(squeeze(ncread(runs.out_file,csvelid, ...
+            %    [1 runs.eutrans.ix(kk) 1 t0],[Inf 1 Inf Inf])));
+            cs_vel = dc_roms_read_data(runs.dir, csvelid, ...
+                [t0 Inf],{runs.bathy.axis runs.eutrans.ix(kk) runs.eutrans.ix(kk)}, ...
+                [],runs.rgrid);
             mask = nan(size(cs_vel)); 
             for tt=1:size(cs_vel,3)
                 mask(1:iwest(tt),:,tt) = 1;
@@ -363,54 +378,56 @@ methods
                             < runs.bathy.hsb);
             mask = bsxfun(@times,mask,fillnan(zmask,0));
 
-%                 runs.eutrans.trans(:,:,kk) = squeeze( ...
-%                      trapz(runs.rgrid.z_r(:,runs.eutrans.ix(kk),1),mask .* cs_vel,2));
-            %runs.eutrans.trans(:,:,kk) = squeeze( ...
-            %            nansum(bsxfun(@times,avg1(mask .* cs_vel,2), ...
-             %           diff(runs.rgrid.z_r(:,runs.eutrans.ix(kk),1))'),2));
             runs.eutrans.nodye.trans(:,:,kk) = squeeze(trapz( ...
                             runs.rgrid.z_r(:,runs.eutrans.ix(kk),1), ...
                             mask .* cs_vel,2));
 
-            runs.eutrans.nodye.Itrans(:,kk) = squeeze(nansum( ...
+            runs.eutrans.nodye.Itrans(t0:tinf,kk) = squeeze(nansum( ...
                 runs.eutrans.nodye.trans(:,:,kk) ...
-                                        .* dx,1))';
+                                        .* runs.rgrid.dx,1))';
 
             % if I have passive tracer info I can calculate transport
             % using that
-            if ~isempty(runs.csdye)
-                mask = nan(size(cs_vel));
-                % mark eastern edge as edge of region I'm interested in
-                % removes streamer associated with cyclone running away
-                ieast = vecfind(runs.eddy.xr(:,1),runs.eddy.ee);
-                for tt=1:size(cs_vel,3)
-                    mask(1:ieast(tt),:,tt) = 1;
-                end
-
-                mask = bsxfun(@times,mask,fillnan(zmask,0));
-                % dye_01 is always cross-shore dye
-                dye = double(squeeze(ncread(runs.out_file,'dye_01', ...
-                    [1 runs.eutrans.ix(kk) 1 t0],[Inf 1 Inf Inf])));
-                dyemask = (dye >= runs.bathy.xsb) & ...
-                            (dye <=(runs.bathy.xsb + distance));
-                mask = mask .* fillnan(dyemask,0); 
-                runs.eutrans.trans(:,:,kk) = squeeze(trapz( ...
-                        runs.rgrid.z_r(:,runs.eutrans.ix(kk),1), ...
-                        mask .* cs_vel,2));
-                %runs.eutrans.trans(:,:,kk) = squeeze( ...
-                %        nansum(bsxfun(@times,avg1(mask .* cs_vel,2), ...
-                %        diff(runs.rgrid.z_r(:,runs.eutrans.ix(kk),1))'),2));
-
-                runs.eutrans.Itrans(:,kk) = squeeze(nansum( ...
-                            runs.eutrans.trans(:,:,kk) .* dx,1))';
+            mask = nan(size(cs_vel));
+            % mark eastern edge as edge of region I'm interested in
+            % removes streamer associated with cyclone running away
+            ieast = vecfind(runs.eddy.xr(:,1),runs.eddy.ee);
+            for tt=1:size(cs_vel,3)
+                mask(1:ieast(tt),:,tt) = 1;
             end
+
+            mask = bsxfun(@times,mask,fillnan(zmask,0));
+            % dye_01 is always cross-shore dye
+            dye = dc_roms_read_data(runs.dir,'dye_01', ...
+                [t0 Inf],{runs.bathy.axis runs.eutrans.ix(kk) runs.eutrans.ix(kk)}, ...
+                [],runs.rgrid);
+            dyemask = (dye >= runs.bathy.xsb) & ...
+                        (dye <=(runs.bathy.xsb + distance));
+            mask = mask .* fillnan(dyemask,0);
+            runs.eutrans.trans(:,:,kk) = squeeze(trapz( ...
+                    runs.rgrid.z_r(:,runs.eutrans.ix(kk),1), ...
+                    mask .* cs_vel,2));
+            runs.eutrans.Itrans(t0:tinf,kk) = squeeze(nansum( ...
+                        runs.eutrans.trans(:,:,kk) .* dx,1))';
+
+            % all runs now have passive tracer. I use streamer mask to
+            % calculate transport           
+            mask = squeeze(strmask(:,runs.eutrans.ix(kk),:,t0:tinf));
+            
+            % (x,t,location)
+            runs.streamer.trans(:,:,kk) = squeeze(trapz( ...
+                    runs.rgrid.z_r(:,runs.eutrans.ix(kk),1), ...
+                    mask .* cs_vel,2));
+            % integrate in x get (t, location)
+            runs.streamer.Itrans(t0:tinf,kk) = squeeze(nansum( ...
+                        runs.streamer.trans(:,:,kk) .* dx,1))';
         end
 
         %% plot transport
 
         figure;
         subplot(6,1,[1 2])
-        plot(runs.rgrid.ocean_time(t0:end)/86400,runs.eutrans.Itrans/1e6);
+        plot(runs.time/86400,runs.eutrans.Itrans/1e6);
         hold on
         %plot(runs.rgrid.ocean_time(t0:end)/86400,runs.eutrans.dye.Itrans/1e6,'--');
         limx = xlim;
@@ -421,7 +438,7 @@ methods
             '| mean eddy edge isobath = ' num2str(mean(hedge)) 'm']);
         beautify;
         subplot(6,1,[3 4 5])
-        plot(runs.rgrid.ocean_time/86400,runs.eutrans.Itrans/1e6,'-');
+        plot(runs.time/86400,runs.eutrans.Itrans/1e6,'-');
         limx = xlim;
         legend(num2str(runs.eutrans.h'),'Location','NorthWest');
         ylabel('Dye Transport (Sv)');
@@ -445,7 +462,7 @@ methods
             end
         end
         figure
-        plot(runs.rgrid.ocean_time(t0:end)/86400,(runs.eutrans.nodye.Itrans(:,arr) - runs.eutrans.Itrans(:,arr)) ...
+        plot(runs.time(t0:end)/86400,(runs.eutrans.nodye.Itrans(:,arr) - runs.eutrans.Itrans(:,arr)) ...
             ./ runs.eutrans.Itrans(:,arr) * 100);
         ylim([-100 700]); liney(0);
         legend(num2str(runs.eutrans.h(:,arr)'),'Location','NorthWest');
@@ -908,7 +925,7 @@ methods
         end        
     end
     
-    % detect streamer contour and figure out cross-section points
+    % detect streamer contours
     function [] = detect_streamer_mask(runs)
 
         % upper y-limit to save memory
@@ -972,6 +989,8 @@ methods
                         {'y' 1 yend},[],runs.rgrid)/1000;
             zdye  = dc_roms_read_data(runs.dir, 'dye_02', tindices, ...
                         {'y' 1 yend},[],runs.rgrid);
+            eddye = dc_roms_read_data(runs.dir,'dye_04', tindices, ...
+                        {'y' 1 yend},[],runs.rgrid);
             %asdye = dc_roms_read_data(runs.dir, 'dye_03', tindices, ...
             %            {'y' 1 yend});
 
@@ -979,7 +998,7 @@ methods
             % preliminary detection
             % I use cross-shore label to roughly filter first
             % eliminate this step somehow and remove the temporary array?
-            streamer1 = (csdye > xsb-10) & (csdye < xsb+30);
+            streamer1 = (csdye > xsb-10) & (csdye < xsb+30) & (eddye < 0.2);
 
             % (xs,ys,zs) are the Eulerian x,y,z values
             %xs = bsxfun(@times, streamer, grd.xax)/1000;
@@ -1337,6 +1356,12 @@ methods
                 ' (ixstr,iystr) = indices corresponding to (xstr,ystr) ' ...
                 ' - (cell array) | dstr = along-streamer distance (cell array)'];
         end
+        
+        % save to file
+        disp('Writing to file');tic;
+        streamer = runs.streamer;
+        save([runs.dir '/streamer.mat'],'streamer');
+        toc;
     end
     
     % plot streamer profiles
@@ -1349,8 +1374,8 @@ methods
         set(gca,'ColorOrder',cmap); colormap(cmap);
         line(runs.streamer.west.Vbin, repmat(avg1(bins'),[1 runs.streamer.sz4dsp(2)]));
         hold on
-        zcenbin = vecfind(bins,runs.streamer.west.zcen);
-        Vcenbin = diag(runs.streamer.west.Vbin(zcenbin,1:slab));
+        zcenbin = vecfind(bins, cut_nan(runs.streamer.west.zcen));
+        Vcenbin = diag(runs.streamer.west.Vbin(zcenbin,:));
          colorbar; cblabel('day');
         scatter(gca,zeros(20,1),runs.streamer.west.zcen, ...
                     96,runs.streamer.time/86400,'filled');
