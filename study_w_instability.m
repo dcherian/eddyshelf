@@ -1,14 +1,14 @@
-dir1 = 'runs/topoeddy/runew-06-scylla/';
-dir2 = 'runs/topoeddy/runew-06-z60/';
+dir1 = 'runs/topoeddy/runew-06-z60/';
+dir2 = 'runs/topoeddy/runew-06-z60-improv-per/';
 rgrid6 = roms_get_grid([dir1 '/ocean_avg.nc'], [dir1 '/ocean_avg.nc']);
 rgrid6str = roms_get_grid([dir2 '/ocean_avg.nc'], [dir2 '/ocean_avg.nc']);
 
 %% assume run6 and run6str are loaded
 xind = 140; yind = 60;
 w = dc_roms_read_data(dir1, ...
-                'w',[],{'x' xind xind; 'y' yind yind});
+                'w',[],{'x' xind xind; 'y' yind yind},[],rgrid6);
 wstr = dc_roms_read_data(dir2, ...
-                'w',[],{'x' xind xind; 'y' yind yind});
+                'w',[],{'x' xind xind; 'y' yind yind},[],rgrid6str);
 
 
 z = rgrid6.z_w(:,yind,xind);
