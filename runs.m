@@ -707,8 +707,8 @@ methods
         title('Offshore water plume on shelf');
         subplot(212)
         ax = plotyy( ...%time,runs.water.eddmix.xshelf/1000 - runs.eddy.vor.ee/1000, ...
-               time,runs.water.sh.zshelf./runs.bathy.hsb, ...
-               time,runs.water.sh.yshelf/1000 - runs.bathy.xsb/1000);
+               time,runs.water.sh.zslope./runs.bathy.hsb, ...
+               time,runs.water.sh.yslope/1000 - runs.bathy.xsb/1000);
         set(get(ax(1),'YLabel'),'String','Zcentroid / Depth at shelfbreak');
         set(get(ax(2),'YLabel'),'String','Distance from shelfbreak (km)');
         set(ax(1),'Ylim',[-1 0],'YTick',[-1 -0.5 0]);
@@ -1541,13 +1541,13 @@ methods
                 bsxfun(@times, maskmix, regsh .* dV),1));
             
             % statistics of shelf water on the slope
-            runs.water.shelf.xslope(tt:tend) = full(sum( ...
+            runs.water.sh.xslope(tt:tend) = full(sum( ...
                 bsxfun(@times, masksh, regsl .* xsp .*dV),1)) ./ ...
                 (runs.water.sh.slope(tt:tend)); 
-            runs.water.shelf.yslope(tt:tend) = full(sum( ...
+            runs.water.sh.yslope(tt:tend) = full(sum( ...
                 bsxfun(@times, masksh, regsl .* ysp .*dV),1)) ./ ...
                 (runs.water.sh.slope(tt:tend)); 
-            runs.water.shelf.zslope(tt:tend) = full(sum( ...
+            runs.water.sh.zslope(tt:tend) = full(sum( ...
                 bsxfun(@times, masksh, regsl .* zsp .*dV),1)) ./ ...
                 (runs.water.sh.slope(tt:tend)); 
             
@@ -1587,9 +1587,11 @@ methods
              masses = fieldnames(runs.water);
              classvol = zeros(size(runs.water.mix.deep));
              for ii=1:length(masses)
+                 if strcmpi(masses{ii},'eddmix'), continue; end
                  try
                     regions = fieldnames(runs.water.(masses{ii}));
                     for jj=1:length(regions)
+                        if regexp(regions{jj},'^[xyz]'), continue; end
                         classvol = classvol + runs.water.(masses{ii}).(regions{jj});
                     end
                  catch ME
