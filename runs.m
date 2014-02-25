@@ -252,8 +252,8 @@ methods
             runs.usurf = double(squeeze(ncread(runs.out_file, ....
                 'u',start,count,stride)));
         else
-            runs.usurf = dc_roms_read_data(runs.dir,'u' ...
-                ,start,count,stride);
+            runs.usurf = dc_roms_read_data(runs.dir,'u', ...
+                [],{'z' runs.rgrid.N runs.rgrid.N},[],runs.rgrid);
         end
         runs.usurf = avg1(runs.usurf(:,2:end-1,:),1);
         toc;
@@ -261,7 +261,8 @@ methods
             runs.vsurf = double(squeeze(ncread(runs.out_file, ....
                 'v',start,count,stride)));
         else
-            runs.vsurf = roms_read_data(runs.dir,'v',start,count,stride);
+            runs.vsurf = dc_roms_read_data(runs.dir,'v', ...
+                [],{'z' runs.rgrid.N runs.rgrid.N},[],runs.rgrid);
         end
         runs.vsurf = avg1(runs.vsurf(2:end-1,:,:),2);
         toc;
