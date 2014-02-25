@@ -16,6 +16,8 @@ properties
     roms; ltrans;
     % eddy track data
     eddy; noeddy;
+    % threshold values
+    eddy_thresh = 0.7;
     % initial params
     params
     % transport
@@ -919,7 +921,7 @@ methods
         sz3dsp = [sz4dsp(1) 1];
 
         % make my mask matrices 4d and sparse
-        eddye = sparse(reshape(eddye > 0.7, sz4dsp));
+        eddye = sparse(reshape(eddye > runs.eddy_thresh, sz4dsp));
         vormask = sparse(reshape(repmat( ...
             permute(runs.eddy.vormask(ixm-1:ixM-1,iym-1:iyM-1,:),[1 2 4 3]) ...
             , [1 1 runs.rgrid.N 1]), sz4dsp));
@@ -1422,7 +1424,7 @@ methods
         ticstart = tic;
         % if dye_04 > thresh then it is "eddy water"
         % else i classify it as "mixed"
-        eddye_thresh = 0.7;
+        eddye_thresh = runs.eddy_thresh;
         
         % check classified vol against total volume
         debug = 1;
