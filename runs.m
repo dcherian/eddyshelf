@@ -695,7 +695,10 @@ methods
         ax = plotyy( ...%time,runs.water.eddmix.xshelf/1000 - runs.eddy.vor.ee/1000, ...
                time,runs.water.eddmix.zshelf./runs.bathy.hsb, ...
                time,runs.water.eddmix.yshelf/1000 - runs.bathy.xsb/1000);
-
+        set(get(ax(1),'YLabel'),'String','Zcentroid / Depth at shelfbreak');
+        set(get(ax(2),'YLabel'),'String','Distance from shelfbreak (km)');
+        set(ax(1),'Ylim',[-1 0],'YTick',[-1 -0.5 0]);
+        title('Offshore plume on shelf');
         % by water masses
 %         subplot(622)
 %         semilogy(time, runs.water.off.deep, ...
@@ -731,25 +734,27 @@ methods
         
         
         %% eddy upwelling + vertical scale
-        figure;
-        subplot(211)
-        plot(runs.time/86400,runs.eddy.vor.vol);
-        ylabel('Volume (m^3)');
-        subplot(212)
-        plot(runs.time/86400,abs(runs.eddy.vor.zdcen));
-        hold on
-        plot(runs.time/86400,abs(runs.eddy.vor.zcen),'g');
-        plot(eddy.t,eddy.hcen/2,'b');
-        plot(eddy.t, ...
-            runs.params.phys.f0 / sqrt(runs.params.phys.N2) * runs.eddy.dia,'r');
-        plot(eddy.t,eddy.Lz2,'k');
-        xlabel('Time (days)');
-        ylabel('Z-scale (m)');
-        linex(tind);
-        suplabel(runs.dir,'t');
-        packrows(2,1);
-        legend('z-centroid','zdye-centroid', ...
-            'H_{center}/2','f*L/N','vertical scale','Location','SouthWest');
+        if isfield(runs.eddy.vor,'vol')
+            figure;
+            subplot(211)
+            plot(runs.time/86400,runs.eddy.vor.vol);
+            ylabel('Volume (m^3)');
+            subplot(212)
+            plot(runs.time/86400,abs(runs.eddy.vor.zdcen));
+            hold on
+            plot(runs.time/86400,abs(runs.eddy.vor.zcen),'g');
+            plot(eddy.t,eddy.hcen/2,'b');
+            plot(eddy.t, ...
+                runs.params.phys.f0 / sqrt(runs.params.phys.N2) * runs.eddy.dia,'r');
+            plot(eddy.t,eddy.Lz2,'k');
+            xlabel('Time (days)');
+            ylabel('Z-scale (m)');
+            linex(tind);
+            suplabel(runs.dir,'t');
+            packrows(2,1);
+            legend('z-centroid','zdye-centroid', ...
+                'H_{center}/2','f*L/N','vertical scale','Location','SouthWest');
+        end
     end
 
     function [] = compare_plot(runs,num)
