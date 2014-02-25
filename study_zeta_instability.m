@@ -81,3 +81,23 @@ for tt=1:120
     export_fig(sprintf('videos/zeta-instability/%03d.png',tt));
     pause(0.01);
 end
+
+%% 
+zeta = run3.zeta;
+
+figure;
+hold on;
+plot(squeeze(run3.zeta(60,20,:)),'r');
+plot(squeeze(run3.zeta(320,20,:)),'r--');
+
+plot(squeeze(run3.zeta(60,40,:)),'g');
+plot(squeeze(run3.zeta(320,40,:)),'g*-');
+
+
+plot(squeeze(run3.zeta(5,160,:)),'k');
+plot(squeeze(run3.zeta(390,160,:)),'k-.');
+
+plot(squeeze(run3.zeta(320,120,:)),'b--');
+plot(squeeze(run3.zeta(60,120,:)),'b');
+legend('(60,20)','(320,20)', '(60,40)','(320,40)',...
+       '(5,16k0)','(390,160)','(320,120)','(60,120)','Location','SouthWest');
