@@ -245,7 +245,6 @@ methods
     % read surface velocities for animate_pt & surf vorticity plot
     function [] = read_velsurf(runs)
         disp('Reading surface velocity fields...');
-        tic;
         start = [1 1 runs.rgrid.N 1];
         count = [Inf Inf 1 Inf];
         stride = [1 1 1 1];
@@ -257,8 +256,6 @@ methods
             runs.usurf = dc_roms_read_data(runs.dir,'u', ...
                 [],{'z' runs.rgrid.N runs.rgrid.N},[],runs.rgrid);
         end
-        runs.usurf = avg1(runs.usurf(:,2:end-1,:),1);
-        toc;
         if runs.givenFile
             runs.vsurf = double(squeeze(ncread(runs.out_file, ....
                 'v',start,count,stride)));
@@ -266,8 +263,6 @@ methods
             runs.vsurf = dc_roms_read_data(runs.dir,'v', ...
                 [],{'z' runs.rgrid.N runs.rgrid.N},[],runs.rgrid);
         end
-        runs.vsurf = avg1(runs.vsurf(2:end-1,:,:),2);
-        toc;
     end
 
    %% floats
@@ -617,6 +612,28 @@ methods
        plot(-runs.bathy.h(2,:)/max(runs.bathy.h(:)),'k');
        legend('qgpv','bathy');
 
+    end
+    
+    function [] = eddyvordiag(runs)
+        
+         if isempty(runs.usurf) || isempty(runs.vsurf)
+             runs.read_velsurf;
+         end
+         
+         ux = bsxfun(@rdivide,diff(runs.usurf,1,1),diff(runs.rgrid.x_u',1,1));
+         uy = bsxfun(@rdivide,diff(runs.usurf,1,2),diff(runs.rgrid.y_u',1,2));
+         
+         vx = bsxfun(@rdivide,diff(runs.vsurf,1,1),diff(runs.rgrid.x_v',1,1));
+         vy = bsxfun(@rdivide,diff(runs.vsurf,1,2),diff(runs.rgrid.y_v',1,2));
+         
+         ux = ux(:,2:end-1,:);
+         vy = vy(2:end-1,:,:);
+         vx = avg1(avg1(vx,1),2);
+         uy = avg1(avg1(uy,1),2);
+         
+         ow = (ux-vy).^2 + (vx+uy).^2 - (vx-uy).^2;
+         
+         
     end
     
     % plot eddy parameters with time - good for comparison
