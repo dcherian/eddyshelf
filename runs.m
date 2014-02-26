@@ -2696,6 +2696,8 @@ methods
         h = runs.bathy.h(2:end-1,2:end-1);
         csr = runs.rgrid.Cs_r(2:end-1); 
         csw = runs.rgrid.Cs_w(2:end-1);
+        
+        Hz    = runs.rgrid.dV./runs.rgrid.dx./runs.rgrid.dy;
 
         xavg = avg1(avg1(xvor,1),2)/1000; yavg = avg1(avg1(yvor,1),2)/1000;
 
@@ -2730,9 +2732,31 @@ methods
             rvor = vx-uy; rv1 = v1x-u1y;
             rvx = diff_cgrid(gridrv,rvor,1); rvy = diff_cgrid(gridrv,rvor,2);
                 rvz = diff_cgrid(gridrv,rvor,3);
+                
+                
+            uxsig = diff(u,1,1)./diff(gridu.xmat,1,1);
+            vysig = diff(v,1,2)./diff(gridv.ymat,1,2);
+            dzdx  = avg1(diff(gridu.zmat,1,1)./diff(gridu.xmat,1,1),3);
+            dzdy  = avg1(diff(gridv.zmat,1,2)./diff(gridv.ymat,1,2),3);
+            duds = avg1(diff(u,1,3),1);
+            dvds = avg1(diff(v,1,3),2);
+            % duds  = avg1(bsxfun(@rdivide, diff(u,1,3), ...
+           %             diff(permute(runs.rgrid.s_rho',[3 2 1]),1,3)),1);
+           % dvds  = avg1(bsxfun(@rdivide, diff(v,1,3), ...
+           %             diff(permute(runs.rgrid.s_rho',[3 2 1]),1,3)),2);
+            dwds  = bsxfun(@rdivide, diff(w,1,3), ...
+                        diff(permute(runs.rgrid.s_w',[3 2 1]),1,3));
+                    
+                    
+            contsig = avg1(uxsig(:,2:end-1,:) + vysig(2:end-1,:,:),3) ...
+                        - dzdx(:,2:end-1,:).*duds(:,2:end-1,:) ...
+                        - dzdy(2:end-1,:,:).*dvds(2:end-1,:,:);
 
 
             % check continuity
+            omegaHz = avg1(w(2:end-1,2:end-1,:),3) ...
+                - avg1(u(:,2:end-1,:),1) .* diff(gridu.zmat(:,2:end-1,:),1,1) ...
+                - avg1(v(2:end-1,:,:),2) .* diff(gridv.zmat(2:end-1,:,:),1,2);
             cont = ux(:,2:end-1,:) + vy(2:end-1,:,:) + wz(2:end-1,2:end-1,:);
             contfrac = cont./wz(2:end-1,2:end-1,:);
             [~,CONT] = roms_depthIntegrate(cont,csr,csw,h,zeta,depthRange);
