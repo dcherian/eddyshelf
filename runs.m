@@ -71,7 +71,7 @@ methods
         % read zeta
         if ~runs.givenFile
             runs.zeta = dc_roms_read_data(dir,'zeta',[],{},[],runs.rgrid);
-            runs.time = roms_read_data(dir,'ocean_time');%,[],{},[],runs.rgrid);
+            runs.time = dc_roms_read_data(dir,'ocean_time');%,[],{},[],runs.rgrid);
             %try
             %    runs.csdye  = roms_read_data(dir,'dye_01', ...
             %        [1 1 runs.rgrid.N 1],[Inf Inf 1 Inf]);
@@ -81,7 +81,6 @@ methods
             runs.zeta = double(ncread(runs.out_file,'zeta'));
             runs.time = double(ncread(runs.out_file,'ocean_time'));
         end
-
 
         warning('Assuming uniform grid for dx,dy');
         runs.rgrid.dx = mean(diff(runs.rgrid.xr(:,1),1,1));
@@ -785,6 +784,78 @@ methods
             legend('z-centroid','zdye-centroid', ...
                 'H_{center}/2','f*L/N','vertical scale','Location','SouthWest');
         end
+    end
+    
+    % get eddy center temperature profile
+    function [] = eddycentemp(runs)
+        
+%         % first detect indices for eddy center
+%         
+%         
+%         tic;
+%         for ii = 1:length(runs.time)
+%             dc_roms_read_data(runs.dir,'temp',ii,{'x' 
+%         end
+    end
+    
+    % study along-shore jet
+    function [] = jetdetect(runs)
+        % rossby radius
+        rr = runs.rrshelf;
+        % number of rossby radii east of eddy to plot section
+        nrr = 6;
+        
+        t0 = 55;
+        ix0 = vecfind(runs.rgrid.x_u(1,:),runs.eddy.vor.ee(t0:end));
+        % along-shore velocity
+        if runs.bathy.axis == 'y'
+            
+            uas = dc_roms_read_data(runs.dir,'u',[t0 Inf], ...
+                {'y' 1 runs.bathy.isl});
+            zas = permute(runs.rgrid.z_u(:,1:runs.bathy.isl,:),[3 2 1]);
+        end
+        
+        yz = repmat(runs.rgrid.y_u(1:runs.bathy.isl,1),[1 runs.rgrid.N]);
+        
+        % first one moves with eddy
+        xind = ix0(1) + [nan 15 30] *ceil(rr/runs.rgrid.dx);
+        
+        tt = 1;
+        xind(1) = ix0(tt) + nrr * ceil(rr/runs.rgrid.dx);
+        subplot(2,3,[1 2 3])
+        hzeta = runs.plot_zeta('contourf',t0+tt-1);
+        hlines = linex(xind*runs.rgrid.dx/1000);
+        colorbar
+        
+        subplot(234)
+        [~,huas1] = contourf(yz/1000,squeeze(zas(xind(1),:,:)), ...
+                        squeeze(uas(xind(1),:,:,tt)));
+        colorbar; caxis([-1 1]*0.1); ylim([-1000 0]);
+        
+        
+        subplot(235)
+        [~,huas2] = contourf(yz/1000,squeeze(zas(xind(2),:,:)), ...
+                        squeeze(uas(xind(2),:,:,tt)));
+        colorbar; caxis([-1 1]*0.1); ylim([-1000 0]);
+        
+        
+        subplot(236)
+        [~,huas3] = contourf(yz/1000,squeeze(zas(xind(3),:,:)), ...
+                        squeeze(uas(xind(3),:,:,tt)));
+        colorbar; caxis([-1 1]*0.1); ylim([-1000 0]);
+        
+        for tt=2:size(uas,4)
+            runs.update_zeta(hzeta,t0+tt-1);
+            
+            xind(1) = ix0(tt) + nrr * ceil(rr/runs.rgrid.dx);
+            set(hlines(1),'XData',[1 1]*xind(1)*runs.rgrid.dx/1000);
+            
+            set(huas1,'ZData',squeeze(uas(xind(1),:,:,tt)));
+            set(huas2,'ZData',squeeze(uas(xind(2),:,:,tt)));
+            set(huas3,'ZData',squeeze(uas(xind(3),:,:,tt)));
+            pause(0.2);
+        end
+        
     end
 
     function [] = compare_plot(runs,num)
@@ -2651,12 +2722,14 @@ methods
     end
 
     function [] = animate_vorbudget(runs,tind)
-%             if ~exist('tind','var')
-%                 tind = [];
-%             end
+            if ~exist('tind','var')
+                tind = 1;
+            end
 %             if ~exist([runs.dir '/ocean_vor.nc'],'file')
 %                 dc_roms_vorticity(runs.dir,tind,'ocean_vor.nc');
 %             end
+
+        runs.video_init('vor');
         % prepare grids for differentiation
         xvor = avg1(avg1(runs.rgrid.xr,1),2);
         yvor = avg1(avg1(runs.rgrid.yr,1),2);
@@ -2700,7 +2773,7 @@ methods
         xavg = avg1(avg1(xvor,1),2)/1000; yavg = avg1(avg1(yvor,1),2)/1000;
 
         depthRange = [100 -max(runs.bathy.h(:))];
-        trange = 1:2:size(runs.zeta,3);
+        trange = tind:2:size(runs.zeta,3);
 
         disp(['starting from t instant = ' num2str(trange(1))]);
         for kk=1:length(trange)
@@ -2708,16 +2781,31 @@ methods
             zeta = runs.zeta(2:end-1,2:end-1,tt);
 
             % read data
-            fname = [runs.dir '/ocean_his.nc.extract'];
-            u1 = double(ncread(fname,'u',[1 1 1 tt],[Inf Inf Inf 2]));
-            v1 = double(ncread(fname,'v',[1 1 1 tt],[Inf Inf Inf 2]));
-            w  = double(ncread(fname,'w',[1 1 1 tt],[Inf Inf Inf 1]));
-            omega = double(ncread(fname,'omega',[1 1 1 tt],[Inf Inf Inf 1]));
+            fname = runs.out_file;%[runs.dir '/ocean_his.nc.extract'];
+            u1 = dc_roms_read_data(runs.dir,'u',[tt tt+1],{},[],runs.rgrid);
+            v1 = dc_roms_read_data(runs.dir,'v',[tt tt+1],{},[],runs.rgrid);
+            w =  dc_roms_read_data(runs.dir,'w',tt,{},[],runs.rgrid);
+            
+            u = u1(:,:,:,1); v = v1(:,:,:,1);
+            u1(:,:,:,1) = []; v1(:,:,:,1) = [];
+            
+%             try
+%                 omega = double(ncread(fname,'omega',[1 1 1 tt],[Inf Inf Inf 1]));
+%             catch ME
+%                 udzdx = avg1(u,1) .* diff(gridu.zmat,1,1)./diff(gridu.xmat,1,1);
+%                 vdzdy = avg1(v,2) .* diff(gridv.zmat,1,2)./diff(gridv.ymat,1,2);
+%                 % this is a good estimate - problem areas are in the sponge
+%                 omega = avg1(w(2:end-1,2:end-1,:),3)  ...
+%                         - udzdx(:,2:end-1,:) - vdzdy(2:end-1,:,:);
+%             end
+%             
+%             % this is a good estimate - problem areas are in the sponge
+%             w2 = udzdx(:,2:end-1,:) + vdzdy(2:end-1,:,:) + ...
+%                  omega;
+%             
             %rvor1 = double(ncread(runs.out_file,'rvorticity',[1 1 1 tt], ...
             %    [Inf Inf Inf 2]));
             %rvor = rvor1(:,:,:,1);
-            u = u1(:,:,:,1); v = v1(:,:,:,1);
-            u1(:,:,:,1) = []; v1(:,:,:,1) = [];
 
             % differentiate
             ux = diff_cgrid(gridu,u,1); uy = diff_cgrid(gridu,u,2);
@@ -2731,55 +2819,35 @@ methods
             v1x = diff_cgrid(gridv,v1,1); u1y = diff_cgrid(gridu,u1,2);
             rvor = vx-uy; rv1 = v1x-u1y;
             rvx = diff_cgrid(gridrv,rvor,1); rvy = diff_cgrid(gridrv,rvor,2);
-                rvz = diff_cgrid(gridrv,rvor,3);
-                
-                
-            omega2 = ( avg1(w(2:end-1,2:end-1,:),3) ...
-                - avg1(u(:,2:end-1,:),1) .* diff(gridu.zmat(:,2:end-1,:),1,1) ...
-                - avg1(v(2:end-1,:,:),2) .* diff(gridv.zmat(2:end-1,:,:),1,2));
-                
-            % IMPORTANT THIS IS tt+1!!! BECAUSE EXTRACT HAS T=2 ONWARDS
+                rvz = diff_cgrid(gridrv,rvor,3);                
+            
             Hz  = diff(set_depth(runs.rgrid.Vtransform, runs.rgrid.Vstretching, ...
                     runs.rgrid.theta_s, runs.rgrid.theta_b, runs.rgrid.hc, ...
                     runs.rgrid.N, 5, runs.rgrid.h', runs.zeta(:,:,tt),0),1,3);
                 
-            % this works on history files
-            duHzdx = diff(u .* avg1(Hz,1),1,1)./diff(gridu.xmat,1,1);
-            dvHzdy = diff(v .* avg1(Hz,2),1,2)./diff(gridv.ymat,1,2);
-            doHzds = diff(omega,1,3);
-            conthis = duHzdx(:,2:end-1,:) + dvHzdy(2:end-1,:,:) + ...
-                        doHzds(2:end-1,2:end-1,:);
-            CONTHIS =  sum((conthis .* runs.rgrid.dV(2:end-1,2:end-1,:)),3) ./ ...
-                    sum(runs.rgrid.dV(2:end-1,2:end-1,:),3);
-                        
-                
-            uxsig = diff(u,1,1)./diff(gridu.xmat,1,1);
-            vysig = diff(v,1,2)./diff(gridv.ymat,1,2);
-            
-           
-            dods  = diff(omega./Hz,1,3);
-            dzdx  = avg1(diff(gridu.zmat,1,1)./diff(gridu.xmat,1,1),3);
-            dzdy  = avg1(diff(gridv.zmat,1,2)./diff(gridv.ymat,1,2),3);
-            duds = avg1(diff(u,1,3),1);
-            dvds = avg1(diff(v,1,3),2);
-            dods  = avg1(bsxfun(@rdivide, diff(omega,1,3), ...
-                        diff(permute(runs.rgrid.s_rho',[3 2 1]),1,3)),1);
-           % dvds  = avg1(bsxfun(@rdivide, diff(v,1,3), ...
-           %             diff(permute(runs.rgrid.s_rho',[3 2 1]),1,3)),2);
-            dwds  = bsxfun(@rdivide, diff(w,1,3), ...
-                        diff(permute(runs.rgrid.s_w',[3 2 1]),1,3));
-                    
-                    
-            contsig = uxsig(:,2:end-1,:) + vysig(2:end-1,:,:) + ...
-                            dods(2:end-1,2:end-1,:);
-
-
+            % this works on history file - not so well when I estimate
+            % omega from w
+%             duHzdx = diff(u .* avg1(Hz,1),1,1)./diff(gridu.xmat,1,1);
+%             dvHzdy = diff(v .* avg1(Hz,2),1,2)./diff(gridv.ymat,1,2);
+%             doHzds = diff(omega,1,3);
+%             try
+%                 conthis = duHzdx(:,2:end-1,:)  ...
+%                         + dvHzdy(2:end-1,:,:) + doHzds(2:end-1,2:end-1,:);
+%                 CONTHIS =  sum((conthis .* runs.rgrid.dV(2:end-1,2:end-1,:)),3) ./ ...
+%                         sum(runs.rgrid.dV(2:end-1,2:end-1,:),3);
+%             catch ME
+%                 conthis = avg1(duHzdx(:,2:end-1,:)  ...
+%                         + dvHzdy(2:end-1,:,:),3) + doHzds;
+%                 CONTHIS =  sum((conthis .* avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3)),3) ./ ...
+%                     avg1(sum(runs.rgrid.dV(2:end-1,2:end-1,:),3),3);
+%             end
+                                 
             % check continuity
-            % THIS DOESN't WORK with HISTORY FILES
-            cont = ux(:,2:end-1,:) + vy(2:end-1,:,:) + wz(2:end-1,2:end-1,:);
-            CONT = cont .* runs.rgrid.dV(2:end-1,2:end-1,:)
-            %contfrac = cont./wz(2:end-1,2:end-1,:);
-            %[~,CONT] = roms_depthIntegrate(cont,csr,csw,h,zeta,depthRange);
+            % THIS DOESN't WORK with HISTORY FILES but does average files
+%             % better than CONTHIS
+%             cont = ux(:,2:end-1,:) + vy(2:end-1,:,:) + wz(2:end-1,2:end-1,:);
+%             CONT = sum(cont .* avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3),3) ./ ...
+%                     sum(avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3),3);
 
             % form terms - avg to interior RHO points
             adv = avg1( avg1(avg1(u(:,:,2:end-1),1),2) .* rvx,2) + ...
@@ -2797,18 +2865,18 @@ methods
                         avg1(wx,2).*avg1(vz,1),1),2),3);
 
             tend = avg1(avg1( ...
-                    avg1(rv1-rvor,3)./diff(runs.rgrid.ocean_time(1:2)) ,1),2);
+                    avg1(rv1-rvor,3)./diff(runs.time(1:2)) ,1),2);
 
             % depth integrate
-            [ubar,vbar] = uv_barotropic(u,v,runs.rgrid.Hz);
+            [ubar,vbar] = uv_barotropic(u,v,Hz);
             [rint,ravg] = roms_depthIntegrate(avg1(avg1(rvor,1),2), ...
                             csr,csw,h,zeta,depthRange);
-            [ADV ,~] = roms_depthIntegrate(adv ,csr,csw,h,zeta,depthRange);
-            [STR ,~] = roms_depthIntegrate(str ,csr,csw,h,zeta,depthRange);
-            [BET ,~] = roms_depthIntegrate(bet ,csr,csw,h,zeta,depthRange);
-            [TILT,~] = roms_depthIntegrate(tilt,csr,csw,h,zeta,depthRange);
-            [TEND,~] = roms_depthIntegrate(tend,csr,csw,h,zeta,depthRange);
-            rplot = rint; 
+            [~,ADV] = roms_depthIntegrate(adv ,csr,csw,h,zeta,depthRange);
+            [~,STR] = roms_depthIntegrate(str ,csr,csw,h,zeta,depthRange);
+            [~,BET] = roms_depthIntegrate(bet ,csr,csw,h,zeta,depthRange);
+            [~,TILT] = roms_depthIntegrate(tilt,csr,csw,h,zeta,depthRange);
+            [~,TEND] = roms_depthIntegrate(tend,csr,csw,h,zeta,depthRange);
+            rplot = ravg; 
 
             budget = tend+adv+bet-tilt-str;
             BUD = TEND+ADV+BET-TILT-STR;
@@ -2877,9 +2945,10 @@ methods
                 hbathy = runs.plot_bathy('contour','k');
                 caxis([-1 1] * max(abs(STR(:))));
                 title('Stretching = (f+\xi)w_z')
-                pause();
                 spaceplots(0.06*ones([1 4]),0.05*ones([1 2]))
                 linkaxes(ax,'xy');
+                runs.video_update();
+                pause(0.01);
             else
                 set(hvor ,'cdata',rplot); 
                 set(hadv ,'cdata',-ADV);
@@ -2894,9 +2963,11 @@ methods
 
                 runs.update_eddy_contour(he,tt);
                 runs.update_title(ht,titlestr,tt);
-                pause();
+                runs.video_update();
+                pause(0.01);
             end
         end
+        runs.video_write();
     end
 
     function [] = animate_center(runs)
