@@ -82,12 +82,6 @@ methods
             runs.time = double(ncread(runs.out_file,'ocean_time'));
         end
 
-        warning('Assuming uniform grid for dx,dy');
-        runs.rgrid.dx = mean(diff(runs.rgrid.xr(:,1),1,1));
-        runs.rgrid.dy = mean(diff(runs.rgrid.yr(1,:),1,2));
-        runs.rgrid.dV = runs.rgrid.dx * runs.rgrid.dy * ...
-            diff(permute(runs.rgrid.z_w,[ 3 2 1]),1,3); 
-
         runs.makeVideo = 0; % no videos by default.
 
         % make run-name
@@ -803,7 +797,7 @@ methods
         % rossby radius
         rr = runs.rrshelf;
         % number of rossby radii east of eddy to plot section
-        nrr = 6;
+        nrr = 8;
         
         t0 = 55;
         ix0 = vecfind(runs.rgrid.x_u(1,:),runs.eddy.vor.ee(t0:end));
@@ -811,7 +805,7 @@ methods
         if runs.bathy.axis == 'y'
             
             uas = dc_roms_read_data(runs.dir,'u',[t0 Inf], ...
-                {'y' 1 runs.bathy.isl});
+                {'y' 1 runs.bathy.isl},[],runs.rgrid);
             zas = permute(runs.rgrid.z_u(:,1:runs.bathy.isl,:),[3 2 1]);
         end
         
@@ -819,7 +813,7 @@ methods
         
         % first one moves with eddy
         xind = ix0(1) + [nan 15 30] *ceil(rr/runs.rgrid.dx);
-        
+        %%
         tt = 1;
         xind(1) = ix0(tt) + nrr * ceil(rr/runs.rgrid.dx);
         subplot(2,3,[1 2 3])
@@ -830,7 +824,7 @@ methods
         subplot(234)
         [~,huas1] = contourf(yz/1000,squeeze(zas(xind(1),:,:)), ...
                         squeeze(uas(xind(1),:,:,tt)));
-        colorbar; caxis([-1 1]*0.1); ylim([-1000 0]);
+        colorbar; caxis([-1 1]*0.1); ylim([-300 0]);
         
         
         subplot(235)
@@ -855,6 +849,60 @@ methods
             set(huas3,'ZData',squeeze(uas(xind(3),:,:,tt)));
             pause(0.2);
         end
+    end
+    
+    % study vorticity export onto shelf
+    function [] = vorexport(runs)
+        vorname = [runs.dir '/ocean_vor.nc'];
+        t0 = 30;
+        
+        start = [1 1 1 t0];
+        count = [Inf runs.bathy.isb Inf Inf];
+        
+        Lx = max(runs.rgrid.x_rho(:));
+        
+        pv = ncread(vorname,'pv',start,count);
+        rv = avg1(ncread(vorname,'rv',start,count),1);
+
+        if runs.bathy.axis == 'y'
+            csvel = avg1(avg1(dc_roms_read_data(runs.dir,'v',[t0 Inf], ...
+                {'y' runs.bathy.isb runs.bathy.isb+1},[],runs.rgrid),2),3);
+            csvel = csvel(2:end-1,:,:,:);
+            % use center because export occurs west of the eastern edge
+            mask = bsxfun(@gt, runs.eddy.xr(:,1),  ...
+                permute(runs.eddy.vor.cx,[3 1 2]));
+        else
+            error('Not implemented for NS isobaths');
+            csvel = avg1(avg1(dc_roms_read_data(runs.dir,'u',[t0 Inf], ...
+                {'x' runs.bathy.isb runs.bathy.isb+1},[],runs.rgrid),1),3);
+            csvel = csvel(2:end-1,:,:,:);
+            % use center because export occurs north of the southern edge
+            mask = bsxfun(@gt, runs.eddy.yr(1,:)',  ...
+                permute(runs.eddy.vor.cy,[3 1 2]));
+        end
+        
+        % csvel = csvel(:,:,:,1:38)
+        pvflux = squeeze(bsxfun(@times,pv(:,runs.bathy.isb,:,:), csvel));
+        rvflux = squeeze(bsxfun(@times,rv(:,runs.bathy.isb,:,:), csvel));
+                
+        mask = mask(:,:,1:38);
+        PVFLUX = squeeze(sum(sum(bsxfun(@times, ...
+                     bsxfun(@times,pvflux, squeeze(avg1( ...
+                     runs.rgrid.dV(2:end-1,runs.bathy.isb,:),3)))...
+                     ,mask),1),2)) ...
+                    /runs.bathy.hsb/Lx;
+
+        RVFLUX = squeeze(sum(sum(bsxfun(@times, ...
+                     bsxfun(@times,rvflux, squeeze(avg1( ...
+                     runs.rgrid.dV(2:end-1,runs.bathy.isb,:),3)))...
+                     ,mask),1),2)) ...
+                    /runs.bathy.hsb/Lx;       
+        figure;
+        subplot(211)
+        plot(runs.time(t0:t0+37)/86400,PVFLUX./10^(orderofmagn(PVFLUX)), ...
+            runs.time(t0:t0+37)/86400, RVFLUX./10^(orderofmagn(RVFLUX)));
+        subplot(212)
+        
         
     end
 
@@ -2682,6 +2730,7 @@ methods
 %             end
 
         tt = 1;
+        % WRONGGGGGGGGGGGGGGGGG!
         rvor = double(ncread(runs.out_file,'rvorticity',[1 1 1 tt], ...
             [Inf Inf Inf 1]));
         [rint,ravg] = roms_depthIntegrate(rvor, ...
