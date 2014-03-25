@@ -854,7 +854,7 @@ methods
     % study vorticity export onto shelf
     function [] = vorexport(runs)
         vorname = [runs.dir '/ocean_vor.nc'];
-        t0 = 30;
+        t0 = 1;
         
         start = [1 1 1 t0];
         count = [Inf runs.bathy.isb Inf Inf];
@@ -870,7 +870,7 @@ methods
             csvel = csvel(2:end-1,:,:,:);
             % use center because export occurs west of the eastern edge
             mask = bsxfun(@gt, runs.eddy.xr(:,1),  ...
-                permute(runs.eddy.vor.cx,[3 1 2]));
+                permute(runs.eddy.vor.cx(t0:end),[3 1 2]));
         else
             error('Not implemented for NS isobaths');
             csvel = avg1(avg1(dc_roms_read_data(runs.dir,'u',[t0 Inf], ...
@@ -878,29 +878,58 @@ methods
             csvel = csvel(2:end-1,:,:,:);
             % use center because export occurs north of the southern edge
             mask = bsxfun(@gt, runs.eddy.yr(1,:)',  ...
-                permute(runs.eddy.vor.cy,[3 1 2]));
+                permute(runs.eddy.vor.cy(t0:end),[3 1 2]));
         end
         
         % csvel = csvel(:,:,:,1:38)
         pvflux = squeeze(bsxfun(@times,pv(:,runs.bathy.isb,:,:), csvel));
         rvflux = squeeze(bsxfun(@times,rv(:,runs.bathy.isb,:,:), csvel));
+        
+        dV = avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3);
                 
-        mask = mask(:,:,1:38);
         PVFLUX = squeeze(sum(sum(bsxfun(@times, ...
-                     bsxfun(@times,pvflux, squeeze(avg1( ...
-                     runs.rgrid.dV(2:end-1,runs.bathy.isb,:),3)))...
+                     bsxfun(@times,pvflux, squeeze( ...
+                     dV(:,runs.bathy.isb-1,:)))...
                      ,mask),1),2)) ...
                     /runs.bathy.hsb/Lx;
 
         RVFLUX = squeeze(sum(sum(bsxfun(@times, ...
-                     bsxfun(@times,rvflux, squeeze(avg1( ...
-                     runs.rgrid.dV(2:end-1,runs.bathy.isb,:),3)))...
+                     bsxfun(@times,rvflux, squeeze( ...
+                     dV(:,runs.bathy.isb-1,:)))...
                      ,mask),1),2)) ...
                     /runs.bathy.hsb/Lx;       
+                
+        oPVFLUX = orderofmagn(PVFLUX);
+        oRVFLUX = orderofmagn(RVFLUX);
+        
+        
+%         % quantify loss of vorticity in eddy
+%         xmin = min(runs.eddy.vor.we); xmax = max(runs.eddy.vor.ee);
+%         ymin = min(runs.eddy.vor.se); ymax = max(runs.eddy.vor.ne);
+%         
+%         ixmin = find_approx(runs.eddy.xr(:,1),xmin);
+%         ixmax = find_approx(runs.eddy.xr(:,1),xmax);
+%         iymin = find_approx(runs.eddy.yr(1,:),ymin);
+%         iymax = find_approx(runs.eddy.yr(1,:),ymax);
+%         
+%         tic;
+%         disp('Reading pv and rv for eddy');
+%         pveddy = ncread(vorname,'pv',[ixmin+1 iymin+1 1 t0],[ixmax+1 iymax+1 Inf Inf]);
+%         rveddy = ncread(vorname,'pv',[ixmin+1 iymin+1 1 t0],[ixmax+1 iymax+1 Inf Inf]);
+%         toc;
+%         
+%         % TODO: add dye mask here
+%         bsxfun(@times, bsxfun(@times,pveddy, ...
+%             permute(runs.eddy.vormask(ixmin:ixmax,iymin:iymax,:),[1 2 4 3])), ...
+%             runs.rgrid.dV(ixmin:ixmax,iymin:iymax,:));
+        
         figure;
         subplot(211)
-        plot(runs.time(t0:t0+37)/86400,PVFLUX./10^(orderofmagn(PVFLUX)), ...
-            runs.time(t0:t0+37)/86400, RVFLUX./10^(orderofmagn(RVFLUX)));
+        plot(runs.time(t0:end)/86400, PVFLUX./10^(oPVFLUX), ...
+             runs.time(t0:end)/86400, RVFLUX./10^(oRVFLUX));
+        legend(['PV flux * 10^{' num2str(oPVFLUX) '}'], ...
+               ['RV flux * 10^{' num2str(oRVFLUX) '}']);
+        xlabel('Time (days)')
         subplot(212)
         
         
