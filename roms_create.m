@@ -40,8 +40,8 @@ S.uniform = 1; % uniform grid
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 600;
-S.Mm = 320;
+S.Lm = 300;
+S.Mm = 240;
 S.N  = 60;
 
 dx = 1500;
@@ -53,14 +53,14 @@ Y = S.Mm * dy;100;
 Z = 2000;
 
 % tracers
-S.NPT = 4; % number of passive tracers
+S.NPT = 0; % number of passive tracers
 S.NT = 2+S.NPT; % total number of tracers
 
 % vertical stretching
 S.Vtransform = 2;
 S.Vstretching = 4;
 S.theta_s = 3.0;     %  S-coordinate surface control parameter.
-S.theta_b = 1.5;     %  S-coordinate bottom  control parameter.
+S.theta_b = 3.0;     %  S-coordinate bottom  control parameter.
 S.Tcline  = 500;    %  S-coordinate surface/bottom stretching width (m)
 
 % coriolis parameters
@@ -187,10 +187,10 @@ eddy.dia    = NaN; % 2xNH/pi/f0 - determined later
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
 eddy.tamp   = 0.3; % controls gradient
-eddy.buffer_sp = 40*dx; % distance from  4.3 (2.3) *r0 to sponge edge
+eddy.buffer_sp = 60*dx; % distance from  4.3 (2.3) *r0 to sponge edge
 eddy.buffer = NaN;7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
-eddy.cx     = X/2-150*1000; % if NaN, determined using buffer later
-eddy.cy     = NaN;Y/2; %              "
+eddy.cx     = 200*1000; % if NaN, determined using buffer later
+eddy.cy     = 80*1000; %              "
 eddy.theta0 = pi/2; % surface phase anomaly from Zhang et al. (2013)
                     % 7/16 * pi for WCR
 eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
@@ -960,6 +960,13 @@ if flags.eddy
         
         eddy.u = -1 * bsxfun(@times,rut, sin(th));
         eddy.v =      bsxfun(@times,rut, cos(th));
+        
+        % check angular momentum integral
+%         % if zero, eddy is isolated
+%         L = R0*(1 - TCOEF * eddy.temp) .* ...
+%             (bsxfun(@times,eddy.v,(S.x_rho - eddy.cx)) - ...
+%              bsxfun(@times,eddy.u,(S.y_rho - eddy.cy)));
+        
         S.u = S.u + avg1(eddy.u,1);
         S.v = S.v + avg1(eddy.v,2);
         
@@ -1802,7 +1809,7 @@ fprintf('\n\n Beckmann & Haidvogel number = %f (< 0.2 , max 0.4) \n \t\t\t\tHane
 
 % From Utility/metrics.F
 % Barotropic courant number
-dt = 75;
+dt = 60;
 ndtfast = 17;
 Cbt = sqrt(g*max(S.h(:))) * dt/ndtfast * sqrt(1/dx^2 + 1/dy^2);
 Cbc = sqrt(N2)*min(S.h(:))/pi * dt * sqrt(1/dx^2 + 1/dy^2);
