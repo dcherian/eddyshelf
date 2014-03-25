@@ -857,19 +857,41 @@ methods
         t0 = 1;
         
         start = [1 1 1 t0];
-        count = [Inf runs.bathy.isb Inf Inf];
+        % isb-1 since they are on interior RHO points
+        count = [Inf runs.bathy.isb-1 Inf Inf];
         
-        Lx = max(runs.rgrid.x_rho(:));
+        Las = max(runs.rgrid.x_rho(:));
+        Lcs = runs.bathy.xsb;
         
+        dx = runs.rgrid.xr(2,1)-runs.rgrid.xr(1,1);
+        
+        % both at interior RHO points
         pv = ncread(vorname,'pv',start,count);
-        rv = avg1(ncread(vorname,'rv',start,count),1);
-
+        rv = avg1(avg1(ncread(vorname,'rv',start,count+[0 1 0 0]),1),2);
+        
         if runs.bathy.axis == 'y'
             csvel = avg1(avg1(dc_roms_read_data(runs.dir,'v',[t0 Inf], ...
-                {'y' runs.bathy.isb runs.bathy.isb+1},[],runs.rgrid),2),3);
+                {'y' runs.bathy.isb-1 runs.bathy.isb},[],runs.rgrid),2),3);
             csvel = csvel(2:end-1,:,:,:);
+            
+            % location for calculation along-shore flux of rv/pv
+            asloc = runs.eddy.vor.ee(t0:end) + dx*3;
+            
+            % full RHO points
+            iasmin = find(runs.rgrid.xr(:,1) == min(asloc));
+            iasmax = find(runs.rgrid.xr(:,1) == max(asloc));
+            
+            % faster to read whole thing and then discard
+            asvel = avg1(avg1(dc_roms_read_data(runs.dir,'u',[t0 Inf], ...
+                {'y' 2 runs.bathy.isb}, [], runs.rgrid),1),3);
+            % average to RHO points
+            asvel = avg1(asvel(iasmin-1:iasmax,:,:,:),1);
+            % shift indices since I'm now on interior RHO points for pv,rv
+            iasmin = iasmin - 1;
+            iasmax = iasmax - 1;
+            
             % use center because export occurs west of the eastern edge
-            mask = bsxfun(@gt, runs.eddy.xr(:,1),  ...
+            csmask = bsxfun(@gt, runs.eddy.xr(:,1),  ...
                 permute(runs.eddy.vor.cx(t0:end),[3 1 2]));
         else
             error('Not implemented for NS isobaths');
@@ -877,32 +899,80 @@ methods
                 {'x' runs.bathy.isb runs.bathy.isb+1},[],runs.rgrid),1),3);
             csvel = csvel(2:end-1,:,:,:);
             % use center because export occurs north of the southern edge
-            mask = bsxfun(@gt, runs.eddy.yr(1,:)',  ...
+            csmask = bsxfun(@gt, runs.eddy.yr(1,:)',  ...
                 permute(runs.eddy.vor.cy(t0:end),[3 1 2]));
         end
-        
+        %%
         % csvel = csvel(:,:,:,1:38)
-        pvflux = squeeze(bsxfun(@times,pv(:,runs.bathy.isb,:,:), csvel));
-        rvflux = squeeze(bsxfun(@times,rv(:,runs.bathy.isb,:,:), csvel));
+        % These are fluxes across the shelfbreak  - technically represent
+        % eddy only. I need to quantify vorticity exported permanently onto
+        % the shelf , so it might better to do an along shore flux
+        % downstream (east) of the eddy, over the shelf. The idea is that
+        % vorticity is dumped on the shelf and then moves downstream. So
+        % along-shore flux when calculated sufficiently far downstream of
+        % the eddy, should represent permanent export of vorticity (and
+        % mass) on the shelf
         
-        dV = avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3);
+        % isb - 1 to account for being on interior RHO points - isb
+        % includes the boundary points too
+        pvcsflux = squeeze(bsxfun(@times,pv(:,runs.bathy.isb-1,:,:), csvel));
+        rvcsflux = squeeze(bsxfun(@times,rv(:,runs.bathy.isb-1,:,:), csvel));
+        
+        asmask = bsxfun(@eq, runs.rgrid.xr(iasmin+1:iasmax+1,2:runs.bathy.isb), ...
+            permute(asloc,[1 3 4 2]));
+        
+        pvasflux = squeeze(sum( ...
+            bsxfun(@times, pv(iasmin:iasmax,:,:,:).*asvel, asmask),1));
+        rvasflux = squeeze(sum( ...
+            bsxfun(@times, rv(iasmin:iasmax,:,:,:).*asvel, asmask),1));
+        
+        dV = avg1(runs.rgrid.dV,3);
+        dVas = squeeze(sum( ...
+             bsxfun(@times, dV(iasmin:iasmax,2:runs.bathy.isb,:), asmask)));
                 
-        PVFLUX = squeeze(sum(sum(bsxfun(@times, ...
-                     bsxfun(@times,pvflux, squeeze( ...
-                     dV(:,runs.bathy.isb-1,:)))...
-                     ,mask),1),2)) ...
-                    /runs.bathy.hsb/Lx;
+        PVCSFLUX = squeeze(sum(sum(bsxfun(@times, ...
+                     bsxfun(@times,pvcsflux, squeeze( ...
+                     dV(2:end-1,runs.bathy.isb-1,:)))...
+                     ,csmask),1),2)) ...
+                    /runs.bathy.hsb/Las;
 
-        RVFLUX = squeeze(sum(sum(bsxfun(@times, ...
-                     bsxfun(@times,rvflux, squeeze( ...
-                     dV(:,runs.bathy.isb-1,:)))...
-                     ,mask),1),2)) ...
-                    /runs.bathy.hsb/Lx;       
+        RVCSFLUX = squeeze(sum(sum(bsxfun(@times, ...
+                     bsxfun(@times,rvcsflux, squeeze( ...
+                     dV(2:end-1,runs.bathy.isb-1,:)))...
+                     ,csmask),1),2)) ...
+                    /runs.bathy.hsb/Las;
                 
-        oPVFLUX = orderofmagn(PVFLUX);
-        oRVFLUX = orderofmagn(RVFLUX);
+        PVASFLUX = squeeze(sum(sum(pvasflux .* dVas,1),2)) ...
+                    /runs.bathy.hsb/Lcs;
+        RVASFLUX = squeeze(sum(sum(rvasflux .* dVas,1),2)) ...
+                    /runs.bathy.hsb/Lcs;
+                
+        oPVCSFLUX = orderofmagn(PVCSFLUX);
+        oRVCSFLUX = orderofmagn(RVCSFLUX);
+        oPVASFLUX = orderofmagn(PVASFLUX);
+        oRVASFLUX = orderofmagn(RVASFLUX);
         
+        oPV = min(oPVCSFLUX, oPVASFLUX);
+        oRV = min(oRVCSFLUX, oRVASFLUX);
         
+        %%
+        figure;
+        tt0 = 40;
+        isb = runs.bathy.isb;
+        [~,hc] = contourf(runs.rgrid.xr(2:end-1,2:isb)/1000, ...
+                          runs.rgrid.yr(2:end-1,2:isb)/1000, ...
+                          rv(:,:,end,tt0));
+        colorbar;
+        caxis([-1 1]*4*10^(orderofmagn(rv(:,:,end,:))));
+                      
+        hlines = linex([asloc(1) asloc(1)]/1000);
+        for tt=tt0+1:size(rv,4)
+            set(hc,'ZData',rv(:,:,end,tt));
+            
+            set(hlines(1),'XData',[1 1]*runs.eddy.cx(tt)/1000);
+            set(hlines(2),'XData',[1 1]*asloc(tt-tt0+1)/1000);
+            pause();
+        end
 %         % quantify loss of vorticity in eddy
 %         xmin = min(runs.eddy.vor.we); xmax = max(runs.eddy.vor.ee);
 %         ymin = min(runs.eddy.vor.se); ymax = max(runs.eddy.vor.ne);
@@ -922,16 +992,31 @@ methods
 %         bsxfun(@times, bsxfun(@times,pveddy, ...
 %             permute(runs.eddy.vormask(ixmin:ixmax,iymin:iymax,:),[1 2 4 3])), ...
 %             runs.rgrid.dV(ixmin:ixmax,iymin:iymax,:));
-        
+        %%
         figure;
         subplot(211)
-        plot(runs.time(t0:end)/86400, PVFLUX./10^(oPVFLUX), ...
-             runs.time(t0:end)/86400, RVFLUX./10^(oRVFLUX));
-        legend(['PV flux * 10^{' num2str(oPVFLUX) '}'], ...
-               ['RV flux * 10^{' num2str(oRVFLUX) '}']);
-        xlabel('Time (days)')
+        plot(runs.time(t0:end)/86400, PVCSFLUX./10^(oPVCSFLUX), ...
+              runs.time(t0:end)/86400, PVASFLUX./10^(oPVASFLUX));
+         legend(['CS flux x 10^{' num2str(oPVCSFLUX) '}'], ...
+                ['AS flux x 10^{' num2str(oPVASFLUX) '}']);
+%        legend('cross-shore','along-shore');
+        ylabel(['PV flux']);
+        set(gca,'YTick',[-5:5]);
+        beautify([18 16 16]);
+        liney(0);
+        title([runs.name ' | CS =  across shelfbreak | AS = east edge + 3dx']);
         subplot(212)
-        
+        plot(runs.time(t0:end)/86400, RVCSFLUX./10^(oRVCSFLUX), ...
+             runs.time(t0:end)/86400, RVASFLUX./10^(oRVASFLUX));
+         
+            set(gca,'YTick',[-5:5]);
+         legend(['CS flux x 10^{' num2str(oRVCSFLUX) '}'], ...
+                ['AS flux x 10^{' num2str(oRVASFLUX) '}']);
+%        legend('cross-shore','along-shore');
+        liney(0); ylim([-3 3]);
+        beautify([18 16 16]);
+        ylabel([' Rel. Vor. Flux']);
+        xlabel('Time (days)');
         
     end
 
