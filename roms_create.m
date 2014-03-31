@@ -15,11 +15,12 @@ if strfind(machine,'kadal')
     prefix    = 'tea';
 end
 if strfind(machine,'login')
-    FOLDER = '/mit/dcherian/ROMS/runs/eddyshelf/topoeddy/run-1/';
+    FOLDER = '/mit/dcherian/ROMS/runs/eddyshelf/topoeddy/run-2/';
     prefix    = 'tea';
+    addpath(genpath('/mit/dcherian/tools/'));
 end
 
-fprintf('\n Writing to %s. ', FOLDER);
+fprintf('\n Writing to %s. ', [FOLDER '/' prefix '_*.nc']);
 input('Are you sure?');
 
 GRID_NAME = [prefix '_grd'];
@@ -40,8 +41,8 @@ S.uniform = 1; % uniform grid
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 600;
-S.Mm = 320;
+S.Lm = 400;
+S.Mm = 240;
 S.N  = 60;
 
 dx = 1500;
@@ -50,7 +51,7 @@ dy = dx;
 % Domain Extent (in m)
 X = S.Lm * dx;120;
 Y = S.Mm * dy;100;
-Z = 2000;
+Z = 2200;
 
 % tracers
 S.NPT = 4; % number of passive tracers
@@ -60,13 +61,13 @@ S.NT = 2+S.NPT; % total number of tracers
 S.Vtransform = 2;
 S.Vstretching = 4;
 S.theta_s = 3.0;     %  S-coordinate surface control parameter.
-S.theta_b = 1.5;     %  S-coordinate bottom  control parameter.
+S.theta_b = 3.0;     %  S-coordinate bottom  control parameter.
 S.Tcline  = 500;    %  S-coordinate surface/bottom stretching width (m)
 
 % coriolis parameters
 lat_ref = 45;
-f0    = 2 * (2*pi/86400) * sind(lat_ref);
-beta  = 6e-11;
+f0    = 5e-5; 2 * (2*pi/86400) * sind(lat_ref);
+beta  = 3e-11;
 
 % Physical Parameters
 N2    = 1e-5;
@@ -118,16 +119,16 @@ flags.comment = ['solidbody_katsman = solid body core profile for eddy (Katsman 
 % DO NOT CHANGE THIS ORDER
 if flags.OBC
     OBC.west  = true;           % process western  boundary segment
-    OBC.east  = false;           % process eastern  boundary segment
+    OBC.east  = true;           % process eastern  boundary segment
     OBC.south = false;           % process southern boundary segment
-    OBC.north = false;            % process northern boundary segment
+    OBC.north = true;            % process northern boundary segment
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  Barotropic background flow parameters
 flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
 flags.bg_shear = 0;
 
-bg.ubt = 0.02; % m/s barotropic velocity
+bg.ubt = 0.01; % m/s barotropic velocity
 bg.vbt = 0;-0.04; % m/s barotropic velocity
 bg.shear_fac = 0.2; 
 bg.shear = NaN; % set later as bg.shear_fac * max(eddy vorticity)
@@ -143,13 +144,13 @@ bg.comment = ['shear = shear_fac * max(eddy vorticity) | ', ...
 flags.flat_bottom = 0; % set depth in Z above
 flags.crooked_bathy = 0;
 
-bathy.H_shelf  = 200;
+bathy.H_shelf  = 100;
 bathy.L_shelf  = 40 * 1000;
-bathy.L_slope  =  50 * 1000;
+bathy.L_slope  = 50 * 1000;
 bathy.axis = 'y'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
 bathy.sl_shelf = 0;
-bathy.sl_slope = 0.04;
+bathy.sl_slope = 0.02;
 bathy.sl_deep = 0;1/8 * f0/sqrt(N2);
 
 % bathymetry smoothing options
@@ -186,11 +187,11 @@ flags.vprof_gaussian = 0;%~flags.eddy_zhang; % eddy is gaussian in vertical?
 eddy.dia    = NaN; % 2xNH/pi/f0 - determined later
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
-eddy.tamp   = 0.3; % controls gradient
+eddy.tamp   = 0.21; % controls gradient
 eddy.buffer_sp = 40*dx; % distance from  4.3 (2.3) *r0 to sponge edge
 eddy.buffer = NaN;7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
-eddy.cx     = X/2-150*1000; % if NaN, determined using buffer later
-eddy.cy     = NaN;Y/2; %              "
+eddy.cx     = X/2;X/2-150*1000; % if NaN, determined using buffer later
+eddy.cy     = 158806;NaN;Y/2; %              "
 eddy.theta0 = pi/2; % surface phase anomaly from Zhang et al. (2013)
                     % 7/16 * pi for WCR
 eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
@@ -1355,7 +1356,7 @@ fprintf('\n Sanity checks - %4.1f MB \n\n', monitor_memory_whos);
 
 if S.NPT > 0
     % create variables first
-    names = {'cross shelf dye'; 'z dye';'along shelf dye'; 'eddy dye'};
+    names = {'cross shelf dye'; 'z dye'; 'eddy dye'; 'along shelf dye'};
     try
         dc_roms_passive_tracer(S,names);
     catch ME
@@ -1366,21 +1367,21 @@ if S.NPT > 0
     % important, we do not want grid scale discontinuity.
     % taper everything with gaussian or similar
     
-    % set dye_01 = cross-shelf label & dye_03 = along shelf label
+    % set dye_01 = cross-shelf label & dye_03 = eddy dye
     if bathy.axis == 'y'
         if flags.eddy
             % cross-shelf dye
             dye_01 = yrmat;
         end
         % along-shelf dye
-        dye_03 = xrmat;
+        dye_04 = xrmat;
     else
         if flags.eddy
             % cross shelf dye
             dye_01 = xrmat;
         end
         % along shelf dye
-        dye_03 = yrmat;
+        dye_04 = yrmat;
     end
     % set cross-shelf dye (dye_01) same as frontal structure
     if flags.front
@@ -1393,14 +1394,14 @@ if S.NPT > 0
     % fourth dye tags eddy
      % set eddy dye
      if flags.eddy
-        dye_04 = zeros(size(yrmat));
+        dye_03 = zeros(size(yrmat));
         %1e-3 is good threshold for tamp=0.4
-        dye_04(eddy.temp > (1e-3/0.4*eddy.tamp)) = 1;
+        dye_03(eddy.temp > (1e-3/0.4*eddy.tamp)) = 1;
         % now smooth out edges
         nfilter=5;
         for kk=1:S.N
-            dye_04(:,:,kk) = filter2(ones(nfilter,nfilter)/nfilter.^2, ...
-                                dye_04(:,:,kk));
+            dye_03(:,:,kk) = filter2(ones(nfilter,nfilter)/nfilter.^2, ...
+                                dye_03(:,:,kk));
         end
       end
 %     dye_01 = zeros(size(xrmat)); dye_02 = dye_01;
