@@ -16,6 +16,8 @@ properties
     roms; ltrans;
     % eddy track data
     eddy; noeddy;
+    % threshold values
+    eddy_thresh = 0.7;
     % initial params
     params
     % transport
@@ -69,7 +71,7 @@ methods
         % read zeta
         if ~runs.givenFile
             runs.zeta = dc_roms_read_data(dir,'zeta',[],{},[],runs.rgrid);
-            runs.time = roms_read_data(dir,'ocean_time');%,[],{},[],runs.rgrid);
+            runs.time = dc_roms_read_data(dir,'ocean_time');%,[],{},[],runs.rgrid);
             %try
             %    runs.csdye  = roms_read_data(dir,'dye_01', ...
             %        [1 1 runs.rgrid.N 1],[Inf Inf 1 Inf]);
@@ -79,13 +81,6 @@ methods
             runs.zeta = double(ncread(runs.out_file,'zeta'));
             runs.time = double(ncread(runs.out_file,'ocean_time'));
         end
-
-
-        warning('Assuming uniform grid for dx,dy');
-        runs.rgrid.dx = mean(diff(runs.rgrid.xr(:,1),1,1));
-        runs.rgrid.dy = mean(diff(runs.rgrid.yr(1,:),1,2));
-        runs.rgrid.dV = runs.rgrid.dx * runs.rgrid.dy * ...
-            diff(permute(runs.rgrid.z_w,[ 3 2 1]),1,3); 
 
         runs.makeVideo = 0; % no videos by default.
 
@@ -144,6 +139,7 @@ methods
         catch
         end
 
+        % load eddy track
         if ~exist([dir '/eddytrack.mat'],'file') || reset == 1 ...
                 %|| ~exist('runs.eddy.cvx','var')
             try
@@ -163,11 +159,29 @@ methods
             runs.eddy = edd.eddy;
             runs.noeddy = 0;
         end
-
+        
+        % rerun track_eddy if not new enough
         if ~isfield(runs.eddy,'vor')
             runs.eddy = track_eddy(dir);
         end
+        
+        % load streamer data if it exists.
+        if exist([dir '/streamer.mat'], 'file') && reset ~= 1
+            disp('Loading streamer data');
+            streamer = load([dir '/streamer.mat'],'streamer');
+            runs.streamer = streamer.streamer;
+            clear streamer;
+        end
+        
+        % load water mass data
+        if exist([dir '/watermass.mat'],'file') && reset ~= 1
+            disp('Loading water mass data');
+            water = load([dir '/watermass.mat'], 'water');
+            runs.water = water.water;
+            clear water
+        end
 
+        % extra processing of eddy track
         if ~runs.noeddy
            if isfield(runs.eddy,'cvx')
                if runs.eddy.cvx(1) == 0 || runs.eddy.cvy(1) == 0
@@ -224,7 +238,6 @@ methods
     % read surface velocities for animate_pt & surf vorticity plot
     function [] = read_velsurf(runs)
         disp('Reading surface velocity fields...');
-        tic;
         start = [1 1 runs.rgrid.N 1];
         count = [Inf Inf 1 Inf];
         stride = [1 1 1 1];
@@ -233,19 +246,16 @@ methods
             runs.usurf = double(squeeze(ncread(runs.out_file, ....
                 'u',start,count,stride)));
         else
-            runs.usurf = roms_read_data(runs.dir,'u' ...
-                ,start,count,stride);
+            runs.usurf = dc_roms_read_data(runs.dir,'u', ...
+                [],{'z' runs.rgrid.N runs.rgrid.N},[],runs.rgrid);
         end
-        runs.usurf = avg1(runs.usurf(:,2:end-1,:),1);
-        toc;
         if runs.givenFile
             runs.vsurf = double(squeeze(ncread(runs.out_file, ....
                 'v',start,count,stride)));
         else
-            runs.vsurf = roms_read_data(runs.dir,'v',start,count,stride);
+            runs.vsurf = dc_roms_read_data(runs.dir,'v', ...
+                [],{'z' runs.rgrid.N runs.rgrid.N},[],runs.rgrid);
         end
-        runs.vsurf = avg1(runs.vsurf(2:end-1,:,:),2);
-        toc;
     end
 
    %% floats
@@ -306,11 +316,11 @@ methods
    %% analysis
 
     function [] = transport(runs)
-        % need some kind of initial time instant - probably objective
-        % criterion based on distance between shelfbreak and eddy or
-        % some sort
+        % need some kind of initial time instant - decided by streamer mask
+        % now
         runs.eutrans = [];
-        t0 = 1;
+        t0 = find(repnan(runs.streamer.time,0) == 0,1,'last') + 1;
+        tinf = length(runs.time);
         revind = runs.eddy.trevind;
         h = runs.bathy.h(2:end-1,2:end-1);
 
@@ -318,13 +328,9 @@ methods
         iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.my(t0:end));
         hcen = h(sub2ind(size(runs.eddy.xr),ix,iy))';
 
-%redundant            ix = vecfind(runs.eddy.xr(:,1),runs.eddy.mx(t0:end));
         iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.se(t0:end));
         hedge = h(sub2ind(size(runs.eddy.xr),ix,iy))';
-        % rossby radius @ SHELFBREAK
-        rr =  sqrt(runs.params.phys.N2)*runs.bathy.hsb ...
-                    /runs.rgrid.f(runs.bathy.isb,1)
-        distance = 5*runs.rr; % 5 times rossby radius
+        distance = 5*runs.rrshelf; % 5 times rossby radius
 
         if runs.params.bathy.axis == 'x'
             csvelid = 'u';
@@ -346,14 +352,23 @@ methods
         runs.eutrans.h = ceil(runs.bathy.h(1,runs.eutrans.ix));
         % find west edge indices
         iwest = vecfind(runs.eddy.xr(:,1),runs.eddy.we);
-        dx = runs.rgrid.xr(2,1)-runs.rgrid.xr(1,1);
+        
+        % initialize
+        runs.eutrans.Itrans = nan([tinf length(loc)]);
+        runs.eutrans.nodye.Itrans = nan([tinf length(loc)]);
+        
+        % extract streamer mask
+        strmask = reshape(full(runs.streamer.west.mask), runs.streamer.sz4dfull);
 
         % loop over all isobaths
         for kk=1:length(loc)
             % read along-shore section of cross-shore vel.
             % dimensions = (x/y , z , t )
-            cs_vel = double(squeeze(ncread(runs.out_file,csvelid, ...
-                [1 runs.eutrans.ix(kk) 1 t0],[Inf 1 Inf Inf])));
+            %cs_vel = double(squeeze(ncread(runs.out_file,csvelid, ...
+            %    [1 runs.eutrans.ix(kk) 1 t0],[Inf 1 Inf Inf])));
+            cs_vel = dc_roms_read_data(runs.dir, csvelid, ...
+                [t0 Inf],{runs.bathy.axis runs.eutrans.ix(kk) runs.eutrans.ix(kk)}, ...
+                [],runs.rgrid);
             mask = nan(size(cs_vel)); 
             for tt=1:size(cs_vel,3)
                 mask(1:iwest(tt),:,tt) = 1;
@@ -363,54 +378,56 @@ methods
                             < runs.bathy.hsb);
             mask = bsxfun(@times,mask,fillnan(zmask,0));
 
-%                 runs.eutrans.trans(:,:,kk) = squeeze( ...
-%                      trapz(runs.rgrid.z_r(:,runs.eutrans.ix(kk),1),mask .* cs_vel,2));
-            %runs.eutrans.trans(:,:,kk) = squeeze( ...
-            %            nansum(bsxfun(@times,avg1(mask .* cs_vel,2), ...
-             %           diff(runs.rgrid.z_r(:,runs.eutrans.ix(kk),1))'),2));
             runs.eutrans.nodye.trans(:,:,kk) = squeeze(trapz( ...
                             runs.rgrid.z_r(:,runs.eutrans.ix(kk),1), ...
                             mask .* cs_vel,2));
 
-            runs.eutrans.nodye.Itrans(:,kk) = squeeze(nansum( ...
+            runs.eutrans.nodye.Itrans(t0:tinf,kk) = squeeze(nansum( ...
                 runs.eutrans.nodye.trans(:,:,kk) ...
-                                        .* dx,1))';
+                                        .* runs.rgrid.dx,1))';
 
             % if I have passive tracer info I can calculate transport
             % using that
-            if ~isempty(runs.csdye)
-                mask = nan(size(cs_vel));
-                % mark eastern edge as edge of region I'm interested in
-                % removes streamer associated with cyclone running away
-                ieast = vecfind(runs.eddy.xr(:,1),runs.eddy.ee);
-                for tt=1:size(cs_vel,3)
-                    mask(1:ieast(tt),:,tt) = 1;
-                end
-
-                mask = bsxfun(@times,mask,fillnan(zmask,0));
-                % dye_01 is always cross-shore dye
-                dye = double(squeeze(ncread(runs.out_file,'dye_01', ...
-                    [1 runs.eutrans.ix(kk) 1 t0],[Inf 1 Inf Inf])));
-                dyemask = (dye >= runs.bathy.xsb) & ...
-                            (dye <=(runs.bathy.xsb + distance));
-                mask = mask .* fillnan(dyemask,0); 
-                runs.eutrans.trans(:,:,kk) = squeeze(trapz( ...
-                        runs.rgrid.z_r(:,runs.eutrans.ix(kk),1), ...
-                        mask .* cs_vel,2));
-                %runs.eutrans.trans(:,:,kk) = squeeze( ...
-                %        nansum(bsxfun(@times,avg1(mask .* cs_vel,2), ...
-                %        diff(runs.rgrid.z_r(:,runs.eutrans.ix(kk),1))'),2));
-
-                runs.eutrans.Itrans(:,kk) = squeeze(nansum( ...
-                            runs.eutrans.trans(:,:,kk) .* dx,1))';
+            mask = nan(size(cs_vel));
+            % mark eastern edge as edge of region I'm interested in
+            % removes streamer associated with cyclone running away
+            ieast = vecfind(runs.eddy.xr(:,1),runs.eddy.ee);
+            for tt=1:size(cs_vel,3)
+                mask(1:ieast(tt),:,tt) = 1;
             end
+
+            mask = bsxfun(@times,mask,fillnan(zmask,0));
+            % dye_01 is always cross-shore dye
+            dye = dc_roms_read_data(runs.dir,'dye_01', ...
+                [t0 Inf],{runs.bathy.axis runs.eutrans.ix(kk) runs.eutrans.ix(kk)}, ...
+                [],runs.rgrid);
+            dyemask = (dye >= runs.bathy.xsb) & ...
+                        (dye <=(runs.bathy.xsb + distance));
+            mask = mask .* fillnan(dyemask,0);
+            runs.eutrans.trans(:,:,kk) = squeeze(trapz( ...
+                    runs.rgrid.z_r(:,runs.eutrans.ix(kk),1), ...
+                    mask .* cs_vel,2));
+            runs.eutrans.Itrans(t0:tinf,kk) = squeeze(nansum( ...
+                        runs.eutrans.trans(:,:,kk) .* dx,1))';
+
+            % all runs now have passive tracer. I use streamer mask to
+            % calculate transport           
+            mask = squeeze(strmask(:,runs.eutrans.ix(kk),:,t0:tinf));
+            
+            % (x,t,location)
+            runs.streamer.trans(:,:,kk) = squeeze(trapz( ...
+                    runs.rgrid.z_r(:,runs.eutrans.ix(kk),1), ...
+                    mask .* cs_vel,2));
+            % integrate in x get (t, location)
+            runs.streamer.Itrans(t0:tinf,kk) = squeeze(nansum( ...
+                        runs.streamer.trans(:,:,kk) .* dx,1))';
         end
 
         %% plot transport
 
         figure;
         subplot(6,1,[1 2])
-        plot(runs.rgrid.ocean_time(t0:end)/86400,runs.eutrans.Itrans/1e6);
+        plot(runs.time/86400,runs.eutrans.Itrans/1e6);
         hold on
         %plot(runs.rgrid.ocean_time(t0:end)/86400,runs.eutrans.dye.Itrans/1e6,'--');
         limx = xlim;
@@ -421,7 +438,7 @@ methods
             '| mean eddy edge isobath = ' num2str(mean(hedge)) 'm']);
         beautify;
         subplot(6,1,[3 4 5])
-        plot(runs.rgrid.ocean_time/86400,runs.eutrans.Itrans/1e6,'-');
+        plot(runs.time/86400,runs.eutrans.Itrans/1e6,'-');
         limx = xlim;
         legend(num2str(runs.eutrans.h'),'Location','NorthWest');
         ylabel('Dye Transport (Sv)');
@@ -445,7 +462,7 @@ methods
             end
         end
         figure
-        plot(runs.rgrid.ocean_time(t0:end)/86400,(runs.eutrans.nodye.Itrans(:,arr) - runs.eutrans.Itrans(:,arr)) ...
+        plot(runs.time(t0:end)/86400,(runs.eutrans.nodye.Itrans(:,arr) - runs.eutrans.Itrans(:,arr)) ...
             ./ runs.eutrans.Itrans(:,arr) * 100);
         ylim([-100 700]); liney(0);
         legend(num2str(runs.eutrans.h(:,arr)'),'Location','NorthWest');
@@ -590,6 +607,28 @@ methods
 
     end
     
+    function [] = eddyvordiag(runs)
+        
+         if isempty(runs.usurf) || isempty(runs.vsurf)
+             runs.read_velsurf;
+         end
+         
+         ux = bsxfun(@rdivide,diff(runs.usurf,1,1),diff(runs.rgrid.x_u',1,1));
+         uy = bsxfun(@rdivide,diff(runs.usurf,1,2),diff(runs.rgrid.y_u',1,2));
+         
+         vx = bsxfun(@rdivide,diff(runs.vsurf,1,1),diff(runs.rgrid.x_v',1,1));
+         vy = bsxfun(@rdivide,diff(runs.vsurf,1,2),diff(runs.rgrid.y_v',1,2));
+         
+         ux = ux(:,2:end-1,:);
+         vy = vy(2:end-1,:,:);
+         vx = avg1(avg1(vx,1),2);
+         uy = avg1(avg1(uy,1),2);
+         
+         ow = (ux-vy).^2 + (vx+uy).^2 - (vx-uy).^2;
+         
+         
+    end
+    
     % plot eddy parameters with time - good for comparison
     function [] = eddyevol(runs)
         eddy = runs.eddy;
@@ -635,83 +674,350 @@ methods
         ylabel('Proximity (km)');
         xlabel('time (days)');
         linex(tind);
-
-        subplot(aa,2,[7 9] ); hold on
-        plot(eddy.t,eddy.hcen/2,'b');
-        plot(eddy.t,runs.params.phys.f0 / sqrt(runs.params.phys.N2) * runs.eddy.dia,'r');
-        plot(eddy.t,eddy.Lz2,'k');
-        legend('H_{center}/2','f*L/N','vertical scale','Location','SouthWest');
-        xlabel('Time (days)');
-        ylabel('(m)');
-        linex(tind);
-        suplabel(runs.dir,'t');
         
-       
+        %% water mass plots
         time = runs.time/86400;
         figure;
         % by regions
-        subplot(6,2,[1 3])
+        subplot(3,1,1)
         semilogy(time, runs.water.off.deep, ...
-            time, runs.water.sl.deep, ...
-            time, runs.water.sh.deep, ...
-            time, runs.water.edd.deep, ...
-            time, runs.water.mix.deep);
+                time, runs.water.sl.deep, ...
+                time, runs.water.sh.deep, ...
+                time, runs.water.edd.deep, ...
+                time, runs.water.mix.deep);
         legend('offshore','slope','shelf','eddy','mix');
         ylabel('Deep region (m^3)');
-        subplot(6,2,[5 7])
+        subplot(312)
         semilogy(time, runs.water.off.slope, ...
-            time, runs.water.sl.slope, ...
-            time, runs.water.sh.slope, ...
-            time, runs.water.edd.slope, ...
-            time, runs.water.mix.slope);
+                time, runs.water.sl.slope, ...
+                time, runs.water.sh.slope, ...
+                time, runs.water.edd.slope, ...
+                time, runs.water.mix.slope);
         ylabel('Slope region (m^3)');
-        subplot(6,2,[9 11])
+        subplot(313)
         semilogy(time, runs.water.off.shelf, ...
-            time, runs.water.sl.shelf, ...
-            time, runs.water.sh.shelf, ...
-            time, runs.water.edd.shelf ...
-            );
-        %time, runs.water.mix.shelf);
+                time, runs.water.sl.shelf, ...
+                time, runs.water.sh.shelf, ...
+                time, runs.water.edd.shelf, ...
+                time, runs.water.mix.shelf);
         ylabel('Shelf region (m^3)');
         xlabel('Time (days)');
         
+        %% study plumes
+        % offshore plume on shelf &
+        % shelf plume on slope
+        figure;
+        subplot(211)
+        ax = plotyy( ...%time,runs.water.eddmix.xshelf/1000 - runs.eddy.vor.ee/1000, ...
+               time,runs.water.eddmix.zshelf./runs.bathy.hsb, ...
+               time,runs.water.eddmix.yshelf/1000 - runs.bathy.xsb/1000);
+        set(get(ax(1),'YLabel'),'String','Zcentroid / Depth at shelfbreak');
+        set(get(ax(2),'YLabel'),'String','Distance from shelfbreak (km)');
+        set(ax(1),'Ylim',[-1 0],'YTick',[-1 -0.5 0]);
+        title('Offshore water plume on shelf');
+        subplot(212)
+        ax = plotyy( ...%time,runs.water.eddmix.xshelf/1000 - runs.eddy.vor.ee/1000, ...
+               time,runs.water.sh.zslope./runs.bathy.hsb, ...
+               time,runs.water.sh.yslope/1000 - runs.bathy.xsb/1000);
+        set(get(ax(1),'YLabel'),'String','Zcentroid / Depth at shelfbreak');
+        set(get(ax(2),'YLabel'),'String','Distance from shelfbreak (km)');
+        set(ax(1),'Ylim',[-1 0],'YTick',[-1 -0.5 0]);
+        title('Shelf water plume on slope');
+        
         % by water masses
-        subplot(622)
-        semilogy(time, runs.water.off.deep, ...
-            time, runs.water.off.slope, ...
-            time, runs.water.off.shelf);
-        ylabel('offshore water (m^3)');
-        legend('deep region','slope','shelf');
+%         subplot(622)
+%         semilogy(time, runs.water.off.deep, ...
+%                 time, runs.water.off.slope, ...
+%                 time, runs.water.off.shelf);
+%         ylabel('offshore water (m^3)');
+%         legend('deep region','slope','shelf');
+%         
+%         subplot(624)
+%         semilogy(time, runs.water.sl.deep, ...
+%                 time, runs.water.sl.slope, ...
+%                 time, runs.water.sl.shelf);
+%         ylabel('slope');
+%         
+%         subplot(626)
+%         semilogy(time, runs.water.sh.deep, ...
+%                 time, runs.water.sh.slope, ...
+%                 time, runs.water.sh.shelf);
+%         ylabel('shelf (m^3)');
+%         
+%         subplot(628)
+%         semilogy(time, runs.water.edd.deep, ...
+%                 time, runs.water.edd.slope, ...
+%                 time, runs.water.edd.shelf);
+%         ylabel('eddy(m^3)');
+%         
+%         subplot(6,2,10)
+%         semilogy(time, runs.water.mix.deep, ...
+%                 time, runs.water.mix.slope, ...
+%                 time, runs.water.mix.shelf);
+%         ylabel('eddy mix');
         
-        subplot(624)
-        semilogy(time, runs.water.sl.deep, ...
-            time, runs.water.sl.slope, ...
-            time, runs.water.sl.shelf);
-        ylabel('slope');
+        %% eddy upwelling + vertical scale
+        if isfield(runs.eddy.vor,'vol')
+            figure;
+            subplot(211)
+            plot(runs.time/86400,runs.eddy.vor.vol);
+            ylabel('Volume (m^3)');
+            subplot(212)
+            plot(runs.time/86400,abs(runs.eddy.vor.zdcen));
+            hold on
+            plot(runs.time/86400,abs(runs.eddy.vor.zcen),'g');
+            plot(eddy.t,eddy.hcen/2,'b');
+            plot(eddy.t, ...
+                runs.params.phys.f0 / sqrt(runs.params.phys.N2) * runs.eddy.dia,'r');
+            plot(eddy.t,eddy.Lz2,'k');
+            xlabel('Time (days)');
+            ylabel('Z-scale (m)');
+            linex(tind);
+            suplabel(runs.dir,'t');
+            packrows(2,1);
+            legend('z-centroid','zdye-centroid', ...
+                'H_{center}/2','f*L/N','vertical scale','Location','SouthWest');
+        end
+    end
+    
+    % get eddy center temperature profile
+    function [] = eddycentemp(runs)
         
-        subplot(626)
-        semilogy(time, runs.water.sh.deep, ...
-            time, runs.water.sh.slope, ...
-            time, runs.water.sh.shelf);
-        ylabel('shelf (m^3)');
+%         % first detect indices for eddy center
+%         
+%         
+%         tic;
+%         for ii = 1:length(runs.time)
+%             dc_roms_read_data(runs.dir,'temp',ii,{'x' 
+%         end
+    end
+    
+    % study along-shore jet
+    function [] = jetdetect(runs)
+        % rossby radius
+        rr = runs.rrshelf;
+        % number of rossby radii east of eddy to plot section
+        nrr = 8;
         
-        subplot(628)
-        semilogy(time, runs.water.edd.deep, ...
-            time, runs.water.edd.slope, ...
-            time, runs.water.edd.shelf);
-        ylabel('eddy(m^3)');
+        t0 = 55;
+        ix0 = vecfind(runs.rgrid.x_u(1,:),runs.eddy.vor.ee(t0:end));
+        % along-shore velocity
+        if runs.bathy.axis == 'y'
+            
+            uas = dc_roms_read_data(runs.dir,'u',[t0 Inf], ...
+                {'y' 1 runs.bathy.isl},[],runs.rgrid);
+            zas = permute(runs.rgrid.z_u(:,1:runs.bathy.isl,:),[3 2 1]);
+        end
         
-        subplot(6,2,10)
-        semilogy(time, runs.water.mix.deep, ...
-            time, runs.water.mix.slope, ...
-            time, runs.water.mix.shelf);
-        ylabel('eddy mix');
+        yz = repmat(runs.rgrid.y_u(1:runs.bathy.isl,1),[1 runs.rgrid.N]);
         
-        % eddy upwelling?
-        hlines = plotyyy(runs.time/86400,runs.eddy.vor.vol, ...
-               runs.time/86400,runs.eddy.vor.zdcen, ...
-               runs.time/86400,runs.eddy.vor.zcen, ...
-               {'volume (m^3)'; 'dye centroid (m)'; 'grid centroid (m)'});
+        % first one moves with eddy
+        xind = ix0(1) + [nan 15 30] *ceil(rr/runs.rgrid.dx);
+        %%
+        tt = 1;
+        xind(1) = ix0(tt) + nrr * ceil(rr/runs.rgrid.dx);
+        subplot(2,3,[1 2 3])
+        hzeta = runs.plot_zeta('contourf',t0+tt-1);
+        hlines = linex(xind*runs.rgrid.dx/1000);
+        colorbar
+        
+        subplot(234)
+        [~,huas1] = contourf(yz/1000,squeeze(zas(xind(1),:,:)), ...
+                        squeeze(uas(xind(1),:,:,tt)));
+        colorbar; caxis([-1 1]*0.1); ylim([-300 0]);
+        
+        
+        subplot(235)
+        [~,huas2] = contourf(yz/1000,squeeze(zas(xind(2),:,:)), ...
+                        squeeze(uas(xind(2),:,:,tt)));
+        colorbar; caxis([-1 1]*0.1); ylim([-1000 0]);
+        
+        
+        subplot(236)
+        [~,huas3] = contourf(yz/1000,squeeze(zas(xind(3),:,:)), ...
+                        squeeze(uas(xind(3),:,:,tt)));
+        colorbar; caxis([-1 1]*0.1); ylim([-1000 0]);
+        
+        for tt=2:size(uas,4)
+            runs.update_zeta(hzeta,t0+tt-1);
+            
+            xind(1) = ix0(tt) + nrr * ceil(rr/runs.rgrid.dx);
+            set(hlines(1),'XData',[1 1]*xind(1)*runs.rgrid.dx/1000);
+            
+            set(huas1,'ZData',squeeze(uas(xind(1),:,:,tt)));
+            set(huas2,'ZData',squeeze(uas(xind(2),:,:,tt)));
+            set(huas3,'ZData',squeeze(uas(xind(3),:,:,tt)));
+            pause(0.2);
+        end
+    end
+    
+    % study vorticity export onto shelf
+    function [] = vorexport(runs)
+        vorname = [runs.dir '/ocean_vor.nc'];
+        t0 = 1;
+        
+        start = [1 1 1 t0];
+        % isb-1 since they are on interior RHO points
+        count = [Inf runs.bathy.isb-1 Inf Inf];
+        
+        Las = max(runs.rgrid.x_rho(:));
+        Lcs = runs.bathy.xsb;
+        
+        dx = runs.rgrid.xr(2,1)-runs.rgrid.xr(1,1);
+        
+        % both at interior RHO points
+        pv = ncread(vorname,'pv',start,count);
+        rv = avg1(avg1(ncread(vorname,'rv',start,count+[0 1 0 0]),1),2);
+        
+        if runs.bathy.axis == 'y'
+            csvel = avg1(avg1(dc_roms_read_data(runs.dir,'v',[t0 Inf], ...
+                {'y' runs.bathy.isb-1 runs.bathy.isb},[],runs.rgrid),2),3);
+            csvel = csvel(2:end-1,:,:,:);
+            
+            % location for calculation along-shore flux of rv/pv
+            asloc = runs.eddy.vor.ee(t0:end) + dx*3;
+            
+            % full RHO points
+            iasmin = find(runs.rgrid.xr(:,1) == min(asloc));
+            iasmax = find(runs.rgrid.xr(:,1) == max(asloc));
+            
+            % faster to read whole thing and then discard
+            asvel = avg1(avg1(dc_roms_read_data(runs.dir,'u',[t0 Inf], ...
+                {'y' 2 runs.bathy.isb}, [], runs.rgrid),1),3);
+            % average to RHO points
+            asvel = avg1(asvel(iasmin-1:iasmax,:,:,:),1);
+            % shift indices since I'm now on interior RHO points for pv,rv
+            iasmin = iasmin - 1;
+            iasmax = iasmax - 1;
+            
+            % use center because export occurs west of the eastern edge
+            csmask = bsxfun(@gt, runs.eddy.xr(:,1),  ...
+                permute(runs.eddy.vor.cx(t0:end),[3 1 2]));
+        else
+            error('Not implemented for NS isobaths');
+            csvel = avg1(avg1(dc_roms_read_data(runs.dir,'u',[t0 Inf], ...
+                {'x' runs.bathy.isb runs.bathy.isb+1},[],runs.rgrid),1),3);
+            csvel = csvel(2:end-1,:,:,:);
+            % use center because export occurs north of the southern edge
+            csmask = bsxfun(@gt, runs.eddy.yr(1,:)',  ...
+                permute(runs.eddy.vor.cy(t0:end),[3 1 2]));
+        end
+        %%
+        % csvel = csvel(:,:,:,1:38)
+        % These are fluxes across the shelfbreak  - technically represent
+        % eddy only. I need to quantify vorticity exported permanently onto
+        % the shelf , so it might better to do an along shore flux
+        % downstream (east) of the eddy, over the shelf. The idea is that
+        % vorticity is dumped on the shelf and then moves downstream. So
+        % along-shore flux when calculated sufficiently far downstream of
+        % the eddy, should represent permanent export of vorticity (and
+        % mass) on the shelf
+        
+        % isb - 1 to account for being on interior RHO points - isb
+        % includes the boundary points too
+        pvcsflux = squeeze(bsxfun(@times,pv(:,runs.bathy.isb-1,:,:), csvel));
+        rvcsflux = squeeze(bsxfun(@times,rv(:,runs.bathy.isb-1,:,:), csvel));
+        
+        asmask = bsxfun(@eq, runs.rgrid.xr(iasmin+1:iasmax+1,2:runs.bathy.isb), ...
+            permute(asloc,[1 3 4 2]));
+        
+        pvasflux = squeeze(sum( ...
+            bsxfun(@times, pv(iasmin:iasmax,:,:,:).*asvel, asmask),1));
+        rvasflux = squeeze(sum( ...
+            bsxfun(@times, rv(iasmin:iasmax,:,:,:).*asvel, asmask),1));
+        
+        dV = avg1(runs.rgrid.dV,3);
+        dVas = squeeze(sum( ...
+             bsxfun(@times, dV(iasmin:iasmax,2:runs.bathy.isb,:), asmask)));
+                
+        PVCSFLUX = squeeze(sum(sum(bsxfun(@times, ...
+                     bsxfun(@times,pvcsflux, squeeze( ...
+                     dV(2:end-1,runs.bathy.isb-1,:)))...
+                     ,csmask),1),2)) ...
+                    /runs.bathy.hsb/Las;
+
+        RVCSFLUX = squeeze(sum(sum(bsxfun(@times, ...
+                     bsxfun(@times,rvcsflux, squeeze( ...
+                     dV(2:end-1,runs.bathy.isb-1,:)))...
+                     ,csmask),1),2)) ...
+                    /runs.bathy.hsb/Las;
+                
+        PVASFLUX = squeeze(sum(sum(pvasflux .* dVas,1),2)) ...
+                    /runs.bathy.hsb/Lcs;
+        RVASFLUX = squeeze(sum(sum(rvasflux .* dVas,1),2)) ...
+                    /runs.bathy.hsb/Lcs;
+                
+        oPVCSFLUX = orderofmagn(PVCSFLUX);
+        oRVCSFLUX = orderofmagn(RVCSFLUX);
+        oPVASFLUX = orderofmagn(PVASFLUX);
+        oRVASFLUX = orderofmagn(RVASFLUX);
+        
+        oPV = min(oPVCSFLUX, oPVASFLUX);
+        oRV = min(oRVCSFLUX, oRVASFLUX);
+        
+        %%
+        figure;
+        tt0 = 40;
+        isb = runs.bathy.isb;
+        [~,hc] = contourf(runs.rgrid.xr(2:end-1,2:isb)/1000, ...
+                          runs.rgrid.yr(2:end-1,2:isb)/1000, ...
+                          rv(:,:,end,tt0));
+        colorbar;
+        caxis([-1 1]*4*10^(orderofmagn(rv(:,:,end,:))));
+                      
+        hlines = linex([asloc(1) asloc(1)]/1000);
+        for tt=tt0+1:size(rv,4)
+            set(hc,'ZData',rv(:,:,end,tt));
+            
+            set(hlines(1),'XData',[1 1]*runs.eddy.cx(tt)/1000);
+            set(hlines(2),'XData',[1 1]*asloc(tt-tt0+1)/1000);
+            pause();
+        end
+%         % quantify loss of vorticity in eddy
+%         xmin = min(runs.eddy.vor.we); xmax = max(runs.eddy.vor.ee);
+%         ymin = min(runs.eddy.vor.se); ymax = max(runs.eddy.vor.ne);
+%         
+%         ixmin = find_approx(runs.eddy.xr(:,1),xmin);
+%         ixmax = find_approx(runs.eddy.xr(:,1),xmax);
+%         iymin = find_approx(runs.eddy.yr(1,:),ymin);
+%         iymax = find_approx(runs.eddy.yr(1,:),ymax);
+%         
+%         tic;
+%         disp('Reading pv and rv for eddy');
+%         pveddy = ncread(vorname,'pv',[ixmin+1 iymin+1 1 t0],[ixmax+1 iymax+1 Inf Inf]);
+%         rveddy = ncread(vorname,'pv',[ixmin+1 iymin+1 1 t0],[ixmax+1 iymax+1 Inf Inf]);
+%         toc;
+%         
+%         % TODO: add dye mask here
+%         bsxfun(@times, bsxfun(@times,pveddy, ...
+%             permute(runs.eddy.vormask(ixmin:ixmax,iymin:iymax,:),[1 2 4 3])), ...
+%             runs.rgrid.dV(ixmin:ixmax,iymin:iymax,:));
+        %%
+        figure;
+        subplot(211)
+        plot(runs.time(t0:end)/86400, PVCSFLUX./10^(oPVCSFLUX), ...
+              runs.time(t0:end)/86400, PVASFLUX./10^(oPVASFLUX));
+         legend(['CS flux x 10^{' num2str(oPVCSFLUX) '}'], ...
+                ['AS flux x 10^{' num2str(oPVASFLUX) '}']);
+%        legend('cross-shore','along-shore');
+        ylabel(['PV flux']);
+        set(gca,'YTick',[-5:5]);
+        beautify([18 16 16]);
+        liney(0);
+        title([runs.name ' | CS =  across shelfbreak | AS = east edge + 3dx']);
+        subplot(212)
+        plot(runs.time(t0:end)/86400, RVCSFLUX./10^(oRVCSFLUX), ...
+             runs.time(t0:end)/86400, RVASFLUX./10^(oRVASFLUX));
+         
+            set(gca,'YTick',[-5:5]);
+         legend(['CS flux x 10^{' num2str(oRVCSFLUX) '}'], ...
+                ['AS flux x 10^{' num2str(oRVASFLUX) '}']);
+%        legend('cross-shore','along-shore');
+        liney(0); ylim([-3 3]);
+        beautify([18 16 16]);
+        ylabel([' Rel. Vor. Flux']);
+        xlabel('Time (days)');
+        
     end
 
     function [] = compare_plot(runs,num)
@@ -876,7 +1182,7 @@ methods
         sz3dsp = [sz4dsp(1) 1];
 
         % make my mask matrices 4d and sparse
-        eddye = sparse(reshape(eddye > 0.7, sz4dsp));
+        eddye = sparse(reshape(eddye > runs.eddy_thresh, sz4dsp));
         vormask = sparse(reshape(repmat( ...
             permute(runs.eddy.vormask(ixm-1:ixM-1,iym-1:iyM-1,:),[1 2 4 3]) ...
             , [1 1 runs.rgrid.N 1]), sz4dsp));
@@ -908,7 +1214,7 @@ methods
         end        
     end
     
-    % detect streamer contour and figure out cross-section points
+    % detect streamer contours
     function [] = detect_streamer_mask(runs)
 
         % upper y-limit to save memory
@@ -972,6 +1278,8 @@ methods
                         {'y' 1 yend},[],runs.rgrid)/1000;
             zdye  = dc_roms_read_data(runs.dir, 'dye_02', tindices, ...
                         {'y' 1 yend},[],runs.rgrid);
+            eddye = dc_roms_read_data(runs.dir,'dye_04', tindices, ...
+                        {'y' 1 yend},[],runs.rgrid);
             %asdye = dc_roms_read_data(runs.dir, 'dye_03', tindices, ...
             %            {'y' 1 yend});
 
@@ -979,7 +1287,7 @@ methods
             % preliminary detection
             % I use cross-shore label to roughly filter first
             % eliminate this step somehow and remove the temporary array?
-            streamer1 = (csdye > xsb-10) & (csdye < xsb+30);
+            streamer1 = (csdye > xsb-10) & (csdye < xsb+30) & (eddye < 0.2);
 
             % (xs,ys,zs) are the Eulerian x,y,z values
             %xs = bsxfun(@times, streamer, grd.xax)/1000;
@@ -1337,6 +1645,12 @@ methods
                 ' (ixstr,iystr) = indices corresponding to (xstr,ystr) ' ...
                 ' - (cell array) | dstr = along-streamer distance (cell array)'];
         end
+        
+        % save to file
+        disp('Writing to file');tic;
+        streamer = runs.streamer;
+        save([runs.dir '/streamer.mat'],'streamer');
+        toc;
     end
     
     % plot streamer profiles
@@ -1349,8 +1663,8 @@ methods
         set(gca,'ColorOrder',cmap); colormap(cmap);
         line(runs.streamer.west.Vbin, repmat(avg1(bins'),[1 runs.streamer.sz4dsp(2)]));
         hold on
-        zcenbin = vecfind(bins,runs.streamer.west.zcen);
-        Vcenbin = diag(runs.streamer.west.Vbin(zcenbin,1:slab));
+        zcenbin = vecfind(bins, cut_nan(runs.streamer.west.zcen));
+        Vcenbin = diag(runs.streamer.west.Vbin(zcenbin,:));
          colorbar; cblabel('day');
         scatter(gca,zeros(20,1),runs.streamer.west.zcen, ...
                     96,runs.streamer.time/86400,'filled');
@@ -1371,7 +1685,7 @@ methods
         ticstart = tic;
         % if dye_04 > thresh then it is "eddy water"
         % else i classify it as "mixed"
-        eddye_thresh = 0.7;
+        eddye_thresh = runs.eddy_thresh;
         
         % check classified vol against total volume
         debug = 1;
@@ -1404,6 +1718,11 @@ methods
         regsh = sparse(reshape(cs <=xsb, sz3dsp));
         
         dV = reshape(runs.rgrid.dV, sz3dsp);
+        
+        dz = dV ./ runs.rgrid.dx ./ runs.rgrid.dy;
+        xsp = reshape(repmat(runs.rgrid.xr,[1 1 runs.rgrid.N]), sz3dsp);
+        ysp = reshape(repmat(runs.rgrid.yr,[1 1 runs.rgrid.N]), sz3dsp);
+        zsp = reshape(permute(runs.rgrid.z_r,[3 2 1]), sz3dsp);
         
         for tt=1:slab:length(runs.time)
             tend = tt + slab -1;
@@ -1470,10 +1789,43 @@ methods
                 bsxfun(@times, masked, regsh .* dV),1));
             runs.water.mix.shelf(tt:tend) = full(sum( ...
                 bsxfun(@times, maskmix, regsh .* dV),1));
+            
+            % statistics of shelf water on the slope
+            runs.water.sh.xslope(tt:tend) = full(sum( ...
+                bsxfun(@times, masksh, regsl .* xsp .*dV),1)) ./ ...
+                (runs.water.sh.slope(tt:tend)); 
+            runs.water.sh.yslope(tt:tend) = full(sum( ...
+                bsxfun(@times, masksh, regsl .* ysp .*dV),1)) ./ ...
+                (runs.water.sh.slope(tt:tend)); 
+            runs.water.sh.zslope(tt:tend) = full(sum( ...
+                bsxfun(@times, masksh, regsl .* zsp .*dV),1)) ./ ...
+                (runs.water.sh.slope(tt:tend)); 
+            
+            % statistics of eddy/mix water on shelf.
+            % - x location, y-location, z-location
+            runs.water.eddmix.xshelf(tt:tend) = full(sum( ...
+                bsxfun(@times, (maskmix | masked), regsh .* xsp .*dV),1)) ./ ...
+                (runs.water.edd.shelf(tt:tend) + runs.water.mix.shelf(tt:tend));
+            
+            runs.water.eddmix.yshelf(tt:tend) = full(sum( ...
+                bsxfun(@times, (maskmix | masked), regsh .* ysp .*dV),1)) ./ ...
+                (runs.water.edd.shelf(tt:tend) + runs.water.mix.shelf(tt:tend));
+            
+            runs.water.eddmix.zshelf(tt:tend) = full(sum( ...
+                bsxfun(@times, (maskmix | masked), regsh .* zsp .*dV),1)) ./ ...
+                (runs.water.edd.shelf(tt:tend) + runs.water.mix.shelf(tt:tend));
+            
+            % how uniform is the "plume" in the vertical - i.e.,
+            % baroclinicity - RMS (tracer) / RMS (depth avg tracer)
+            
+            
+            
         end
         toc(ticstart);
         
         time = runs.time/86400;
+        
+        runs.water.comment = [''];
         
         water = runs.water;
         save([runs.dir '/watermass.mat'], 'water');
@@ -1485,12 +1837,15 @@ methods
              masses = fieldnames(runs.water);
              classvol = zeros(size(runs.water.mix.deep));
              for ii=1:length(masses)
-                regions = fieldnames(runs.water.(masses{ii}));
-                %if ~strcmpi(masses{ii},'edd') && ~strcmpi(masses{ii},'mix')
-                     for jj=1:length(regions)
-                         classvol = classvol + runs.water.(masses{ii}).(regions{jj});
-                     end
-                %end
+                 if strcmpi(masses{ii},'eddmix'), continue; end
+                 try
+                    regions = fieldnames(runs.water.(masses{ii}));
+                    for jj=1:length(regions)
+                        if regexp(regions{jj},'^[xyz]'), continue; end
+                        classvol = classvol + runs.water.(masses{ii}).(regions{jj});
+                    end
+                 catch ME
+                 end
              end
              figure;
              plot(totvol - classvol);
@@ -2011,6 +2366,7 @@ methods
         runs.video_write();
     end
     
+    % depth section through streamer
     function [] = animate_streamer_section(runs)
         
         debug_plot = 0;
@@ -2488,6 +2844,7 @@ methods
 %             end
 
         tt = 1;
+        % WRONGGGGGGGGGGGGGGGGG!
         rvor = double(ncread(runs.out_file,'rvorticity',[1 1 1 tt], ...
             [Inf Inf Inf 1]));
         [rint,ravg] = roms_depthIntegrate(rvor, ...
@@ -2528,12 +2885,14 @@ methods
     end
 
     function [] = animate_vorbudget(runs,tind)
-%             if ~exist('tind','var')
-%                 tind = [];
-%             end
+            if ~exist('tind','var')
+                tind = 1;
+            end
 %             if ~exist([runs.dir '/ocean_vor.nc'],'file')
 %                 dc_roms_vorticity(runs.dir,tind,'ocean_vor.nc');
 %             end
+
+        runs.video_init('vor');
         % prepare grids for differentiation
         xvor = avg1(avg1(runs.rgrid.xr,1),2);
         yvor = avg1(avg1(runs.rgrid.yr,1),2);
@@ -2573,11 +2932,11 @@ methods
         h = runs.bathy.h(2:end-1,2:end-1);
         csr = runs.rgrid.Cs_r(2:end-1); 
         csw = runs.rgrid.Cs_w(2:end-1);
-
+        
         xavg = avg1(avg1(xvor,1),2)/1000; yavg = avg1(avg1(yvor,1),2)/1000;
 
         depthRange = [100 -max(runs.bathy.h(:))];
-        trange = 1:2:size(runs.zeta,3);
+        trange = tind:2:size(runs.zeta,3);
 
         disp(['starting from t instant = ' num2str(trange(1))]);
         for kk=1:length(trange)
@@ -2585,14 +2944,31 @@ methods
             zeta = runs.zeta(2:end-1,2:end-1,tt);
 
             % read data
-            u1 = double(ncread(runs.out_file,'u',[1 1 1 tt],[Inf Inf Inf 2]));
-            v1 = double(ncread(runs.out_file,'v',[1 1 1 tt],[Inf Inf Inf 2]));
-            w  = double(ncread(runs.out_file,'w',[1 1 1 tt],[Inf Inf Inf 1]));
+            fname = runs.out_file;%[runs.dir '/ocean_his.nc.extract'];
+            u1 = dc_roms_read_data(runs.dir,'u',[tt tt+1],{},[],runs.rgrid);
+            v1 = dc_roms_read_data(runs.dir,'v',[tt tt+1],{},[],runs.rgrid);
+            w =  dc_roms_read_data(runs.dir,'w',tt,{},[],runs.rgrid);
+            
+            u = u1(:,:,:,1); v = v1(:,:,:,1);
+            u1(:,:,:,1) = []; v1(:,:,:,1) = [];
+            
+%             try
+%                 omega = double(ncread(fname,'omega',[1 1 1 tt],[Inf Inf Inf 1]));
+%             catch ME
+%                 udzdx = avg1(u,1) .* diff(gridu.zmat,1,1)./diff(gridu.xmat,1,1);
+%                 vdzdy = avg1(v,2) .* diff(gridv.zmat,1,2)./diff(gridv.ymat,1,2);
+%                 % this is a good estimate - problem areas are in the sponge
+%                 omega = avg1(w(2:end-1,2:end-1,:),3)  ...
+%                         - udzdx(:,2:end-1,:) - vdzdy(2:end-1,:,:);
+%             end
+%             
+%             % this is a good estimate - problem areas are in the sponge
+%             w2 = udzdx(:,2:end-1,:) + vdzdy(2:end-1,:,:) + ...
+%                  omega;
+%             
             %rvor1 = double(ncread(runs.out_file,'rvorticity',[1 1 1 tt], ...
             %    [Inf Inf Inf 2]));
             %rvor = rvor1(:,:,:,1);
-            u = u1(:,:,:,1); v = v1(:,:,:,1);
-            u1(:,:,:,1) = []; v1(:,:,:,1) = [];
 
             % differentiate
             ux = diff_cgrid(gridu,u,1); uy = diff_cgrid(gridu,u,2);
@@ -2606,13 +2982,35 @@ methods
             v1x = diff_cgrid(gridv,v1,1); u1y = diff_cgrid(gridu,u1,2);
             rvor = vx-uy; rv1 = v1x-u1y;
             rvx = diff_cgrid(gridrv,rvor,1); rvy = diff_cgrid(gridrv,rvor,2);
-                rvz = diff_cgrid(gridrv,rvor,3);
-
-
+                rvz = diff_cgrid(gridrv,rvor,3);                
+            
+            Hz  = diff(set_depth(runs.rgrid.Vtransform, runs.rgrid.Vstretching, ...
+                    runs.rgrid.theta_s, runs.rgrid.theta_b, runs.rgrid.hc, ...
+                    runs.rgrid.N, 5, runs.rgrid.h', runs.zeta(:,:,tt),0),1,3);
+                
+            % this works on history file - not so well when I estimate
+            % omega from w
+%             duHzdx = diff(u .* avg1(Hz,1),1,1)./diff(gridu.xmat,1,1);
+%             dvHzdy = diff(v .* avg1(Hz,2),1,2)./diff(gridv.ymat,1,2);
+%             doHzds = diff(omega,1,3);
+%             try
+%                 conthis = duHzdx(:,2:end-1,:)  ...
+%                         + dvHzdy(2:end-1,:,:) + doHzds(2:end-1,2:end-1,:);
+%                 CONTHIS =  sum((conthis .* runs.rgrid.dV(2:end-1,2:end-1,:)),3) ./ ...
+%                         sum(runs.rgrid.dV(2:end-1,2:end-1,:),3);
+%             catch ME
+%                 conthis = avg1(duHzdx(:,2:end-1,:)  ...
+%                         + dvHzdy(2:end-1,:,:),3) + doHzds;
+%                 CONTHIS =  sum((conthis .* avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3)),3) ./ ...
+%                     avg1(sum(runs.rgrid.dV(2:end-1,2:end-1,:),3),3);
+%             end
+                                 
             % check continuity
-            cont = ux(:,2:end-1,:) + vy(2:end-1,:,:) + wz(2:end-1,2:end-1,:);
-            contfrac = cont./wz(2:end-1,2:end-1,:);
-            [~,CONT] = roms_depthIntegrate(cont,csr,csw,h,zeta,depthRange);
+            % THIS DOESN't WORK with HISTORY FILES but does average files
+%             % better than CONTHIS
+%             cont = ux(:,2:end-1,:) + vy(2:end-1,:,:) + wz(2:end-1,2:end-1,:);
+%             CONT = sum(cont .* avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3),3) ./ ...
+%                     sum(avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3),3);
 
             % form terms - avg to interior RHO points
             adv = avg1( avg1(avg1(u(:,:,2:end-1),1),2) .* rvx,2) + ...
@@ -2630,18 +3028,18 @@ methods
                         avg1(wx,2).*avg1(vz,1),1),2),3);
 
             tend = avg1(avg1( ...
-                    avg1(rv1-rvor,3)./diff(runs.rgrid.ocean_time(1:2)) ,1),2);
+                    avg1(rv1-rvor,3)./diff(runs.time(1:2)) ,1),2);
 
             % depth integrate
-            [ubar,vbar] = uv_barotropic(u,v,runs.rgrid.Hz);
+            [ubar,vbar] = uv_barotropic(u,v,Hz);
             [rint,ravg] = roms_depthIntegrate(avg1(avg1(rvor,1),2), ...
                             csr,csw,h,zeta,depthRange);
-            [ADV ,~] = roms_depthIntegrate(adv ,csr,csw,h,zeta,depthRange);
-            [STR ,~] = roms_depthIntegrate(str ,csr,csw,h,zeta,depthRange);
-            [BET ,~] = roms_depthIntegrate(bet ,csr,csw,h,zeta,depthRange);
-            [TILT,~] = roms_depthIntegrate(tilt,csr,csw,h,zeta,depthRange);
-            [TEND,~] = roms_depthIntegrate(tend,csr,csw,h,zeta,depthRange);
-            rplot = rint; 
+            [~,ADV] = roms_depthIntegrate(adv ,csr,csw,h,zeta,depthRange);
+            [~,STR] = roms_depthIntegrate(str ,csr,csw,h,zeta,depthRange);
+            [~,BET] = roms_depthIntegrate(bet ,csr,csw,h,zeta,depthRange);
+            [~,TILT] = roms_depthIntegrate(tilt,csr,csw,h,zeta,depthRange);
+            [~,TEND] = roms_depthIntegrate(tend,csr,csw,h,zeta,depthRange);
+            rplot = ravg; 
 
             budget = tend+adv+bet-tilt-str;
             BUD = TEND+ADV+BET-TILT-STR;
@@ -2710,9 +3108,10 @@ methods
                 hbathy = runs.plot_bathy('contour','k');
                 caxis([-1 1] * max(abs(STR(:))));
                 title('Stretching = (f+\xi)w_z')
-                pause();
                 spaceplots(0.06*ones([1 4]),0.05*ones([1 2]))
                 linkaxes(ax,'xy');
+                runs.video_update();
+                pause(0.01);
             else
                 set(hvor ,'cdata',rplot); 
                 set(hadv ,'cdata',-ADV);
@@ -2727,9 +3126,11 @@ methods
 
                 runs.update_eddy_contour(he,tt);
                 runs.update_title(ht,titlestr,tt);
-                pause();
+                runs.video_update();
+                pause(0.01);
             end
         end
+        runs.video_write();
     end
 
     function [] = animate_center(runs)
@@ -2873,6 +3274,14 @@ methods
             if isempty(runs.usurf) || isempty(runs.vsurf)
                 runs.read_velsurf;
             end
+            if isempty(runs.eddye)
+                runs.eddye = dc_roms_read_data(runs.dir,'dye_04', ...
+                    [],{'z' runs.rgrid.N runs.rgrid.N},[],runs.rgrid);
+            end
+            if isempty(runs.csdye)
+                runs.csdye = dc_roms_read_data(runs.dir,'dye_01', ...
+                    [],{'z' runs.rgrid.N runs.rgrid.N},[],runs.rgrid);
+            end
             dye = runs.eddye(:,:,i);
             csdye = runs.csdye(:,:,i);
             u = runs.usurf(1:dxi:end,1:dyi:end,i);
@@ -2893,19 +3302,35 @@ methods
             % read and interpolate
             disp(['Reading and interpolating ' num2str(i)]);
             dye = dc_roms_zslice_var( ...
-                dc_roms_read_data(runs.dir,'dye_04',i), depth,grdr);
+                dc_roms_read_data(runs.dir,'dye_04',i,{},[],runs.rgrid), ...
+                depth,grdr);
             csdye = dc_roms_zslice_var( ...
-                dc_roms_read_data(runs.dir,'dye_01',i), depth,grdr);
+                dc_roms_read_data(runs.dir,'dye_01',i,{},[],runs.rgrid), ...
+                depth,grdr);
             u = dc_roms_zslice_var( ...
-                dc_roms_read_data(runs.dir,'u',i), depth,grdu);
+                dc_roms_read_data(runs.dir,'u',i,{},[],runs.rgrid), depth,grdu);
             v = dc_roms_zslice_var( ...
-                dc_roms_read_data(runs.dir,'v',i), depth,grdv);
+                dc_roms_read_data(runs.dir,'v',i,{},[],runs.rgrid), depth,grdv);
             % get on interior RHO points
             u = avg1(u(:,2:end-1),1);
             v = avg1(v(2:end-1,:),2);
             % decimate for quiver
             u = u(1:dxi:end,1:dyi:end);
             v = v(1:dxi:end,1:dyi:end);
+        end
+        
+        % get scale for u,v
+        if ~isempty(runs.usurf)
+            uref = max(max(abs(runs.usurf(:,:,1))));
+        else
+            uref = ncread(runs.out_file,'u',[1 1 40 1],[Inf Inf 1 1]);
+            uref = max(abs(uref(:)));
+        end
+        if ~isempty(runs.vsurf)
+            vref = max(max(abs(runs.vsurf(:,:,1))));
+        else
+            vref = ncread(runs.out_file,'v',[1 1 40 1],[Inf Inf 1 1]);
+            vref = max(abs(vref(:)));
         end
         % first get z-slice out
         heddye = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000, ...
@@ -2917,6 +3342,7 @@ methods
         hcb1 = colorbar; cbunits(hcb1,'Eddy');cbfreeze(hcb1);
         hold on
         he = runs.plot_eddy_contour('contour',i);
+        set(he,'LineColor',[1 0 0],'LineWidth',1)
 
         hcsdye = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000, ...
                     fillnan((csdye/1000 < clim_csd(2)) .* csdye/1000,0));
@@ -2925,7 +3351,7 @@ methods
         hcb2 = colorbar; cbunits(hcb2,'Cross-shore dye');cbfreeze(hcb2);
 
         hq = quiver(runs.eddy.xr(1:dxi:end,1:dyi:end)/1000,runs.eddy.yr(1:dxi:end,1:dyi:end)/1000, ...
-                    u,v);
+                    u./uref, v./vref);
         set(he,'LineWidth',2);    
         hbathy = runs.plot_bathy('Contour','k');
         titlestr = ['CS dye | z = ' num2str(depth) 'm'];

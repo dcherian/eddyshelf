@@ -343,8 +343,8 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
             
             % Criterion 7 - if multiple regions (eddies), only store the one
             % closest to shelfbreak
-            cx = props.WeightedCentroid(2) * dx;
-            cy = props.WeightedCentroid(1) * dy;
+            cx = dx/2 + props.WeightedCentroid(2) * dx;
+            cy = dy/2 + props.WeightedCentroid(1) * dy;
             
             if exist('eddy','var') 
                 if (cx-sbreak) > (eddy.cx-sbreak) && (eddy.cx-sbreak > 0)
@@ -380,10 +380,10 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
             eddy.cy   = cy; %     "
             eddy.mx   = ix(indx,indy) * dx; % maximum
             eddy.my   = iy(indx,indy) * dy; %    "
-            eddy.we   = nanmin(xmax) * dx; % west edge
-            eddy.ee   = nanmax(xmax) * dx; % east edge
-            eddy.ne   = nanmax(ymax) * dy; % south edge
-            eddy.se   = nanmin(ymax) * dy; % north edge
+            eddy.we   = dx/2 + nanmin(xmax) * dx; % west edge
+            eddy.ee   = dx/2 + nanmax(xmax) * dx; % east edge
+            eddy.ne   = dy/2 + nanmax(ymax) * dy; % south edge
+            eddy.se   = dy/2 + nanmin(ymax) * dy; % north edge
             eddy.amp  = amp;
             eddy.dia  = props.EquivDiameter * sqrt(dx*dy);
             eddy.mask = maskreg;
@@ -424,13 +424,13 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
                 ymax = fillnan(vormaskreg(:).*iy(:),0);
 
                 % store eddy properties for return
-                eddy.vor.cx   = cx; % weighted center
-                eddy.vor.cy   = cy; %     "
+                eddy.vor.cx   = dx/2 + cx; % weighted center
+                eddy.vor.cy   = dy/2 + cy; %     "
                 
-                eddy.vor.we   = nanmin(xmax) * dx; % west edge
-                eddy.vor.ee   = nanmax(xmax) * dx; % east edge
-                eddy.vor.ne   = nanmax(ymax) * dy; % south edge
-                eddy.vor.se   = nanmin(ymax) * dy; % north edge
+                eddy.vor.we   = dx/2 + nanmin(xmax) * dx; % west edge
+                eddy.vor.ee   = dx/2 + nanmax(xmax) * dx; % east edge
+                eddy.vor.ne   = dy/2 + nanmax(ymax) * dy; % south edge
+                eddy.vor.se   = dy/2 + nanmin(ymax) * dy; % north edge
                 eddy.vor.amp  = amp;
                 eddy.vor.dia  = props.EquivDiameter * sqrt(dx*dy);
                 eddy.vor.mask = vormaskreg;
