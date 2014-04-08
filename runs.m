@@ -2923,6 +2923,14 @@ methods
         gridv.s = runs.rgrid.s_rho;
         gridv.zw = runs.rgrid.z_w;
         gridv.s_w = runs.rgrid.s_w;
+        
+        
+        gridr.xmat = repmat(runs.rgrid.x_rho',[1 1 N]);
+        gridr.ymat = repmat(runs.rgrid.y_rho',[1 1 N]);
+        gridr.zmat = permute(runs.rgrid.z_r,[3 2 1]);
+        gridr.s = runs.rgrid.s_rho;
+        gridr.zw = runs.rgrid.z_r;
+        gridr.s_w = runs.rgrid.s_w;
 
         gridw.xmat = repmat(runs.rgrid.x_rho',[1 1 N+1]);
         gridw.ymat = repmat(runs.rgrid.y_rho',[1 1 N+1]);
@@ -2956,7 +2964,7 @@ methods
             zeta = runs.zeta(2:end-1,2:end-1,tt);
 
             % read data
-            %fname = [runs.dir '/ocean_his.nc.extract'];
+            %fname = [runs.dir '/ocean_his.nc.new2'];
             %fname = runs.out_file;
             %u1 = double(ncread(fname,'u',[1 1 1 tt],[Inf Inf Inf 2]));
             %v1 = double(ncread(fname,'v',[1 1 1 tt],[Inf Inf Inf 2]));
@@ -2966,12 +2974,20 @@ methods
             u1 = dc_roms_read_data(runs.dir,'u',[tt tt+1],{},[],runs.rgrid);
             v1 = dc_roms_read_data(runs.dir,'v',[tt tt+1],{},[],runs.rgrid);
             w =  dc_roms_read_data(runs.dir,'w',tt,{},[],runs.rgrid);
+            rho = dc_roms_read_data(runs.dir,'rho',tt,{},[],runs.rgrid);
             
             u = u1(:,:,:,1); v = v1(:,:,:,1);
             u1(:,:,:,1) = []; v1(:,:,:,1) = [];
             
+            % get Hz
+            Hz  = diff(set_depth(runs.rgrid.Vtransform, runs.rgrid.Vstretching, ...
+                    runs.rgrid.theta_s, runs.rgrid.theta_b, runs.rgrid.hc, ...
+                    runs.rgrid.N, 5, runs.rgrid.h', runs.zeta(:,:,tt),0),1,3);
+            
             try
-                omega = dc_roms_read_data(runs.dir,'omega',tt,{},[],runs.rgrid);
+                % ROMS outputs omega as Hz.*Ds/Dt. rescale to get Ds/Dt
+                omega = avg1(dc_roms_read_data(runs.dir,'omega',tt,{},[],runs.rgrid),3) ...
+                            ./ Hz;
                 %omega = double(ncread(fname,'omega',[1 1 1 tt],[Inf Inf Inf 1]));
             catch ME
                 udzdx = avg1(u,1) .* diff(gridu.zmat,1,1)./diff(gridu.xmat,1,1);
@@ -2987,7 +3003,8 @@ methods
             %rvor1 = double(ncread(runs.out_file,'rvorticity',[1 1 1 tt], ...
             %    [Inf Inf Inf 2]));
             %rvor = rvor1(:,:,:,1);
-    
+            
+            % z oc-ordinate
             % differentiate
             ux = diff_cgrid(gridu,u,1); uy = diff_cgrid(gridu,u,2);
                 uz = diff_cgrid(gridu,u,3);
@@ -3000,21 +3017,45 @@ methods
             v1x = diff_cgrid(gridv,v1,1); u1y = diff_cgrid(gridu,u1,2);
             rvor = vx-uy; rv1 = v1x-u1y;
             rvx = diff_cgrid(gridrv,rvor,1); rvy = diff_cgrid(gridrv,rvor,2);
-                rvz = diff_cgrid(gridrv,rvor,3);                
+                rvz = diff_cgrid(gridrv,rvor,3);     
+                
+            % check continuity
+            % THIS DOESN't WORK with HISTORY FILES but does average files
+            % better than CONTHIS
+             cont = ux(:,2:end-1,:) + vy(2:end-1,:,:) + wz(2:end-1,2:end-1,:);
+             CONT = sum(cont .* avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3),3) ./ ...
+                     sum(avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3),3);
+
+                
+            % form terms - avg to interior RHO points
+            % in z co-ordinates
+            adv = avg1( avg1(avg1(u(:,:,2:end-1),1),2) .* rvx,2) + ...
+                    avg1( avg1(avg1(v(:,:,2:end-1),1),2) .* rvy,1) + ...
+                        avg1(avg1( avg1(avg1(avg1(w(:,:,2:end-1),1),2),3) ...
+                               .* rvz    ,1),2);
+            str = avg1(avg1( ...
+                    avg1(   bsxfun(@plus,rvor,avg1(avg1(runs.rgrid.f',1),2)) ...
+                            .* avg1(avg1(wz,1),2)   ,1) ...
+                                ,2),3);
+
+            bet = avg1(beta * v(2:end-1,:,2:end-1),2);
+
+            tilt = avg1( avg1(avg1(avg1(wy,1).*avg1(uz,2) - ...
+                        avg1(wx,2).*avg1(vz,1),1),2),3);
+
+            tend = avg1(avg1( ...
+                    avg1(rv1-rvor,3)./diff(runs.time(1:2)) ,1),2);
             
-            Hz  = diff(set_depth(runs.rgrid.Vtransform, runs.rgrid.Vstretching, ...
-                    runs.rgrid.theta_s, runs.rgrid.theta_b, runs.rgrid.hc, ...
-                    runs.rgrid.N, 5, runs.rgrid.h', runs.zeta(:,:,tt),0),1,3);
                            
-            % this works on history file - not so well when I estimate
-            % omega from w
+            % this works on history file OUTSIDE THE SPONGE
+            %- not so well when I estimate omega from w
             duHzdx = diff(u .* avg1(Hz,1),1,1)./diff(gridu.xmat,1,1);
             dvHzdy = diff(v .* avg1(Hz,2),1,2)./diff(gridv.ymat,1,2);
-            doHzds = diff(omega,1,3);
+            doHzds = diff(omega .* Hz,1,3);
             try
-                conthis = duHzdx(:,2:end-1,:)  ...
-                        + dvHzdy(2:end-1,:,:) + doHzds(2:end-1,2:end-1,:);
-                CONTHIS =  sum((conthis .* runs.rgrid.dV(2:end-1,2:end-1,:)),3) ./ ...
+                conthis = avg1(duHzdx(:,2:end-1,:)  ...
+                        + dvHzdy(2:end-1,:,:),3) + doHzds(2:end-1,2:end-1,:);
+                CONTHIS =  sum((conthis .* avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3)),3) ./ ...
                         sum(runs.rgrid.dV(2:end-1,2:end-1,:),3);
             catch ME
                 conthis = avg1(duHzdx(:,2:end-1,:)  ...
@@ -3023,31 +3064,6 @@ methods
                     avg1(sum(runs.rgrid.dV(2:end-1,2:end-1,:),3),3);
             end
                                  
-            % check continuity
-            % THIS DOESN't WORK with HISTORY FILES but does average files
-%             % better than CONTHIS
-             cont = ux(:,2:end-1,:) + vy(2:end-1,:,:) + wz(2:end-1,2:end-1,:);
-             CONT = sum(cont .* avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3),3) ./ ...
-                     sum(avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3),3);
-
-            % form terms - avg to interior RHO points
-            % in z co-ordinates
-%             adv = avg1( avg1(avg1(u(:,:,2:end-1),1),2) .* rvx,2) + ...
-%                     avg1( avg1(avg1(v(:,:,2:end-1),1),2) .* rvy,1) + ...
-%                         avg1(avg1( avg1(avg1(avg1(w(:,:,2:end-1),1),2),3) ...
-%                                .* rvz    ,1),2);
-%             str = avg1(avg1( ...
-%                     avg1(   bsxfun(@plus,rvor,avg1(avg1(runs.rgrid.f',1),2)) ...
-%                             .* avg1(avg1(wz,1),2)   ,1) ...
-%                                 ,2),3);
-% 
-             bet = avg1(beta * v(2:end-1,:,2:end-1),2);
-% 
-%             tilt = avg1( avg1(avg1(avg1(wy,1).*avg1(uz,2) - ...
-%                         avg1(wx,2).*avg1(vz,1),1),2),3);
-% 
-%             tend = avg1(avg1( ...
-%                     avg1(rv1-rvor,3)./diff(runs.time(1:2)) ,1),2);
 
             % in s  co-ordinates
             ux = diff(u,1,1)./diff(gridu.xmat,1,1);
@@ -3061,14 +3077,22 @@ methods
             vy = diff(v,1,2)./diff(gridv.ymat,1,2);
             vs = diff(v,1,3);
             
-            ox = diff(omega,1,1)./diff(gridw.xmat,1,1);
-            ox = diff(omega,1,2)./diff(gridw.ymat,1,2);
+            ox = diff(omega,1,1)./diff(gridr.xmat,1,1);
+            oy = diff(omega,1,2)./diff(gridr.ymat,1,2);
             os = diff(omega,1,3);
+            
+            rhox = diff(rho,1,1)./diff(gridr.xmat,1,1);
+            rhoy = diff(rho,1,2)./diff(gridr.ymat,1,2);
+            
+            zx = diff(gridr.zmat,1,1)./diff(gridr.xmat,1,1);
+            zy = diff(gridr.zmat,1,2)./diff(gridr.ymat,1,2);
             
             rv = vx-uy; rv1 = v1x-u1y;
             
-            gridrv.xmat(:,:,end+1) = gridrv.xmat(:,:,1);
-            gridrv.ymat(:,:,end+1) = gridrv.ymat(:,:,1);
+            if kk == 1
+                gridrv.xmat(:,:,end+1) = gridrv.xmat(:,:,1);
+                gridrv.ymat(:,:,end+1) = gridrv.ymat(:,:,1);
+            end
             rvx = diff(rv,1,1)./diff(gridrv.xmat,1,1);
             rvy = diff(rv,1,2)./diff(gridrv.ymat,1,2);
             rvs = diff(rv,1,3);
@@ -3076,14 +3100,30 @@ methods
             
             tend = (rv1-rv)./diff(runs.time(1:2));
             
-            adv = avg1(avg1(u(:,2:end-1,:),1) .* avg1(rvx,2) + ...
+            hadv = avg1(avg1(u(:,2:end-1,:),1) .* avg1(rvx,2) + ...
                     avg1(v(2:end-1,:,:),2) .* avg1(rvy,1),3);
+                    
+            vadv = avg1(avg1(avg1(omega,1),2),3) .* rvs;
+            
+            adv = hadv+avg1(avg1(vadv,1),2);
                 
-            str = -1 .* (ux(:,2:end-1,:) + vy(2:end-1,:,:))
+            str = -1 .* avg1(avg1(bsxfun(@plus,rv,avg1(avg1(runs.rgrid.f',1),2)),1),2) ...
+                        .* (ux(:,2:end-1,:) + vy(2:end-1,:,:));
+                    
+            tilt = avg1(avg1(oy,1),3) .* avg1(us,2) -  ...
+                    avg1(avg1(ox,2),3) .* avg1(vs,1);
+                
+            bet = beta * avg1(v(2:end-1,:,:),2);
+            
+            sol = -runs.params.phys.g/runs.params.phys.rho0 .* ...
+                    ( avg1(rhox,2) .* avg1(zy,1) - avg1(rhoy,1) .* avg1(zx,2));
+            
+            budget = avg1(avg1(avg1(tend - sol,1),2)+bet-str,3) + ...
+                        hadv + avg1(avg1(vadv - tilt,1),2);
 
             % depth integrate
             [ubar,vbar] = uv_barotropic(u,v,Hz);
-            [rint,ravg] = roms_depthIntegrate(avg1(avg1(rvor,1),2), ...
+            [rint,ravg] = roms_depthIntegrate(avg1(avg1(rv,1),2), ...
                             csr,csw,h,zeta,depthRange);
             [~,ADV] = roms_depthIntegrate(adv ,csr,csw,h,zeta,depthRange);
             [~,STR] = roms_depthIntegrate(str ,csr,csw,h,zeta,depthRange);
