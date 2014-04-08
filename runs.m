@@ -10,6 +10,8 @@ properties
     ubarg; vbarg;
     % dyes
     csdye; asdye; zdye; eddye; % cross-shore, along-shore, z dyes, eddy dye
+    % dye names
+    csdname; asdname; zdname; eddname;
     % grid & bathymetry
     rgrid; bathy
     % float data
@@ -44,7 +46,8 @@ methods
 
         if isdir(dir)
             runs.dir = dir;
-            runs.out_file = [dir '/ocean_avg.nc'];
+            files = roms_find_file(dir,'avg');
+            runs.out_file = [runs.dir '/' files{1}];
             runs.givenFile = 0;
         else
             runs.givenFile = 1;
@@ -67,13 +70,15 @@ methods
         runs.rgrid.z_uw = [];
         runs.rgrid.z_vw = [];
         runs.rgrid.zeta = [];
+        runs.rgrid.dx = mean(1./runs.rgrid.pm(:));
+        runs.rgrid.dy = mean(1./runs.rgrid.pn(:));
 
         % read zeta
         if ~runs.givenFile
             runs.zeta = dc_roms_read_data(dir,'zeta',[],{},[],runs.rgrid);
             runs.time = dc_roms_read_data(dir,'ocean_time');%,[],{},[],runs.rgrid);
             %try
-            %    runs.csdye  = roms_read_data(dir,'dye_01', ...
+            %    runs.csdye  = roms_read_data(dir,runs.csdname, ...
             %        [1 1 runs.rgrid.N 1],[Inf Inf 1 Inf]);
             %catch ME
             %end
@@ -108,32 +113,31 @@ methods
         runs.rrshelf = sqrt(runs.params.phys.N2)*max(runs.bathy.hsb) ...
                     /mean(runs.rgrid.f(:));
 
-%             % read in dye surface fields
-%             for ii=1:4
-%                 % dye name
-%                 dname = ['dye_0' num2str(ii)];
-%                 try % see if variable exists in ini
-%                     vname = [];
-%                     % dye description
-%                     ddesc = ncreadatt([runs.dir roms_find_file(runs.dir,'ini')], ...
-%                                         dname,'long_name');
-%                     if strfind(ddesc,'cross shelf'), vname = 'csdye'; end
-%                     if strfind(ddesc,'z dye'), vname = 'zdye'; end
-%                     if strfind(ddesc,'along shelf'), vname = 'asdye'; end
-%                     if strfind(ddesc,'eddy dye'), vname = 'eddye'; end
-%                     
+             % figure out dye names
+             for ii=1:4
+                 % dye name
+                 dname = ['dye_0' num2str(ii)];
+                 try % see if variable exists in ini
+                     vname = [];
+                     % dye description
+                     ddesc = ncreadatt([runs.dir roms_find_file(runs.dir,'ini')], ...
+                                         dname,'long_name');
+                     if strfind(ddesc,'cross shelf'), runs.csdname = dname; end
+                     if strfind(ddesc,'z dye'), runs.zdname = dname; end
+                     if strfind(ddesc,'along shelf'), runs.asdname = dname; end
+                     if strfind(ddesc,'eddy dye'), runs.eddname = dname; end
+                     
 %                     % see if variable is in output files
-%                     try
-%                         runs.(vname) = roms_read_data(filename,dname ...
-%                            ,[1 1 runs.rgrid.N 1],[Inf Inf 1 Inf]);
-%                     catch ME
-%                         warning([dname 'not in output files']);
-%                     end
-%                 catch ME
-%                     warning([dname 'not found in ini file']);
-%                 end
-%             end
-
+                     %try
+                     %    runs.(vname) = roms_read_data(filename,dname ...
+                     %       ,[1 1 runs.rgrid.N 1],[Inf Inf 1 Inf]);
+                     %catch ME
+                     %    warning([dname 'not in output files']);
+                     %end
+                 catch ME
+                     warning([dname 'not found in ini file']);
+                 end
+             end
         try
             runs.roms = floats('roms',runs.flt_file,runs.rgrid);
         catch
@@ -159,6 +163,10 @@ methods
             runs.eddy = edd.eddy;
             runs.noeddy = 0;
         end
+        
+        % scale time by eddy translation
+        runs.eddy.tscale = runs.time( ...
+                            find_approx(runs.eddy.my, runs.bathy.xsl, 1));
         
         % rerun track_eddy if not new enough
         if ~isfield(runs.eddy,'vor')
@@ -398,7 +406,7 @@ methods
 
             mask = bsxfun(@times,mask,fillnan(zmask,0));
             % dye_01 is always cross-shore dye
-            dye = dc_roms_read_data(runs.dir,'dye_01', ...
+            dye = dc_roms_read_data(runs.dir,runs.csdname, ...
                 [t0 Inf],{runs.bathy.axis runs.eutrans.ix(kk) runs.eutrans.ix(kk)}, ...
                 [],runs.rgrid);
             dyemask = (dye >= runs.bathy.xsb) & ...
@@ -800,7 +808,7 @@ methods
         nrr = 8;
         
         t0 = 55;
-        ix0 = vecfind(runs.rgrid.x_u(1,:),runs.eddy.vor.ee(t0:end));
+        ix0 = vecfind(runs.rgrid.x_u(1,:),runs.eddy.vor.cx(t0:end));
         % along-shore velocity
         if runs.bathy.axis == 'y'
             
@@ -812,7 +820,7 @@ methods
         yz = repmat(runs.rgrid.y_u(1:runs.bathy.isl,1),[1 runs.rgrid.N]);
         
         % first one moves with eddy
-        xind = ix0(1) + [nan 15 30] *ceil(rr/runs.rgrid.dx);
+        xind = ix0(1) + [nan 10 20] *ceil(rr/runs.rgrid.dx);
         %%
         tt = 1;
         xind(1) = ix0(tt) + nrr * ceil(rr/runs.rgrid.dx);
@@ -1015,19 +1023,23 @@ methods
 %        legend('cross-shore','along-shore');
         liney(0); ylim([-3 3]);
         beautify([18 16 16]);
-        ylabel([' Rel. Vor. Flux']);
+        ylabel(['Rel. Vor. Flux']);
         xlabel('Time (days)');
         
     end
 
     function [] = compare_plot(runs,num)
         eddy = runs.eddy;
+        % 86400 since eddy.t is already in days
+        eddy.t = eddy.t./eddy.tscale*86400;
         ii = num;
         colors = distinguishable_colors(10);
         aa = 6; bb = aa*2;
         tloc = [100 120];
-        limx = [0 max(runs.time)/86400];
+        
         hold on
+        subplot(aa,2,bb);
+        limx = [0 max([xlim eddy.t])];
         subplot(aa,2,1); hold all
         %pcolorcen(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.bathy.h);            colorbar
         xlabel('X (km)'); ylabel('Y (km)');
@@ -1048,11 +1060,11 @@ methods
 
         subplot(aa,2,2); hold on
         plot(eddy.t,eddy.vor.amp./eddy.amp(1),'Color',colors(ii,:));
-        ylabel('amp/amp(1) ');xlim(limx);
+        ylabel('amp/amp(t=0) ');xlim(limx);
 
         subplot(aa,2,4); hold on
-        plot(eddy.t,eddy.vor.dia/1000,'Color',colors(ii,:));
-        ylabel('diameter (km)');xlim(limx);
+        plot(eddy.t,eddy.vor.dia/runs.rrdeep,'Color',colors(ii,:));
+        ylabel('dia/RRdeep');xlim(limx);
 
         subplot(aa,2,6); hold on
         plot(eddy.t,eddy.cvx,'Color',colors(ii,:));
@@ -1070,8 +1082,8 @@ methods
         %ylabel('y - center (km)');
 
         subplot(aa,2,10); hold on
-        plot(eddy.t,eddy.Lz2,'Color',colors(ii,:));
-        ylabel('vertical scale (m)');xlim(limx);
+        plot(eddy.t,eddy.Lz2./max(eddy.Lz2(1)),'Color',colors(ii,:));
+        ylabel('H_{eddy}/H_{eddy0}');xlim(limx);
         %xlabel('time (days)');
 
         subplot(aa,2,12); hold on
@@ -1080,17 +1092,17 @@ methods
         ylabel('Proximity (km)');xlim(limx);
 
         subplot(aa,2,11); hold on
-        hp = plot(eddy.t,eddy.hcen,'Color',colors(ii,:));
+        hp = plot(eddy.t,eddy.hcen./max(runs.bathy.h(:)),'Color',colors(ii,:));
         addlegend(hp,runs.name,'SouthWest');
 %             plot(eddy.t,runs.params.phys.f0 / sqrt(runs.params.phys.N2) * runs.eddy.dia,'Color',colors(ii,:),'LineStyle','--');
 %             legend('H_{center}','f/N*dia');
-        xlabel('Time (days)');
-        ylabel('H_{center}(m)');
+        xlabel('Time / Time at which center reaches slopebreak');
+        ylabel('H_{center}(m)/H_{max}');
     end
 
     % this is incomplete
     function [] = tracer_budget(runs)
-        tracer = roms_read_data(runs.out_file,'dye_02');
+        tracer = roms_read_data(runs.out_file,runs.zdname);
         s = size(tracer);
         %Itracer = domain_integrate(tracer, ...
         %                runs.rgrid.xr,runs.rgrid.yr,runs.rgrid.zr);
@@ -1165,13 +1177,13 @@ methods
         iym = min(iymin); iyM = max(iymax);
         
         volume = {'x' ixm ixM; 'y' iym iyM};
-        zdye = dc_roms_read_data(runs.dir, 'dye_02', [], volume, [], runs.rgrid);
+        zdye = dc_roms_read_data(runs.dir, runs.zdname, [], volume, [], runs.rgrid);
         
         % from animate_pt output it looks like vormask tracks the edge of
         % eddye contour pretty well. I don't get the stuff that spreads
         % along shelf but get the eddy pretty well.
         try
-            eddye = dc_roms_read_data(runs.dir,'dye_04', [], volume, [], runs.rgrid);
+            eddye = dc_roms_read_data(runs.dir,runs.eddname, [], volume, [], runs.rgrid);
         catch ME
             warning('no eddy dye (dye_04) found');
             return;
@@ -1274,13 +1286,13 @@ methods
             runs.streamer.time(tstart:tend) = runs.time(tstart:tend);
             tindices = [tstart tend];
             
-            csdye = dc_roms_read_data(runs.dir, 'dye_01', tindices, ...
+            csdye = dc_roms_read_data(runs.dir, runs.csdname, tindices, ...
                         {'y' 1 yend},[],runs.rgrid)/1000;
-            zdye  = dc_roms_read_data(runs.dir, 'dye_02', tindices, ...
+            zdye  = dc_roms_read_data(runs.dir, runs.zdname, tindices, ...
                         {'y' 1 yend},[],runs.rgrid);
-            eddye = dc_roms_read_data(runs.dir,'dye_04', tindices, ...
+            eddye = dc_roms_read_data(runs.dir,runs.eddname, tindices, ...
                         {'y' 1 yend},[],runs.rgrid);
-            %asdye = dc_roms_read_data(runs.dir, 'dye_03', tindices, ...
+            %asdye = dc_roms_read_data(runs.dir, runs.asdname, tindices, ...
             %            {'y' 1 yend});
 
             % identify streamer with 4D data
@@ -1344,7 +1356,7 @@ methods
             % only look for everything under it - i.e., hopefully no
             % tilting
             
-            stream = streamer1(:,:,40,:);
+            stream = streamer1(:,:,runs.rgrid.N,:);
             for tt=1:size(stream,4)
                 % get biggest part - assume it's what i'm interested in
                 strtemp = stream(:,:,1,tt);
@@ -1731,8 +1743,8 @@ methods
                 sz4dfull(end) = tend-tt+1;
                 sz4dsp(end) = tend-tt+1;
             end
-            csdye = dc_roms_read_data(runs.dir,'dye_01',[tt tend],{},[],runs.rgrid);
-            eddye = dc_roms_read_data(runs.dir,'dye_04',[tt tend],{},[],runs.rgrid);
+            csdye = dc_roms_read_data(runs.dir,runs.csdname,[tt tend],{},[],runs.rgrid);
+            eddye = dc_roms_read_data(runs.dir,runs.eddname,[tt tend],{},[],runs.rgrid);
             % define water masses
             % offshore water
             maskoff = sparse(reshape(csdye > xsl, sz4dsp));
@@ -1927,7 +1939,7 @@ methods
             %wstr = avg1(dc_roms_read_data(runs.dir, 'w', t0+tt-1,volume),3);
             % w was read earlier - just extract once
             wstr = w(volume{1,2}:volume{1,3}, volume{2,2}:volume{2,3}, :,tt);
-            zdye = dc_roms_read_data(runs.dir, 'dye_02', t0+tt-1,volume,[],runs.rgrid);
+            zdye = dc_roms_read_data(runs.dir, runs.zdname, t0+tt-1,volume,[],runs.rgrid);
             zr = permute(runs.rgrid.z_r(:,volume{2,2}:volume{2,3}, ...
                         volume{1,2}:volume{1,3}),[3 2 1]);
 
@@ -2030,13 +2042,13 @@ methods
         read_start = [1 1 1 t0];
         read_count = [Inf yend Inf 35];
 
-        zdye = ncread(runs.out_file,'dye_02', ...
+        zdye = ncread(runs.out_file,runs.zdname, ...
                         read_start,read_count);
-        csdye = ncread(runs.out_file,'dye_01', ...
+        csdye = ncread(runs.out_file,runs.csdname, ...
                         read_start, read_count)/1000;
         w = ncread(runs.out_file,'w', ...
                         read_start, read_count);
-        %asdye = double(ncread(runs.out_file,'dye_03', ...
+        %asdye = double(ncread(runs.out_file,runs.asdname, ...
         %                [1 1 1 runs.eddy.trevind],[Inf Inf Inf 20]))/1000;
 
         % depth to interpolate to
@@ -2448,9 +2460,9 @@ methods
                 tind,volume,[],runs.rgrid);
             [v,xvmat,yvmat,zvmat] = dc_roms_read_data(runs.dir,'v', ...
                 tind,volume,[],runs.rgrid);
-            [csdye,xrmat,yrmat,zrmat] = dc_roms_read_data(runs.dir, 'dye_01', ...
+            [csdye,xrmat,yrmat,zrmat] = dc_roms_read_data(runs.dir, runs.csdname, ...
                 tind,volume,[],runs.rgrid);
-            zdye = dc_roms_read_data(runs.dir, 'dye_02', ...
+            zdye = dc_roms_read_data(runs.dir, runs.zdname, ...
                 tind,volume,[],runs.rgrid);
             
             xumat = xumat/1000; yumat = yumat/1000;
@@ -2745,11 +2757,11 @@ methods
                         [1 1 runs.rgrid.N]);
         zrmat = permute(runs.rgrid.zr(1:stride(1):end,1:stride(2):end,:),[2 1 3]);
 
-        %eddye = roms_read_data(runs.dir,'dye_04',[1 1 1 1],[Inf Inf Inf Inf], ...
+        %eddye = roms_read_data(runs.dir,runs.eddname,[1 1 1 1],[Inf Inf Inf Inf], ...
         %            stride);
 
-        tic;csdye = ncread(runs.out_file,'dye_01');toc;
-        tic;eddye = ncread(runs.out_file,'dye_04');toc;
+        tic;csdye = ncread(runs.out_file,runs.csdname);toc;
+        tic;eddye = ncread(runs.out_file,runs.eddname);toc;
         csdye = permute(csdye,[2 1 3 4]);
         eddye = permute(eddye,[2 1 3 4]);
         mask = zeros(size(eddye,2),size(eddye,1),size(eddye,4));
@@ -2939,12 +2951,18 @@ methods
         trange = tind:2:size(runs.zeta,3);
 
         disp(['starting from t instant = ' num2str(trange(1))]);
-        for kk=1:length(trange)
+        for kk=1:length(trange)-1
             tt = trange(kk);
             zeta = runs.zeta(2:end-1,2:end-1,tt);
 
             % read data
-            fname = runs.out_file;%[runs.dir '/ocean_his.nc.extract'];
+            %fname = [runs.dir '/ocean_his.nc.extract'];
+            %fname = runs.out_file;
+            %u1 = double(ncread(fname,'u',[1 1 1 tt],[Inf Inf Inf 2]));
+            %v1 = double(ncread(fname,'v',[1 1 1 tt],[Inf Inf Inf 2]));
+            %w  = double(ncread(fname,'w',[1 1 1 tt],[Inf Inf Inf 1]));
+            %zeta = double(ncread(fname,'zeta',[1 1 tt],[Inf Inf 1]));
+            
             u1 = dc_roms_read_data(runs.dir,'u',[tt tt+1],{},[],runs.rgrid);
             v1 = dc_roms_read_data(runs.dir,'v',[tt tt+1],{},[],runs.rgrid);
             w =  dc_roms_read_data(runs.dir,'w',tt,{},[],runs.rgrid);
@@ -2952,24 +2970,24 @@ methods
             u = u1(:,:,:,1); v = v1(:,:,:,1);
             u1(:,:,:,1) = []; v1(:,:,:,1) = [];
             
-%             try
-%                 omega = double(ncread(fname,'omega',[1 1 1 tt],[Inf Inf Inf 1]));
-%             catch ME
-%                 udzdx = avg1(u,1) .* diff(gridu.zmat,1,1)./diff(gridu.xmat,1,1);
-%                 vdzdy = avg1(v,2) .* diff(gridv.zmat,1,2)./diff(gridv.ymat,1,2);
-%                 % this is a good estimate - problem areas are in the sponge
-%                 omega = avg1(w(2:end-1,2:end-1,:),3)  ...
-%                         - udzdx(:,2:end-1,:) - vdzdy(2:end-1,:,:);
-%             end
-%             
-%             % this is a good estimate - problem areas are in the sponge
-%             w2 = udzdx(:,2:end-1,:) + vdzdy(2:end-1,:,:) + ...
-%                  omega;
-%             
+            try
+                omega = dc_roms_read_data(runs.dir,'omega',tt,{},[],runs.rgrid);
+                %omega = double(ncread(fname,'omega',[1 1 1 tt],[Inf Inf Inf 1]));
+            catch ME
+                udzdx = avg1(u,1) .* diff(gridu.zmat,1,1)./diff(gridu.xmat,1,1);
+                vdzdy = avg1(v,2) .* diff(gridv.zmat,1,2)./diff(gridv.ymat,1,2);
+                % this is a good estimate - problem areas are in the sponge
+                omega = avg1(w(2:end-1,2:end-1,:),3)  ...
+                        - udzdx(:,2:end-1,:) - vdzdy(2:end-1,:,:);
+                % this is a good estimate - problem areas are in the sponge
+                w2 = udzdx(:,2:end-1,:) + vdzdy(2:end-1,:,:) + ...
+                     omega;
+            end
+            
             %rvor1 = double(ncread(runs.out_file,'rvorticity',[1 1 1 tt], ...
             %    [Inf Inf Inf 2]));
             %rvor = rvor1(:,:,:,1);
-
+    
             % differentiate
             ux = diff_cgrid(gridu,u,1); uy = diff_cgrid(gridu,u,2);
                 uz = diff_cgrid(gridu,u,3);
@@ -2987,48 +3005,81 @@ methods
             Hz  = diff(set_depth(runs.rgrid.Vtransform, runs.rgrid.Vstretching, ...
                     runs.rgrid.theta_s, runs.rgrid.theta_b, runs.rgrid.hc, ...
                     runs.rgrid.N, 5, runs.rgrid.h', runs.zeta(:,:,tt),0),1,3);
-                
+                           
             % this works on history file - not so well when I estimate
             % omega from w
-%             duHzdx = diff(u .* avg1(Hz,1),1,1)./diff(gridu.xmat,1,1);
-%             dvHzdy = diff(v .* avg1(Hz,2),1,2)./diff(gridv.ymat,1,2);
-%             doHzds = diff(omega,1,3);
-%             try
-%                 conthis = duHzdx(:,2:end-1,:)  ...
-%                         + dvHzdy(2:end-1,:,:) + doHzds(2:end-1,2:end-1,:);
-%                 CONTHIS =  sum((conthis .* runs.rgrid.dV(2:end-1,2:end-1,:)),3) ./ ...
-%                         sum(runs.rgrid.dV(2:end-1,2:end-1,:),3);
-%             catch ME
-%                 conthis = avg1(duHzdx(:,2:end-1,:)  ...
-%                         + dvHzdy(2:end-1,:,:),3) + doHzds;
-%                 CONTHIS =  sum((conthis .* avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3)),3) ./ ...
-%                     avg1(sum(runs.rgrid.dV(2:end-1,2:end-1,:),3),3);
-%             end
+            duHzdx = diff(u .* avg1(Hz,1),1,1)./diff(gridu.xmat,1,1);
+            dvHzdy = diff(v .* avg1(Hz,2),1,2)./diff(gridv.ymat,1,2);
+            doHzds = diff(omega,1,3);
+            try
+                conthis = duHzdx(:,2:end-1,:)  ...
+                        + dvHzdy(2:end-1,:,:) + doHzds(2:end-1,2:end-1,:);
+                CONTHIS =  sum((conthis .* runs.rgrid.dV(2:end-1,2:end-1,:)),3) ./ ...
+                        sum(runs.rgrid.dV(2:end-1,2:end-1,:),3);
+            catch ME
+                conthis = avg1(duHzdx(:,2:end-1,:)  ...
+                        + dvHzdy(2:end-1,:,:),3) + doHzds;
+                CONTHIS =  sum((conthis .* avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3)),3) ./ ...
+                    avg1(sum(runs.rgrid.dV(2:end-1,2:end-1,:),3),3);
+            end
                                  
             % check continuity
             % THIS DOESN't WORK with HISTORY FILES but does average files
 %             % better than CONTHIS
-%             cont = ux(:,2:end-1,:) + vy(2:end-1,:,:) + wz(2:end-1,2:end-1,:);
-%             CONT = sum(cont .* avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3),3) ./ ...
-%                     sum(avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3),3);
+             cont = ux(:,2:end-1,:) + vy(2:end-1,:,:) + wz(2:end-1,2:end-1,:);
+             CONT = sum(cont .* avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3),3) ./ ...
+                     sum(avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3),3);
 
             % form terms - avg to interior RHO points
-            adv = avg1( avg1(avg1(u(:,:,2:end-1),1),2) .* rvx,2) + ...
-                    avg1( avg1(avg1(v(:,:,2:end-1),1),2) .* rvy,1) + ...
-                        avg1(avg1( avg1(avg1(avg1(w(:,:,2:end-1),1),2),3) ...
-                               .* rvz    ,1),2);
-            str = avg1(avg1( ...
-                    avg1(   bsxfun(@plus,rvor,avg1(avg1(runs.rgrid.f',1),2)) ...
-                            .* avg1(avg1(wz,1),2)   ,1) ...
-                                ,2),3);
+            % in z co-ordinates
+%             adv = avg1( avg1(avg1(u(:,:,2:end-1),1),2) .* rvx,2) + ...
+%                     avg1( avg1(avg1(v(:,:,2:end-1),1),2) .* rvy,1) + ...
+%                         avg1(avg1( avg1(avg1(avg1(w(:,:,2:end-1),1),2),3) ...
+%                                .* rvz    ,1),2);
+%             str = avg1(avg1( ...
+%                     avg1(   bsxfun(@plus,rvor,avg1(avg1(runs.rgrid.f',1),2)) ...
+%                             .* avg1(avg1(wz,1),2)   ,1) ...
+%                                 ,2),3);
+% 
+             bet = avg1(beta * v(2:end-1,:,2:end-1),2);
+% 
+%             tilt = avg1( avg1(avg1(avg1(wy,1).*avg1(uz,2) - ...
+%                         avg1(wx,2).*avg1(vz,1),1),2),3);
+% 
+%             tend = avg1(avg1( ...
+%                     avg1(rv1-rvor,3)./diff(runs.time(1:2)) ,1),2);
 
-            bet = avg1(beta * v(2:end-1,:,2:end-1),2);
-
-            tilt = avg1( avg1(avg1(avg1(wy,1).*avg1(uz,2) - ...
-                        avg1(wx,2).*avg1(vz,1),1),2),3);
-
-            tend = avg1(avg1( ...
-                    avg1(rv1-rvor,3)./diff(runs.time(1:2)) ,1),2);
+            % in s  co-ordinates
+            ux = diff(u,1,1)./diff(gridu.xmat,1,1);
+            uy = diff(u,1,2)./diff(gridu.ymat,1,2);
+            us = diff(u,1,3);
+            
+            u1y = diff(u1,1,2)./diff(gridu.ymat,1,2);
+            v1x = diff(v1,1,1)./diff(gridv.xmat,1,1);
+            
+            vx = diff(v,1,1)./diff(gridv.xmat,1,1);
+            vy = diff(v,1,2)./diff(gridv.ymat,1,2);
+            vs = diff(v,1,3);
+            
+            ox = diff(omega,1,1)./diff(gridw.xmat,1,1);
+            ox = diff(omega,1,2)./diff(gridw.ymat,1,2);
+            os = diff(omega,1,3);
+            
+            rv = vx-uy; rv1 = v1x-u1y;
+            
+            gridrv.xmat(:,:,end+1) = gridrv.xmat(:,:,1);
+            gridrv.ymat(:,:,end+1) = gridrv.ymat(:,:,1);
+            rvx = diff(rv,1,1)./diff(gridrv.xmat,1,1);
+            rvy = diff(rv,1,2)./diff(gridrv.ymat,1,2);
+            rvs = diff(rv,1,3);
+            
+            
+            tend = (rv1-rv)./diff(runs.time(1:2));
+            
+            adv = avg1(avg1(u(:,2:end-1,:),1) .* avg1(rvx,2) + ...
+                    avg1(v(2:end-1,:,:),2) .* avg1(rvy,1),3);
+                
+            str = -1 .* (ux(:,2:end-1,:) + vy(2:end-1,:,:))
 
             % depth integrate
             [ubar,vbar] = uv_barotropic(u,v,Hz);
@@ -3051,7 +3102,7 @@ methods
             titlestr = 'Depth avg rvor';
             % plot
             if kk == 1
-                figure;
+                figure; maximize();
                 ax(1) = subplot(2,4,[1:2]);
                 hvor = pcolor(xavg,yavg,rplot); hold on; shading flat;
                 axis image;
@@ -3111,7 +3162,7 @@ methods
                 spaceplots(0.06*ones([1 4]),0.05*ones([1 2]))
                 linkaxes(ax,'xy');
                 runs.video_update();
-                pause(0.01);
+                pause();
             else
                 set(hvor ,'cdata',rplot); 
                 set(hadv ,'cdata',-ADV);
@@ -3275,11 +3326,11 @@ methods
                 runs.read_velsurf;
             end
             if isempty(runs.eddye)
-                runs.eddye = dc_roms_read_data(runs.dir,'dye_04', ...
+                runs.eddye = dc_roms_read_data(runs.dir,runs.eddname, ...
                     [],{'z' runs.rgrid.N runs.rgrid.N},[],runs.rgrid);
             end
             if isempty(runs.csdye)
-                runs.csdye = dc_roms_read_data(runs.dir,'dye_01', ...
+                runs.csdye = dc_roms_read_data(runs.dir,runs.csdname, ...
                     [],{'z' runs.rgrid.N runs.rgrid.N},[],runs.rgrid);
             end
             dye = runs.eddye(:,:,i);
@@ -3302,10 +3353,10 @@ methods
             % read and interpolate
             disp(['Reading and interpolating ' num2str(i)]);
             dye = dc_roms_zslice_var( ...
-                dc_roms_read_data(runs.dir,'dye_04',i,{},[],runs.rgrid), ...
+                dc_roms_read_data(runs.dir,runs.eddname,i,{},[],runs.rgrid), ...
                 depth,grdr);
             csdye = dc_roms_zslice_var( ...
-                dc_roms_read_data(runs.dir,'dye_01',i,{},[],runs.rgrid), ...
+                dc_roms_read_data(runs.dir,runs.csdname,i,{},[],runs.rgrid), ...
                 depth,grdr);
             u = dc_roms_zslice_var( ...
                 dc_roms_read_data(runs.dir,'u',i,{},[],runs.rgrid), depth,grdu);
@@ -3371,9 +3422,9 @@ methods
                 % read and interpolate
                 disp(['Reading and interpolating ' num2str(i)]);
                 dye = dc_roms_zslice_var( ...
-                    dc_roms_read_data(runs.dir,'dye_04',i), depth,grdr);
+                    dc_roms_read_data(runs.dir,runs.eddname,i), depth,grdr);
                 csdye = dc_roms_zslice_var( ...
-                    dc_roms_read_data(runs.dir,'dye_01',i), depth,grdr);
+                    dc_roms_read_data(runs.dir,runs.csdname,i), depth,grdr);
                 u = dc_roms_zslice_var( ...
                     dc_roms_read_data(runs.dir,'u',i), depth,grdu);
                 v = dc_roms_zslice_var( ...
