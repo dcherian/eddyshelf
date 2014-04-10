@@ -12,6 +12,8 @@ properties
     csdye; asdye; zdye; eddye; % cross-shore, along-shore, z dyes, eddy dye
     % dye names
     csdname; asdname; zdname; eddname;
+    % vorticity budget
+    vorbudget
     % grid & bathymetry
     rgrid; bathy
     % float data
@@ -2959,6 +2961,14 @@ methods
         trange = tind:2:size(runs.zeta,3);
 
         disp(['starting from t instant = ' num2str(trange(1))]);
+        runs.vorbudget.hadvtot = nan(length(trange)-1);
+        runs.vorbudget.vadvtot = hadvtot;
+        runs.vorbudget.tilttot = hadvtot;
+        runs.vorbudget.strtot  = hadvtot;
+        runs.vorbudget.betatot = hadvtot;
+        runs.vorbudget.soltot = hadvtot;
+        runs.vorbudget.budgettot = hadvtot;
+        runs.vorbudget.conthistot = hadvtot;
         for kk=1:length(trange)-1
             tt = trange(kk);
             zeta = runs.zeta(2:end-1,2:end-1,tt);
@@ -2993,6 +3003,7 @@ methods
                 udzdx = avg1(u,1) .* diff(gridu.zmat,1,1)./diff(gridu.xmat,1,1);
                 vdzdy = avg1(v,2) .* diff(gridv.zmat,1,2)./diff(gridv.ymat,1,2);
                 % this is a good estimate - problem areas are in the sponge
+                % FACTOR OF HZ?
                 omega = avg1(w(2:end-1,2:end-1,:),3)  ...
                         - udzdx(:,2:end-1,:) - vdzdy(2:end-1,:,:);
                 % this is a good estimate - problem areas are in the sponge
@@ -3004,49 +3015,73 @@ methods
             %    [Inf Inf Inf 2]));
             %rvor = rvor1(:,:,:,1);
             
-            % z oc-ordinate
+            %% z co-ordinate
             % differentiate
-            ux = diff_cgrid(gridu,u,1); uy = diff_cgrid(gridu,u,2);
-                uz = diff_cgrid(gridu,u,3);
-            vx = diff_cgrid(gridv,v,1); vy = diff_cgrid(gridv,v,2); 
-                vz = diff_cgrid(gridv,v,3);
-            wx = avg1(diff_cgrid(gridw,w,1),3); wy = avg1(diff_cgrid(gridw,w,2),3);
-                wz = avg1(diff_cgrid(gridw,w,3),3);
-
-            % calculate relative vorticity
-            v1x = diff_cgrid(gridv,v1,1); u1y = diff_cgrid(gridu,u1,2);
-            rvor = vx-uy; rv1 = v1x-u1y;
-            rvx = diff_cgrid(gridrv,rvor,1); rvy = diff_cgrid(gridrv,rvor,2);
-                rvz = diff_cgrid(gridrv,rvor,3);     
-                
-            % check continuity
-            % THIS DOESN't WORK with HISTORY FILES but does average files
-            % better than CONTHIS
-             cont = ux(:,2:end-1,:) + vy(2:end-1,:,:) + wz(2:end-1,2:end-1,:);
-             CONT = sum(cont .* avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3),3) ./ ...
-                     sum(avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3),3);
-
-                
-            % form terms - avg to interior RHO points
-            % in z co-ordinates
-            adv = avg1( avg1(avg1(u(:,:,2:end-1),1),2) .* rvx,2) + ...
-                    avg1( avg1(avg1(v(:,:,2:end-1),1),2) .* rvy,1) + ...
-                        avg1(avg1( avg1(avg1(avg1(w(:,:,2:end-1),1),2),3) ...
-                               .* rvz    ,1),2);
-            str = avg1(avg1( ...
-                    avg1(   bsxfun(@plus,rvor,avg1(avg1(runs.rgrid.f',1),2)) ...
-                            .* avg1(avg1(wz,1),2)   ,1) ...
-                                ,2),3);
-
-            bet = avg1(beta * v(2:end-1,:,2:end-1),2);
-
-            tilt = avg1( avg1(avg1(avg1(wy,1).*avg1(uz,2) - ...
-                        avg1(wx,2).*avg1(vz,1),1),2),3);
-
-            tend = avg1(avg1( ...
-                    avg1(rv1-rvor,3)./diff(runs.time(1:2)) ,1),2);
             
-                           
+            
+        gridrv.xmat = repmat(xvor,[1 1 N-1]);
+        gridrv.ymat = repmat(yvor,[1 1 N-1]);
+        gridrv.zmat = avg1(avg1(avg1(permute(runs.rgrid.z_r,[3 2 1]),1),2),3);
+        gridrv.s = avg1(runs.rgrid.s_rho);
+        gridrv.zw = avg1(avg1(avg1(permute(runs.rgrid.z_w,[3 2 1]),1),2),3);
+        gridrv.s_w = avg1(runs.rgrid.s_w);
+        
+%         
+%             ux = diff_cgrid(gridu,u,1); uy = diff_cgrid(gridu,u,2);
+%                 uz = diff_cgrid(gridu,u,3);
+%             vx = diff_cgrid(gridv,v,1); vy = diff_cgrid(gridv,v,2); 
+%                 vz = diff_cgrid(gridv,v,3);
+%             wx = avg1(diff_cgrid(gridw,w,1),3); wy = avg1(diff_cgrid(gridw,w,2),3);
+%                 wz = avg1(diff_cgrid(gridw,w,3),3);
+% 
+%             % calculate relative vorticity
+%             v1x = diff_cgrid(gridv,v1,1); u1y = diff_cgrid(gridu,u1,2);
+%             rvor = vx-uy; rv1 = v1x-u1y;
+%             rvx = diff_cgrid(gridrv,rvor,1); rvy = diff_cgrid(gridrv,rvor,2);
+%                 rvz = diff_cgrid(gridrv,rvor,3);     
+%                 
+%             % check continuity
+%             % THIS DOESN't WORK with HISTORY FILES but does average files
+%             % better than CONTHIS
+%             cont = ux(:,2:end-1,:) + vy(2:end-1,:,:) + wz(2:end-1,2:end-1,:);
+%             CONT = sum(cont .* avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3),3) ./ ...
+%                      sum(avg1(runs.rgrid.dV(2:end-1,2:end-1,:),3),3);
+% 
+%             % form terms - avg to interior RHO points
+%             % in z co-ordinates
+%             adv = avg1( avg1(avg1(u(:,:,2:end-1),1),2) .* rvx,2) + ...
+%                     avg1( avg1(avg1(v(:,:,2:end-1),1),2) .* rvy,1) + ...
+%                         avg1(avg1( avg1(avg1(avg1(w(:,:,2:end-1),1),2),3) ...
+%                                .* rvz    ,1),2);
+%             str = avg1(avg1( ...
+%                     avg1(   bsxfun(@plus,rvor,avg1(avg1(runs.rgrid.f',1),2)) ...
+%                             .* avg1(avg1(wz,1),2)   ,1) ...
+%                                 ,2),3);
+% 
+%             bet = avg1(beta * v(2:end-1,:,2:end-1),2);
+% 
+%             tilt = avg1( avg1(avg1(avg1(wy,1).*avg1(uz,2) - ...
+%                         avg1(wx,2).*avg1(vz,1),1),2),3);
+% 
+%             tend = avg1(avg1( ...
+%                     avg1(rv1-rvor,3)./diff(runs.time(1:2)) ,1),2);
+%                 
+%                       
+%             % depth integrate
+%             [ubar,vbar] = uv_barotropic(u,v,Hz);
+%             [rint,ravg] = roms_depthIntegrate(avg1(avg1(rvor,1),2), ...
+%                             csr,csw,h,zeta,depthRange);
+%             [~,ADV] = roms_depthIntegrate(adv ,csr,csw,h,zeta,depthRange);
+%             [~,STR] = roms_depthIntegrate(str ,csr,csw,h,zeta,depthRange);
+%             [~,BET] = roms_depthIntegrate(bet ,csr,csw,h,zeta,depthRange);
+%             [~,TILT] = roms_depthIntegrate(tilt,csr,csw,h,zeta,depthRange);
+%             [~,TEND] = roms_depthIntegrate(tend,csr,csw,h,zeta,depthRange);
+%             rplot = ravg; 
+% 
+%             budget = tend+adv+bet-tilt-str;
+%             BUD = TEND+ADV+BET-TILT-STR;
+            
+           %% in s  co-ordinates            
             % this works on history file OUTSIDE THE SPONGE
             %- not so well when I estimate omega from w
             duHzdx = diff(u .* avg1(Hz,1),1,1)./diff(gridu.xmat,1,1);
@@ -3064,22 +3099,23 @@ methods
                     avg1(sum(runs.rgrid.dV(2:end-1,2:end-1,:),3),3);
             end
                                  
-
-            % in s  co-ordinates
             ux = diff(u,1,1)./diff(gridu.xmat,1,1);
             uy = diff(u,1,2)./diff(gridu.ymat,1,2);
-            us = diff(u,1,3);
+            us = bsxfun(@rdivide,diff(u,1,3), ...
+                    diff(permute(gridu.s',[3 2 1]),1,3));
             
             u1y = diff(u1,1,2)./diff(gridu.ymat,1,2);
             v1x = diff(v1,1,1)./diff(gridv.xmat,1,1);
             
             vx = diff(v,1,1)./diff(gridv.xmat,1,1);
             vy = diff(v,1,2)./diff(gridv.ymat,1,2);
-            vs = diff(v,1,3);
+            vs = bsxfun(@rdivide,diff(v,1,3), ...
+                diff(permute(gridv.s',[3 2 1]),1,3));
             
             ox = diff(omega,1,1)./diff(gridr.xmat,1,1);
             oy = diff(omega,1,2)./diff(gridr.ymat,1,2);
-            os = diff(omega,1,3);
+           % os = bsxfun(@rdivide,diff(omega,1,3), ...
+           %         diff(permute(gridr.s',[3 2 1]),1,3));
             
             rhox = diff(rho,1,1)./diff(gridr.xmat,1,1);
             rhoy = diff(rho,1,2)./diff(gridr.ymat,1,2);
@@ -3089,14 +3125,15 @@ methods
             
             rv = vx-uy; rv1 = v1x-u1y;
             
-            if kk == 1
+            %if kk == 1
                 gridrv.xmat(:,:,end+1) = gridrv.xmat(:,:,1);
                 gridrv.ymat(:,:,end+1) = gridrv.ymat(:,:,1);
-            end
+                gridrv.s = runs.rgrid.s_rho;
+            %end
             rvx = diff(rv,1,1)./diff(gridrv.xmat,1,1);
             rvy = diff(rv,1,2)./diff(gridrv.ymat,1,2);
-            rvs = diff(rv,1,3);
-            
+            rvs = bsxfun(@rdivide,diff(rv,1,3), ...
+                    diff(permute(gridrv.s',[3 2 1]),1,3));
             
             tend = (rv1-rv)./diff(runs.time(1:2));
             
@@ -3120,108 +3157,119 @@ methods
             
             budget = avg1(avg1(avg1(tend - sol,1),2)+bet-str,3) + ...
                         hadv + avg1(avg1(vadv - tilt,1),2);
+                    
+                    
+            runs.vorbudget.hadvtot(:,kk) = sum(hadv(:));
+            runs.vorbudget.vadvtot(:,kk) = sum(vadv(:));
+            runs.vorbudget.betatot(:,kk) = sum(bet(:));
+            runs.vorbudget.soltot(:,kk) = sum(sol(:));
+            runs.vorbudget.strtot(:,kk) = sum(str(:));
+            runs.vorbudget.tilttot(:,kk) = sum(tilt(:));
+            runs.vorbudget.budgettot(:,kk) = sum(budget(:));
+            runs.vorbudget.conthistot(:,kk) = sum(conthis(:));
 
-            % depth integrate
-            [ubar,vbar] = uv_barotropic(u,v,Hz);
-            [rint,ravg] = roms_depthIntegrate(avg1(avg1(rv,1),2), ...
-                            csr,csw,h,zeta,depthRange);
-            [~,ADV] = roms_depthIntegrate(adv ,csr,csw,h,zeta,depthRange);
-            [~,STR] = roms_depthIntegrate(str ,csr,csw,h,zeta,depthRange);
-            [~,BET] = roms_depthIntegrate(bet ,csr,csw,h,zeta,depthRange);
-            [~,TILT] = roms_depthIntegrate(tilt,csr,csw,h,zeta,depthRange);
-            [~,TEND] = roms_depthIntegrate(tend,csr,csw,h,zeta,depthRange);
-            rplot = ravg; 
-
-            budget = tend+adv+bet-tilt-str;
-            BUD = TEND+ADV+BET-TILT-STR;
-
-            ubar = avg1(ubar(:,2:end-1),1);
-            vbar = avg1(vbar(2:end-1,:),2);
+%            ubar = avg1(ubar(:,2:end-1),1);
+%            vbar = avg1(vbar(2:end-1,:),2);
 
             limy = [0 150];
             titlestr = 'Depth avg rvor';
             % plot
-            if kk == 1
-                figure; maximize();
-                ax(1) = subplot(2,4,[1:2]);
-                hvor = pcolor(xavg,yavg,rplot); hold on; shading flat;
-                axis image;
-                ht = runs.set_title('Depth avg rvor',tt);
-                he(1) = runs.plot_eddy_contour('contour',tt);
-                hbathy = runs.plot_bathy('contour','k');
-                shading flat
-                caxis([-1 1] * max(abs(rplot(:)))); colorbar;
-                ylim(limy);
-
-                ax(2) = subplot(2,4,3);
-                hbet = pcolor(xavg,yavg,-BET); colorbar; shading flat;
-                he(2) = runs.plot_eddy_contour('contour',tt);
-                hbathy = runs.plot_bathy('contour','k');
-                caxis([-1 1] * max(abs(BET(:))));
-                title('- \beta V');
-
-                ax(3) = subplot(2,4,4); cla
-                xran = 1:6:size(xavg,1); yran = 1:4:size(yavg,2);
-                hquiv = quiver(xavg(xran,yran),yavg(xran,yran), ...
-                        ubar(xran,yran), vbar(xran,yran),1.5);
-                title('(ubar,vbar)');
-                he(3) = runs.plot_eddy_contour('contour',tt);
-                hbathy = runs.plot_bathy('contour','k');
-
-                ax(4) = subplot(2,4,5);
-                htend = pcolor(xavg,yavg,TEND); colorbar; shading flat;
-                he(4) = runs.plot_eddy_contour('contour',tt);
-                hbathy = runs.plot_bathy('contour','k');
-                caxis([-1 1] * max(abs(TEND(:))));
-                title('d\xi/dt');
-
-                ax(5) = subplot(2,4,6);
-                hadv = pcolor(xavg,yavg,-ADV); colorbar; shading flat;
-                he(5) = runs.plot_eddy_contour('contour',tt);
-                hbathy = runs.plot_bathy('contour','k');
-                caxis([-1 1] * max(abs(ADV(:))));
-                title('-Advection');
-
-                ax(6) = subplot(2,4,7);
-                htilt = pcolor(xavg,yavg,TILT); colorbar; shading flat;
-                he(6) = runs.plot_eddy_contour('contour',tt);
-                hbathy = runs.plot_bathy('contour','k');
-                caxis([-1 1] * max(abs(TILT(:))));
-                title('Tilting');
-
-                ax(7) = subplot(2,4,8);
-                hstr = pcolor(xavg,yavg,STR); colorbar; hold on; shading flat;
-                %hquiv = quiverclr(xavg(xran,yran),yavg(xran,yran), ...
-                %    ubar(xran,yran),vbar(xran,yran),0.3,STR(xran,yran), ...
-                %    [-1 1]*1e-11);
-                %set(gca,'color',[0 0 0]);
-                he(7) = runs.plot_eddy_contour('contour',tt);
-                hbathy = runs.plot_bathy('contour','k');
-                caxis([-1 1] * max(abs(STR(:))));
-                title('Stretching = (f+\xi)w_z')
-                spaceplots(0.06*ones([1 4]),0.05*ones([1 2]))
-                linkaxes(ax,'xy');
-                runs.video_update();
-                pause();
-            else
-                set(hvor ,'cdata',rplot); 
-                set(hadv ,'cdata',-ADV);
-                set(hbet ,'cdata',-BET);
-                set(hstr ,'cdata',STR);
-                set(htilt,'cdata',TILT);
-                set(htend,'cdata',TEND);
-                try
-                    set(hquiv,'udata',ubar(xran,yran),'vdata',vbar(xran,yran));
-                catch ME
-                end
-
-                runs.update_eddy_contour(he,tt);
-                runs.update_title(ht,titlestr,tt);
-                runs.video_update();
-                pause(0.01);
-            end
+%             if kk == 1
+%                 figure; maximize();
+%                 ax(1) = subplot(2,4,[1:2]);
+%                 hvor = pcolor(xavg,yavg,rplot); hold on; shading flat;
+%                 axis image;
+%                 ht = runs.set_title('Depth avg rvor',tt);
+%                 he(1) = runs.plot_eddy_contour('contour',tt);
+%                 hbathy = runs.plot_bathy('contour','k');
+%                 shading flat
+%                 caxis([-1 1] * max(abs(rplot(:)))); colorbar;
+%                 ylim(limy);
+% 
+%                 ax(2) = subplot(2,4,3);
+%                 hbet = pcolor(xavg,yavg,-BET); colorbar; shading flat;
+%                 he(2) = runs.plot_eddy_contour('contour',tt);
+%                 hbathy = runs.plot_bathy('contour','k');
+%                 caxis([-1 1] * max(abs(BET(:))));
+%                 title('- \beta V');
+% 
+%                 ax(3) = subplot(2,4,4); cla
+%                 xran = 1:6:size(xavg,1); yran = 1:4:size(yavg,2);
+%                 hquiv = quiver(xavg(xran,yran),yavg(xran,yran), ...
+%                         ubar(xran,yran), vbar(xran,yran),1.5);
+%                 title('(ubar,vbar)');
+%                 he(3) = runs.plot_eddy_contour('contour',tt);
+%                 hbathy = runs.plot_bathy('contour','k');
+% 
+%                 ax(4) = subplot(2,4,5);
+%                 htend = pcolor(xavg,yavg,TEND); colorbar; shading flat;
+%                 he(4) = runs.plot_eddy_contour('contour',tt);
+%                 hbathy = runs.plot_bathy('contour','k');
+%                 caxis([-1 1] * max(abs(TEND(:))));
+%                 title('d\xi/dt');
+% 
+%                 ax(5) = subplot(2,4,6);
+%                 hadv = pcolor(xavg,yavg,-ADV); colorbar; shading flat;
+%                 he(5) = runs.plot_eddy_contour('contour',tt);
+%                 hbathy = runs.plot_bathy('contour','k');
+%                 caxis([-1 1] * max(abs(ADV(:))));
+%                 title('-Advection');
+% 
+%                 ax(6) = subplot(2,4,7);
+%                 htilt = pcolor(xavg,yavg,TILT); colorbar; shading flat;
+%                 he(6) = runs.plot_eddy_contour('contour',tt);
+%                 hbathy = runs.plot_bathy('contour','k');
+%                 caxis([-1 1] * max(abs(TILT(:))));
+%                 title('Tilting');
+% 
+%                 ax(7) = subplot(2,4,8);
+%                 hstr = pcolor(xavg,yavg,STR); colorbar; hold on; shading flat;
+%                 %hquiv = quiverclr(xavg(xran,yran),yavg(xran,yran), ...
+%                 %    ubar(xran,yran),vbar(xran,yran),0.3,STR(xran,yran), ...
+%                 %    [-1 1]*1e-11);
+%                 %set(gca,'color',[0 0 0]);
+%                 he(7) = runs.plot_eddy_contour('contour',tt);
+%                 hbathy = runs.plot_bathy('contour','k');
+%                 caxis([-1 1] * max(abs(STR(:))));
+%                 title('Stretching = (f+\xi)w_z')
+%                 spaceplots(0.06*ones([1 4]),0.05*ones([1 2]))
+%                 linkaxes(ax,'xy');
+%                 runs.video_update();
+%                 pause();
+%             else
+%                 set(hvor ,'cdata',rplot); 
+%                 set(hadv ,'cdata',-ADV);
+%                 set(hbet ,'cdata',-BET);
+%                 set(hstr ,'cdata',STR);
+%                 set(htilt,'cdata',TILT);
+%                 set(htend,'cdata',TEND);
+%                 try
+%                     set(hquiv,'udata',ubar(xran,yran),'vdata',vbar(xran,yran));
+%                 catch ME
+%                 end
+% 
+%                 runs.update_eddy_contour(he,tt);
+%                 runs.update_title(ht,titlestr,tt);
+%                 runs.video_update();
+%                 pause(0.01);
+%             end
         end
-        runs.video_write();
+%        runs.video_write();
+
+        runs.vorbudget.time = runs.time(trange(1:end-1));
+        plot(runs.vorbudget.time,-runs.vorbudget.hadvtot,'r'); hold on
+        plot(runs.vorbudget.time,-runs.vorbudget.vadvtot,'g'); 
+        plot(runs.vorbudget.time,runs.vorbudget.tilttot,'b');
+        plot(runs.vorbudget.time,runs.vorbudget.strtot,'c');
+        plot(runs.vorbudget.time,runs.vorbudget.soltot,'m');
+        plot(runs.vorbudget.time,-runs.vorbudget.betatot,'y');
+        plot(runs.vorbudget.time,runs.vorbudget.budgettot,'k');
+        title('signs so that all terms are on RHS and tendency is LHS');
+        legend('hadv','vadv','tilt','str','sol','beta','budget');
+        
+        
+        vorbudget = runs.vorbudget;
+        save([runs.dir '/vorbudget.mat'],'vorbudget');       
     end
 
     function [] = animate_center(runs)
