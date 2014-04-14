@@ -2768,7 +2768,7 @@ methods
         eddye = permute(eddye,[2 1 3 4]);
         mask = zeros(size(eddye,2),size(eddye,1),size(eddye,4));
         mask(2:end-1,2:end-1,:)=runs.eddy.vormask;
-        mask = ones(size(mask));
+        mask = 1 + zeros(size(mask));
 
         %% make isosurface plot
 
@@ -2908,6 +2908,8 @@ methods
 
         runs.video_init('vor');
         
+        debug = 0;
+        
         %%
         znew = linspace(min(runs.rgrid.z_r(:)), max(runs.rgrid.z_r(:)), 50)';
         zwnew = linspace(min(runs.rgrid.z_w(:)), max(runs.rgrid.z_w(:)), 51)';
@@ -2951,14 +2953,13 @@ methods
         %gridw.zw = runs.rgrid.z_w;
         %gridw.s_w = runs.rgrid.s_w;
 
-        gridrv.xmat = repmat(xvor,[1 1 N-1]);
-        gridrv.ymat = repmat(yvor,[1 1 N-1]);
+        gridrv.xmat = repmat(xvor,[1 1 Nnew]);
+        gridrv.ymat = repmat(yvor,[1 1 Nnew]);
         gridrv.zmat = avg1(avg1(avg1(permute(runs.rgrid.z_r,[3 2 1]),1),2),3);
+        gridrv.znew = repmat(permute(znew,[3 2 1]),[sx-1 sy-1 1]);
         gridrv.s = avg1(runs.rgrid.s_rho);
         gridrv.zw = avg1(avg1(avg1(permute(runs.rgrid.z_w,[3 2 1]),1),2),3);
         gridrv.s_w = avg1(runs.rgrid.s_w);
-
-        beta = runs.params.phys.beta;
 
         % for depth integration
         h = runs.bathy.h(2:end-1,2:end-1);
@@ -2992,25 +2993,18 @@ methods
             %w  = double(ncread(fname,'w',[1 1 1 tt],[Inf Inf Inf 1]));
             %zeta = double(ncread(fname,'zeta',[1 1 tt],[Inf Inf 1]));
             
-            u1 = dc_roms_read_data(runs.dir,'u',[tt tt+1],{},[],runs.rgrid);
-            v1 = dc_roms_read_data(runs.dir,'v',[tt tt+1],{},[],runs.rgrid);
+            u = dc_roms_read_data(runs.dir,'u',tt,{},[],runs.rgrid);
+            v = dc_roms_read_data(runs.dir,'v',tt,{},[],runs.rgrid);
             w =  dc_roms_read_data(runs.dir,'w',tt,{},[],runs.rgrid);
             rho = dc_roms_read_data(runs.dir,'rho',tt,{},[],runs.rgrid);
-            
-            
-            u = u1(:,:,:,1); v = v1(:,:,:,1);
-            u1(:,:,:,1) = []; v1(:,:,:,1) = [];
-            
+                       
             % interpolate to znew depths
             disp('interpolating variables');
             u = interpolate(u, gridu.zmat, znew);
             v = interpolate(v, gridv.zmat, znew);
             w = interpolate(w, gridw.zmat, znew);
-            u1 = interpolate(u1, gridu.zmat, znew);
-            v1 = interpolate(v1, gridv.zmat, znew);
             rho = interpolate(rho, gridr.zmat, znew);
-            
-            
+                        
             ux = diff(u,1,1)./diff(gridu.xmat,1,1);
             uy = diff(u,1,2)./diff(gridu.ymat,1,2);
             uz = diff(u,1,3)./diff(gridu.znew,1,3);
@@ -3027,17 +3021,28 @@ methods
             ry = diff(rho,1,2)./diff(gridr.ymat,1,2);
             rz = diff(rho,1,3)./diff(gridr.znew,1,3);
             
-            v1x = diff(v1,1,1)./diff(gridv.xmat,1,1);
-            u1y = diff(u1,1,2)./diff(gridu.ymat,1,2);
-            
-            
-            rv = vx-uy; rv1 = v1x-u1y;
-            
+            % tendency term code - not really needed since it is probably a
+            % bad estimate at daily snapshots .
+%             if debug
+%                 u1 = interpolate(u1, gridu.zmat, znew);
+%                 v1 = interpolate(v1, gridv.zmat, znew);
+%                 v1x = diff(v1,1,1)./diff(gridv.xmat,1,1);
+%                 u1y = diff(u1,1,2)./diff(gridu.ymat,1,2);
+%                 rv1 = v1x-u1y;
+%             end
+            rv = vx-uy; 
             rvx = diff(rv,1,1)./diff(gridrv.xmat,1,1);
             rvy = diff(rv,1,2)./diff(gridrv.ymat,1,2);
-            rvz = diff(rv,1,3)./diff(gridrv.zmat,1,3);
+            rvz = diff(rv,1,3)./diff(gridrv.znew,1,3);
             
-            str = 0;
+            str = avg1(-1 * avg1(avg1(bsxfun(@plus,rv,avg1(avg1(runs.rgrid.f',1),2)),1),2) ...
+                            .* (ux(:,2:end-1,:,:) + vy(2:end-1,:,:)),3);
+            tilt = avg1(avg1( avg1(avg1(wx,2),3) .* avg1(vz,1) - ...
+                    avg1(avg1(wy,1),3) .* avg1(uz,2) ,1),2);
+            beta = avg1(avg1(runs.params.phys.beta * v(2:end-1,:,:),2),3);
+            hadv = avg1( avg1(u(:,2:end-1,:),1) .* avg1(rvx,2) + ...
+                    avg1(v(2:end-1,:,:),2) .* avg1(rvy,1),3);
+            vadv = avg1(avg1( avg1(avg1(avg1(w,1),2),3) .* rvz ,1),2);
             
             
             limy = [0 150];
