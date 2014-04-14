@@ -1253,8 +1253,8 @@ methods
         xr = runs.rgrid.xr(:,1:yend)/1000; 
         yr = runs.rgrid.yr(:,1:yend)/1000;
         zr = permute(runs.rgrid.z_r(:,1:yend,:),[3 2 1]);
-        ix = repmat([1:size(xr,1)]',[1 yend]);
-        iy = repmat([1:yend],[size(xr,1) 1]);  
+        %ix = repmat([1:size(xr,1)]',[1 yend]);
+        %iy = repmat([1:yend],[size(xr,1) 1]);  
        
         runs.streamer.xr = xr;
         runs.streamer.yr = yr;
@@ -1412,15 +1412,15 @@ methods
             disp('Binning streamer volume...');
             tic;
             dbin = 20;
-            bins = -1*0:dbin:1000;
+            bins = -1*[0:dbin:1000];
             % required so that 0 bin doesn't get a ton of points
             %zsf = fillnan(full(zs),0);
             %sz = size(runs.streamer.west.mask(:,tstart:tend));
-            for kk=1:length(bins)-1
-               runs.streamer.west.Vbin(kk,tstart:tend) =  ...
-                           sum(bsxfun(@times, (zs < bins(kk) & zs >= bins(kk+1)), ...
+            parfor kk=1:length(bins)-1
+                temparray(kk,:) = sum(bsxfun(@times, (zs < bins(kk) & zs >= bins(kk+1)), ...
                                dVs),1);
             end
+            runs.streamer.west.Vbin(:,tstart:tend) = temparray;
             runs.streamer.bins = bins;
             toc;
         end
