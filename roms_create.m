@@ -12,7 +12,7 @@ if strfind(machine,'scylla')
 end
 if strfind(machine,'kadal')
     FOLDER = '/media/data/Work/eddyshelf/runs/';
-    prefix    = 'tea';
+    prefix    = 'tek';
 end
 if strfind(machine,'login')
     FOLDER = '/mit/dcherian/ROMS/runs/eddyshelf/topoeddy/run-2/';
@@ -36,21 +36,22 @@ FRC_NAME  = [FOLDER FRC_NAME  '.nc'];
 
 % Grid Parameters
 S.spherical = 0; % 0 - Cartesian, 1 - Spherical
-S.uniform = 1; % uniform grid
 
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
 S.Lm = 400;
-S.Mm = 240;
-S.N  = 60;
+S.Mm = 200;
+S.N  = 30;
 
-dx = 1500;
-dy = dx;
+%set value of dx,dy for uniform grid
+% also, min dx,dy for telescoped grid.
+dx0 = 1500;
+dy0 = dx0;
 
-% Domain Extent (in m)
-X = S.Lm * dx;120;
-Y = S.Mm * dy;100;
+% Domain Extent (in m) - rewritten later
+X = S.Lm * dx0;120;
+Y = S.Mm * dy0;100;
 Z = 2200;
 
 % tracers
@@ -71,7 +72,7 @@ beta  = 3e-11;
 
 % Physical Parameters
 N2    = 1e-5;
-T0    = 20;
+T0    = 30;
 S0    = 28;
 R0    = 1027; % only for EOS purposes
 TCOEF = 1.7e-4;
@@ -96,6 +97,8 @@ calc_pv = 0;
 
 flags.perturb_zeta = 0; % add random perturbation to zeta
 flags.spinup = 0; % if spinup, do not initialize ubar/vbar fields.
+
+flags.telescoping = 1; % telescope dx,dy
 
 flags.front = 0; % create shelfbreak front
 flags.eddy  = 1; % create eddy
@@ -135,6 +138,25 @@ bg.shear = NaN; % set later as bg.shear_fac * max(eddy vorticity)
 bg.comment = ['shear = shear_fac * max(eddy vorticity) | ', ...
               'ubt,vbt = whichever is non-zero gets assigned shear ', ...
               'if flags.bg_shear = 0, then ubt/vbt is added (again non-zero)'];
+          
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% GRID TELESCOPING
+grid.dxmin = dx0;
+grid.dymin = dy0;
+grid.dxmax = 2*dx0;
+grid.dymax = 3*dy0;
+% p - positive side : axis > center
+% n - negative side : axis < center
+grid.xscalep = 200;
+grid.xscalen = 50;
+grid.yscalep = 100;
+grid.yscalen = 50;
+
+% telescope for ix > ixp & ix < ixn
+% similarly for iy > iyp & iy < iyn
+grid.ixp = 300;
+grid.ixn = 40;
+grid.iyp = 150;
+grid.iyn = 1;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% BATHY
 % Bathymetry parameters - all measurements in m
@@ -187,11 +209,11 @@ flags.vprof_gaussian = 0;%~flags.eddy_zhang; % eddy is gaussian in vertical?
 eddy.dia    = NaN; % 2xNH/pi/f0 - determined later
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
-eddy.tamp   = 0.21; % controls gradient
-eddy.buffer_sp = 40*dx; % distance from  4.3 (2.3) *r0 to sponge edge
+eddy.tamp   = 0.28; % controls gradient
+eddy.buffer_sp = 40*1000; % distance from  4.3 (2.3) *r0 to sponge edge
 eddy.buffer = NaN;7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
-eddy.cx     = X/2;X/2-150*1000; % if NaN, determined using buffer later
-eddy.cy     = 158806;NaN;Y/2; %              "
+eddy.cx     = X/2-90*1000; % if NaN, determined using buffer later
+eddy.cy     = NaN;Y/2; %              "
 eddy.theta0 = pi/2; % surface phase anomaly from Zhang et al. (2013)
                     % 7/16 * pi for WCR
 eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
@@ -342,18 +364,63 @@ xmid = ceil(S.Lm/2);
 ymid = ceil(S.Mm/2);
 zmid = ceil(S.N/2);
 
-S.x_rho = repmat([-dx/2:dx:X+dx/2]',[1 S.Mm+2]);
-S.y_rho = repmat(-dy/2:dy:Y+dy/2 ,[S.Lm+2 1]);
+if ~flags.telescoping
+    
+    S.uniform = 1;
+    
+    S.x_rho = repmat([-dx0/2:dx0:X+dx0/2]',[1 S.Mm+2]);
+    S.y_rho = repmat(-dy0/2:dy0:Y+dy0/2 ,[S.Lm+2 1]);
 
-S.x_u = repmat([0:dx:X]',[1 S.Mm+2]);
-S.y_u = repmat(-dy/2:dy:Y+dy/2,[S.Lm+1 1]);
+    S.x_u = repmat([0:dx0:X]',[1 S.Mm+2]);
+    S.y_u = repmat(-dy0/2:dy0:Y+dy0/2,[S.Lm+1 1]);
 
-S.x_v = repmat((-dx/2:dx:X+dx/2)',[1 S.Mm+1]);
-S.y_v = repmat(0:dy:Y,[S.Lm+2 1]);
+    S.x_v = repmat((-dx0/2:dx0:X+dx0/2)',[1 S.Mm+1]);
+    S.y_v = repmat(0:dy0:Y,[S.Lm+2 1]);
 
-S.x_psi = repmat([0:dx:X]',[1 S.Mm+1]);
-S.y_psi = repmat([0:dy:Y],[S.Lm+1 1]);
+    S.x_psi = repmat([0:dx0:X]',[1 S.Mm+1]);
+    S.y_psi = repmat([0:dy0:Y],[S.Lm+1 1]);
+    
+    
+    S.pm = 1./dx0 * ones(size(S.x_rho));
+    S.pn = 1./dy0 * ones(size(S.x_rho));
+else
+    S.uniform = 0;
+    
+    ddx = grid.dxmax - grid.dxmin;
+    ddy = grid.dymax - grid.dymin;
+    
+    ixr = 1:S.Lm+2; iyr = 1:S.Mm+2;
+    clear dx dy
+    dx = grid.dxmin + ( (ixr <= grid.ixp & ixr >= grid.ixn) ...
+        + ddx * (ixr > grid.ixp) .* tanh( (ixr-grid.ixp)/grid.xscalep ) ...
+        - ddx * (ixr < grid.ixn) .* tanh( (ixr-grid.ixn)/grid.xscalen ));
+    dy = grid.dymin + ( (iyr <= grid.iyp & iyr >= grid.iyn) ...
+        + ddy * (iyr > grid.iyp) .* tanh( (iyr-grid.iyp)/grid.yscalep ) ...
+        - ddy * (iyr < grid.iyn) .* tanh( (iyr-grid.iyn)/grid.yscalen ));
+   
+    % pm,pn are dx,dy now. Inverted later
+    dx = repmat(dx',[1 S.Mm+2]);
+    dy = repmat(dy ,[S.Lm+2 1]);
+    
+    S.x_rho = -3*dx(1,1)/2 + cumsum(dx,1);
+    S.y_rho = -3*dy(1,1)/2 + cumsum(dy,2);
+    
+    S.x_u = avg1(S.x_rho,1); S.y_u = avg1(S.y_rho,1);
+    S.x_v = avg1(S.x_rho,2); S.y_v = avg1(S.y_rho,2);
+    S.x_psi = avg1(avg1(S.x_rho,1),2); S.y_psi = avg1(avg1(S.y_rho,1),2);
+end
 
+S.xl = S.x_v(end,1);
+S.el = S.y_u(1,end);
+
+X = S.xl; 
+Y = S.el;
+
+% Calculate grid metrics
+[S.pm,S.pn,S.dndx,S.dmde] = grid_metrics(S,false);
+S.angle = zeros(size(S.x_rho));
+
+% matrices for future use
 xrmat = repmat(S.x_rho,[1 1 S.N]);
 yrmat = repmat(S.y_rho,[1 1 S.N]);
 xumat = repmat(S.x_u,[1 1 S.N]);
@@ -377,12 +444,12 @@ write_params_to_ini(INI_NAME,flags);
 write_params_to_ini(INI_NAME,bathy);
 write_params_to_ini(INI_NAME,phys);
 write_params_to_ini(INI_NAME,bg);
+write_params_to_ini(INI_NAME,grid);
 toc;
 
 fprintf('\n Initialization - %4.1f MB \n\n', monitor_memory_whos);   
 
 %% Bathymetry + Coriolis + more grid stuff
-S.angle = zeros(size(S.x_rho));
 % Coriolis with beta. f = f0 @ y=ymid
 fnew = f0*ones(size(S.x_rho));
 f = fnew + beta * (S.y_rho - S.y_rho(1,ymid));
@@ -474,9 +541,6 @@ else
     bathy.xsl = ax_cs(bathy.isl);
 end
 
-% Calculate weird stuff
-[S.pm,S.pn,S.dndx,S.dmde] = grid_metrics(S,false);
-
 % Land - Sea Mask
 S.mask_u = ones(size(S.x_u));
 S.mask_v = ones(size(S.x_v));
@@ -544,7 +608,7 @@ colorbar;
 title(['Z = ' num2str(Z) ' m']);  ylabel(['z (m)']);
 
 subplot(132)
-surf(S.x_rho/fx,S.y_rho/fy,-S.h); shading interp
+pcolor(S.x_rho/fx,S.y_rho/fy,zeros(size(S.x_rho)));
 title(bathy_title); colorbar;
 xlabel(['x ' lx]); ylabel(['y ' ly]); zlabel('z (m)');
 %beautify;
@@ -824,7 +888,7 @@ if flags.eddy
             end
         case 'y'
             if isnan(eddy.cx)
-                if ~flags.OBC
+                if ~flags.ubt_initial
                     % add deformation radius buffer away from boundary
                     % note there is no sponge at the inflow boundary
                     eddy.cx = X-eddy.dia/2-xtra-eddy.buffer_sp; % center of eddy
@@ -977,7 +1041,10 @@ if flags.eddy
         
         % calculate nondim parameters
         nondim.eddy.Ro = eddy.U ./mean(f(rnorm < r(iU,eddy.iy)))./eddy.R;
-        if  nondim.eddy.Ro > 0.25, error('Error: Ro > 0.25'); end
+        % The check at this point makes no sense. If I have got here the
+        % gradient wind quadratic has real root, so there is no issue. The
+        % condition is that Ro using _geostrophic_ velocity is < 0.25
+%        if  nondim.eddy.Ro > 0.25, error('Error: Ro > 0.25'); end
         nondim.eddy.Rh = eddy.U/phys.beta/eddy.R^2;
         nondim.eddy.Bu = f0^2  *eddy.R^2 / N2/Z^2;
         nondim.eddy.Ri = N2./(TCOEF*g*eddy.tamp/f0/eddy.R).^2;
@@ -1008,7 +1075,7 @@ if flags.eddy
             vs1,tsl,ceil(eddy.cx/1000+vx*tsl),tsb,ceil(eddy.cx/1000+vx*tsb));
     end
     
-    % check plots
+    %% check plots
     xind = ymid; yind = ymid; zind = 20;
 
     if flags.front
@@ -1026,6 +1093,8 @@ if flags.eddy
             
     liney((Y-eddy.buffer_sp)/fy,'sponge');
     linex((X-eddy.buffer_sp)/fx,'sponge');
+    linex([S.x_rho(grid.ixn,1) S.x_rho(grid.ixp,1)]/fx,'telescope','w');
+    liney([S.y_rho(1,grid.iyn) S.y_rho(1,grid.iyp)]/fy,'telescope','w');
     
     clabel(C,h); 
     title('Zeta with eddy');
@@ -1113,7 +1182,8 @@ if flags.eddy
     
     vr = beta * Ld^2;
     
-    fprintf('\n Gamma = %.2f, Vr = %.2f m/s, Drift speed = %.2f m/s \n', ...
+    fprintf(['\n Based on van Leeuwin (2007) : \n ' ...
+            'Gamma = %.2f, Vr = %.2f m/s, Drift speed = %.2f m/s \n'], ...
         gamma, vr, vr*(1+gamma));
     %%
     
@@ -1439,7 +1509,7 @@ if S.NPT > 0
     % write to file
     for ii=1:S.NPT
         vname = sprintf('dye_%02d',ii);
-        eval(['nc_write(S.ncname,''' vname ''',' vname ',1);']);
+        eval(['ncwrite(S.ncname,''' vname ''',' vname ');']);
     end
 
     fprintf('\n Passive Tracer - %4.1f MB \n\n', monitor_memory_whos);
@@ -1548,7 +1618,8 @@ if flags.OBC == 1
         if OBC.(char(boundaries(mm,:))) % if open boundary
             for jj = 1:size(VarList,1)
                 varname = sprintf('%s_%s',char(VarList{jj}),char(boundaries(mm,:)));
-                eval(['nc_write(Sbr.ncname,''' varname ''',' varname ',1);']);
+                disp(['Writing ' varname]);
+                eval(['nc_write(Sbr.ncname,''' varname ''',' varname ');']);
             end
         end
     end
@@ -1560,6 +1631,7 @@ if flags.OBC == 1
            if OBC.(char(boundaries(mm,:)))
                for ii=1:S.NPT
                    varname = sprintf('dye_%s_%02d',char(boundaries(mm,:)),ii);
+                   disp(['Writing ', varname]);
                    eval([varname ' = ' sprintf('dye_%02d',ii) char(range{mm}) ';']);
                    eval(['nc_write(Sbr.ncname,''' varname ''',' varname ',1);']);
                end
@@ -1712,8 +1784,8 @@ toc;
 fprintf('\n Started writing files...\n');
 
 % grid file
-ncwrite(GRID_NAME,'xl',X);
-ncwrite(GRID_NAME,'el',Y);
+ncwrite(GRID_NAME,'xl',S.xl);
+ncwrite(GRID_NAME,'el',S.el);
 ncwrite(GRID_NAME,'f',f);
 ncwrite(GRID_NAME,'h',S.h);
 ncwrite(GRID_NAME, 'mask_u',    S.mask_u);
@@ -1800,7 +1872,7 @@ toc;
 
 %% Grid and time step information
 
-dx = min(dx(:)); dy = min(dy(:));
+dx = min(1./S.pm(:)); dy = min(1./S.pn(:));
 DX = sqrt(min(dx)^2 + min(dy)^2);
 fprintf('\n\n=============================  SUMMARY  ========================================');
 fprintf(['\n\n (nx,ny,nz) = (%d,%d,%d) | (X,Y,Z) = (%.2f , %.2f , %.2f) m |' ...
