@@ -13,7 +13,7 @@ properties
     % dye names
     csdname; asdname; zdname; eddname;
     % vorticity budget
-    vorbudget
+    vorbudget;
     % grid & bathymetry
     rgrid; bathy
     % float data
@@ -2897,8 +2897,252 @@ methods
         end
 
     end
-
+    
     function [] = animate_vorbudget(runs,tind)
+        if ~exist('tind','var')
+            tind = 1;
+        end
+%             if ~exist([runs.dir '/ocean_vor.nc'],'file')
+%                 dc_roms_vorticity(runs.dir,tind,'ocean_vor.nc');
+%             end
+
+        runs.video_init('vor');
+        
+        %%
+        znew = linspace(min(runs.rgrid.z_r(:)), max(runs.rgrid.z_r(:)), 50)';
+        zwnew = linspace(min(runs.rgrid.z_w(:)), max(runs.rgrid.z_w(:)), 51)';
+        % prepare grids for differentiation
+        xvor = avg1(avg1(runs.rgrid.xr,1),2);
+        yvor = avg1(avg1(runs.rgrid.yr,1),2);
+        N = runs.rgrid.N;
+        Nnew = length(znew);
+
+        % setup grid
+        [sx sy] = size(runs.rgrid.x_rho');
+        gridu.xmat = repmat(runs.rgrid.x_u',[1 1 Nnew]);
+        gridu.ymat = repmat(runs.rgrid.y_u',[1 1 Nnew]);
+        gridu.zmat = permute(runs.rgrid.z_u,[3 2 1]);
+        gridu.znew = repmat(permute(znew,[ 3 2 1]),[sx-1 sy 1]);
+        %gridu.s = runs.rgrid.s_rho;
+        %gridu.zw = runs.rgrid.z_w;
+        %gridu.s_w = runs.rgrid.s_w;
+
+        gridv.xmat = repmat(runs.rgrid.x_v',[1 1 Nnew]);
+        gridv.ymat = repmat(runs.rgrid.y_v',[1 1 Nnew]);
+        gridv.zmat = permute(runs.rgrid.z_v,[3 2 1]);
+        gridv.znew = repmat(permute(znew,[ 3 2 1]),[sx sy-1 1]);
+        %gridv.s = runs.rgrid.s_rho;
+        %gridv.zw = runs.rgrid.z_w;
+        %gridv.s_w = runs.rgrid.s_w;
+        
+        gridr.xmat = repmat(runs.rgrid.x_rho',[1 1 Nnew]);
+        gridr.ymat = repmat(runs.rgrid.y_rho',[1 1 Nnew]);
+        gridr.zmat = permute(runs.rgrid.z_r,[3 2 1]);
+        gridr.znew = repmat(permute(znew,[3 2 1]),[sx sy 1]);
+        %gridr.s = runs.rgrid.s_rho;
+        %gridr.zw = runs.rgrid.z_r;
+        %gridr.s_w = runs.rgrid.s_w;
+
+        gridw.xmat = repmat(runs.rgrid.x_rho',[1 1 Nnew]);
+        gridw.ymat = repmat(runs.rgrid.y_rho',[1 1 Nnew]);
+        gridw.zmat = permute(runs.rgrid.z_w,[3 2 1]);
+        gridw.znew = repmat(permute(znew,[3 2 1]),[sx sy 1]);
+        %gridw.s = runs.rgrid.s_w;
+        %gridw.zw = runs.rgrid.z_w;
+        %gridw.s_w = runs.rgrid.s_w;
+
+        gridrv.xmat = repmat(xvor,[1 1 N-1]);
+        gridrv.ymat = repmat(yvor,[1 1 N-1]);
+        gridrv.zmat = avg1(avg1(avg1(permute(runs.rgrid.z_r,[3 2 1]),1),2),3);
+        gridrv.s = avg1(runs.rgrid.s_rho);
+        gridrv.zw = avg1(avg1(avg1(permute(runs.rgrid.z_w,[3 2 1]),1),2),3);
+        gridrv.s_w = avg1(runs.rgrid.s_w);
+
+        beta = runs.params.phys.beta;
+
+        % for depth integration
+        h = runs.bathy.h(2:end-1,2:end-1);
+        csr = runs.rgrid.Cs_r(2:end-1); 
+        csw = runs.rgrid.Cs_w(2:end-1);
+        
+        xavg = avg1(avg1(xvor,1),2)/1000; yavg = avg1(avg1(yvor,1),2)/1000;
+
+        depthRange = [100 -max(runs.bathy.h(:))];
+        trange = tind:2:size(runs.zeta,3);
+
+        disp(['starting from t instant = ' num2str(trange(1))]);
+        runs.vorbudget.hadvtot = nan(length(trange)-1);
+        runs.vorbudget.vadvtot = runs.vorbudget.hadvtot;
+        runs.vorbudget.tilttot = runs.vorbudget.hadvtot;
+        runs.vorbudget.strtot  = runs.vorbudget.hadvtot;
+        runs.vorbudget.betatot = runs.vorbudget.hadvtot;
+        runs.vorbudget.soltot = runs.vorbudget.hadvtot;
+        runs.vorbudget.budgettot = runs.vorbudget.hadvtot;
+        runs.vorbudget.conthistot = runs.vorbudget.hadvtot;
+        %%
+        for kk=1:length(trange)-1
+            tt = trange(kk);
+            zeta = runs.zeta(2:end-1,2:end-1,tt);
+
+            % read data
+            %fname = [runs.dir '/ocean_his.nc.new2'];
+            %fname = runs.out_file;
+            %u1 = double(ncread(fname,'u',[1 1 1 tt],[Inf Inf Inf 2]));
+            %v1 = double(ncread(fname,'v',[1 1 1 tt],[Inf Inf Inf 2]));
+            %w  = double(ncread(fname,'w',[1 1 1 tt],[Inf Inf Inf 1]));
+            %zeta = double(ncread(fname,'zeta',[1 1 tt],[Inf Inf 1]));
+            
+            u1 = dc_roms_read_data(runs.dir,'u',[tt tt+1],{},[],runs.rgrid);
+            v1 = dc_roms_read_data(runs.dir,'v',[tt tt+1],{},[],runs.rgrid);
+            w =  dc_roms_read_data(runs.dir,'w',tt,{},[],runs.rgrid);
+            rho = dc_roms_read_data(runs.dir,'rho',tt,{},[],runs.rgrid);
+            
+            
+            u = u1(:,:,:,1); v = v1(:,:,:,1);
+            u1(:,:,:,1) = []; v1(:,:,:,1) = [];
+            
+            % interpolate to znew depths
+            disp('interpolating variables');
+            u = interpolate(u, gridu.zmat, znew);
+            v = interpolate(v, gridv.zmat, znew);
+            w = interpolate(w, gridw.zmat, znew);
+            u1 = interpolate(u1, gridu.zmat, znew);
+            v1 = interpolate(v1, gridv.zmat, znew);
+            rho = interpolate(rho, gridr.zmat, znew);
+            
+            
+            ux = diff(u,1,1)./diff(gridu.xmat,1,1);
+            uy = diff(u,1,2)./diff(gridu.ymat,1,2);
+            uz = diff(u,1,3)./diff(gridu.znew,1,3);
+            
+            vx = diff(v,1,1)./diff(gridv.xmat,1,1);
+            vy = diff(v,1,2)./diff(gridv.ymat,1,2);
+            vz = diff(v,1,3)./diff(gridv.znew,1,3);
+            
+            wx = diff(w,1,1)./diff(gridw.xmat,1,1);
+            wy = diff(w,1,2)./diff(gridw.ymat,1,2);
+            wz = diff(w,1,3)./diff(gridw.znew,1,3);
+            
+            rx = diff(rho,1,1)./diff(gridr.xmat,1,1);
+            ry = diff(rho,1,2)./diff(gridr.ymat,1,2);
+            rz = diff(rho,1,3)./diff(gridr.znew,1,3);
+            
+            v1x = diff(v1,1,1)./diff(gridv.xmat,1,1);
+            u1y = diff(u1,1,2)./diff(gridu.ymat,1,2);
+            
+            
+            rv = vx-uy; rv1 = v1x-u1y;
+            
+            rvx = diff(rv,1,1)./diff(gridrv.xmat,1,1);
+            rvy = diff(rv,1,2)./diff(gridrv.ymat,1,2);
+            rvz = diff(rv,1,3)./diff(gridrv.zmat,1,3);
+            
+            str = 0;
+            
+            
+            limy = [0 150];
+            titlestr = 'Depth avg rvor';
+            % plot
+            if kk == 1
+                figure; maximize();
+                ax(1) = subplot(2,4,[1:2]);
+                hvor = pcolor(xavg,yavg,rplot); hold on; shading flat;
+                axis image;
+                ht = runs.set_title('Depth avg rvor',tt);
+                he(1) = runs.plot_eddy_contour('contour',tt);
+                hbathy = runs.plot_bathy('contour','k');
+                shading flat
+                caxis([-1 1] * max(abs(rplot(:)))); colorbar;
+                ylim(limy);
+
+                ax(2) = subplot(2,4,3);
+                hbet = pcolor(xavg,yavg,-BET); colorbar; shading flat;
+                he(2) = runs.plot_eddy_contour('contour',tt);
+                hbathy = runs.plot_bathy('contour','k');
+                caxis([-1 1] * max(abs(BET(:))));
+                title('- \beta V');
+
+                ax(3) = subplot(2,4,4); cla
+                xran = 1:6:size(xavg,1); yran = 1:4:size(yavg,2);
+                hquiv = quiver(xavg(xran,yran),yavg(xran,yran), ...
+                        ubar(xran,yran), vbar(xran,yran),1.5);
+                title('(ubar,vbar)');
+                he(3) = runs.plot_eddy_contour('contour',tt);
+                hbathy = runs.plot_bathy('contour','k');
+
+                ax(4) = subplot(2,4,5);
+                htend = pcolor(xavg,yavg,TEND); colorbar; shading flat;
+                he(4) = runs.plot_eddy_contour('contour',tt);
+                hbathy = runs.plot_bathy('contour','k');
+                caxis([-1 1] * max(abs(TEND(:))));
+                title('d\xi/dt');
+
+                ax(5) = subplot(2,4,6);
+                hadv = pcolor(xavg,yavg,-ADV); colorbar; shading flat;
+                he(5) = runs.plot_eddy_contour('contour',tt);
+                hbathy = runs.plot_bathy('contour','k');
+                caxis([-1 1] * max(abs(ADV(:))));
+                title('-Advection');
+
+                ax(6) = subplot(2,4,7);
+                htilt = pcolor(xavg,yavg,TILT); colorbar; shading flat;
+                he(6) = runs.plot_eddy_contour('contour',tt);
+                hbathy = runs.plot_bathy('contour','k');
+                caxis([-1 1] * max(abs(TILT(:))));
+                title('Tilting');
+
+                ax(7) = subplot(2,4,8);
+                hstr = pcolor(xavg,yavg,STR); colorbar; hold on; shading flat;
+                %hquiv = quiverclr(xavg(xran,yran),yavg(xran,yran), ...
+                %    ubar(xran,yran),vbar(xran,yran),0.3,STR(xran,yran), ...
+                %    [-1 1]*1e-11);
+                %set(gca,'color',[0 0 0]);
+                he(7) = runs.plot_eddy_contour('contour',tt);
+                hbathy = runs.plot_bathy('contour','k');
+                caxis([-1 1] * max(abs(STR(:))));
+                title('Stretching = (f+\xi)w_z')
+                spaceplots(0.06*ones([1 4]),0.05*ones([1 2]))
+                linkaxes(ax,'xy');
+                runs.video_update();
+                pause();
+            else
+                set(hvor ,'cdata',rplot); 
+                set(hadv ,'cdata',-ADV);
+                set(hbet ,'cdata',-BET);
+                set(hstr ,'cdata',STR);
+                set(htilt,'cdata',TILT);
+                set(htend,'cdata',TEND);
+                try
+                    set(hquiv,'udata',ubar(xran,yran),'vdata',vbar(xran,yran));
+                catch ME
+                end
+
+                runs.update_eddy_contour(he,tt);
+                runs.update_title(ht,titlestr,tt);
+                runs.video_update();
+                pause(0.01);
+            end
+        end
+        runs.video_write();
+
+        runs.vorbudget.time = runs.time(trange(1:end-1));
+        plot(runs.vorbudget.time,-runs.vorbudget.hadvtot,'r'); hold on
+        plot(runs.vorbudget.time,-runs.vorbudget.vadvtot,'g'); 
+        plot(runs.vorbudget.time,runs.vorbudget.tilttot,'b');
+        plot(runs.vorbudget.time,runs.vorbudget.strtot,'c');
+        plot(runs.vorbudget.time,runs.vorbudget.soltot,'m');
+        plot(runs.vorbudget.time,-runs.vorbudget.betatot,'y');
+        plot(runs.vorbudget.time,runs.vorbudget.budgettot,'k');
+        title('signs so that all terms are on RHS and tendency is LHS');
+        legend('hadv','vadv','tilt','str','sol','beta','budget');
+
+
+        vorbudget = runs.vorbudget;
+        save([runs.dir '/vorbudget.mat'],'vorbudget');       
+        
+    end   
+
+    function [] = animate_vorbudget_deprecated(runs,tind)
             if ~exist('tind','var')
                 tind = 1;
             end
@@ -2962,13 +3206,13 @@ methods
 
         disp(['starting from t instant = ' num2str(trange(1))]);
         runs.vorbudget.hadvtot = nan(length(trange)-1);
-        runs.vorbudget.vadvtot = hadvtot;
-        runs.vorbudget.tilttot = hadvtot;
-        runs.vorbudget.strtot  = hadvtot;
-        runs.vorbudget.betatot = hadvtot;
-        runs.vorbudget.soltot = hadvtot;
-        runs.vorbudget.budgettot = hadvtot;
-        runs.vorbudget.conthistot = hadvtot;
+        runs.vorbudget.vadvtot = runs.vorbudget.hadvtot;
+        runs.vorbudget.tilttot = runs.vorbudget.hadvtot;
+        runs.vorbudget.strtot  = runs.vorbudget.hadvtot;
+        runs.vorbudget.betatot = runs.vorbudget.hadvtot;
+        runs.vorbudget.soltot = runs.vorbudget.hadvtot;
+        runs.vorbudget.budgettot = runs.vorbudget.hadvtot;
+        runs.vorbudget.conthistot = runs.vorbudget.hadvtot;
         for kk=1:length(trange)-1
             tt = trange(kk);
             zeta = runs.zeta(2:end-1,2:end-1,tt);
