@@ -6,7 +6,7 @@
 % names cannot start with number
 [~,machine] = system('hostname');
 if strfind(machine,'scylla')
-    FOLDER    = '/scylla-a/home/dcherian/ROMS/runs/eddyshelf/topoeddy/run-6/';
+    FOLDER    = '/scylla-a/home/dcherian/ROMS/runs/eddyshelf/topoeddy/run-5/';
     prefix    = 'tes';
     addpath(genpath('/scylla-a/home/dcherian/tools/'));
 end
@@ -40,13 +40,13 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 400;
-S.Mm = 200;
-S.N  = 30;
+S.Lm = 393;;
+S.Mm = 256;
+S.N  = 72;
 
 %set value of dx,dy for uniform grid
 % also, min dx,dy for telescoped grid.
-dx0 = 1500;
+dx0 = 1000;
 dy0 = dx0;
 
 % Domain Extent (in m) - rewritten later
@@ -55,7 +55,7 @@ Y = S.Mm * dy0;100;
 Z = 2200;
 
 % tracers
-S.NPT = 0; % number of passive tracers
+S.NPT = 3; % number of passive tracers
 S.NT = 2+S.NPT; % total number of tracers
 
 % vertical stretching
@@ -68,7 +68,7 @@ S.Tcline  = 500;    %  S-coordinate surface/bottom stretching width (m)
 % coriolis parameters
 lat_ref = 45;
 f0    = 5e-5; 2 * (2*pi/86400) * sind(lat_ref);
-beta  = 3e-11;
+beta  = 6e-11;
 
 % Physical Parameters
 N2    = 1e-5;
@@ -146,16 +146,16 @@ grid.dxmax = 2*dx0;
 grid.dymax = 3*dy0;
 % p - positive side : axis > center
 % n - negative side : axis < center
-grid.xscalep = 200;
+grid.xscalep = 100;
 grid.xscalen = 50;
-grid.yscalep = 100;
+grid.yscalep = 200;
 grid.yscalen = 50;
 
 % telescope for ix > ixp & ix < ixn
 % similarly for iy > iyp & iy < iyn
 grid.ixp = 300;
 grid.ixn = 40;
-grid.iyp = 150;
+grid.iyp = 200;
 grid.iyn = 1;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% BATHY
@@ -166,7 +166,7 @@ grid.iyn = 1;
 flags.flat_bottom = 0; % set depth in Z above
 flags.crooked_bathy = 0;
 
-bathy.H_shelf  = 100;
+bathy.H_shelf  = 75;
 bathy.L_shelf  = 40 * 1000;
 bathy.L_slope  = 50 * 1000;
 bathy.axis = 'y'; % CROSS SHELF AXIS
@@ -209,10 +209,10 @@ flags.vprof_gaussian = 0;%~flags.eddy_zhang; % eddy is gaussian in vertical?
 eddy.dia    = NaN; % 2xNH/pi/f0 - determined later
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
-eddy.tamp   = 0.28; % controls gradient
+eddy.tamp   = 0.26; % controls gradient
 eddy.buffer_sp = 40*1000; % distance from  4.3 (2.3) *r0 to sponge edge
 eddy.buffer = NaN;7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
-eddy.cx     = X/2-90*1000; % if NaN, determined using buffer later
+eddy.cx     = X/2-70*1000; % if NaN, determined using buffer later
 eddy.cy     = NaN;Y/2; %              "
 eddy.theta0 = pi/2; % surface phase anomaly from Zhang et al. (2013)
                     % 7/16 * pi for WCR
@@ -1435,7 +1435,7 @@ if S.NPT > 0
     % create variables first
     names = {'cross shelf dye'; 'z dye'; 'eddy dye'; 'along shelf dye'};
     try
-        dc_roms_passive_tracer(S,names);
+        dc_roms_passive_tracer(S,names,1);
     catch ME
         warning('Passive tracer variables already created?');
     end
@@ -1619,11 +1619,11 @@ if flags.OBC == 1
             for jj = 1:size(VarList,1)
                 varname = sprintf('%s_%s',char(VarList{jj}),char(boundaries(mm,:)));
                 disp(['Writing ' varname]);
-                eval(['nc_write(Sbr.ncname,''' varname ''',' varname ');']);
+                eval(['ncwrite(Sbr.ncname,''' varname ''',' varname ');']);
             end
         end
     end
-    nc_write(Sbr.ncname,'bry_time',bry_time,1);
+    ncwrite(Sbr.ncname,'bry_time',bry_time);
   
     % set and write passive tracer data boundary conditions
     if S.NPT > 0
@@ -1637,7 +1637,7 @@ if flags.OBC == 1
                end
            end
        end
-       nc_write(Sbr.ncname,'dye_time',bry_time,1);
+       ncwrite(Sbr.ncname,'dye_time',bry_time);
     end
     fprintf('\n OBC - %4.1f MB \n\n', monitor_memory_whos);
 end
