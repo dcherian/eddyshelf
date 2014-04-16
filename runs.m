@@ -1738,6 +1738,8 @@ methods
         ysp = reshape(repmat(runs.rgrid.yr,[1 1 runs.rgrid.N]), sz3dsp);
         zsp = reshape(permute(runs.rgrid.z_r,[3 2 1]), sz3dsp);
         
+        ntime = length(runs.time);
+        
         for tt=1:slab:length(runs.time)
             tend = tt + slab -1;
             if tend > length(runs.time)
@@ -2371,10 +2373,12 @@ methods
         beautify([16 16 18]);
         runs.video_update();
         for ii = 2:size(runs.zeta,3)
+            tic;
             runs.update_zeta(hz,ii);
             runs.update_eddy_contour(he,ii);
             runs.update_title(ht,titlestr,ii);
             runs.video_update();
+            toc;
             pause(0.03);
         end
         runs.video_write();
@@ -2912,7 +2916,6 @@ methods
         
         %%
         znew = linspace(min(runs.rgrid.z_r(:)), max(runs.rgrid.z_r(:)), 50)';
-        zwnew = linspace(min(runs.rgrid.z_w(:)), max(runs.rgrid.z_w(:)), 51)';
         % prepare grids for differentiation
         xvor = avg1(avg1(runs.rgrid.xr,1),2);
         yvor = avg1(avg1(runs.rgrid.yr,1),2);
@@ -2972,14 +2975,14 @@ methods
         trange = tind:2:size(runs.zeta,3);
 
         disp(['starting from t instant = ' num2str(trange(1))]);
-        runs.vorbudget.hadvtot = nan(length(trange)-1);
-        runs.vorbudget.vadvtot = runs.vorbudget.hadvtot;
-        runs.vorbudget.tilttot = runs.vorbudget.hadvtot;
-        runs.vorbudget.strtot  = runs.vorbudget.hadvtot;
-        runs.vorbudget.betatot = runs.vorbudget.hadvtot;
-        runs.vorbudget.soltot = runs.vorbudget.hadvtot;
-        runs.vorbudget.budgettot = runs.vorbudget.hadvtot;
-        runs.vorbudget.conthistot = runs.vorbudget.hadvtot;
+        runs.vorbudget.hadv = nan(length(trange)-1);
+        runs.vorbudget.vadv = runs.vorbudget.hadv;
+        runs.vorbudget.tilt = runs.vorbudget.hadv;
+        runs.vorbudget.str  = runs.vorbudget.hadv;
+        runs.vorbudget.beta = runs.vorbudget.hadv;
+        %runs.vorbudget.sol = runs.vorbudget.hadv;
+        runs.vorbudget.budget = runs.vorbudget.hadv;
+        %runs.vorbudget.conthis = runs.vorbudget.hadv;
         %%
         for kk=1:length(trange)-1
             tt = trange(kk);
@@ -2995,7 +2998,7 @@ methods
             
             u = dc_roms_read_data(runs.dir,'u',tt,{},[],runs.rgrid);
             v = dc_roms_read_data(runs.dir,'v',tt,{},[],runs.rgrid);
-            w =  dc_roms_read_data(runs.dir,'w',tt,{},[],runs.rgrid);
+            w = dc_roms_read_data(runs.dir,'w',tt,{},[],runs.rgrid);
             rho = dc_roms_read_data(runs.dir,'rho',tt,{},[],runs.rgrid);
                        
             % interpolate to znew depths
@@ -3022,7 +3025,7 @@ methods
             rz = diff(rho,1,3)./diff(gridr.znew,1,3);
             
             % tendency term code - not really needed since it is probably a
-            % bad estimate at daily snapshots .
+            % bad estimate when using daily snapshots .
 %             if debug
 %                 u1 = interpolate(u1, gridu.zmat, znew);
 %                 v1 = interpolate(v1, gridv.zmat, znew);
@@ -3037,13 +3040,25 @@ methods
             
             str = avg1(-1 * avg1(avg1(bsxfun(@plus,rv,avg1(avg1(runs.rgrid.f',1),2)),1),2) ...
                             .* (ux(:,2:end-1,:,:) + vy(2:end-1,:,:)),3);
-            tilt = avg1(avg1( avg1(avg1(wx,2),3) .* avg1(vz,1) - ...
+            tilt = -1 * avg1(avg1( avg1(avg1(wx,2),3) .* avg1(vz,1) + ...
                     avg1(avg1(wy,1),3) .* avg1(uz,2) ,1),2);
             beta = avg1(avg1(runs.params.phys.beta * v(2:end-1,:,:),2),3);
             hadv = avg1( avg1(u(:,2:end-1,:),1) .* avg1(rvx,2) + ...
                     avg1(v(2:end-1,:,:),2) .* avg1(rvy,1),3);
             vadv = avg1(avg1( avg1(avg1(avg1(w,1),2),3) .* rvz ,1),2);
             
+          %  sol = -runs.params.phys.g/runs.params.phys.rho0 .* ...
+          %          ( avg1(rx,2) .* avg1(zy,1) - avg1(ry,1) .* avg1(zx,2));
+            
+            zint = avg1(znew);
+            RV   = trapz(zint, repnan(rv,0), 3);
+            STR  = trapz(zint, repnan(str,0), 3);
+            TILT = trapz(zint, repnan(tilt,0), 3);
+            BETA = trapz(zint, repnan(beta,0), 3);
+            HADV = trapz(zint, repnan(hadv,0), 3);
+            VADV = trapz(zint, repnan(vadv,0), 3);
+            
+            BUD = trapz(zint, repnan( str+tilt - beta - hadv -vadv,0), 3);
             
             limy = [0 150];
             titlestr = 'Depth avg rvor';
@@ -3051,20 +3066,20 @@ methods
             if kk == 1
                 figure; maximize();
                 ax(1) = subplot(2,4,[1:2]);
-                hvor = pcolor(xavg,yavg,rplot); hold on; shading flat;
+                hvor = pcolor(xavg,yavg,RV); hold on; shading flat;
                 axis image;
                 ht = runs.set_title('Depth avg rvor',tt);
                 he(1) = runs.plot_eddy_contour('contour',tt);
                 hbathy = runs.plot_bathy('contour','k');
                 shading flat
-                caxis([-1 1] * max(abs(rplot(:)))); colorbar;
+                caxis([-1 1] * max(abs(RV(:)))); colorbar;
                 ylim(limy);
 
                 ax(2) = subplot(2,4,3);
-                hbet = pcolor(xavg,yavg,-BET); colorbar; shading flat;
+                hbet = pcolor(xavg,yavg,-BETA); colorbar; shading flat;
                 he(2) = runs.plot_eddy_contour('contour',tt);
                 hbathy = runs.plot_bathy('contour','k');
-                caxis([-1 1] * max(abs(BET(:))));
+                caxis([-1 1] * max(abs(BETA(:))));
                 title('- \beta V');
 
                 ax(3) = subplot(2,4,4); cla
@@ -3075,12 +3090,12 @@ methods
                 he(3) = runs.plot_eddy_contour('contour',tt);
                 hbathy = runs.plot_bathy('contour','k');
 
-                ax(4) = subplot(2,4,5);
-                htend = pcolor(xavg,yavg,TEND); colorbar; shading flat;
-                he(4) = runs.plot_eddy_contour('contour',tt);
-                hbathy = runs.plot_bathy('contour','k');
-                caxis([-1 1] * max(abs(TEND(:))));
-                title('d\xi/dt');
+%                 ax(4) = subplot(2,4,5);
+%                 htend = pcolor(xavg,yavg,TEND); colorbar; shading flat;
+%                 he(4) = runs.plot_eddy_contour('contour',tt);
+%                 hbathy = runs.plot_bathy('contour','k');
+%                 caxis([-1 1] * max(abs(TEND(:))));
+%                 title('d\xi/dt');
 
                 ax(5) = subplot(2,4,6);
                 hadv = pcolor(xavg,yavg,-ADV); colorbar; shading flat;
@@ -3111,12 +3126,12 @@ methods
                 runs.video_update();
                 pause();
             else
-                set(hvor ,'cdata',rplot); 
+                set(hvor ,'cdata',RV); 
                 set(hadv ,'cdata',-ADV);
-                set(hbet ,'cdata',-BET);
+                set(hbet ,'cdata',-BETA);
                 set(hstr ,'cdata',STR);
                 set(htilt,'cdata',TILT);
-                set(htend,'cdata',TEND);
+                %set(htend,'cdata',TEND);
                 try
                     set(hquiv,'udata',ubar(xran,yran),'vdata',vbar(xran,yran));
                 catch ME
@@ -3131,13 +3146,13 @@ methods
         runs.video_write();
 
         runs.vorbudget.time = runs.time(trange(1:end-1));
-        plot(runs.vorbudget.time,-runs.vorbudget.hadvtot,'r'); hold on
-        plot(runs.vorbudget.time,-runs.vorbudget.vadvtot,'g'); 
-        plot(runs.vorbudget.time,runs.vorbudget.tilttot,'b');
-        plot(runs.vorbudget.time,runs.vorbudget.strtot,'c');
-        plot(runs.vorbudget.time,runs.vorbudget.soltot,'m');
-        plot(runs.vorbudget.time,-runs.vorbudget.betatot,'y');
-        plot(runs.vorbudget.time,runs.vorbudget.budgettot,'k');
+        plot(runs.vorbudget.time,-runs.vorbudget.hadv,'r'); hold on
+        plot(runs.vorbudget.time,-runs.vorbudget.vadv,'g'); 
+        plot(runs.vorbudget.time,runs.vorbudget.tilt,'b');
+        plot(runs.vorbudget.time,runs.vorbudget.str,'c');
+        plot(runs.vorbudget.time,runs.vorbudget.sol,'m');
+        plot(runs.vorbudget.time,-runs.vorbudget.beta,'y');
+        plot(runs.vorbudget.time,runs.vorbudget.budget,'k');
         title('signs so that all terms are on RHS and tendency is LHS');
         legend('hadv','vadv','tilt','str','sol','beta','budget');
 
@@ -3892,8 +3907,10 @@ methods
     end
     function update_zeta(runs,handle,tt)
         try
+            %handle.CData = runs.zeta(:,:,tt);
             set(handle,'CData',runs.zeta(:,:,tt));
         catch ME
+            %handle.ZData = runs.zeta(:,:,tt);
             set(handle,'ZData',runs.zeta(:,:,tt));
         end
     end
