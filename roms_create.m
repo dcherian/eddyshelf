@@ -139,25 +139,6 @@ bg.comment = ['shear = shear_fac * max(eddy vorticity) | ', ...
               'ubt,vbt = whichever is non-zero gets assigned shear ', ...
               'if flags.bg_shear = 0, then ubt/vbt is added (again non-zero)'];
           
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% GRID TELESCOPING
-grid.dxmin = dx0;
-grid.dymin = dy0;
-grid.dxmax = 2*dx0;
-grid.dymax = 3*dy0;
-% p - positive side : axis > center
-% n - negative side : axis < center
-grid.xscalep = 100;
-grid.xscalen = 50;
-grid.yscalep = 200;
-grid.yscalen = 50;
-
-% telescope for ix > ixp & ix < ixn
-% similarly for iy > iyp & iy < iyn
-grid.ixp = 300;
-grid.ixn = 40;
-grid.iyp = 200;
-grid.iyn = 1;
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% BATHY
 % Bathymetry parameters - all measurements in m
 %flags.tanh_bathymetry = 0;
@@ -196,6 +177,27 @@ bathy.comment = ['H_shelf = depth at coast | L_shelf = shelf width | ' ...
                  ' passes | isb,xsb,hsb = index,axis loc, depth at shelfbreak' ...
                  ' isl,xsl,hsl = index, axis loc, depth at end of ' ...
                  'continental slope'];
+             
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% GRID TELESCOPING
+flags.telescoping = 1; % telescope dx,dy
+
+grid.dxmin = dx0;
+grid.dymin = dy0;
+grid.dxmax = 4*dx0;
+grid.dymax = 4*dy0;
+% p - positive side : axis > center
+% n - negative side : axis < center
+grid.xscalep = 50;
+grid.xscalen = 50;
+grid.yscalep = 50;
+grid.yscalen = 50;
+
+% telescope for ix > ixp & ix < ixn
+% similarly for iy > iyp & iy < iyn
+grid.ixp = 340;
+grid.ixn = 50;
+grid.iyp = (bathy.L_shelf + bathy.L_slope)/dx0;
+grid.iyn = 1;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EDDY
 % eddy momentum balance options
@@ -595,12 +597,16 @@ end
 subplot(131)
 if strcmp(bathy.axis,'x')
     ind = ymid;
-    pcolorcen(squeeze(xrmat(:,ind,:))/fx,squeeze(zrmat(:,ind,:)),squeeze(rx1mat(:,ind,:)));
+    pcolor(squeeze(xrmat(:,ind,:))/fx,squeeze(zrmat(:,ind,:)), ...
+        zeros(squeeze(size(zrmat(:,ind,:)))));
+    %squeeze(rx1mat(:,ind,:)));
     xlabel(['x ' lx]);
     linex([bathy.xsb bathy.xsl]/fx);
 else 
     ind = xmid;
-    pcolorcen(squeeze(yrmat(ind,:,:))/fy,squeeze(zrmat(ind,:,:)),squeeze(rx1mat(ind,:,:)));
+    pcolor(squeeze(yrmat(ind,:,:))/fy,squeeze(zrmat(ind,:,:)), ...
+        zeros(size(squeeze(rx1mat(ind,:,:)))));
+        %squeeze(rx1mat(ind,:,:)));
     xlabel(['y ' ly]);
     linex([bathy.xsb bathy.xsl]/fx);
 end
