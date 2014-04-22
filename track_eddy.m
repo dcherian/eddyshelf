@@ -5,9 +5,10 @@ function [eddy] = track_eddy(dir1)
         file = char([dir1 '/' char(fnames(1))]);
         [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
         tic;
-        zeta  = roms_read_data(dir1,'zeta');
-        u     = roms_read_data(dir1,'u',[1 1 size(zr,3) 1],[Inf Inf 1 Inf]);
-        v     = roms_read_data(dir1,'v',[1 1 size(zr,3) 1],[Inf Inf 1 Inf]);
+        zeta  = dc_roms_read_data(dir1,'zeta');
+        N = size(zr,3);
+        u     = dc_roms_read_data(dir1,'u',[],{'z' N N});
+        v     = dc_roms_read_data(dir1,'v',[],{'z' N N});
         toc;
     else
         fname = dir1;
@@ -105,7 +106,7 @@ function [eddy] = track_eddy(dir1)
             d_sbreak = Inf;
             thresh = nan;
         else 
-            if tt ==  105,
+            if tt ==  104,
                 disp('debug time!');
             end
             mask = nan(sz);
