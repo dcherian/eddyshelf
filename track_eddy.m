@@ -5,7 +5,6 @@ function [eddy] = track_eddy(dir1)
         file = char([dir1 '/' char(fnames(1))]);
         [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
         tic;
-        disp('Reading data');
         zeta  = roms_read_data(dir1,'zeta');
         u     = roms_read_data(dir1,'u',[1 1 size(zr,3) 1],[Inf Inf 1 Inf]);
         v     = roms_read_data(dir1,'v',[1 1 size(zr,3) 1],[Inf Inf 1 Inf]);
@@ -18,7 +17,6 @@ function [eddy] = track_eddy(dir1)
         file = fname;
         [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
         tic;
-        disp('Reading data');
         zeta = double(ncread(fname,'zeta'));
         u     = squeeze(double(ncread(fname,'u',[1 1 size(zr,3) 1],[Inf Inf 1 Inf])));
         v     = squeeze(double(ncread(fname,'v',[1 1 size(zr,3) 1],[Inf Inf 1 Inf])));
@@ -69,8 +67,10 @@ function [eddy] = track_eddy(dir1)
         try
             initGuess(3) = params.eddy.theta0;
         catch ME
-            initGuess(3) = 0;
+            initGuess(3) = pi/2;
         end
+        
+        initGuessGauss = [params.phys.T0 params.eddy.depth];
     end
 
     % detect shelfbreak
@@ -171,29 +171,33 @@ function [eddy] = track_eddy(dir1)
         eddy.vor.amp(tt) = temp.vor.amp;
         eddy.vor.cx(tt) = temp.vor.cx;
         eddy.vor.cy(tt) = temp.vor.cy;
-        % diagnose vertical scale (fit Gaussian)
+        % diagnose vertical scale (fit Gaussian / sine)
         imx = find_approx(xr(:,1),eddy.mx(tt),1);
         imy = find_approx(yr(1,:),eddy.my(tt),1);
         ze  = squeeze(zr(imx,imy,:)); % z co-ordinate at center of eddy
         try
-            eddy.T(tt,:)   = double(squeeze(ncread(file,'temp',[imx imy 1 tt-tt0],[1 1 Inf 1])));
+            eddy.T(tt,:) = double(squeeze(ncread(file,'temp',[imx imy 1 tt-tt0], ...
+                            [1 1 Inf 1])));
         catch ME
             disp([' Moving to next file tt = ' num2str(tt) ' - ' char(fnames(kk))]);
             file = [dir1 '/' char(fnames(kk))];
             kk = kk +1;
             tt0 = tt-1;
-            eddy.T(tt,:)   = double(squeeze(ncread(file,'temp',[imx imy 1 tt-tt0],[ ...
+            eddy.T(tt,:) = double(squeeze(ncread(file,'temp',[imx imy 1 tt-tt0],[ ...
                                                     1 1 Inf 1])));
         end
         
         if params.bathy.axis == 'x'
-            Ti = double(squeeze(ncread(file,'temp',[imx  size(xr,2)  1 tt-tt0],[1 1 Inf 1])));
+            Ti = double(squeeze(ncread(file,'temp', ...
+                    [imx  size(xr,2)  1 tt-tt0],[1 1 Inf 1])));
         else
-            Ti = double(squeeze(ncread(file,'temp',[size(xr,1)  imy  1 tt-tt0],[1 1 Inf 1])));
+            Ti = double(squeeze(ncread(file,'temp', ...
+                    [size(xr,1)  imy  1 tt-tt0],[1 1 Inf 1])));
         end
-        opts = optimset('MaxFunEvals',1e3);
+        opts = optimset('MaxFunEvals',1e5);
         if ~isfield(params.flags,'vprof_gaussian') || params.flags.vprof_gaussian
-            [x2,~,exitflag] = fminsearch(@(x) gaussfit2(x,eddy.T(tt,:)'-Ti,ze),initGuess2,opts);
+            [x2,~,exitflag] = fminsearch(@(x) gaussfit2(x,eddy.T(tt,:)'-Ti,ze), ...
+                initGuess2,opts);
             if ~exitflag, x2(2) = NaN; end
             %[x3,~,exitflag] = fminsearch(@(x) gaussfit3(x,eddy.T(tt,:)'-Ti,ze),initGuess3,opts);
             %if ~exitflag, x3(2) = NaN; end
@@ -201,11 +205,17 @@ function [eddy] = track_eddy(dir1)
             %eddy.Lz3(tt)  = NaN;%abs(x3(2));
         else
             %fit sinusoid
-            [x2,~,exitflag] = fminsearch(@(x) sinefit(x,eddy.T(tt,:)'-Ti,ze),initGuess,opts);
+            [x2,~,exitflag] = fminsearch(@(x) sinefit(x,eddy.T(tt,:)'-Ti,ze), ...
+                                initGuess,opts);
+            if ~exitflag, x2(2) = NaN; end
             eddy.Lz2(tt) = abs(2*pi/x2(2));
+            % save gaussian fit too
+            [x2,~,exitflag] = fminsearch(@(x) gaussfit2(x,eddy.T(tt,:)'-Ti,ze), ...
+                        initGuessGauss,opts);
+            if ~exitflag, x2(2) = NaN; end
+            eddy.Lgauss(tt) = abs(x2(2));
             %eddy.Lz3(tt) = NaN;
         end
-        
         % pcolor(xr,yr,eddy.mask(:,:,tt).*zeta(:,:,tt)); linex(eddy.mx(tt));title(num2str(tt))
         % calculate center velocity
         if tt == 1
@@ -235,6 +245,7 @@ function [eddy] = track_eddy(dir1)
                     'mask = SSH mask to check detection | n = number of pixels | ' ...
                     '(mvx,mvy) = velocity of (mx,my) in km/day | ' ...
                     '(we,ee,ne,se) = West, East, North and South edges of eddy (m) | ' ...
+                    'Lgauss = vertical scale (m) when fitting Gaussian - happens with sine fits too | ' ...
                     'Lz2,3 = Vertical scale (m) when fitting without & with linear trend | ' ...
                     'T = temp profile at (mx,my) | L = equiv diameter for vorticity < 0 region '...
                     'Lmin/Lmaj = minor/major axis length'];
