@@ -6,12 +6,12 @@
 % names cannot start with number
 [~,machine] = system('hostname');
 if strfind(machine,'scylla')
-    FOLDER    = '/scylla-a/home/dcherian/ROMS/runs/eddyshelf/topoeddy/run-6/';
+    FOLDER    = '/scylla-a/home/dcherian/ROMS/runs/eddyshelf/topoeddy/run-5/';
     prefix    = 'tes';
     addpath(genpath('/scylla-a/home/dcherian/tools/'));
 end
 if strfind(machine,'kadal')
-    FOLDER = '/media/data/Work/ROMS/runs/eddyshelf/';
+    FOLDER = '/media/data/Work/eddyshelf/runs/';
     prefix    = 'tek';
 end
 if strfind(machine,'login')
@@ -40,9 +40,9 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 400;
-S.Mm = 200;
-S.N  = 30;
+S.Lm = 393;;
+S.Mm = 256;
+S.N  = 72;
 
 %set value of dx,dy for uniform grid
 % also, min dx,dy for telescoped grid.
@@ -68,7 +68,7 @@ S.Tcline  = 500;    %  S-coordinate surface/bottom stretching width (m)
 % coriolis parameters
 lat_ref = 45;
 f0    = 5e-5; 2 * (2*pi/86400) * sind(lat_ref);
-beta  = 3e-11;
+beta  = 6e-11;
 
 % Physical Parameters
 N2    = 1e-5;
@@ -98,10 +98,17 @@ calc_pv = 0;
 flags.perturb_zeta = 0; % add random perturbation to zeta
 flags.spinup = 0; % if spinup, do not initialize ubar/vbar fields.
 
+flags.telescoping = 1; % telescope dx,dy
+
 flags.front = 0; % create shelfbreak front
 flags.eddy  = 1; % create eddy
 flags.wind  = 0; % create wind forcing file
 flags.floats = 0; % need to figure out float seeding locations?
+flags.ubt_initial = 1; % add barotropic velocity to initial condition?
+flags.OBC = 1;  % create OBC file and set open boundaries
+flags.OBC_from_initial = 1; % copy OBC data from initial condition?
+% flags.ubt_deep = 0; % nudge to ubt only in deep water - NOT WORKING
+%flags.localize_jet = 0;% buffer around eddy where velocity should exist - NOT NEEDED
 
 flags.comment = ['solidbody_katsman = solid body core profile for eddy (Katsman et al. 2003) | ' ...
     'eddy_zhang = use Zhang et al. (2013) profile | ' ...
@@ -112,22 +119,6 @@ flags.comment = ['solidbody_katsman = solid body core profile for eddy (Katsman 
     ' barotropic velocity field | fplanezeta = f-plane solution for zeta (BT vel) |' ...
     ' vprof_gaussian = if 1, then eddy is Gaussian in vertical'];
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SPONGE PARAMETERS
-flags.sponge = 1;
-
-% NOT IMPLEMENTED YET
-sponge.width = 40 * 1000; % in km
-sponge.east = 1;
-sponge.west = 1;
-sponge.north = 1;
-sponge.south = 0;
-sponge.maxfactor = 1;
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% OBC variables
-flags.OBC = 1;  % create OBC file and set open boundaries
-flags.OBC_from_initial = 1; % copy OBC data from initial condition?
-% flags.ubt_deep = 0; % nudge to ubt only in deep water - NOT WORKING
-%flags.localize_jet = 0;% buffer around eddy where velocity should exist - NOT NEEDED
 % DO NOT CHANGE THIS ORDER
 if flags.OBC
     OBC.west  = true;           % process western  boundary segment
@@ -139,7 +130,6 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  Barotropic background flow parameters
 flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
 flags.bg_shear = 0;
-flags.ubt_initial = 1; % add barotropic velocity to initial condition?
 
 bg.ubt = 0.01; % m/s barotropic velocity
 bg.vbt = 0;-0.04; % m/s barotropic velocity
@@ -157,7 +147,7 @@ bg.comment = ['shear = shear_fac * max(eddy vorticity) | ', ...
 flags.flat_bottom = 0; % set depth in Z above
 flags.crooked_bathy = 0;
 
-bathy.H_shelf  = 100;
+bathy.H_shelf  = 75;
 bathy.L_shelf  = 40 * 1000;
 bathy.L_slope  = 50 * 1000;
 bathy.axis = 'y'; % CROSS SHELF AXIS
@@ -221,10 +211,10 @@ flags.vprof_gaussian = 0;%~flags.eddy_zhang; % eddy is gaussian in vertical?
 eddy.dia    = NaN; % 2xNH/pi/f0 - determined later
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
-eddy.tamp   = 0.28; % controls gradient
-eddy.buffer_sp = sponge.width; % distance from  4.3 (2.3) *r0 to sponge edge
+eddy.tamp   = 0.26; % controls gradient
+eddy.buffer_sp = 40*1000; % distance from  4.3 (2.3) *r0 to sponge edge
 eddy.buffer = NaN;7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
-eddy.cx     = X/2-90*1000; % if NaN, determined using buffer later
+eddy.cx     = X/2-70*1000; % if NaN, determined using buffer later
 eddy.cy     = NaN;Y/2; %              "
 eddy.theta0 = pi/2; % surface phase anomaly from Zhang et al. (2013)
                     % 7/16 * pi for WCR
@@ -640,16 +630,6 @@ spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
 bathy.h = S.h;
 
 fprintf('\n Bathy - %4.1f MB \n\n', monitor_memory_whos);
-
-%% Sponge
-S.visc_factor = ones(size(S.x_rho));
-S.diff_factor = ones(size(S.x_rho));
-
-nccreate(GRDname,'diff_factor','Dimensions',{'xi_rho' S.Lm+2 'eta_rho' S.Mm+2});
-nccreate(GRDname,'visc_factor','Dimensions',{'xi_rho' S.Lm+2 'eta_rho' S.Mm+2});
-
-%if flags.sponge
-%end
 
 %% Now set initial conditions - first shelfbreak front
 
@@ -1537,7 +1517,7 @@ if S.NPT > 0
         vname = sprintf('dye_%02d',ii);
         eval(['ncwrite(S.ncname,''' vname ''',' vname ');']);
     end
-    ncwrite(S.ncname,'dye_time',0);
+
     fprintf('\n Passive Tracer - %4.1f MB \n\n', monitor_memory_whos);
 end
 
@@ -1640,17 +1620,18 @@ if flags.OBC == 1
     end
     
     % Write boundary conditions to file
-    nc_write(Sbr.ncname,'bry_time',bry_time,1);
     for mm = 1:size(boundaries,1);
         if OBC.(char(boundaries(mm,:))) % if open boundary
             for jj = 1:size(VarList,1)
                 varname = sprintf('%s_%s',char(VarList{jj}),char(boundaries(mm,:)));
                 disp(['Writing ' varname]);
-                eval(['nc_write(Sbr.ncname,''' varname ''',' varname ');']);
+                eval(['ncwrite(Sbr.ncname,''' varname ''',' varname ');']);
             end
         end
     end
+    ncwrite(Sbr.ncname,'bry_time',bry_time);
   
+    % set and write passive tracer data boundary conditions
     if S.NPT > 0
        for mm=1:size(boundaries,1)
            if OBC.(char(boundaries(mm,:)))
@@ -1662,6 +1643,7 @@ if flags.OBC == 1
                end
            end
        end
+       ncwrite(Sbr.ncname,'dye_time',bry_time);
     end
     fprintf('\n OBC - %4.1f MB \n\n', monitor_memory_whos);
 end
@@ -1822,8 +1804,7 @@ ncwrite(GRID_NAME, 'pn',        S.pn);
 ncwrite(GRID_NAME, 'dndx',      S.dndx);
 ncwrite(GRID_NAME, 'dmde',      S.dmde);
 ncwrite(GRID_NAME, 'angle',     S.angle);
-ncwrite(GRID_NAME, 'visc_factor', S.visc_factor);
-ncwrite(GRID_NAME, 'diff_factor', S.diff_factor);
+
 ncwrite(INIname,   'spherical',   S.spherical);
 ncwrite(INIname,   'Vtransform',  S.Vtransform);
 ncwrite(INIname,   'Vstretching', S.Vstretching);
