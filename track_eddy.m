@@ -46,8 +46,6 @@ function [eddy] = track_eddy(dir1)
     xr   = xr(2:end-1,2:end-1,end);
     yr   = yr(2:end-1,2:end-1,end);
     
-    sz = size(zeta(:,:,1));
-    
     % initial guess for vertical scale fit
     params = read_params_from_ini(dir1);
     if ~isfield(params.flags,'vprof_gaussian') || params.flags.vprof_gaussian
@@ -88,32 +86,56 @@ function [eddy] = track_eddy(dir1)
     eddy.xr = xr;
     eddy.yr = yr;
     
+    % strategy is to interpolate zeta, vorticity onto uniform grid in the
+    % horizontal - then I don't have to recode all the builtin image
+    % processing functions that I make use of
+    % suffix 'i' indicates interpolated variables
+    dxi = min(diff(xr(:,1,1),1,1));
+    dyi = min(diff(yr(1,:,1),1,2));
+    xrivec = min(xr(:)):dxi:max(xr(:));
+    yrivec = min(yr(:)):dyi:max(yr(:));
+    [xri,yri] = meshgrid(xrivec,yrivec);
+    % for interp2 later
+    [xrgrd,yrgrd] = meshgrid(xr(:,1),yr(1,:));
+    sz = size(xri');
+    
     for tt=1:size(zeta,3)
         if tt == 1,
             mask = ones(sz);
             d_sbreak = Inf;
             thresh = nan;
         else 
-            if tt ==  89,
+            if tt ==  105,
                 disp('debug time!');
             end
             mask = nan(sz);
             lx = eddy.dia(tt-1)/2 + limit_x;
             ly = eddy.dia(tt-1)/2 + limit_y;
-            ix1 = find_approx(xr(:,1),eddy.cx(tt-1)-lx,1);
-            ix2 = find_approx(xr(:,1),eddy.cx(tt-1)+lx,1);
-            iy1 = find_approx(yr(1,:),eddy.cy(tt-1)-ly,1);
-            iy2 = find_approx(yr(1,:),eddy.cy(tt-1)+ly,1);
+            ix1 = find_approx(xri(1,:),eddy.cx(tt-1)-lx,1);
+            ix2 = find_approx(xri(1,:),eddy.cx(tt-1)+lx,1);
+            iy1 = find_approx(yri(:,1),eddy.cy(tt-1)-ly,1);
+            iy2 = find_approx(yri(:,1),eddy.cy(tt-1)+ly,1);
 
             thresh = eddy.thresh(tt-1);
             mask(ix1:ix2,iy1:iy2) = 1;
             % distance to shelfbreak in *m*
 %            d_sbreak = eddy.cx(tt-1)-sbreak;
         end
+        
+        % interpolate to denser grid
+        izeta = interp2(xrgrd,yrgrd,bsxfun(@minus,zeta(:,:,tt), zeta_bg)', ....
+                        xrivec', yrivec)';
+        ivor = interp2(xrgrd, yrgrd, vor(:,:,tt)', xrivec', yrivec)';
+        
+        % find eddy using surface signatures
         fprintf('tt = %3d | ', tt);
-        temp = eddy_diag(bsxfun(@minus,zeta(:,:,tt),zeta_bg) .* mask, ...
-                            vor(:,:,tt).*mask,dx,dy,sbreak,thresh); %w(:,:,tt));
-
+        temp = eddy_diag(izeta .* mask, ...
+                            ivor.*mask,dxi,dyi,sbreak,thresh); %w(:,:,tt));
+        % let's interpolate the masks back to the coarser grid
+        imask = interp2(xri,yri,temp.mask',xrgrd,yrgrd,'nearest')';
+        ivormask = interp2(xri,yri,temp.vor.mask',xrgrd,yrgrd,'nearest')';
+        
+        % do more diagnostics
         % [cx,cy] = location of weighted center (first moment)
         eddy.cx(tt)  = temp.cx;
         eddy.cy(tt)  = temp.cy;
@@ -125,9 +147,9 @@ function [eddy] = track_eddy(dir1)
         % diameter of circle with same area
         eddy.dia(tt) = temp.dia;
         % mask for diagnostic purposes
-        eddy.mask(:,:,tt) = temp.mask;
+        eddy.mask(:,:,tt) = imask;
         eddy.thresh(tt) = temp.thresh;
-        eddy.vormask(:,:,tt) = temp.vor.mask;
+        eddy.vormask(:,:,tt) = ivormask;
         % number of pixels in eddy
         eddy.n(tt) = temp.n;
         % north, south, west & east edges
@@ -261,6 +283,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
     end
     thresh_loop = linspace(thresh_min,nanmax(zeta(:)),10); % in m
     %thresh_loop = linspace(nanmin(zeta(:)),nanmax(zeta(:)),10);
+    %%
     for ii=1:length(thresh_loop)
         threshold = thresh_loop(ii);
         
@@ -273,8 +296,8 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
         
         % sort regions by n
         nn = [];
-        for ii=1:regions.NumObjects
-            nn(ii) = length(regions.PixelIdxList{ii});
+        for ll=1:regions.NumObjects
+            nn(ll) = length(regions.PixelIdxList{ll});
         end
         [~,ind] = sort(nn,'descend');
         
@@ -345,16 +368,19 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
             
             % Calculate properties of region
             %c = regionprops(maskreg,zeta,'WeightedCentroid');
-            
-            % Criterion 7 - if multiple regions (eddies), only store the one
-            % closest to shelfbreak
             cx = dx/2 + props.WeightedCentroid(2) * dx;
             cy = dy/2 + props.WeightedCentroid(1) * dy;
             
-            if exist('eddy','var') 
-                if (cx-sbreak) > (eddy.cx-sbreak) && (eddy.cx-sbreak > 0)
-                    continue
-                else
+            % Criterion 7 - if multiple regions (eddies), only store the one
+            % closest to shelfbreak
+            % find location of maximum that is closest to shelfbreak
+            % IGNORE this shelfbreak thing - just find the largest local
+            % maxima
+            
+            %if exist('eddy','var') 
+            %    if (cx-sbreak) > (eddy.cx-sbreak) && (eddy.cx-sbreak > 0)
+            %        continue
+            %    else
                     % current eddy is closer but could be bigger than we want
                     % mask out the eddy that is farther away and
                     % recursively call this function
@@ -363,19 +389,24 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
 %                     eddy = eddy_diag(zeta .* mask,dx,dy,sbreak,w);
 %                     return
                     
-                end
-            end
-
+             %   end
+            %end 
+            
+            % make grid index matrices
+            ix = bsxfun(@times,ones(size(zeta)),[1:size(zeta,1)]');
+            iy = bsxfun(@times,ones(size(zeta)),[1:size(zeta,2)]);
+            %indx = nanmin(nanmin(fillnan(local_max.*ix,0)));
+            %[~,indy] = max(local_max(indx,:));
+            [~,imax] = max(zeta(indices));
+            imax = indices(imax);
+            indx = ix(imax);
+            indy = iy(imax);
+            
+            
             % I have an eddy!!!
             flag_found = 1;
             fprintf('Eddy found with threshold %.3f \n', threshold);
             %imagesc(zreg'); 
-            
-            % find location of maximum that is closest to shelfbreak
-            ix = bsxfun(@times,ones(size(local_max)),[1:size(local_max,1)]');
-            iy = bsxfun(@times,ones(size(local_max)),[1:size(local_max,2)]);
-            indx = nanmin(nanmin(fillnan(local_max.*ix,0)));
-            [~,indy] = max(local_max(indx,:));
             
             xmax = fillnan(maskreg(:).*ix(:),0);
             ymax = fillnan(maskreg(:).*iy(:),0);
