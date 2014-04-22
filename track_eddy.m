@@ -33,12 +33,15 @@ function [eddy] = track_eddy(dir1)
 
     eddy.h = ncread(file,'h');
     eddy.t = roms_read_data(dir1,'ocean_time')/86400; % required only for dt
-    dt = eddy.t(2)-eddy.t(1);
-    dx = xr(2,1,1) - xr(1,1,1);
-    dy = yr(1,2,1) - yr(1,1,1);
+    
+    %dx = xr(2,1,1) - xr(1,1,1);
+    %dy = yr(1,2,1) - yr(1,1,1);
 
     zeta = zeta(2:end-1,2:end-1,:);
-    vor = avg1(avg1(diff(v,1,1)./dx - diff(u,1,2)./dy,1),2);
+    vor = avg1(avg1( ...
+                    bsxfun(@rdivide, diff(v,1,1), diff(avg1(xr(:,:,1),2),1,1)) ...
+                  - bsxfun(@rdivide, diff(u,1,2), diff(avg1(yr(:,:,1),1),1,2)) ...
+                  ,1),2);
     clear u v
     xr   = xr(2:end-1,2:end-1,end);
     yr   = yr(2:end-1,2:end-1,end);
@@ -82,13 +85,16 @@ function [eddy] = track_eddy(dir1)
         zeta_bg = zeta(1,:,1);
     end
     
+    eddy.xr = xr;
+    eddy.yr = yr;
+    
     for tt=1:size(zeta,3)
         if tt == 1,
             mask = ones(sz);
             d_sbreak = Inf;
             thresh = nan;
         else 
-            if tt ==  110,
+            if tt ==  89,
                 disp('debug time!');
             end
             mask = nan(sz);
@@ -187,6 +193,7 @@ function [eddy] = track_eddy(dir1)
             eddy.cvy(1) = NaN;
         else
             % dt in days; convert dx,dy to km
+            dt = eddy.t(tt) - eddy.t(tt-1);
             eddy.mvx(tt) = (eddy.mx(tt) - eddy.mx(tt-1))./dt/1000;
             eddy.mvy(tt) = (eddy.my(tt) - eddy.my(tt-1))./dt/1000;
             
@@ -195,8 +202,6 @@ function [eddy] = track_eddy(dir1)
             eddy.cvy(tt) = (eddy.cy(tt) - eddy.cy(tt-1))./dt/1000;
         end
     end
-    eddy.xr = xr;
-    eddy.yr = yr;
     
     eddy.Lz2(abs(eddy.Lz2) > max(abs(zr(:)))) = NaN;
     %eddy.Lz3(abs(eddy.Lz3) > max(abs(zr(:)))) = NaN;
