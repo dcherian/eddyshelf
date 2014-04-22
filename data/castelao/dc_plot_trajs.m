@@ -49,8 +49,8 @@ colors = distinguishable_colors(length(eaX));
 set(gca,'ColorOrder',colors);
 for ii=1:length(eaX)/2
     if mask(ii)
-        plot(eaX{ii},eaY{ii},'b');%'color',colors(ii,:));
-        plot(eaX{ii}(1),eaY{ii}(1),'r.','MarkerSize',12);
+        plot(eaX{ii}*mask(ii),eaY{ii}*mask(ii),'b');%'color',colors(ii,:));
+        plot(eaX{ii}(1)*mask(ii),eaY{ii}(1)*mask(ii),'r.','MarkerSize',12);
     end
 end
 xlabel('lon'); ylabel('lat'); beautify([14 14 16]);
