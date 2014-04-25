@@ -5,10 +5,10 @@ function [eddy] = track_eddy(dir1)
         file = char([dir1 '/' char(fnames(1))]);
         [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
         tic;
-        disp('Reading data');
-        zeta  = roms_read_data(dir1,'zeta');
-        u     = roms_read_data(dir1,'u',[1 1 size(zr,3) 1],[Inf Inf 1 Inf]);
-        v     = roms_read_data(dir1,'v',[1 1 size(zr,3) 1],[Inf Inf 1 Inf]);
+        zeta  = dc_roms_read_data(dir1,'zeta');
+        N = size(zr,3);
+        u     = dc_roms_read_data(dir1,'u',[],{'z' N N});
+        v     = dc_roms_read_data(dir1,'v',[],{'z' N N});
         toc;
     else
         fname = dir1;
@@ -18,7 +18,6 @@ function [eddy] = track_eddy(dir1)
         file = fname;
         [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
         tic;
-        disp('Reading data');
         zeta = double(ncread(fname,'zeta'));
         u     = squeeze(double(ncread(fname,'u',[1 1 size(zr,3) 1],[Inf Inf 1 Inf])));
         v     = squeeze(double(ncread(fname,'v',[1 1 size(zr,3) 1],[Inf Inf 1 Inf])));
@@ -33,17 +32,18 @@ function [eddy] = track_eddy(dir1)
 
     eddy.h = ncread(file,'h');
     eddy.t = roms_read_data(dir1,'ocean_time')/86400; % required only for dt
-    dt = eddy.t(2)-eddy.t(1);
-    dx = xr(2,1,1) - xr(1,1,1);
-    dy = yr(1,2,1) - yr(1,1,1);
+    
+    %dx = xr(2,1,1) - xr(1,1,1);
+    %dy = yr(1,2,1) - yr(1,1,1);
 
     zeta = zeta(2:end-1,2:end-1,:);
-    vor = avg1(avg1(diff(v,1,1)./dx - diff(u,1,2)./dy,1),2);
+    vor = avg1(avg1( ...
+                    bsxfun(@rdivide, diff(v,1,1), diff(avg1(xr(:,:,1),2),1,1)) ...
+                  - bsxfun(@rdivide, diff(u,1,2), diff(avg1(yr(:,:,1),1),1,2)) ...
+                  ,1),2);
     clear u v
     xr   = xr(2:end-1,2:end-1,end);
     yr   = yr(2:end-1,2:end-1,end);
-    
-    sz = size(zeta(:,:,1));
     
     % initial guess for vertical scale fit
     params = read_params_from_ini(dir1);
@@ -68,8 +68,10 @@ function [eddy] = track_eddy(dir1)
         try
             initGuess(3) = params.eddy.theta0;
         catch ME
-            initGuess(3) = 0;
+            initGuess(3) = pi/2;
         end
+        
+        initGuessGauss = [params.phys.T0 params.eddy.depth];
     end
 
     % detect shelfbreak
@@ -82,32 +84,59 @@ function [eddy] = track_eddy(dir1)
         zeta_bg = zeta(1,:,1);
     end
     
+    eddy.xr = xr;
+    eddy.yr = yr;
+    
+    % strategy is to interpolate zeta, vorticity onto uniform grid in the
+    % horizontal - then I don't have to recode all the builtin image
+    % processing functions that I make use of
+    % suffix 'i' indicates interpolated variables
+    dxi = min(diff(xr(:,1,1),1,1));
+    dyi = min(diff(yr(1,:,1),1,2));
+    xrivec = min(xr(:)):dxi:max(xr(:));
+    yrivec = min(yr(:)):dyi:max(yr(:));
+    [xri,yri] = meshgrid(xrivec,yrivec);
+    % for interp2 later
+    [xrgrd,yrgrd] = meshgrid(xr(:,1),yr(1,:));
+    sz = size(xri');
+    
     for tt=1:size(zeta,3)
         if tt == 1,
             mask = ones(sz);
             d_sbreak = Inf;
             thresh = nan;
         else 
-            if tt ==  110,
+            if tt ==  104,
                 disp('debug time!');
             end
             mask = nan(sz);
             lx = eddy.dia(tt-1)/2 + limit_x;
             ly = eddy.dia(tt-1)/2 + limit_y;
-            ix1 = find_approx(xr(:,1),eddy.cx(tt-1)-lx,1);
-            ix2 = find_approx(xr(:,1),eddy.cx(tt-1)+lx,1);
-            iy1 = find_approx(yr(1,:),eddy.cy(tt-1)-ly,1);
-            iy2 = find_approx(yr(1,:),eddy.cy(tt-1)+ly,1);
+            ix1 = find_approx(xri(1,:),eddy.cx(tt-1)-lx,1);
+            ix2 = find_approx(xri(1,:),eddy.cx(tt-1)+lx,1);
+            iy1 = find_approx(yri(:,1),eddy.cy(tt-1)-ly,1);
+            iy2 = find_approx(yri(:,1),eddy.cy(tt-1)+ly,1);
 
             thresh = eddy.thresh(tt-1);
             mask(ix1:ix2,iy1:iy2) = 1;
             % distance to shelfbreak in *m*
 %            d_sbreak = eddy.cx(tt-1)-sbreak;
         end
+        
+        % interpolate to denser grid
+        izeta = interp2(xrgrd,yrgrd,bsxfun(@minus,zeta(:,:,tt), zeta_bg)', ....
+                        xrivec', yrivec)';
+        ivor = interp2(xrgrd, yrgrd, vor(:,:,tt)', xrivec', yrivec)';
+        
+        % find eddy using surface signatures
         fprintf('tt = %3d | ', tt);
-        temp = eddy_diag(bsxfun(@minus,zeta(:,:,tt),zeta_bg) .* mask, ...
-                            vor(:,:,tt).*mask,dx,dy,sbreak,thresh); %w(:,:,tt));
-
+        temp = eddy_diag(izeta .* mask, ...
+                            ivor.*mask,dxi,dyi,sbreak,thresh); %w(:,:,tt));
+        % let's interpolate the masks back to the coarser grid
+        imask = interp2(xri,yri,temp.mask',xrgrd,yrgrd,'nearest')';
+        ivormask = interp2(xri,yri,temp.vor.mask',xrgrd,yrgrd,'nearest')';
+        
+        % do more diagnostics
         % [cx,cy] = location of weighted center (first moment)
         eddy.cx(tt)  = temp.cx;
         eddy.cy(tt)  = temp.cy;
@@ -119,9 +148,9 @@ function [eddy] = track_eddy(dir1)
         % diameter of circle with same area
         eddy.dia(tt) = temp.dia;
         % mask for diagnostic purposes
-        eddy.mask(:,:,tt) = temp.mask;
+        eddy.mask(:,:,tt) = imask;
         eddy.thresh(tt) = temp.thresh;
-        eddy.vormask(:,:,tt) = temp.vor.mask;
+        eddy.vormask(:,:,tt) = ivormask;
         % number of pixels in eddy
         eddy.n(tt) = temp.n;
         % north, south, west & east edges
@@ -143,29 +172,33 @@ function [eddy] = track_eddy(dir1)
         eddy.vor.amp(tt) = temp.vor.amp;
         eddy.vor.cx(tt) = temp.vor.cx;
         eddy.vor.cy(tt) = temp.vor.cy;
-        % diagnose vertical scale (fit Gaussian)
+        % diagnose vertical scale (fit Gaussian / sine)
         imx = find_approx(xr(:,1),eddy.mx(tt),1);
         imy = find_approx(yr(1,:),eddy.my(tt),1);
         ze  = squeeze(zr(imx,imy,:)); % z co-ordinate at center of eddy
         try
-            eddy.T(tt,:)   = double(squeeze(ncread(file,'temp',[imx imy 1 tt-tt0],[1 1 Inf 1])));
+            eddy.T(tt,:) = double(squeeze(ncread(file,'temp',[imx imy 1 tt-tt0], ...
+                            [1 1 Inf 1])));
         catch ME
             disp([' Moving to next file tt = ' num2str(tt) ' - ' char(fnames(kk))]);
             file = [dir1 '/' char(fnames(kk))];
             kk = kk +1;
             tt0 = tt-1;
-            eddy.T(tt,:)   = double(squeeze(ncread(file,'temp',[imx imy 1 tt-tt0],[ ...
+            eddy.T(tt,:) = double(squeeze(ncread(file,'temp',[imx imy 1 tt-tt0],[ ...
                                                     1 1 Inf 1])));
         end
         
         if params.bathy.axis == 'x'
-            Ti = double(squeeze(ncread(file,'temp',[imx  size(xr,2)  1 tt-tt0],[1 1 Inf 1])));
+            Ti = double(squeeze(ncread(file,'temp', ...
+                    [imx  size(xr,2)  1 tt-tt0],[1 1 Inf 1])));
         else
-            Ti = double(squeeze(ncread(file,'temp',[size(xr,1)  imy  1 tt-tt0],[1 1 Inf 1])));
+            Ti = double(squeeze(ncread(file,'temp', ...
+                    [size(xr,1)  imy  1 tt-tt0],[1 1 Inf 1])));
         end
-        opts = optimset('MaxFunEvals',1e3);
+        opts = optimset('MaxFunEvals',1e5);
         if ~isfield(params.flags,'vprof_gaussian') || params.flags.vprof_gaussian
-            [x2,~,exitflag] = fminsearch(@(x) gaussfit2(x,eddy.T(tt,:)'-Ti,ze),initGuess2,opts);
+            [x2,~,exitflag] = fminsearch(@(x) gaussfit2(x,eddy.T(tt,:)'-Ti,ze), ...
+                initGuess2,opts);
             if ~exitflag, x2(2) = NaN; end
             %[x3,~,exitflag] = fminsearch(@(x) gaussfit3(x,eddy.T(tt,:)'-Ti,ze),initGuess3,opts);
             %if ~exitflag, x3(2) = NaN; end
@@ -173,11 +206,17 @@ function [eddy] = track_eddy(dir1)
             %eddy.Lz3(tt)  = NaN;%abs(x3(2));
         else
             %fit sinusoid
-            [x2,~,exitflag] = fminsearch(@(x) sinefit(x,eddy.T(tt,:)'-Ti,ze),initGuess,opts);
+            [x2,~,exitflag] = fminsearch(@(x) sinefit(x,eddy.T(tt,:)'-Ti,ze), ...
+                                initGuess,opts);
+            if ~exitflag, x2(2) = NaN; end
             eddy.Lz2(tt) = abs(2*pi/x2(2));
+            % save gaussian fit too
+            [x2,~,exitflag] = fminsearch(@(x) gaussfit2(x,eddy.T(tt,:)'-Ti,ze), ...
+                        initGuessGauss,opts);
+            if ~exitflag, x2(2) = NaN; end
+            eddy.Lgauss(tt) = abs(x2(2));
             %eddy.Lz3(tt) = NaN;
         end
-        
         % pcolor(xr,yr,eddy.mask(:,:,tt).*zeta(:,:,tt)); linex(eddy.mx(tt));title(num2str(tt))
         % calculate center velocity
         if tt == 1
@@ -187,6 +226,7 @@ function [eddy] = track_eddy(dir1)
             eddy.cvy(1) = NaN;
         else
             % dt in days; convert dx,dy to km
+            dt = eddy.t(tt) - eddy.t(tt-1);
             eddy.mvx(tt) = (eddy.mx(tt) - eddy.mx(tt-1))./dt/1000;
             eddy.mvy(tt) = (eddy.my(tt) - eddy.my(tt-1))./dt/1000;
             
@@ -195,8 +235,6 @@ function [eddy] = track_eddy(dir1)
             eddy.cvy(tt) = (eddy.cy(tt) - eddy.cy(tt-1))./dt/1000;
         end
     end
-    eddy.xr = xr;
-    eddy.yr = yr;
     
     eddy.Lz2(abs(eddy.Lz2) > max(abs(zr(:)))) = NaN;
     %eddy.Lz3(abs(eddy.Lz3) > max(abs(zr(:)))) = NaN;
@@ -208,6 +246,7 @@ function [eddy] = track_eddy(dir1)
                     'mask = SSH mask to check detection | n = number of pixels | ' ...
                     '(mvx,mvy) = velocity of (mx,my) in km/day | ' ...
                     '(we,ee,ne,se) = West, East, North and South edges of eddy (m) | ' ...
+                    'Lgauss = vertical scale (m) when fitting Gaussian - happens with sine fits too | ' ...
                     'Lz2,3 = Vertical scale (m) when fitting without & with linear trend | ' ...
                     'T = temp profile at (mx,my) | L = equiv diameter for vorticity < 0 region '...
                     'Lmin/Lmaj = minor/major axis length'];
@@ -256,6 +295,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
     end
     thresh_loop = linspace(thresh_min,nanmax(zeta(:)),10); % in m
     %thresh_loop = linspace(nanmin(zeta(:)),nanmax(zeta(:)),10);
+    %%
     for ii=1:length(thresh_loop)
         threshold = thresh_loop(ii);
         
@@ -268,8 +308,8 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
         
         % sort regions by n
         nn = [];
-        for ii=1:regions.NumObjects
-            nn(ii) = length(regions.PixelIdxList{ii});
+        for ll=1:regions.NumObjects
+            nn(ll) = length(regions.PixelIdxList{ll});
         end
         [~,ind] = sort(nn,'descend');
         
@@ -331,7 +371,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
             
             % Criterion 7 - solidity must be good - helps get rid of some
             % thin 'isthumuses'
-            if props.Solidity  < 0.90, continue; end
+            if props.Solidity  < 0.75, continue; end
             
             % Criterion 8 - low 'rectangularity' - gets rid of rectangles
             % that are sometime picked up
@@ -340,16 +380,19 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
             
             % Calculate properties of region
             %c = regionprops(maskreg,zeta,'WeightedCentroid');
-            
-            % Criterion 7 - if multiple regions (eddies), only store the one
-            % closest to shelfbreak
             cx = dx/2 + props.WeightedCentroid(2) * dx;
             cy = dy/2 + props.WeightedCentroid(1) * dy;
             
-            if exist('eddy','var') 
-                if (cx-sbreak) > (eddy.cx-sbreak) && (eddy.cx-sbreak > 0)
-                    continue
-                else
+            % Criterion 7 - if multiple regions (eddies), only store the one
+            % closest to shelfbreak
+            % find location of maximum that is closest to shelfbreak
+            % IGNORE this shelfbreak thing - just find the largest local
+            % maxima
+            
+            %if exist('eddy','var') 
+            %    if (cx-sbreak) > (eddy.cx-sbreak) && (eddy.cx-sbreak > 0)
+            %        continue
+            %    else
                     % current eddy is closer but could be bigger than we want
                     % mask out the eddy that is farther away and
                     % recursively call this function
@@ -358,19 +401,24 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
 %                     eddy = eddy_diag(zeta .* mask,dx,dy,sbreak,w);
 %                     return
                     
-                end
-            end
-
+             %   end
+            %end 
+            
+            % make grid index matrices
+            ix = bsxfun(@times,ones(size(zeta)),[1:size(zeta,1)]');
+            iy = bsxfun(@times,ones(size(zeta)),[1:size(zeta,2)]);
+            %indx = nanmin(nanmin(fillnan(local_max.*ix,0)));
+            %[~,indy] = max(local_max(indx,:));
+            [~,imax] = max(zeta(indices));
+            imax = indices(imax);
+            indx = ix(imax);
+            indy = iy(imax);
+            
+            
             % I have an eddy!!!
             flag_found = 1;
             fprintf('Eddy found with threshold %.3f \n', threshold);
             %imagesc(zreg'); 
-            
-            % find location of maximum that is closest to shelfbreak
-            ix = bsxfun(@times,ones(size(local_max)),[1:size(local_max,1)]');
-            iy = bsxfun(@times,ones(size(local_max)),[1:size(local_max,2)]);
-            indx = nanmin(nanmin(fillnan(local_max.*ix,0)));
-            [~,indy] = max(local_max(indx,:));
             
             xmax = fillnan(maskreg(:).*ix(:),0);
             ymax = fillnan(maskreg(:).*iy(:),0);
