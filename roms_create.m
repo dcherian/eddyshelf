@@ -131,7 +131,8 @@ end
 flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
 flags.bg_shear = 0;
 
-bg.ubt = 0.01; % m/s barotropic velocity
+bg.ubt = NaN; % m/s barotropic velocity
+              % if NaN; eddy.nl is used to determine it later
 bg.vbt = 0;-0.04; % m/s barotropic velocity
 bg.shear_fac = 0.2; 
 bg.shear = NaN; % set later as bg.shear_fac * max(eddy vorticity)
@@ -147,13 +148,16 @@ bg.comment = ['shear = shear_fac * max(eddy vorticity) | ', ...
 flags.flat_bottom = 0; % set depth in Z above
 flags.crooked_bathy = 0;
 
+bathy.S_sh = 0; % Slope Burger number for shelf
+bathy.S_sl = 7; % slope Burger number for slope
+
 bathy.H_shelf  = 75;
 bathy.L_shelf  = 40 * 1000;
 bathy.L_slope  = 50 * 1000;
 bathy.axis = 'y'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
-bathy.sl_shelf = 0;
-bathy.sl_slope = 0.02;
+bathy.sl_shelf = bathy.S_sh * f0/sqrt(N2);
+bathy.sl_slope = bathy.S_sl * f0/sqrt(N2);
 bathy.sl_deep = 0;1/8 * f0/sqrt(N2);
 
 % bathymetry smoothing options
@@ -208,13 +212,18 @@ flags.eddy_zhang = ~flags.solidbody_katsman;
 flags.vprof_gaussian = 0;%~flags.eddy_zhang; % eddy is gaussian in vertical?
 
 % Eddy parameters - all distances in m
+eddy.Bu     = 9; % ratio of (eddy radius to deformation radius )^2
+eddy.nl     = 4; % eddy velocity scale / eddy translation velocity
+                 % parameter
+                 % if bg.ubt = NaN; this is used to determine it later
+
 eddy.dia    = NaN; % 2xNH/pi/f0 - determined later
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
-eddy.tamp   = 0.26; % controls gradient
-eddy.buffer_sp = 40*1000; % distance from  4.3 (2.3) *r0 to sponge edge
+eddy.tamp   = 0.1; % controls gradient
+eddy.buffer_sp = 60*1000; % distance from  4.3 (2.3) *r0 to sponge edge
 eddy.buffer = NaN;7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
-eddy.cx     = X/2-70*1000; % if NaN, determined using buffer later
+eddy.cx     = NaN; % if NaN, determined using buffer later
 eddy.cy     = NaN;Y/2; %              "
 eddy.theta0 = pi/2; % surface phase anomaly from Zhang et al. (2013)
                     % 7/16 * pi for WCR
@@ -223,7 +232,8 @@ eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
                 ' | (cx,cy) = (x,y) location of center | (ix,iy) = indices of center | ' ...
                 'U = max. azimuthal velocity | R = radius of max. vel (U)' ...
                 '| theta0 = surface phase anomaly | buffer = distance from domain edge ' ...
-                '/start of deep water to 4.2*r0 (zhang) or 2.2 r0 (katsman)'];
+                '/start of deep water to 4.2*r0 (zhang) or 2.2 r0 ' ...
+                '(katsman) | nl = U/c in chelton terminology'];
             
 if flags.solidbody_katsman
     eddy.a      = 3;  % ? in Katsman et al. (2003) - NOT FOR ZHANG PROFILE
@@ -864,7 +874,8 @@ if flags.eddy
     end
     
     % Set eddy parameters that depend on something else
-    eddy.dia = 2* sqrt(phys.N2)*Z/pi/f0; % twice the deformation radius NH/pi/f
+    eddy.Ldef = sqrt(phys.N2)*Z/pi/f0; % deformation radius NH/pi/f
+    eddy.dia = 2* sqrt(eddy.Bu) * Ldef;
     if flags.eddy_zhang
         xtra = (4.3)*eddy.dia/2;
     else
@@ -874,7 +885,7 @@ if flags.eddy
     if isnan(eddy.buffer) 
         %start eddy 1 deformation radius away
         %from shelfbreak
-        eddy.buffer = eddy.dia/2;
+        eddy.buffer = eddy.Ldef;
     end
     
     switch bathy.axis % cross-shore axis
@@ -885,7 +896,7 @@ if flags.eddy
             if isnan(eddy.cy)
                 % add deformation radius buffer away from boundary
                 % note there is no sponge at the inflow boundary
-                eddy.cy = Y-eddy.dia/2-xtra-eddy.buffer_sp; 
+                eddy.cy = Y-eddy.Ldef-xtra-eddy.buffer_sp; 
             end
             fprintf('Distance from eastern edge = %.2f km \n', ...
                     (X-eddy.cx-xtra)/1000);
@@ -897,9 +908,9 @@ if flags.eddy
                 if ~flags.ubt_initial
                     % add deformation radius buffer away from boundary
                     % note there is no sponge at the inflow boundary
-                    eddy.cx = X-eddy.dia/2-xtra-eddy.buffer_sp; % center of eddy
+                    eddy.cx = X-eddy.Ldef-xtra-eddy.buffer_sp; % center of eddy
                 else
-                    eddy.cx = eddy.buffer_sp + eddy.dia/2+xtra;
+                    eddy.cx = eddy.buffer_sp + eddy.Ldef+xtra;
                 end
             end
             if isnan(eddy.cy)
@@ -1052,11 +1063,12 @@ if flags.eddy
         % condition is that Ro using _geostrophic_ velocity is < 0.25
 %        if  nondim.eddy.Ro > 0.25, error('Error: Ro > 0.25'); end
         nondim.eddy.Rh = eddy.U/phys.beta/eddy.R^2;
-        nondim.eddy.Bu = f0^2  *eddy.R^2 / N2/Z^2;
+        nondim.eddy.Bu = (eddy.R / eddy.Ldef)^2;;
         nondim.eddy.Ri = N2./(TCOEF*g*eddy.tamp/f0/eddy.R).^2;
         nondim.eddy.Bu_temp = TCOEF *g * Z * eddy.tamp / f0^2 / eddy.R^2;
-        fprintf('\n max. Ro = %.2f | Bu = %.2f | Bu_temp = %.2f | Ri = %.2f | Rh = %.2f\n\n', ....
-                nondim.eddy.Ro,nondim.eddy.Bu,nondim.eddy.Bu_temp,nondim.eddy.Ri,nondim.eddy.Rh);
+        fprintf('\n max. Ro = %.2f | Bu = %.2f | Bu_temp = %.2f | Ri = %.2f | Rh = %.2f | Lsl/R = %.2f\n\n', ....
+                nondim.eddy.Ro,nondim.eddy.Bu,nondim.eddy.Bu_temp, ...
+                nondim.eddy.Ri,nondim.eddy.Rh, bathy.L_slope/eddy.R);
         
         
         % calculate Ro using vorticity
@@ -1066,7 +1078,7 @@ if flags.eddy
         Ro1 = max(abs(Ro1(:)));
         fprintf('\n Max. Ro (vor/f)  = %.2f \n', Ro1);
         
-        Lr = eddy.dia/2;
+        Lr = eddy.Ldef;
         vgw1 = sqrt(N2) * Z;
         vr1 = -beta * Lr^2;
         % scaled height
@@ -1178,7 +1190,7 @@ if flags.eddy
     ke = 1/2 * (eddy.u.^2 + eddy.v.^2);
     pe = 0;
     h0 = Z/2; % average depth of upper layer
-    Ld = eddy.dia/2; % deformation radius
+    Ld = eddy.Ldef; % deformation radius
     eta = eddy.temp(:,:,S.N/2);
     num1 = 0;
     num2 = f0^2/h0 * Ld^2 * trapz(yrmat(1,:,1),trapz(xrmat(:,1,1),eta.^2,1),2);
@@ -1208,6 +1220,9 @@ end
 
 % modify velocity and free surface fields
 if flags.ubt_initial == 1
+    if isnan(bg.ubt)
+        bg.ubt = 1/2 * beta * eddy.R^2 + eddy.U/eddy.nl;
+    end
 %     if flags.localize_jet
 %         % find appropriate indices
 %         idz1 = find_approx(squeeze(yrmat(1,:,1)),eddy.cy - eddy.dia/2 - buffer,1);
@@ -1643,7 +1658,6 @@ if flags.OBC == 1
                end
            end
        end
-       ncwrite(Sbr.ncname,'dye_time',bry_time);
     end
     fprintf('\n OBC - %4.1f MB \n\n', monitor_memory_whos);
 end
