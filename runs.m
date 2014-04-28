@@ -24,6 +24,8 @@ properties
     eddy_thresh = 0.7;
     % initial params
     params
+    % fluxes - cross-shore & along-shore
+    csflux; asflux;
     % transport
     eutrans;
     % streamer properties
@@ -792,18 +794,6 @@ methods
         end
     end
     
-    % get eddy center temperature profile
-    function [] = eddycentemp(runs)
-        
-%         % first detect indices for eddy center
-%         
-%         
-%         tic;
-%         for ii = 1:length(runs.time)
-%             dc_roms_read_data(runs.dir,'temp',ii,{'x' 
-%         end
-    end
-    
     % study along-shore jet
     function [] = jetdetect(runs)
         % rossby radius
@@ -942,13 +932,13 @@ methods
         dVas = squeeze(sum( ...
              bsxfun(@times, dV(iasmin:iasmax,2:runs.bathy.isb,:), asmask)));
                 
-        PVCSFLUX = squeeze(sum(sum(bsxfun(@times, ...
+        runs.csflux.pv = squeeze(sum(sum(bsxfun(@times, ...
                      bsxfun(@times,pvcsflux, squeeze( ...
                      dV(2:end-1,runs.bathy.isb-1,:)))...
                      ,csmask),1),2)) ...
                     /runs.bathy.hsb/Las;
 
-        RVCSFLUX = squeeze(sum(sum(bsxfun(@times, ...
+        runs.csflux.rv = squeeze(sum(sum(bsxfun(@times, ...
                      bsxfun(@times,rvcsflux, squeeze( ...
                      dV(2:end-1,runs.bathy.isb-1,:)))...
                      ,csmask),1),2)) ...
@@ -959,32 +949,32 @@ methods
         RVASFLUX = squeeze(sum(sum(rvasflux .* dVas,1),2)) ...
                     /runs.bathy.hsb/Lcs;
                 
-        oPVCSFLUX = orderofmagn(PVCSFLUX);
-        oRVCSFLUX = orderofmagn(RVCSFLUX);
-        oPVASFLUX = orderofmagn(PVASFLUX);
-        oRVASFLUX = orderofmagn(RVASFLUX);
+        oPVCSFLUX = orderofmagn(runs.csflux.pv);
+        oRVCSFLUX = orderofmagn(runs.csflux.rv);
+        oPVASFLUX = orderofmagn(runs.asflux.pv);
+        oRVASFLUX = orderofmagn(runs.asflux.rv);
         
         oPV = min(oPVCSFLUX, oPVASFLUX);
         oRV = min(oRVCSFLUX, oRVASFLUX);
         
         %%
-        figure;
-        tt0 = 40;
-        isb = runs.bathy.isb;
-        [~,hc] = contourf(runs.rgrid.xr(2:end-1,2:isb)/1000, ...
-                          runs.rgrid.yr(2:end-1,2:isb)/1000, ...
-                          rv(:,:,end,tt0));
-        colorbar;
-        caxis([-1 1]*4*10^(orderofmagn(rv(:,:,end,:))));
-                      
-        hlines = linex([asloc(1) asloc(1)]/1000);
-        for tt=tt0+1:size(rv,4)
-            set(hc,'ZData',rv(:,:,end,tt));
-            
-            set(hlines(1),'XData',[1 1]*runs.eddy.cx(tt)/1000);
-            set(hlines(2),'XData',[1 1]*asloc(tt-tt0+1)/1000);
-            pause();
-        end
+%        figure;
+%        tt0 = 40;
+%        isb = runs.bathy.isb;
+%        [~,hc] = contourf(runs.rgrid.xr(2:end-1,2:isb)/1000, ...
+%                          runs.rgrid.yr(2:end-1,2:isb)/1000, ...
+%                          rv(:,:,end,tt0));
+%        colorbar;
+%         caxis([-1 1]*4*10^(orderofmagn(rv(:,:,end,:))));
+%                       
+%         hlines = linex([asloc(1) asloc(1)]/1000);
+%         for tt=tt0+1:size(rv,4)
+%             set(hc,'ZData',rv(:,:,end,tt));
+%             
+%             set(hlines(1),'XData',[1 1]*runs.eddy.cx(tt)/1000);
+%             set(hlines(2),'XData',[1 1]*asloc(tt-tt0+1)/1000);
+%             pause();
+%         end
 %         % quantify loss of vorticity in eddy
 %         xmin = min(runs.eddy.vor.we); xmax = max(runs.eddy.vor.ee);
 %         ymin = min(runs.eddy.vor.se); ymax = max(runs.eddy.vor.ne);
@@ -1007,8 +997,8 @@ methods
         %%
         figure;
         subplot(211)
-        plot(runs.time(t0:end)/86400, PVCSFLUX./10^(oPVCSFLUX), ...
-              runs.time(t0:end)/86400, PVASFLUX./10^(oPVASFLUX));
+        plot(runs.time(t0:end)/86400, runs.csflux.pv./10^(oPVCSFLUX), ...
+              runs.time(t0:end)/86400, runs.asflux.pv./10^(oPVASFLUX));
          legend(['CS flux x 10^{' num2str(oPVCSFLUX) '}'], ...
                 ['AS flux x 10^{' num2str(oPVASFLUX) '}']);
 %        legend('cross-shore','along-shore');
@@ -1018,8 +1008,8 @@ methods
         liney(0);
         title([runs.name ' | CS =  across shelfbreak | AS = east edge + 3dx']);
         subplot(212)
-        plot(runs.time(t0:end)/86400, RVCSFLUX./10^(oRVCSFLUX), ...
-             runs.time(t0:end)/86400, RVASFLUX./10^(oRVASFLUX));
+        plot(runs.time(t0:end)/86400, runs.csflux.rv./10^(oRVCSFLUX), ...
+             runs.time(t0:end)/86400, runs.asflux.rv./10^(oRVASFLUX));
          
             set(gca,'YTick',[-5:5]);
          legend(['CS flux x 10^{' num2str(oRVCSFLUX) '}'], ...
@@ -1030,25 +1020,42 @@ methods
         ylabel(['Rel. Vor. Flux']);
         xlabel('Time (days)');
         
+        %% save fluxes
+        csflux = runs.csflux;
+        asflux = runs.asflux;
+        save([runs.dir '/fluxes.mat'], 'csflux', 'asflux');
+        
     end
-
+    
+    % quantify cross-shelfbreak and along-shelfbreak fluxes of a whole 
+    % bunch of stuff:
+    function [] = fluxes(runs)
+        
+        % Things I want to calculate fluxes of:
+        % 1. RV & PV
+        % 2. Shelf water dye & eddy dye
+        
+    end
+    
     function [] = compare_plot(runs,num)
         eddy = runs.eddy;
         % 86400 since eddy.t is already in days
-        eddy.t = eddy.t./eddy.tscale*86400;
+        eddy.t = eddy.t./ (eddy.tscale/86400);
         ii = num;
         colors = distinguishable_colors(10);
         aa = 6; bb = aa*2;
         tloc = [100 120];
         
+        
+        figure(2)
         hold on
-        subplot(aa,2,bb);
-        limx = [0 max([xlim eddy.t])];
-        subplot(aa,2,1); hold all
+        %subplot(aa,2,bb);
+        limx = [0 5];%max([xlim eddy.t])];
+        %subplot(aa,2,1); hold all
         %pcolorcen(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.bathy.h);            colorbar
         xlabel('X (km)'); ylabel('Y (km)');
-        plot((eddy.cx-eddy.cx(1))/1000, ...
-            (eddy.cy-eddy.cy(1))/1000,'Color',colors(ii,:),'LineWidth',2);
+        plot((eddy.mx-eddy.mx(1))/1000, ...
+             (eddy.my-eddy.my(1))/1000,'Color',colors(ii,:),'LineWidth',2);
         hold all;
         try
             plot((eddy.cx(tloc)-eddy.cx(1))/1000,...
@@ -1061,7 +1068,8 @@ methods
         %    plot(eddy.cx/1000,eddy.se/1000,'Color',colors(ii,:),'LineStyle','--');
         %end
         %axis image; axis tight
-
+        figure(1)
+        hold on
         subplot(aa,2,2); hold on
         plot(eddy.t,eddy.vor.amp./eddy.amp(1),'Color',colors(ii,:));
         ylabel('amp/amp(t=0) ');xlim(limx);
@@ -1908,7 +1916,7 @@ methods
             dV = reshape(runs.rgrid.dV, runs.streamer.sz3dsp);
         end
 
-        out = full(sum( bsxfun(@times, in, dV)));
+        out = full(nansum( bsxfun(@times, in, dV)));
     end
 
     % domain integration for full matrix input
