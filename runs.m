@@ -1211,6 +1211,27 @@ methods
         %axis image; axis tight
         figure(1)
         hold on
+        if ~isempty(eddy.vol)
+            subplot(aa,2,1); hold on
+            plot(eddy.t, eddy.vol,'Color', colors(ii,:));
+            title('Volume');
+            
+            subplot(aa,2,3); hold on
+            plot(eddy.t, eddy.PV, 'Color', colors(ii,:));
+            title('PV');
+            
+            subplot(aa,2,5); hold on
+            plot(eddy.t, eddy.RV, 'Color', colors(ii,:));
+            title('RV');
+            
+            subplot(aa,2,7); hold on;
+            plot(eddy.t, eddy.KE, 'Color', colors(ii,:));
+            title('KE');
+            
+            subplot(aa,2,9); hold on;
+            plot(eddy.t, eddy.PE, 'Color', colors(ii,:));
+            title('PE');
+        end
         subplot(aa,2,2); hold on
         plot(eddy.t,eddy.vor.amp./eddy.amp(1),'Color',colors(ii,:));
         ylabel('amp/amp(t=0) ');xlim(limx);
@@ -1254,7 +1275,7 @@ methods
         
         %% by water masses
         if ~isempty(runs.water.off.deep)
-            markers = {'-','--'};
+            markers = {'-','--','-*'};
             time = eddy.t;
             figure(3);
             % by regions
