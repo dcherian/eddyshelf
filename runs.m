@@ -1909,6 +1909,128 @@ methods
          end
     end
     
+    % eddy bulk properties - integrated PV, RV, volume, energy
+    function [] = eddy_bulkproperties(runs)
+        %%
+        slab = 10; % read 10 at a time
+        nt = size(runs.zeta, 3);
+        
+        sz4dfull = [fliplr(size(runs.rgrid.z_r))-[2 2 0] slab];
+        sz4dsp = [prod(sz4dfull(1:3)) slab];
+        sz4dspend = [sz4dsp(1) mod(nt,slab)];
+        sz3dsp = [sz4dsp(1) 1];
+        
+        szpvfull = [fliplr(size(runs.rgrid.z_r))-[2 2 1] slab];
+        szpvsp = [prod(szpvfull(1:3)) slab];
+        szpvspend = [szpvsp(1) mod(nt,slab)];
+        szpv3dsp = [szpvsp(1) 1];
+        
+        dVsp = reshape(runs.rgrid.dV(2:end-1,2:end-1,:), sz3dsp);
+        dVpvsp = reshape( avg1(runs.rgrid.dV(2:end-1, 2:end-1,:),3), szpv3dsp);
+        
+        % store variables to optimize parfor loop
+        rgrid = runs.rgrid;
+        vormask = runs.eddy.vormask;
+        eddname = runs.eddname;
+        dirname = runs.dir;
+        thresh = runs.eddy_thresh;
+        N = runs.rgrid.N;
+        zr = permute(runs.rgrid.z_r(:, 2:end-1, 2:end-1), [3 2 1]);
+        
+        pvname = [runs.dir '/ocean_vor.nc'];
+        if exist(pvname,'file')
+            dopv = 1;
+        end
+        
+        % background density field
+        tback = dc_roms_read_data(dirname, 'temp', [1 1], ...
+                {'x' 2 sz4dfull(1)+1; 'y' 2 sz4dfull(2)+1}, ...
+                [], rgrid);
+        
+        ticstart = tic;
+        for mm=1:ceil(size(runs.zeta,3)/slab)
+            disp([' mm= ' num2str(mm) '/' num2str( ...
+                    ceil(size(runs.zeta,3)/slab))]);
+            tend = tt + slab - 1; 
+            if tend > nt
+                tend = nt;
+                sz = sz4dspend;
+                szpv = szpvspend;
+            else
+                sz = sz4dsp;
+                szpv = szpvsp;
+            end
+            eddye = dc_roms_read_data(dirname, eddname, ...
+                    [tt tend],{'x' 2 sz4dfull(1)+1; 'y' 2 sz4dfull(2)+1}, ...
+                    [],rgrid); %#ok<*PROP>
+                
+            masked  = sparse(reshape(eddye > thresh, sz));
+            maskvor = sparse(reshape( repmat( ...
+                    permute(vormask(:,:,tt:tend), [1 2 4 3]), ...
+                    [1 1 N 1]), sz));
+                
+            %vol{tt} = runs.domain_integratesp(masked.*maskvor, dVsp);
+            % calculate total volume
+            volcell{mm} = full(nansum( bsxfun(@times, masked.*maskvor, dVsp)));
+            
+            % integrated energies
+            % yes, using sz4dfull(1)+1 IS correct. sz4dfull has interior
+            % RHO point counts
+            u = avg1(dc_roms_read_data(dirname, 'u', ...
+                    [tt tend],{'y' 2 sz4dfull(2)+1}, ...
+                    [],rgrid),1); %#ok<*PROP>
+            v = avg1(dc_roms_read_data(dirname, 'v', ...
+                [tt tend],{'x' 2 sz4dfull(1)+1}, ...
+                [],rgrid),2); %#ok<*PROP>
+            
+            temp = dc_roms_read_data(dirname, 'temp', ...
+                    [tt tend],{'x' 2 sz4dfull(1)+1; 'y' 2 sz4dfull(2)+1}, ...
+                    [], rgrid);
+                
+            pe = - runs.params.phys.TCOEF* bsxfun(@times, ...
+                        bsxfun(@minus, temp, tback), zr)  ...
+                    .* runs.params.phys.g;
+                
+            intpe{mm} = full(nansum( bsxfun(@times, ...
+                        masked.*maskvor.*reshape(pe, sz), dVsp)));
+            
+            intke{mm} = full(nansum( bsxfun(@times, ...
+                    masked.*maskvor.*reshape(0.5 * (u.^2 + v.^2), sz), dVsp)));
+                
+            % integrated PV, RV
+            if dopv
+                disp('Reading pv, rv');
+                pv = ncread(pvname, 'pv',[1 1 1 tt],[Inf Inf Inf tend-tt+1]); %#ok<*PROP>
+                rv = avg1(avg1(ncread(pvname, 'rv',[1 1 1 tt], ...
+                            [Inf Inf Inf tend-tt+1]),1),2);
+                % pv,rv are at N-1 levels in vertical, so we need
+                % to calculate masks again
+                masked  = sparse(reshape(avg1(eddye,3) > thresh, szpv));
+                maskvor = sparse(reshape( repmat( ...
+                            permute(vormask(:,:,tt:tend), [1 2 4 3]), ...
+                            [1 1 N-1 1]), szpv));
+                        
+                intpv{mm} = full(nansum( bsxfun(@times, ....
+                        masked.*maskvor.*reshape(pv, szpv), dVpvsp))) ...
+                        ./ volcell{mm}; 
+                intrv{mm} = full(nansum( bsxfun(@times, ....
+                    masked.*maskvor.*reshape(rv, szpv), dVpvsp))) ...
+                    ./ volcell{mm}; 
+            end            
+        end    
+        toc(ticstart);
+        
+        % save data to structure
+        eddy = runs.eddy;
+        eddy.vol = cell2mat(volcell);
+        eddy.PV = cell2mat(intpv);
+        eddy.RV = cell2mat(intrv);
+        eddy.KE = cell2mat(intke);
+        eddy.PE = cell2mat(intpe);
+        
+        save([runs.dir '/eddytrack.mat'],'eddy');
+    end
+    
     % domain integration for sparse matrix input
     function [out] = domain_integratesp(runs,in, dV)
 
