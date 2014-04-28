@@ -106,7 +106,7 @@ function [eddy] = track_eddy(dir1)
             d_sbreak = Inf;
             thresh = nan;
         else 
-            if tt ==  104,
+            if tt ==  108,
                 disp('debug time!');
             end
             mask = nan(sz);
@@ -158,6 +158,8 @@ function [eddy] = track_eddy(dir1)
         eddy.ee(tt) = temp.ee;
         eddy.ne(tt) = temp.ne;
         eddy.se(tt) = temp.se;
+        
+        eddy.Ls(tt) = temp.Ls;
         
         eddy.vor.we(tt) = temp.vor.we;
         eddy.vor.ee(tt) = temp.vor.ee;
@@ -249,7 +251,7 @@ function [eddy] = track_eddy(dir1)
                     'Lgauss = vertical scale (m) when fitting Gaussian - happens with sine fits too | ' ...
                     'Lz2,3 = Vertical scale (m) when fitting without & with linear trend | ' ...
                     'T = temp profile at (mx,my) | L = equiv diameter for vorticity < 0 region '...
-                    'Lmin/Lmaj = minor/major axis length'];
+                    'Lmin/Lmaj = minor/major axis length | Ls = speed based definition in Chelton et al. (2011)'];
     
     save([dir1 '/eddytrack.mat'],'eddy');
     disp('Done.');
@@ -480,7 +482,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
                 eddy.vor.ne   = dy/2 + nanmax(ymax) * dy; % south edge
                 eddy.vor.se   = dy/2 + nanmin(ymax) * dy; % north edge
                 eddy.vor.amp  = amp;
-                eddy.vor.dia  = props.EquivDiameter * sqrt(dx*dy);
+                eddy.vor.dia  = vorprops.EquivDiameter * sqrt(dx*dy);
                 eddy.vor.mask = vormaskreg;
                 % If I get here, I'm done.
                 break;
@@ -497,6 +499,38 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
         end
         if exist('flag_found','var') && flag_found == 1, break; end
     end 
+    
+    % eddy was found but i'm testing what Chelton's Ls would look like
+    % calculate geostrophic velocity magnitude
+    % then do thresholding and find SSH contour with max. avg speed.
+    % then figure out equivDiameter for that threshold
+    ugeo = -1 * 9.81 .* 1/1e-4 * diff(zeta,1,2) / dy;
+    vgeo =      9.81 .* 1/1e-4 * diff(zeta,1,1) / dx;
+
+    V = hypot( avg1(ugeo,1), avg1(vgeo,2) );
+    Vmax = 0;
+    threshmax = 0;
+    thresh_loop = linspace(threshold, nanmax(zeta(:)), 10);
+    for iii=1:length(thresh_loop)-1
+        zmask = zeta > thresh_loop(iii);
+        try
+            [x0,y0] = ind2sub(size(zmask),find(zmask == 1,1,'first'));
+            points = bwtraceboundary(zmask,[x0,y0],'E');
+        
+            Vboundary = V(sub2ind(size(V), points(:,1), points(:,2)));
+            if mean(Vboundary) > Vmax
+                Vmax = mean(Vboundary);
+                threshmax = thresh_loop(iii);
+            end
+        catch ME
+            disp(ME)
+        end
+    end
+    
+    % reuse zmask
+    zmask = zeta > threshmax;
+    props = regionprops(zmask, 'EquivDiameter');
+    eddy.Ls = props.EquivDiameter/2 * sqrt(dx*dy);
     
     if ~exist('eddy','var')
         eddy.cx   = NaN;
