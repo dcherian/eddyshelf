@@ -26,7 +26,7 @@ properties
     params
     % fluxes - cross-shore & along-shore
     csflux; asflux;
-    % transport
+    % transport - TO BE DEPRECATED
     eutrans;
     % streamer properties
     streamer;
@@ -1030,11 +1030,152 @@ methods
     % quantify cross-shelfbreak and along-shelfbreak fluxes of a whole 
     % bunch of stuff:
     function [] = fluxes(runs)
-        
+       
         % Things I want to calculate fluxes of:
         % 1. RV & PV
         % 2. Shelf water dye & eddy dye
+        ticstart = tic;
         
+        vorname = [runs.dir '/ocean_vor.nc'];
+        % need some kind of initial time instant - decided by streamer mask
+        % now
+        runs.csflux = [];
+        runs.asflux = [];
+        t0 = 1;%find(repnan(runs.streamer.time,0) == 0,1,'last') + 1;
+        tinf = length(runs.time);
+        revind = runs.eddy.trevind;
+         
+        % quantities for area-averaging if needed
+        Las = max(runs.rgrid.x_rho(:));
+        %Lcs = runs.bathy.xsb;
+        h = runs.bathy.h(2:end-1,2:end-1);
+
+        % sort out isobaths across which to calculate transports
+        if runs.params.bathy.axis == 'x'
+            csvelid = 'u';
+            asvelid = 'v';
+            bathyax = 1;
+            error(' not built for north-south isobaths');
+            indices = vecfind(runs.eddy.xr(:,1),loc);
+        else
+            csvelid = 'v';
+            asvelid = 'u';
+            bathyax = 2;
+            loc = sort([nanmean(runs.eddy.se(revind:end)) ...
+                    nanmean(runs.eddy.cy(revind:end)) ...
+                    runs.bathy.xsb  ... 
+                    runs.bathy.xsl]); 
+            indices = vecfind(runs.eddy.yr(1,:),loc);
+                %runs.rgrid.y_rho(vecfind(runs.bathy.h(1,:),[250 1000]),1)']);
+        end
+
+        % save locations
+        runs.csflux.x = loc;
+        % save indices for locations - w.r.t INTERIOR RHO POINTS
+        runs.csflux.ix = indices;
+        % save isobath values
+        runs.csflux.h = ceil(runs.bathy.h(1,runs.csflux.ix));
+        
+        runs.csflux.comment = ['shelf / slope / eddy= which water mass am I ', ...
+                            ' targeting? |\n (x,ix,h) = (location, index, depth) ' ...
+                            'at which I''m calculating transport |\n '];
+        
+        % initialize
+        runs.csflux.west.SHELF = nan([tinf length(loc)]);
+        runs.csflux.west.SLOPE = nan([tinf length(loc)]);
+        runs.csflux.west.EDDY = nan([tinf length(loc)]);
+        
+        runs.csflux.east.SHELF = nan([tinf length(loc)]);
+        runs.csflux.east.SLOPE = nan([tinf length(loc)]);
+        runs.csflux.east.EDDY = nan([tinf length(loc)]);
+        
+        % east and west (w.r.t eddy center) masks
+        % use center because export occurs west of the eastern edge
+        westmask = bsxfun(@lt, runs.eddy.xr(:,1),  ...
+                    runs.eddy.vor.cx(t0:end));
+        eastmask = bsxfun(@gt, runs.eddy.xr(:,1), ...
+                    runs.eddy.vor.cx(t0:end));
+
+        % loop over all isobaths
+        for kk=1:length(loc)
+            % read along-shore section of cross-shore vel.
+            % dimensions = (x/y , z , t )
+            % average carefully to get values at RHO point
+            csvel = avg1(dc_roms_read_data(runs.dir, csvelid, ...
+                [t0 Inf],{runs.bathy.axis runs.csflux.ix(kk)-1 runs.csflux.ix(kk)}, ...
+                [],runs.rgrid),bathyax);
+            csvel = csvel(2:end-1,:,:,:);
+            % process cross-shelf dye
+            csdye = dc_roms_read_data(runs.dir,runs.csdname, ...
+                [t0 Inf],{runs.bathy.axis runs.csflux.ix(kk)+1 runs.csflux.ix(kk)+1}, ...
+                [],runs.rgrid);
+            csdye = permute(csdye(2:end-1,:,:), [1 4 2 3]);
+
+            % define water masses
+            shelfmask = (csdye <= runs.bathy.xsb);
+            slopemask = (csdye >= runs.bathy.xsb) & ...
+                        (csdye <=runs.bathy.xsl);
+             
+            % transports
+            runs.csflux.shelf(:,:,kk) = squeeze(trapz( ...
+                    runs.rgrid.z_r(:,runs.csflux.ix(kk)+1,1), ...
+                    shelfmask .* csvel,3));
+            runs.csflux.slope(:,:,kk) = squeeze(trapz( ...
+                    runs.rgrid.z_r(:,runs.csflux.ix(kk)+1,1), ...
+                    slopemask .* csvel,3));
+                
+            runs.csflux.west.shelf(t0:tinf,kk) = squeeze(nansum( ...
+                        bsxfun(@times, runs.csflux.shelf(:,:,kk) .* westmask, ...
+                        1./runs.rgrid.pm(1,2:end-1)'),1))';
+                    
+            runs.csflux.west.slope(t0:tinf,kk) = squeeze(nansum( ...
+                        bsxfun(@times, runs.csflux.slope(:,:,kk) .* westmask, ...
+                        1./runs.rgrid.pm(1,2:end-1)'),1))';
+                    
+                    
+            runs.csflux.east.shelf(t0:tinf,kk) = squeeze(nansum( ...
+                        bsxfun(@times, runs.csflux.shelf(:,:,kk) .* eastmask, ...
+                        1./runs.rgrid.pm(1,2:end-1)'),1))';
+                    
+            runs.csflux.east.slope(t0:tinf,kk) = squeeze(nansum( ...
+                        bsxfun(@times, runs.csflux.slope(:,:,kk) .* eastmask, ...
+                        1./runs.rgrid.pm(1,2:end-1)'),1))';
+                    
+            % process pv
+            % both at interior RHO points
+            start = [1 runs.csflux.ix(kk) 1 t0];
+            count = [Inf 1 Inf Inf];
+            
+            pv = ncread(vorname,'pv',start,count);
+            rv = avg1(avg1(ncread(vorname,'rv',start,count+[0 1 0 0]),1),2);
+                    
+            % get vorticity fluxes
+            % first, depth integrated
+            pvcsflux = squeeze(trapz(avg1(runs.rgrid.z_r(:,runs.csflux.ix(kk)+1,1),1), ...
+                        pv .* avg1(csvel,3),3));
+            rvcsflux = squeeze(trapz(avg1(runs.rgrid.z_r(:,runs.csflux.ix(kk)+1,1),1), ...
+                        rv .* avg1(csvel,3),3));
+            
+            % now east & west of eddy center
+            runs.csflux.west.pv(t0:tinf,kk) = squeeze(nansum( ...
+                bsxfun(@times, pvcsflux .* westmask, ...
+                1./runs.rgrid.pm(1,2:end-1)'),1))';
+            runs.csflux.west.pv(t0:tinf,kk) = squeeze(nansum( ...
+                bsxfun(@times, pvcsflux .* eastmask, ...
+                1./runs.rgrid.pm(1,2:end-1)'),1))';
+            
+            runs.csflux.west.rv(t0:tinf,kk) = squeeze(nansum( ...
+                bsxfun(@times, rvcsflux .* westmask, ...
+                1./runs.rgrid.pm(1,2:end-1)'),1))';
+            runs.csflux.west.rv(t0:tinf,kk) = squeeze(nansum( ...
+                bsxfun(@times, rvcsflux .* eastmask, ...
+                1./runs.rgrid.pm(1,2:end-1)'),1))';
+        end
+        toc(ticstart);
+        % save fluxes
+        csflux = runs.csflux;
+        asflux = runs.asflux;
+        save([runs.dir '/fluxes.mat'], 'csflux', 'asflux');        
     end
     
     function [] = compare_plot(runs,num)
@@ -1341,6 +1482,7 @@ methods
             % identify streamer with 4D data
             % preliminary detection
             % I use cross-shore label to roughly filter first
+            
             % eliminate this step somehow and remove the temporary array?
             streamer1 = (csdye > xsb-10) & (csdye < xsb+30) & (eddye < 0.2);
 
@@ -1361,7 +1503,7 @@ methods
             %end
             %dz = zdye - zs;
 
-            % NEED TO ACCOUNT FOR TILTING IN VERTICAL?
+            warning('DO I NEED TO ACCOUNT FOR TILTING IN VERTICAL?');
             %cx = runs.eddy.cx(tstart:tend)/1000;
             %cy = runs.eddy.cy(tstart:tend)/1000;
             ee = runs.eddy.ee(tstart:tend)/1000;
@@ -1695,10 +1837,10 @@ methods
             runs.streamer.west.iystr{tind} = iystr;
             runs.streamer.west.dstr{tind}  = dstr;
             runs.streamer.comment   = ...
-                [' contour = 1 in streamer, 0 outside | ' ...
-                ' (xstr,ystr) = cross-section through streamer (cell array) | ' ...
+                [' contour = 1 in streamer, 0 outside |\n ' ...
+                ' (xstr,ystr) = cross-section through streamer (cell array) |\n ' ...
                 ' (ixstr,iystr) = indices corresponding to (xstr,ystr) ' ...
-                ' - (cell array) | dstr = along-streamer distance (cell array)'];
+                ' - (cell array) |\n dstr = along-streamer distance (cell array)'];
         end
         
         % save to file
@@ -1919,7 +2061,7 @@ methods
         sz4dsp = [prod(sz4dfull(1:3)) slab];
         sz4dspend = [sz4dsp(1) mod(nt,slab)];
         sz3dsp = [sz4dsp(1) 1];
-        
+         
         szpvfull = [fliplr(size(runs.rgrid.z_r))-[2 2 1] slab];
         szpvsp = [prod(szpvfull(1:3)) slab];
         szpvspend = [szpvsp(1) mod(nt,slab)];
