@@ -735,37 +735,39 @@ methods
         title('Shelf water plume on slope');
         
         % by water masses
-%         subplot(622)
-%         semilogy(time, runs.water.off.deep, ...
-%                 time, runs.water.off.slope, ...
-%                 time, runs.water.off.shelf);
-%         ylabel('offshore water (m^3)');
-%         legend('deep region','slope','shelf');
+%         if ~isempty(runs.water.off.deep)
+%             subplot(622)
+%             semilogy(time, runs.water.off.deep, ...
+%                     time, runs.water.off.slope, ...
+%                     time, runs.water.off.shelf);
+%             ylabel('offshore water (m^3)');
+%             legend('deep region','slope','shelf');
+% 
+%             subplot(624)
+%             semilogy(time, runs.water.sl.deep, ...
+%                     time, runs.water.sl.slope, ...
+%                     time, runs.water.sl.shelf);
+%             ylabel('slope');
+% 
+%             subplot(626)
+%             semilogy(time, runs.water.sh.deep, ...
+%                     time, runs.water.sh.slope, ...
+%                     time, runs.water.sh.shelf);
+%             ylabel('shelf (m^3)');
+% 
+%             subplot(628)
+%             semilogy(time, runs.water.edd.deep, ...
+%                     time, runs.water.edd.slope, ...
+%                     time, runs.water.edd.shelf);
+%             ylabel('eddy(m^3)');
+% 
+%             subplot(6,2,10)
+%             semilogy(time, runs.water.mix.deep, ...
+%                     time, runs.water.mix.slope, ...
+%                     time, runs.water.mix.shelf);
+%             ylabel('eddy mix');
+%         end
 %         
-%         subplot(624)
-%         semilogy(time, runs.water.sl.deep, ...
-%                 time, runs.water.sl.slope, ...
-%                 time, runs.water.sl.shelf);
-%         ylabel('slope');
-%         
-%         subplot(626)
-%         semilogy(time, runs.water.sh.deep, ...
-%                 time, runs.water.sh.slope, ...
-%                 time, runs.water.sh.shelf);
-%         ylabel('shelf (m^3)');
-%         
-%         subplot(628)
-%         semilogy(time, runs.water.edd.deep, ...
-%                 time, runs.water.edd.slope, ...
-%                 time, runs.water.edd.shelf);
-%         ylabel('eddy(m^3)');
-%         
-%         subplot(6,2,10)
-%         semilogy(time, runs.water.mix.deep, ...
-%                 time, runs.water.mix.slope, ...
-%                 time, runs.water.mix.shelf);
-%         ylabel('eddy mix');
-        
         %% eddy upwelling + vertical scale
         if isfield(runs.eddy.vor,'vol')
             figure;
@@ -1100,6 +1102,37 @@ methods
 %             legend('H_{center}','f/N*dia');
         xlabel('Time / Time at which center reaches slopebreak');
         ylabel('H_{center}(m)/H_{max}');
+        
+        %% by water masses
+        if ~isempty(runs.water.off.deep)
+            markers = {'-','--'};
+            time = eddy.t;
+            figure(3);
+            % by regions
+            % colors: off = r, sl = g, sh = b , edd = k, mix = m
+            subplot(3,1,1)
+            hold on;
+            plot(time, runs.water.sl.deep,['g' markers{num}], ...
+                    time, runs.water.sh.deep,['b' markers{num}]);
+            ylabel('Deep region (m^3)');
+            subplot(312)
+            hold on;
+            plot(time, runs.water.off.slope,['r' markers{num}], ...
+                    time, runs.water.sh.slope,['b' markers{num}], ...
+                    time, runs.water.edd.slope,['k' markers{num}], ...
+                    time, runs.water.mix.slope,['m' markers{num}]);
+                legend('Offshore','Shelf','Eddy');
+            ylabel('Slope region (m^3)');
+            subplot(313)
+            hold on;
+            plot(time, runs.water.off.shelf,['r' markers{num}], ...
+                    time, runs.water.sl.shelf,['g' markers{num}], ...
+                    time, runs.water.edd.shelf,['k' markers{num}], ...
+                    time, runs.water.mix.shelf,['m' markers{num}]);
+                legend('Offshore','Slope','Eddy','Mix');
+            ylabel('Shelf region (m^3)');
+            xlabel('Time (days)');
+        end
     end
 
     % this is incomplete
