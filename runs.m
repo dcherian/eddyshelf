@@ -192,6 +192,15 @@ methods
             runs.water = water.water;
             clear water
         end
+        
+        % load fluxes if the file exists
+        if exist([dir '/fluxes.mat'],'file') && reset ~= 1
+            disp('Loading water mass data');
+            data = load([dir '/fluxes.mat']);
+            runs.csflux = data.csflux;
+            runs.asflux = data.asflux;
+            clear data
+        end
 
         % extra processing of eddy track
         if ~runs.noeddy
@@ -1061,10 +1070,9 @@ methods
             csvelid = 'v';
             asvelid = 'u';
             bathyax = 2;
-            loc = sort([nanmean(runs.eddy.se(revind:end)) ...
-                    nanmean(runs.eddy.cy(revind:end)) ...
-                    runs.bathy.xsb  ... 
-                    runs.bathy.xsl]); 
+            loc = sort([runs.bathy.xsb  runs.bathy.xsl...
+                    nanmean(runs.eddy.se(revind:end)) ...
+                    nanmean(runs.eddy.cy(revind:end))]); 
             indices = vecfind(runs.eddy.yr(1,:),loc);
                 %runs.rgrid.y_rho(vecfind(runs.bathy.h(1,:),[250 1000]),1)']);
         end
@@ -1081,13 +1089,17 @@ methods
                             'at which I''m calculating transport |\n '];
         
         % initialize
-        runs.csflux.west.SHELF = nan([tinf length(loc)]);
-        runs.csflux.west.SLOPE = nan([tinf length(loc)]);
-        runs.csflux.west.EDDY = nan([tinf length(loc)]);
+        runs.csflux.west.shelf = nan([tinf length(loc)]);
+        runs.csflux.west.slope = nan([tinf length(loc)]);
+        runs.csflux.west.eddy = nan([tinf length(loc)]);
+        runs.csflux.west.pv = nan([tinf length(loc)]);
+        runs.csflux.west.rv = nan([tinf length(loc)]);
         
-        runs.csflux.east.SHELF = nan([tinf length(loc)]);
-        runs.csflux.east.SLOPE = nan([tinf length(loc)]);
-        runs.csflux.east.EDDY = nan([tinf length(loc)]);
+        runs.csflux.east.shelf = nan([tinf length(loc)]);
+        runs.csflux.east.slope = nan([tinf length(loc)]);
+        runs.csflux.east.eddy = nan([tinf length(loc)]);
+        runs.csflux.east.pv = nan([tinf length(loc)]);
+        runs.csflux.east.rv = nan([tinf length(loc)]);
         
         % east and west (w.r.t eddy center) masks
         % use center because export occurs west of the eastern edge
@@ -1110,11 +1122,18 @@ methods
                 [t0 Inf],{runs.bathy.axis runs.csflux.ix(kk)+1 runs.csflux.ix(kk)+1}, ...
                 [],runs.rgrid);
             csdye = permute(csdye(2:end-1,:,:), [1 4 2 3]);
+            
+            % read eddye
+            eddye = dc_roms_read_data(runs.dir, runs.eddname, ...
+                [t0 Inf],{runs.bathy.axis runs.csflux.ix(kk)+1 runs.csflux.ix(kk)+1}, ...
+                [],runs.rgrid);
+            eddye = permute(eddye(2:end-1,:,:), [1 4 2 3]);
 
             % define water masses
             shelfmask = (csdye <= runs.bathy.xsb);
             slopemask = (csdye >= runs.bathy.xsb) & ...
                         (csdye <=runs.bathy.xsl);
+            eddymask = eddye > runs.eddy_thresh;
              
             % transports
             runs.csflux.shelf(:,:,kk) = squeeze(trapz( ...
@@ -1123,7 +1142,11 @@ methods
             runs.csflux.slope(:,:,kk) = squeeze(trapz( ...
                     runs.rgrid.z_r(:,runs.csflux.ix(kk)+1,1), ...
                     slopemask .* csvel,3));
+            runs.csflux.eddy(:,:,kk) = squeeze(trapz( ...
+                    runs.rgrid.z_r(:,runs.csflux.ix(kk)+1,1), ...
+                    eddymask .* csvel,3));
                 
+            % west of center
             runs.csflux.west.shelf(t0:tinf,kk) = squeeze(nansum( ...
                         bsxfun(@times, runs.csflux.shelf(:,:,kk) .* westmask, ...
                         1./runs.rgrid.pm(1,2:end-1)'),1))';
@@ -1132,13 +1155,21 @@ methods
                         bsxfun(@times, runs.csflux.slope(:,:,kk) .* westmask, ...
                         1./runs.rgrid.pm(1,2:end-1)'),1))';
                     
+            runs.csflux.west.eddy(t0:tinf,kk) = squeeze(nansum( ...
+                        bsxfun(@times, runs.csflux.eddy(:,:,kk) .* westmask, ...
+                        1./runs.rgrid.pm(1,2:end-1)'),1))';
                     
+            % east of center       
             runs.csflux.east.shelf(t0:tinf,kk) = squeeze(nansum( ...
                         bsxfun(@times, runs.csflux.shelf(:,:,kk) .* eastmask, ...
                         1./runs.rgrid.pm(1,2:end-1)'),1))';
                     
             runs.csflux.east.slope(t0:tinf,kk) = squeeze(nansum( ...
                         bsxfun(@times, runs.csflux.slope(:,:,kk) .* eastmask, ...
+                        1./runs.rgrid.pm(1,2:end-1)'),1))';
+                    
+            runs.csflux.east.eddy(t0:tinf,kk) = squeeze(nansum( ...
+                        bsxfun(@times, runs.csflux.eddy(:,:,kk) .* eastmask, ...
                         1./runs.rgrid.pm(1,2:end-1)'),1))';
                     
             % process pv
@@ -1164,10 +1195,10 @@ methods
                 bsxfun(@times, pvcsflux .* eastmask, ...
                 1./runs.rgrid.pm(1,2:end-1)'),1))';
             
-            runs.csflux.west.rv(t0:tinf,kk) = squeeze(nansum( ...
+            runs.csflux.east.rv(t0:tinf,kk) = squeeze(nansum( ...
                 bsxfun(@times, rvcsflux .* westmask, ...
                 1./runs.rgrid.pm(1,2:end-1)'),1))';
-            runs.csflux.west.rv(t0:tinf,kk) = squeeze(nansum( ...
+            runs.csflux.east.rv(t0:tinf,kk) = squeeze(nansum( ...
                 bsxfun(@times, rvcsflux .* eastmask, ...
                 1./runs.rgrid.pm(1,2:end-1)'),1))';
         end
@@ -1211,7 +1242,7 @@ methods
         %axis image; axis tight
         figure(1)
         hold on
-        if ~isempty(eddy.vol)
+        if isfield(eddy, 'vol')
             subplot(aa,2,1); hold on
             plot(eddy.t, eddy.vol,'Color', colors(ii,:));
             title('Volume');
@@ -1273,8 +1304,55 @@ methods
         xlabel('Time / Time at which center reaches slopebreak');
         ylabel('H_{center}(m)/H_{max}');
         
-        %% by water masses
-        if ~isempty(runs.water.off.deep)
+        %% plot fluxes
+        
+        if isfield(runs.csflux,'west')
+            figure(4);
+            subplot(4,1,1);
+            hold on;
+            plot(eddy.t, runs.csflux.west.shelf(:,1), 'Color', colors(ii,:));
+            title('West');
+            
+            subplot(4,1,2);
+            hold on;
+            plot(eddy.t, runs.csflux.west.slope(:,1), 'Color', colors(ii,:));
+            
+            subplot(4,1,3);
+            hold on;
+            plot(eddy.t, runs.csflux.west.pv(:,1), 'Color', colors(ii,:));
+            ylabel('West - PV flux');
+            
+            subplot(4,1,4);
+            hold on;
+            plot(eddy.t, runs.csflux.west.rv(:,1), 'Color', colors(ii,:));
+            ylabel('West - PV flux');
+            
+            
+            figure(5);
+            subplot(4,1,1);
+            hold on;
+            plot(eddy.t, runs.csflux.east.shelf(:,1), 'Color', colors(ii,:));
+            ylabel('Shelf water flux - sb');
+            title('East');
+            
+            subplot(4,1,2);
+            hold on;
+            plot(eddy.t, runs.csflux.east.slope(:,1), 'Color', colors(ii,:));
+            ylabel('Slope water flux - sb');
+            
+            subplot(4,1,3);
+            hold on;
+            plot(eddy.t, runs.csflux.east.pv(:,1), 'Color', colors(ii,:));
+            ylabel('PV flux');
+            
+            subplot(4,1,4);
+            hold on;
+            plot(eddy.t, runs.csflux.east.rv(:,1), 'Color', colors(ii,:));
+            ylabel('RV flux');
+        end
+        
+        %% plot water masses
+        if isfield(runs.water.off, 'deep')
             markers = {'-','--','-*'};
             time = eddy.t;
             figure(3);
