@@ -253,7 +253,7 @@ function [eddy] = track_eddy(dir1)
                     'T = temp profile at (mx,my) | L = equiv diameter for vorticity < 0 region '...
                     'Lmin/Lmaj = minor/major axis length | Ls = speed based definition in Chelton et al. (2011)'];
     
-    save([dir1 '/eddytrack2.mat'],'eddy');
+    save([dir1 '/eddytrack.mat'],'eddy');
     disp('Done.');
     
 % Gaussian fit for vertical scale - called by fminsearch
