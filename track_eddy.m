@@ -253,7 +253,7 @@ function [eddy] = track_eddy(dir1)
                     'T = temp profile at (mx,my) | L = equiv diameter for vorticity < 0 region '...
                     'Lmin/Lmaj = minor/major axis length | Ls = speed based definition in Chelton et al. (2011)'];
     
-    save([dir1 '/eddytrack.mat'],'eddy');
+    save([dir1 '/eddytrack2.mat'],'eddy');
     disp('Done.');
     
 % Gaussian fit for vertical scale - called by fminsearch
@@ -385,6 +385,8 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
             cx = dx/2 + props.WeightedCentroid(2) * dx;
             cy = dy/2 + props.WeightedCentroid(1) * dy;
             
+            if cy < sbreak; continue; end
+            
             % Criterion 7 - if multiple regions (eddies), only store the one
             % closest to shelfbreak
             % find location of maximum that is closest to shelfbreak
@@ -512,7 +514,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
     threshmax = 0;
     thresh_loop = linspace(threshold, nanmax(zeta(:)), 10);
     for iii=1:length(thresh_loop)-1
-        zmask = zeta > thresh_loop(iii);
+        zmask = (zeta .* eddy.mask) > thresh_loop(iii);
         try
             [x0,y0] = ind2sub(size(zmask),find(zmask == 1,1,'first'));
             points = bwtraceboundary(zmask,[x0,y0],'E');
@@ -528,7 +530,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
     end
     
     % reuse zmask
-    zmask = zeta > threshmax;
+    zmask = (zeta .* eddy.mask) > threshmax;
     props = regionprops(zmask, 'EquivDiameter');
     eddy.Ls = props.EquivDiameter/2 * sqrt(dx*dy);
     
