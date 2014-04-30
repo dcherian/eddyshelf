@@ -1,27 +1,42 @@
 function [eddy] = track_eddy(dir1)
 
-    if isdir(dir1)
+    if isobject(dir1)
+        run = dir1;
+        dir1 = run.dir;
         fnames = roms_find_file(dir1,'his');
         file = char([dir1 '/' char(fnames(1))]);
+        N = run.rgrid.N;
         [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
-        tic;
-        zeta  = dc_roms_read_data(dir1,'zeta');
-        N = size(zr,3);
-        u     = dc_roms_read_data(dir1,'u',[],{'z' N N});
-        v     = dc_roms_read_data(dir1,'v',[],{'z' N N});
-        toc;
+        
+        zeta = run.zeta;
+        if isempty(run.usurf)
+            u = dc_roms_read_data(dir1, 'u', [], {'z' N N}, [], run.rgrid);
+            v = dc_roms_read_data(dir1, 'v', [], {'z' N N}, [], run.rgrid);
+        end
     else
-        fname = dir1;
-        index = strfind(dir1,'/');
-        dir1 = dir1(1:index(end));
-        fnames = [];
-        file = fname;
-        [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
-        tic;
-        zeta = double(ncread(fname,'zeta'));
-        u     = squeeze(double(ncread(fname,'u',[1 1 size(zr,3) 1],[Inf Inf 1 Inf])));
-        v     = squeeze(double(ncread(fname,'v',[1 1 size(zr,3) 1],[Inf Inf 1 Inf])));
-        toc;
+        if isdir(dir1)
+            fnames = roms_find_file(dir1,'his');
+            file = char([dir1 '/' char(fnames(1))]);
+            [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
+            tic;
+            N = size(zr,3);
+            
+            zeta  = dc_roms_read_data(dir1,'zeta');
+            u     = dc_roms_read_data(dir1,'u',[],{'z' N N});
+            v     = dc_roms_read_data(dir1,'v',[],{'z' N N});
+        else
+            fname = dir1;
+            index = strfind(dir1,'/');
+            dir1 = dir1(1:index(end));
+            fnames = [];
+            file = fname;
+            [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
+            tic;
+            zeta = double(ncread(fname,'zeta'));
+            u     = squeeze(double(ncread(fname,'u',[1 1 size(zr,3) 1],[Inf Inf 1 Inf])));
+            v     = squeeze(double(ncread(fname,'v',[1 1 size(zr,3) 1],[Inf Inf 1 Inf])));
+            toc;
+        end
     end
     kk = 2; % if ncread fails, it will use fnames(kk,:)
     tt0 = 0; % offset for new history.average file - 0 initially, updated later
