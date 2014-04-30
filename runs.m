@@ -1711,7 +1711,7 @@ methods
         xsb = runs.bathy.xsb;
         isb = runs.bathy.isb;
         
-        slab = 10; % read 10 at a time
+        slab = 20; % read 10 at a time
         
         sz4dfull = [fliplr(size(runs.rgrid.z_r)) slab];
         sz4dsp = [prod(sz4dfull(1:3)) slab];
@@ -1844,28 +1844,30 @@ methods
         runs.water.comment = [''];
         
         water = runs.water;
-        save([runs.dir '/watermass.mat'], 'water');
         
-         %%
-         % calculate total classified volume
-         if debug
-            totvol = sum(dV(:));
-             masses = fieldnames(runs.water);
-             classvol = zeros(size(runs.water.mix.deep));
-             for ii=1:length(masses)
-                 if strcmpi(masses{ii},'eddmix'), continue; end
-                 try
+        
+        %%
+        % calculate total classified volume
+        if debug
+            water.totvol = sum(dV(:));
+            masses = fieldnames(runs.water);
+            classvol = zeros(size(runs.water.mix.deep));
+            for ii=1:length(masses)
+                if strcmpi(masses{ii},'eddmix'), continue; end
+                try
                     regions = fieldnames(runs.water.(masses{ii}));
                     for jj=1:length(regions)
                         if regexp(regions{jj},'^[xyz]'), continue; end
                         classvol = classvol + runs.water.(masses{ii}).(regions{jj});
                     end
-                 catch ME
-                 end
-             end
-             figure;
-             plot(totvol - classvol);
-         end
+                catch ME
+                end
+            end
+            water.classvol = classvol;
+            figure;
+            plot(water.totvol - water.classvol);
+        end
+        save([runs.dir '/watermass.mat'], 'water');
     end
     
     % domain integration for sparse matrix input
