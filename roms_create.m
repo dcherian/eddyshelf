@@ -6,7 +6,7 @@
 % names cannot start with number
 [~,machine] = system('hostname');
 if strfind(machine,'scylla')
-    FOLDER    = '/scylla-a/home/dcherian/ROMS/runs/eddyshelf/topoeddy/run-5/';
+    FOLDER    = '/scylla-a/home/dcherian/ROMS/runs/eddyshelf/topoeddy/run-7/';
     prefix    = 'tes';
     addpath(genpath('/scylla-a/home/dcherian/tools/'));
 end
@@ -40,8 +40,8 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 393;;
-S.Mm = 256;
+S.Lm = 512;
+S.Mm = 204;
 S.N  = 72;
 
 %set value of dx,dy for uniform grid
@@ -61,8 +61,8 @@ S.NT = 2+S.NPT; % total number of tracers
 % vertical stretching
 S.Vtransform = 2;
 S.Vstretching = 4;
-S.theta_s = 3.0;     %  S-coordinate surface control parameter.
-S.theta_b = 3.0;     %  S-coordinate bottom  control parameter.
+S.theta_s = 1.0;     %  S-coordinate surface control parameter.
+S.theta_b = 1.0;     %  S-coordinate bottom  control parameter.
 S.Tcline  = 500;    %  S-coordinate surface/bottom stretching width (m)
 
 % coriolis parameters
@@ -98,8 +98,6 @@ calc_pv = 0;
 flags.perturb_zeta = 0; % add random perturbation to zeta
 flags.spinup = 0; % if spinup, do not initialize ubar/vbar fields.
 
-flags.telescoping = 1; % telescope dx,dy
-
 flags.front = 0; % create shelfbreak front
 flags.eddy  = 1; % create eddy
 flags.wind  = 0; % create wind forcing file
@@ -132,7 +130,7 @@ flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
 flags.bg_shear = 0;
 
 bg.ubt = NaN; % m/s barotropic velocity
-              % if NaN; eddy.nl is used to determine it later
+                   % if NaN; eddy.nl is used to determine it later
 bg.vbt = 0;-0.04; % m/s barotropic velocity
 bg.shear_fac = 0.2; 
 bg.shear = NaN; % set later as bg.shear_fac * max(eddy vorticity)
@@ -149,11 +147,11 @@ flags.flat_bottom = 0; % set depth in Z above
 flags.crooked_bathy = 0;
 
 bathy.S_sh = 0; % Slope Burger number for shelf
-bathy.S_sl = 7; % slope Burger number for slope
+bathy.S_sl = 1; % slope Burger number for slope
 
-bathy.H_shelf  = 75;
+bathy.H_shelf  = 40;
 bathy.L_shelf  = 40 * 1000;
-bathy.L_slope  = 50 * 1000;
+bathy.L_slope  = 40 * 1000;
 bathy.axis = 'y'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
 bathy.sl_shelf = bathy.S_sh * f0/sqrt(N2);
@@ -193,16 +191,16 @@ grid.dxmax = 4*dx0;
 grid.dymax = 4*dy0;
 % p - positive side : axis > center
 % n - negative side : axis < center
-grid.xscalep = 50;
-grid.xscalen = 50;
-grid.yscalep = 50;
-grid.yscalen = 50;
+grid.xscalep = 75;
+grid.xscalen = 75;
+grid.yscalep = 75;
+grid.yscalen = 75;
 
 % telescope for ix > ixp & ix < ixn
 % similarly for iy > iyp & iy < iyn
-grid.ixp = 340;
-grid.ixn = 50;
-grid.iyp = (bathy.L_shelf + bathy.L_slope)/dx0;
+grid.ixp = ceil(0.9*S.Lm);
+grid.ixn = floor(0.1*S.Lm);
+grid.iyp = (bathy.L_shelf + bathy.L_slope)*1.5/dx0;
 grid.iyn = 1;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EDDY
@@ -214,18 +212,18 @@ flags.eddy_zhang = ~flags.solidbody_katsman;
 flags.vprof_gaussian = 0;%~flags.eddy_zhang; % eddy is gaussian in vertical?
 
 % Eddy parameters - all distances in m
-eddy.Bu     = 9; % ratio of (eddy radius to deformation radius )^2
-eddy.nl     = 4; % eddy velocity scale / eddy translation velocity
+eddy.Bu     = 2.5; % ratio of (eddy radius to deformation radius )^2
+eddy.nl     = 2; % eddy velocity scale / eddy translation velocity
                  % parameter
                  % if bg.ubt = NaN; this is used to determine it later
 
 eddy.dia    = NaN; % 2xNH/pi/f0 - determined later
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
-eddy.tamp   = 0.1; % controls gradient
-eddy.buffer_sp = 60*1000; % distance from  4.3 (2.3) *r0 to sponge edge
+eddy.tamp   = 0.3; % controls gradient
+eddy.buffer_sp = 50*1000; % distance from  4.3 (2.3) *r0 to sponge edge
 eddy.buffer = NaN;7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
-eddy.cx     = NaN; % if NaN, determined using buffer later
+eddy.cx     = NaN;100*1000; % if NaN, determined using buffer later
 eddy.cy     = NaN;Y/2; %              "
 eddy.theta0 = pi/2; % surface phase anomaly from Zhang et al. (2013)
                     % 7/16 * pi for WCR
@@ -879,7 +877,8 @@ if flags.eddy
     
     % Set eddy parameters that depend on something else
     eddy.Ldef = sqrt(phys.N2)*Z/pi/f0; % deformation radius NH/pi/f
-    eddy.dia = 2* sqrt(eddy.Bu) * Ldef;
+    % eddy.dia = 2*bathy.L_slope;
+    eddy.dia = 2 * sqrt(eddy.Bu) * eddy.Ldef;
     if flags.eddy_zhang
         xtra = (4.3)*eddy.dia/2;
     else
@@ -1070,9 +1069,11 @@ if flags.eddy
         nondim.eddy.Bu = (eddy.R / eddy.Ldef)^2;;
         nondim.eddy.Ri = N2./(TCOEF*g*eddy.tamp/f0/eddy.R).^2;
         nondim.eddy.Bu_temp = TCOEF *g * Z * eddy.tamp / f0^2 / eddy.R^2;
-        fprintf('\n max. Ro = %.2f | Bu = %.2f | Bu_temp = %.2f | Ri = %.2f | Rh = %.2f | Lsl/R = %.2f\n\n', ....
+        nondim.eddy.gamma = bathy.hsb/eddy.depth;
+        fprintf('\n max. Ro = %.2f | Bu = %.2f | Bu_temp = %.2f | Ri = %.2f | Rh = %.2f | Lsl/R = %.2f | H_sb/H_eddy = %.2f\n\n', ....
                 nondim.eddy.Ro,nondim.eddy.Bu,nondim.eddy.Bu_temp, ...
-                nondim.eddy.Ri,nondim.eddy.Rh, bathy.L_slope/eddy.R);
+                nondim.eddy.Ri,nondim.eddy.Rh, bathy.L_slope/eddy.R, ...
+                nondim.eddy.gamma);
         
         
         % calculate Ro using vorticity
@@ -1112,13 +1113,18 @@ if flags.eddy
     hold on
     [C,h] = contour(xrmat(:,:,1)./fx,yrmat(:,:,1)./fy,S.h,...
                 floor(linspace(min(S.h(:)),max(S.h(:)),5)),'k');
-            
+    clabel(C,h);         
     liney((Y-eddy.buffer_sp)/fy,'sponge');
     linex((X-eddy.buffer_sp)/fx,'sponge');
-    linex([S.x_rho(grid.ixn,1) S.x_rho(grid.ixp,1)]/fx,'telescope','w');
-    liney([S.y_rho(1,grid.iyn) S.y_rho(1,grid.iyp)]/fy,'telescope','w');
-    
-    clabel(C,h); 
+    if flags.telescoping
+        linex([S.x_rho(grid.ixn,1) S.x_rho(grid.ixp,1)]/fx,'telescope','w');
+        liney([S.y_rho(1,grid.iyn) S.y_rho(1,grid.iyp)]/fy,'telescope', ...
+              'w');
+        contour(xrmat(:,:,1)./fx, yrmat(:,:,1)./fy, 1./S.pm, [1:0.5: ...
+                            grid.dxmax/grid.dxmin] * grid.dxmin, 'w'); 
+        contour(xrmat(:,:,1)./fx, yrmat(:,:,1)./fy, 1./S.pn, [1:0.5: ...
+                            grid.dxmax/grid.dymin] * grid.dymin, 'w'); 
+    end
     title('Zeta with eddy');
     if bathy.axis == 'y'
         liney([bathy.xsl bathy.xsb]/fy);
