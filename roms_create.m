@@ -40,8 +40,8 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 512;
-S.Mm = 204;
+S.Lm = 720;
+S.Mm = 300;
 S.N  = 72;
 
 %set value of dx,dy for uniform grid
@@ -150,8 +150,8 @@ bathy.S_sh = 0; % Slope Burger number for shelf
 bathy.S_sl = 1; % slope Burger number for slope
 
 bathy.H_shelf  = 40;
-bathy.L_shelf  = 40 * 1000;
-bathy.L_slope  = 40 * 1000;
+bathy.L_shelf  = 60 * 1000;
+bathy.L_slope  = 70 * 1000;
 bathy.axis = 'y'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
 bathy.sl_shelf = bathy.S_sh * f0/sqrt(N2);
@@ -212,7 +212,7 @@ flags.eddy_zhang = ~flags.solidbody_katsman;
 flags.vprof_gaussian = 0;%~flags.eddy_zhang; % eddy is gaussian in vertical?
 
 % Eddy parameters - all distances in m
-eddy.Bu     = 2.5; % ratio of (eddy radius to deformation radius )^2
+eddy.Bu     = 2.5^2; % ratio of (eddy radius to deformation radius )^2
 eddy.nl     = 2; % eddy velocity scale / eddy translation velocity
                  % parameter
                  % if bg.ubt = NaN; this is used to determine it later
@@ -234,7 +234,7 @@ eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
                 '| theta0 = surface phase anomaly | buffer = distance from domain edge ' ...
                 '/start of deep water to 4.2*r0 (zhang) or 2.2 r0 ' ...
                 '(katsman) | nl = U/c in chelton terminology | Bu = ' ...
-                'burger number = (eddy.R/  deformation radius)^2 | ' ...
+                'burger number = (eddy.R /  deformation radius)^2 | ' ...
                 'Ldef = deformation radius NH/(pi*f0)'];
             
 if flags.solidbody_katsman
@@ -879,6 +879,16 @@ if flags.eddy
     eddy.Ldef = sqrt(phys.N2)*Z/pi/f0; % deformation radius NH/pi/f
     % eddy.dia = 2*bathy.L_slope;
     eddy.dia = 2 * sqrt(eddy.Bu) * eddy.Ldef;
+    
+    % check for consistency
+    factor = 1/sqrt(eddy.Bu) * eddy.dia/2 / bathy.L_slope * pi/ bathy.S_sl;
+    if factor > 1.05 || factor < 0.95
+        error([' pi/S_sl * Le/Lsl * 1/sqrt(Bu) = ' ...
+                num2str(factor)]);
+    else
+        warning([' pi/S_sl * Le/Lsl * 1/sqrt(Bu) = ' ...
+                num2str(factor)]);
+    end
     if flags.eddy_zhang
         xtra = (4.3)*eddy.dia/2;
     else
