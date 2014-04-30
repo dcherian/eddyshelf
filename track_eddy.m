@@ -1,25 +1,42 @@
 function [eddy] = track_eddy(dir1)
 
-    if isdir(dir1)
-        fnames = roms_find_file(dir1,'avg');
+    if isobject(dir1)
+        run = dir1;
+        dir1 = run.dir;
+        fnames = roms_find_file(dir1,'his');
         file = char([dir1 '/' char(fnames(1))]);
-        [xr,yr,zr,~,~,~,grd] = dc_roms_var_grid(file,'temp');
-        zeta = dc_roms_read_data(dir1,'zeta',[],{},[],grd);
-        N = size(zr,3);
-        u     = dc_roms_read_data(dir1,'u',[],{'z' N N},[],grd);
-        v     = dc_roms_read_data(dir1,'v',[],{'z' N N},[],grd);
-    else
-        fname = dir1;
-        index = strfind(dir1,'/');
-        dir1 = dir1(1:index(end));
-        fnames = [];
-        file = fname;
+        N = run.rgrid.N;
         [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
-        tic;
-        zeta = double(ncread(fname,'zeta'));
-        u     = squeeze(double(ncread(fname,'u',[1 1 size(zr,3) 1],[Inf Inf 1 Inf])));
-        v     = squeeze(double(ncread(fname,'v',[1 1 size(zr,3) 1],[Inf Inf 1 Inf])));
-        toc;
+        
+        zeta = run.zeta;
+        if isempty(run.usurf)
+            u = dc_roms_read_data(dir1, 'u', [], {'z' N N}, [], run.rgrid);
+            v = dc_roms_read_data(dir1, 'v', [], {'z' N N}, [], run.rgrid);
+        end
+    else
+        if isdir(dir1)
+            fnames = roms_find_file(dir1,'his');
+            file = char([dir1 '/' char(fnames(1))]);
+            [xr,yr,zr,~,~,~,grd] = dc_roms_var_grid(file,'temp');
+            tic;
+            N = size(zr,3);
+            
+            zeta  = dc_roms_read_data(dir1,'zeta',[,{},[],grd);
+            u     = dc_roms_read_data(dir1,'u',[],{'z' N N},[],grd);
+            v     = dc_roms_read_data(dir1,'v',[],{'z' N N},[],grd);
+        else
+            fname = dir1;
+            index = strfind(dir1,'/');
+            dir1 = dir1(1:index(end));
+            fnames = [];
+            file = fname;
+            [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
+            tic;
+            zeta = double(ncread(fname,'zeta'));
+            u     = squeeze(double(ncread(fname,'u',[1 1 size(zr,3) 1],[Inf Inf 1 Inf])));
+            v     = squeeze(double(ncread(fname,'v',[1 1 size(zr,3) 1],[Inf Inf 1 Inf])));
+            toc;
+        end
     end
     kk = 2; % if ncread fails, it will use fnames(kk,:)
     tt0 = 0; % offset for new history.average file - 0 initially, updated later
@@ -104,7 +121,7 @@ function [eddy] = track_eddy(dir1)
             d_sbreak = Inf;
             thresh = nan;
         else 
-            if tt ==  104,
+            if tt ==  108,
                 disp('debug time!');
             end
             mask = nan(sz);
@@ -156,6 +173,8 @@ function [eddy] = track_eddy(dir1)
         eddy.ee(tt) = temp.ee;
         eddy.ne(tt) = temp.ne;
         eddy.se(tt) = temp.se;
+        
+        eddy.Ls(tt) = temp.Ls;
         
         eddy.vor.we(tt) = temp.vor.we;
         eddy.vor.ee(tt) = temp.vor.ee;
@@ -247,7 +266,7 @@ function [eddy] = track_eddy(dir1)
                     'Lgauss = vertical scale (m) when fitting Gaussian - happens with sine fits too | ' ...
                     'Lz2,3 = Vertical scale (m) when fitting without & with linear trend | ' ...
                     'T = temp profile at (mx,my) | L = equiv diameter for vorticity < 0 region '...
-                    'Lmin/Lmaj = minor/major axis length'];
+                    'Lmin/Lmaj = minor/major axis length | Ls = speed based definition in Chelton et al. (2011)'];
     
     save([dir1 '/eddytrack.mat'],'eddy');
     disp('Done.');
@@ -381,6 +400,8 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
             cx = dx/2 + props.WeightedCentroid(2) * dx;
             cy = dy/2 + props.WeightedCentroid(1) * dy;
             
+            if cy < sbreak; continue; end
+            
             % Criterion 7 - if multiple regions (eddies), only store the one
             % closest to shelfbreak
             % find location of maximum that is closest to shelfbreak
@@ -478,7 +499,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
                 eddy.vor.ne   = dy/2 + nanmax(ymax) * dy; % south edge
                 eddy.vor.se   = dy/2 + nanmin(ymax) * dy; % north edge
                 eddy.vor.amp  = amp;
-                eddy.vor.dia  = props.EquivDiameter * sqrt(dx*dy);
+                eddy.vor.dia  = vorprops.EquivDiameter * sqrt(dx*dy);
                 eddy.vor.mask = vormaskreg;
                 % If I get here, I'm done.
                 break;
@@ -495,6 +516,38 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
         end
         if exist('flag_found','var') && flag_found == 1, break; end
     end 
+    
+    % eddy was found but i'm testing what Chelton's Ls would look like
+    % calculate geostrophic velocity magnitude
+    % then do thresholding and find SSH contour with max. avg speed.
+    % then figure out equivDiameter for that threshold
+    ugeo = -1 * 9.81 .* 1/1e-4 * diff(zeta,1,2) / dy;
+    vgeo =      9.81 .* 1/1e-4 * diff(zeta,1,1) / dx;
+
+    V = hypot( avg1(ugeo,1), avg1(vgeo,2) );
+    Vmax = 0;
+    threshmax = 0;
+    thresh_loop = linspace(threshold, nanmax(zeta(:)), 10);
+    for iii=1:length(thresh_loop)-1
+        zmask = (zeta .* eddy.mask) > thresh_loop(iii);
+        try
+            [x0,y0] = ind2sub(size(zmask),find(zmask == 1,1,'first'));
+            points = bwtraceboundary(zmask,[x0,y0],'E');
+        
+            Vboundary = V(sub2ind(size(V), points(:,1), points(:,2)));
+            if mean(Vboundary) > Vmax
+                Vmax = mean(Vboundary);
+                threshmax = thresh_loop(iii);
+            end
+        catch ME
+            disp(ME)
+        end
+    end
+    
+    % reuse zmask
+    zmask = (zeta .* eddy.mask) > threshmax;
+    props = regionprops(zmask, 'EquivDiameter');
+    eddy.Ls = props.EquivDiameter/2 * sqrt(dx*dy);
     
     if ~exist('eddy','var')
         eddy.cx   = NaN;
