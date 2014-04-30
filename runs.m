@@ -195,7 +195,7 @@ methods
         
         % load fluxes if the file exists
         if exist([dir '/fluxes.mat'],'file') && reset ~= 1
-            disp('Loading water mass data');
+            disp('Loading fluxes');
             data = load([dir '/fluxes.mat']);
             runs.csflux = data.csflux;
             runs.asflux = data.asflux;
@@ -1191,11 +1191,11 @@ methods
             runs.csflux.west.pv(t0:tinf,kk) = squeeze(nansum( ...
                 bsxfun(@times, pvcsflux .* westmask, ...
                 1./runs.rgrid.pm(1,2:end-1)'),1))';
-            runs.csflux.west.pv(t0:tinf,kk) = squeeze(nansum( ...
+            runs.csflux.east.pv(t0:tinf,kk) = squeeze(nansum( ...
                 bsxfun(@times, pvcsflux .* eastmask, ...
                 1./runs.rgrid.pm(1,2:end-1)'),1))';
             
-            runs.csflux.east.rv(t0:tinf,kk) = squeeze(nansum( ...
+            runs.csflux.west.rv(t0:tinf,kk) = squeeze(nansum( ...
                 bsxfun(@times, rvcsflux .* westmask, ...
                 1./runs.rgrid.pm(1,2:end-1)'),1))';
             runs.csflux.east.rv(t0:tinf,kk) = squeeze(nansum( ...
@@ -1245,23 +1245,23 @@ methods
         if isfield(eddy, 'vol')
             subplot(aa,2,1); hold on
             plot(eddy.t, eddy.vol,'Color', colors(ii,:));
-            title('Volume');
+            ylabel('Volume');
             
             subplot(aa,2,3); hold on
             plot(eddy.t, eddy.PV, 'Color', colors(ii,:));
-            title('PV');
+            ylabel('PV');
             
             subplot(aa,2,5); hold on
             plot(eddy.t, eddy.RV, 'Color', colors(ii,:));
-            title('RV');
+            ylabel('RV');
             
             subplot(aa,2,7); hold on;
             plot(eddy.t, eddy.KE, 'Color', colors(ii,:));
-            title('KE');
+            ylabel('KE');
             
             subplot(aa,2,9); hold on;
             plot(eddy.t, eddy.PE, 'Color', colors(ii,:));
-            title('PE');
+            ylabel('PE');
         end
         subplot(aa,2,2); hold on
         plot(eddy.t,eddy.vor.amp./eddy.amp(1),'Color',colors(ii,:));
@@ -1325,7 +1325,7 @@ methods
             subplot(4,1,4);
             hold on;
             plot(eddy.t, runs.csflux.west.rv(:,1), 'Color', colors(ii,:));
-            ylabel('West - PV flux');
+            ylabel('West - RV flux');
             
             
             figure(5);
@@ -4334,6 +4334,7 @@ methods
         [~,hplot] = contour(runs.eddy.xr/1000,runs.eddy.yr/1000, ...
                     mask,'Color','k','LineWidth',1);
     end
+
     function update_eddy_contour(runs,handle,tt)
         try 
             mask = runs.eddy.vormask(:,:,tt);
