@@ -1,15 +1,13 @@
 function [eddy] = track_eddy(dir1)
 
     if isdir(dir1)
-        fnames = roms_find_file(dir1,'his');
+        fnames = roms_find_file(dir1,'avg');
         file = char([dir1 '/' char(fnames(1))]);
-        [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
-        tic;
-        zeta  = dc_roms_read_data(dir1,'zeta');
+        [xr,yr,zr,~,~,~,grd] = dc_roms_var_grid(file,'temp');
+        zeta = dc_roms_read_data(dir1,'zeta',[],{},[],grd);
         N = size(zr,3);
-        u     = dc_roms_read_data(dir1,'u',[],{'z' N N});
-        v     = dc_roms_read_data(dir1,'v',[],{'z' N N});
-        toc;
+        u     = dc_roms_read_data(dir1,'u',[],{'z' N N},[],grd);
+        v     = dc_roms_read_data(dir1,'v',[],{'z' N N},[],grd);
     else
         fname = dir1;
         index = strfind(dir1,'/');
@@ -31,7 +29,7 @@ function [eddy] = track_eddy(dir1)
     limit_y = 40*1000;
 
     eddy.h = ncread(file,'h');
-    eddy.t = roms_read_data(dir1,'ocean_time')/86400; % required only for dt
+    eddy.t = dc_roms_read_data(dir1,'ocean_time')/86400; % required only for dt
     
     %dx = xr(2,1,1) - xr(1,1,1);
     %dy = yr(1,2,1) - yr(1,1,1);
