@@ -42,13 +42,13 @@ function [eddy] = track_eddy(dir1)
         end
         params = read_params_from_ini(dir1);
     end
-    
+
     if strfind(file, 'his')
         tracer = 'rho';
     else
         tracer = 'temp';
     end
-    
+
     kk = 2; % if ncread fails, it will use fnames(kk,:)
     tt0 = 0; % offset for new history.average file - 0 initially, updated later
 
@@ -315,7 +315,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
 
     % algorithm options
     amp_thresh = 0.001; % Amplitude threshold (in m)
-    
+
     flag_found = 0;
 
     % minimum eddy rad. = 5 km, maximum = 100 km
@@ -496,9 +496,9 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
 
                 % make sure that region contains eddy.mx,eddy.my
                 if vormaskreg(ix(indx,indy),iy(indx,indy)) == 0
-                    continue; 
+                    continue;
                 end
-                
+
                 % extract information
                 vorprops  = regionprops(vormaskreg,zeta,'EquivDiameter', ...
                         'MinorAxisLength','MajorAxisLength','WeightedCentroid', ...
@@ -510,7 +510,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
 
                 xmax = fillnan(vormaskreg(:).*ix(:),0);
                 ymax = fillnan(vormaskreg(:).*iy(:),0);
-                
+
                 % Criterion 7 - solidity must be good - helps get rid of some
                 % thin 'isthumuses'
                 if vorprops.Solidity  < 0.75, continue; end
@@ -523,7 +523,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
                 % store eddy properties for return
                 eddy.vor.cx = dx/2 + vorprops.WeightedCentroid(2) * dx;
                 eddy.vor.cy = dy/2 + vorprops.WeightedCentroid(1) * dy;
-                
+
                 if eddy.vor.cy < sbreak; continue; end
 
                 eddy.vor.we   = dx/2 + nanmin(xmax) * dx; % west edge
