@@ -1217,22 +1217,25 @@ methods
         %       colors = distinguishable_colors(10);
         colors = cbrewer('qual', 'Dark2', 8);
         aa = 6; bb = aa*2;
-        tloc = eddy.tscaleind;;
+        tloc = [1:0.5:3];
+        tind = vecfind(eddy.t, tloc);
 
         % plot eddy tracks
+        % background velocity displacement
+        displace = cumtrapz(eddy.t*86400, runs.eddy.bgvel);
+        plotx = (eddy.mx - displace - eddy.mx(1))/1000;
+        ploty = (eddy.my - eddy.my(1))/1000;
         figure(1)
         hold on
         %subplot(aa,2,bb);
         %subplot(aa,2,1); hold all
         %pcolorcen(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.bathy.h);            colorbar
         xlabel('X (km)'); ylabel('Y (km)');
-        he = plot((eddy.mx-eddy.mx(1))/1000, ...
-             (eddy.my-eddy.my(1))/1000,'Color',colors(ii,:),'LineWidth',2);
+        he = plot(plotx, ploty, 'Color',colors(ii,:),'LineWidth',2);
         hold all;
         addlegend(he, runs.name, 'NorthEast');
         try
-            plot((eddy.mx(tloc)-eddy.mx(1))/1000,...
-                (eddy.my(tloc)-eddy.my(1))/1000,'*', ...
+            plot(plotx(tind), ploty(tind),'*', ...
                  'MarkerSize',12,'Color',colors(ii,:),'LineWidth',2);
         catch ME
         end
@@ -1483,6 +1486,25 @@ methods
 
         runs.vbarg =      9.81 .* bsxfun(@rdivide,diff(runs.zeta,1,1), ...
                             avg1(runs.rgrid.f',1).*diff(runs.rgrid.xr,1,1));
+    end
+
+    % let's try to estimate background flow acting on eddy
+    function [] = eddy_bgflow(runs)
+        if runs.bathy.axis == 'y'
+            bg = dc_roms_read_data(runs.dir, 'ubar', [], {}, [], runs.rgrid);
+            cind = vecfind(runs.rgrid.x_rho(1,:), runs.eddy.cx);
+            edgeind = vecfind(runs.rgrid.y_rho(:,1), runs.eddy.ne);
+            for ii = 1:size(bg,3)
+                runs.eddy.bgvel(ii) = mean(bg(cind(ii), edgeind(ii):end, ii));
+            end
+        else
+            bg = dc_roms_read_data(runs.dir, 'vbar', [], {}, [], runs.rgrid);
+            cind = vecfind(runs.rgrid.y_rho(:,1), runs.eddy.cy);
+            edgeind = vecfind(runs.rgrid.y_rho(:,1), runs.eddy.ee);
+            for ii = 1:size(bg,3)
+                runs.eddy.bgvel(ii) = mean(bg(edgeind(ii):end, cind(ii), ii));
+            end
+        end
     end
 
     % calculate upwelling in eddy
@@ -2810,13 +2832,15 @@ methods
     end
 
    %% animation functions
-    function [] = animate_zeta(runs)
+    function [] = animate_zeta(runs, t0)
         runs.video_init('zeta');
 
         titlestr = 'SSH (m)';
 
+        if ~exist('t0', 'var'), t0 = 1; end
+
         figure;
-        ii=1;
+        ii=t0;
         hz = runs.plot_zeta('pcolor',ii);
         ax = gca;
         hold on
@@ -2824,13 +2848,16 @@ methods
         hbathy = runs.plot_bathy('contour','k');
         he = runs.plot_eddy_contour('contour',ii);
         ht = runs.set_title(titlestr,ii);
-
+        if runs.params.flags.telescoping
+            linex([runs.params.grid.ixn runs.params.grid.ixp], '');
+            liney([runs.params.grid.iyp],'');
+        end
         xlabel('X (km)');ylabel('Y (km)');
         axis image;
         maximize(gcf); pause(0.2);
         beautify([16 16 18]);
         runs.video_update();
-        for ii = 2:size(runs.zeta,3)
+        for ii = t0+1:size(runs.zeta,3)
             tic;
             runs.update_zeta(hz,ii);
             runs.update_eddy_contour(he,ii);
