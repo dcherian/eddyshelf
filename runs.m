@@ -2870,12 +2870,10 @@ methods
         beautify([16 16 18]);
         runs.video_update();
         for ii = t0+1:size(runs.zeta,3)
-            tic;
             runs.update_zeta(hz,ii);
             runs.update_eddy_contour(he,ii);
             runs.update_title(ht,titlestr,ii);
             runs.video_update();
-            toc;
             pause(0.03);
         end
         runs.video_write();
