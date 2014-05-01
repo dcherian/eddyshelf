@@ -10,9 +10,10 @@ function [eddy] = track_eddy(dir1)
 
         zeta = run.zeta;
         if isempty(run.usurf)
-            u = dc_roms_read_data(dir1, 'u', [], {'z' N N}, [], run.rgrid);
-            v = dc_roms_read_data(dir1, 'v', [], {'z' N N}, [], run.rgrid);
+            run.read_velsurf;
         end
+        u = run.usurf;
+        v = run.vsurf;
     else
         if isdir(dir1)
             fnames = roms_find_file(dir1,'his');
@@ -38,6 +39,13 @@ function [eddy] = track_eddy(dir1)
             toc;
         end
     end
+    
+    if strfind(file, 'his')
+        tracer = 'rho';
+    else
+        tracer = 'temp';
+    end
+    
     kk = 2; % if ncread fails, it will use fnames(kk,:)
     tt0 = 0; % offset for new history.average file - 0 initially, updated later
 
@@ -121,7 +129,7 @@ function [eddy] = track_eddy(dir1)
             d_sbreak = Inf;
             thresh = nan;
         else
-            if tt ==  108,
+            if tt == 109,
                 disp('debug time!');
             end
             mask = nan(sz);
@@ -194,23 +202,29 @@ function [eddy] = track_eddy(dir1)
         imy = find_approx(yr(1,:),eddy.my(tt),1);
         ze  = squeeze(zr(imx,imy,:)); % z co-ordinate at center of eddy
         try
-            eddy.T(tt,:) = double(squeeze(ncread(file,'temp',[imx imy 1 tt-tt0], ...
+            eddy.T(tt,:) = double(squeeze(ncread(file,tracer,[imx imy 1 tt-tt0], ...
                             [1 1 Inf 1])));
         catch ME
             disp([' Moving to next file tt = ' num2str(tt) ' - ' char(fnames(kk))]);
             file = [dir1 '/' char(fnames(kk))];
             kk = kk +1;
             tt0 = tt-1;
-            eddy.T(tt,:) = double(squeeze(ncread(file,'temp',[imx imy 1 tt-tt0],[ ...
+            eddy.T(tt,:) = double(squeeze(ncread(file,tracer,[imx imy 1 tt-tt0],[ ...
                                                     1 1 Inf 1])));
         end
 
         if params.bathy.axis == 'x'
-            Ti = double(squeeze(ncread(file,'temp', ...
+            Ti = double(squeeze(ncread(file,tracer, ...
                     [imx  size(xr,2)  1 tt-tt0],[1 1 Inf 1])));
         else
-            Ti = double(squeeze(ncread(file,'temp', ...
+            Ti = double(squeeze(ncread(file,tracer, ...
                     [size(xr,1)  imy  1 tt-tt0],[1 1 Inf 1])));
+        end
+        if strcmpi(tracer, 'rho')
+            eddy.T(tt,:) = runs.params.phys.T0 - 1./runs.params.phys.TCOEF * ...
+                    (eddy.T(tt,:) - runs.params.phys.R0);
+            Ti = runs.params.phys.T0 - 1./runs.params.phys.TCOEF * ...
+                    (Ti - runs.params.phys.R0);
         end
         opts = optimset('MaxFunEvals',1e5);
         if ~isfield(params.flags,'vprof_gaussian') || params.flags.vprof_gaussian
@@ -248,8 +262,8 @@ function [eddy] = track_eddy(dir1)
             eddy.mvy(tt) = (eddy.my(tt) - eddy.my(tt-1))./dt/1000;
 
             % dt in days; convert dx,dy to km
-            eddy.cvx(tt) = (eddy.cx(tt) - eddy.cx(tt-1))./dt/1000;
-            eddy.cvy(tt) = (eddy.cy(tt) - eddy.cy(tt-1))./dt/1000;
+            eddy.cvx(tt) = (eddy.vor.cx(tt) - eddy.vor.cx(tt-1))./dt/1000;
+            eddy.cvy(tt) = (eddy.vor.cy(tt) - eddy.vor.cy(tt-1))./dt/1000;
         end
     end
 
@@ -435,8 +449,6 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
 
 
             % I have an eddy!!!
-            flag_found = 1;
-            fprintf('Eddy found with threshold %.3f \n', threshold);
             %imagesc(zreg');
 
             xmax = fillnan(maskreg(:).*ix(:),0);
@@ -461,6 +473,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
             % find 0 rel. vor (max. speed) contour
             vormask   = vor.*eddy.mask < 0;
             vorregions = bwconncomp(vormask,connectivity);
+            nvor = [];
             for zz=1:vorregions.NumObjects
                 nvor(zz) = length(vorregions.PixelIdxList{zz});
             end
@@ -477,11 +490,12 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
                 if n < low_n || n > high_n, continue; end
 
                 % make sure that region contains eddy.mx,eddy.my
-                if vormaskreg(ix(indx,indy),iy(indx,indy)) == 0, continue; end
-
+                %if vormaskreg(ix(indx,indy),iy(indx,indy)) == 0, continue; end
+                
                 % extract information
                 vorprops  = regionprops(vormaskreg,zeta,'EquivDiameter', ...
-                        'MinorAxisLength','MajorAxisLength');
+                        'MinorAxisLength','MajorAxisLength','WeightedCentroid', ...
+                        'Area', 'Solidity');
                 % now eddy.vor.dia
                 %eddy.L    = vorprops.EquivDiameter * sqrt(dx*dy);
                 eddy.vor.lmaj = vorprops.MajorAxisLength * sqrt(dx*dy);
@@ -489,10 +503,21 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
 
                 xmax = fillnan(vormaskreg(:).*ix(:),0);
                 ymax = fillnan(vormaskreg(:).*iy(:),0);
+                
+                % Criterion 7 - solidity must be good - helps get rid of some
+                % thin 'isthumuses'
+                if vorprops.Solidity  < 0.75, continue; end
+
+                % Criterion 8 - low 'rectangularity' - gets rid of rectangles
+                % that are sometime picked up
+                rectarea = props.BoundingBox(3) * props.BoundingBox(4);
+                if vorprops.Area/rectarea > 0.85, continue; end
 
                 % store eddy properties for return
-                eddy.vor.cx   = dx/2 + cx; % weighted center
-                eddy.vor.cy   = dy/2 + cy; %     "
+                eddy.vor.cx = dx/2 + vorprops.WeightedCentroid(2) * dx;
+                eddy.vor.cy = dy/2 + vorprops.WeightedCentroid(1) * dy;
+                
+                if eddy.vor.cy < sbreak; continue; end
 
                 eddy.vor.we   = dx/2 + nanmin(xmax) * dx; % west edge
                 eddy.vor.ee   = dx/2 + nanmax(xmax) * dx; % east edge
@@ -501,10 +526,11 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
                 eddy.vor.amp  = amp;
                 eddy.vor.dia  = vorprops.EquivDiameter * sqrt(dx*dy);
                 eddy.vor.mask = vormaskreg;
+                flag_found = 1;
+                fprintf('Eddy found with threshold %.3f \n', threshold);
                 % If I get here, I'm done.
                 break;
             end
-
 %             imagesc(zreg');
 %             linex(cx./dx); liney(cy./dy);
 %             linex(indx,[],'r'); liney(indy,[],'r');
