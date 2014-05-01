@@ -14,6 +14,8 @@ function [eddy] = track_eddy(dir1)
         end
         u = run.usurf;
         v = run.vsurf;
+
+        params = run.params;
     else
         if isdir(dir1)
             fnames = roms_find_file(dir1,'his');
@@ -38,6 +40,7 @@ function [eddy] = track_eddy(dir1)
             v     = squeeze(double(ncread(fname,'v',[1 1 size(zr,3) 1],[Inf Inf 1 Inf])));
             toc;
         end
+        params = read_params_from_ini(dir1);
     end
     
     if strfind(file, 'his')
@@ -69,7 +72,6 @@ function [eddy] = track_eddy(dir1)
     yr   = yr(2:end-1,2:end-1,end);
 
     % initial guess for vertical scale fit
-    params = read_params_from_ini(dir1);
     if ~isfield(params.flags,'vprof_gaussian') || params.flags.vprof_gaussian
         initGuess2(2) = params.eddy.depth;
         initGuess3(2) = params.eddy.depth;
@@ -221,10 +223,10 @@ function [eddy] = track_eddy(dir1)
                     [size(xr,1)  imy  1 tt-tt0],[1 1 Inf 1])));
         end
         if strcmpi(tracer, 'rho')
-            eddy.T(tt,:) = runs.params.phys.T0 - 1./runs.params.phys.TCOEF * ...
-                    (eddy.T(tt,:) - runs.params.phys.R0);
-            Ti = runs.params.phys.T0 - 1./runs.params.phys.TCOEF * ...
-                    (Ti - runs.params.phys.R0);
+            eddy.T(tt,:) = params.phys.T0 - 1./params.phys.TCOEF * ...
+                    (eddy.T(tt,:) - run.params.phys.R0);
+            Ti = params.phys.T0 - 1./params.phys.TCOEF * ...
+                    (Ti - params.phys.R0);
         end
         opts = optimset('MaxFunEvals',1e5);
         if ~isfield(params.flags,'vprof_gaussian') || params.flags.vprof_gaussian
