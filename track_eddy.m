@@ -1,21 +1,21 @@
 function [eddy] = track_eddy(dir1)
 
     if isobject(dir1)
-        run = dir1;
-        dir1 = run.dir;
+        runobj = dir1;
+        dir1 = runobj.dir;
         fnames = roms_find_file(dir1,'his');
         file = char([dir1 '/' char(fnames(1))]);
-        N = run.rgrid.N;
+        N = runobj.rgrid.N;
         [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
 
-        zeta = run.zeta;
-        if isempty(run.usurf)
-            run.read_velsurf;
+        zeta = runobj.zeta;
+        if isempty(runobj.usurf)
+            runobj.read_velsurf;
         end
-        u = run.usurf;
-        v = run.vsurf;
+        u = runobj.usurf;
+        v = runobj.vsurf;
 
-        params = run.params;
+        params = runobj.params;
     else
         if isdir(dir1)
             fnames = roms_find_file(dir1,'his');
@@ -224,7 +224,7 @@ function [eddy] = track_eddy(dir1)
         end
         if strcmpi(tracer, 'rho')
             eddy.T(tt,:) = params.phys.T0 - 1./params.phys.TCOEF * ...
-                    (eddy.T(tt,:) - run.params.phys.R0);
+                    (eddy.T(tt,:) - params.phys.R0);
             Ti = params.phys.T0 - 1./params.phys.TCOEF * ...
                     (Ti - params.phys.R0);
         end
