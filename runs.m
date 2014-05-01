@@ -7,7 +7,7 @@ properties
     % dimensional and non-dimensional time
     time; ndtime;
     % barotropic vel (geostrophic)
-    ubarg; vbarg;
+    ubar; vbar;
     % dyes
     csdye; asdye; zdye; eddye; % cross-shore, along-shore, z dyes, eddy dye
     % dye names
@@ -1222,7 +1222,10 @@ methods
 
         % plot eddy tracks
         % background velocity displacement
-        displace = cumtrapz(eddy.t*86400, runs.eddy.bgvel);
+        if ~isfield(runs.eddy, 'bgvel')
+            runs.eddy_bgflow();
+        end
+        displace = cumtrapz(runs.time, runs.eddy.bgvel);
         plotx = (eddy.mx - displace - eddy.mx(1))/1000;
         ploty = (eddy.my - eddy.my(1))/1000;
         figure(1)
@@ -1491,18 +1494,27 @@ methods
     % let's try to estimate background flow acting on eddy
     function [] = eddy_bgflow(runs)
         if runs.bathy.axis == 'y'
-            bg = dc_roms_read_data(runs.dir, 'ubar', [], {}, [], runs.rgrid);
+            if isempty(runs.ubar)
+                runs.ubar = dc_roms_read_data(runs.dir, 'ubar', [], ...
+                                              {},  [], runs.rgrid);
+            end
+            bg = runs.ubar;
             cind = vecfind(runs.rgrid.x_rho(1,:), runs.eddy.cx);
             edgeind = vecfind(runs.rgrid.y_rho(:,1), runs.eddy.ne);
             for ii = 1:size(bg,3)
-                runs.eddy.bgvel(ii) = mean(bg(cind(ii), edgeind(ii):end, ii));
+                runs.eddy.bgvel(ii) = mean(runs.ubar(cind(ii), ...
+                                                     edgeind(ii):end, ii));
             end
         else
-            bg = dc_roms_read_data(runs.dir, 'vbar', [], {}, [], runs.rgrid);
+            if isempty(runs.vbar)
+                runs.vbar = dc_roms_read_data(runs.dir, 'vbar', [], ...
+                                              {}, [], runs.rgrid);
+            end
             cind = vecfind(runs.rgrid.y_rho(:,1), runs.eddy.cy);
             edgeind = vecfind(runs.rgrid.y_rho(:,1), runs.eddy.ee);
             for ii = 1:size(bg,3)
-                runs.eddy.bgvel(ii) = mean(bg(edgeind(ii):end, cind(ii), ii));
+                runs.eddy.bgvel(ii) = mean(runs.vbar(edgeind(ii):end, ...
+                                                     cind(ii), ii));
             end
         end
     end
