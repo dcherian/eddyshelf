@@ -1130,8 +1130,8 @@ methods
             eddye = permute(eddye(2:end-1,:,:), [1 4 2 3]);
 
             % define water masses
-            shelfmask = (csdye < runs.bathy.xsb);
-            slopemask = (csdye >= runs.bathy.xsb) & ...
+            shelfmask = (csdye <= runs.bathy.xsb);
+            slopemask = (csdye > runs.bathy.xsb) & ...
                         (csdye <=runs.bathy.xsl);
             eddymask = eddye > runs.eddy_thresh;
 
