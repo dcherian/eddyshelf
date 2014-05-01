@@ -131,7 +131,7 @@ function [eddy] = track_eddy(dir1)
             d_sbreak = Inf;
             thresh = nan;
         else
-            if tt == 109,
+            if tt == 46,
                 disp('debug time!');
             end
             mask = nan(sz);
@@ -315,6 +315,8 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
 
     % algorithm options
     amp_thresh = 0.001; % Amplitude threshold (in m)
+    
+    flag_found = 0;
 
     % minimum eddy rad. = 5 km, maximum = 100 km
     low_n  = floor(pi*(5e3)^2/dx/dy);       % minimum number of pixels in eddy
@@ -461,6 +463,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
             eddy.cy   = cy; %     "
             eddy.mx   = ix(indx,indy) * dx; % maximum
             eddy.my   = iy(indx,indy) * dy; %    "
+            if eddy.my < sbreak; continue; end
             eddy.we   = dx/2 + nanmin(xmax) * dx; % west edge
             eddy.ee   = dx/2 + nanmax(xmax) * dx; % east edge
             eddy.ne   = dy/2 + nanmax(ymax) * dy; % south edge
@@ -492,7 +495,9 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
                 if n < low_n || n > high_n, continue; end
 
                 % make sure that region contains eddy.mx,eddy.my
-                %if vormaskreg(ix(indx,indy),iy(indx,indy)) == 0, continue; end
+                if vormaskreg(ix(indx,indy),iy(indx,indy)) == 0
+                    continue; 
+                end
                 
                 % extract information
                 vorprops  = regionprops(vormaskreg,zeta,'EquivDiameter', ...
@@ -549,33 +554,35 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
     % calculate geostrophic velocity magnitude
     % then do thresholding and find SSH contour with max. avg speed.
     % then figure out equivDiameter for that threshold
-    ugeo = -1 * 9.81 .* 1/1e-4 * diff(zeta,1,2) / dy;
-    vgeo =      9.81 .* 1/1e-4 * diff(zeta,1,1) / dx;
+    if flag_found
+        ugeo = -1 * 9.81 .* 1/1e-4 * diff(zeta,1,2) / dy;
+        vgeo =      9.81 .* 1/1e-4 * diff(zeta,1,1) / dx;
 
-    V = hypot( avg1(ugeo,1), avg1(vgeo,2) );
-    Vmax = 0;
-    threshmax = 0;
-    thresh_loop = linspace(threshold, nanmax(zeta(:)), 10);
-    for iii=1:length(thresh_loop)-1
-        zmask = (zeta .* eddy.mask) > thresh_loop(iii);
-        try
-            [x0,y0] = ind2sub(size(zmask),find(zmask == 1,1,'first'));
-            points = bwtraceboundary(zmask,[x0,y0],'E');
+        V = hypot( avg1(ugeo,1), avg1(vgeo,2) );
+        Vmax = 0;
+        threshmax = 0;
+        thresh_loop = linspace(threshold, nanmax(zeta(:)), 10);
+        for iii=1:length(thresh_loop)-1
+            zmask = (zeta .* eddy.mask) > thresh_loop(iii);
+            try
+                [x0,y0] = ind2sub(size(zmask),find(zmask == 1,1,'first'));
+                points = bwtraceboundary(zmask,[x0,y0],'E');
 
-            Vboundary = V(sub2ind(size(V), points(:,1), points(:,2)));
-            if mean(Vboundary) > Vmax
-                Vmax = mean(Vboundary);
-                threshmax = thresh_loop(iii);
+                Vboundary = V(sub2ind(size(V), points(:,1), points(:,2)));
+                if mean(Vboundary) > Vmax
+                    Vmax = mean(Vboundary);
+                    threshmax = thresh_loop(iii);
+                end
+            catch ME
+                disp(ME)
             end
-        catch ME
-            disp(ME)
         end
-    end
 
-    % reuse zmask
-    zmask = (zeta .* eddy.mask) > threshmax;
-    props = regionprops(zmask, 'EquivDiameter');
-    eddy.Ls = props.EquivDiameter/2 * sqrt(dx*dy);
+        % reuse zmask
+        zmask = (zeta .* eddy.mask) > threshmax;
+        props = regionprops(zmask, 'EquivDiameter');
+        eddy.Ls = props.EquivDiameter/2 * sqrt(dx*dy);
+    end
 
     if ~exist('eddy','var')
         eddy.cx   = NaN;
