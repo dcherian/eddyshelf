@@ -1130,7 +1130,7 @@ methods
             eddye = permute(eddye(2:end-1,:,:), [1 4 2 3]);
 
             % define water masses
-            shelfmask = (csdye <= runs.bathy.xsb);
+            shelfmask = (csdye < runs.bathy.xsb);
             slopemask = (csdye >= runs.bathy.xsb) & ...
                         (csdye <=runs.bathy.xsl);
             eddymask = eddye > runs.eddy_thresh;
@@ -1257,12 +1257,12 @@ methods
             ylabel('Volume');xlim(limx);
 
             subplot(aa,2,3); hold on
-            plot(eddy.t, eddy.PV./eddy.PV(1), 'Color', colors(ii,:));
-            ylabel('PV');xlim(limx);
+            plot(eddy.t, eddy.PV./abs(eddy.PV(1)), 'Color', colors(ii,:));
+            ylabel('PV/|PV0|');xlim(limx);
 
             subplot(aa,2,5); hold on
-            plot(eddy.t, eddy.RV./eddy.RV(1), 'Color', colors(ii,:));
-            ylabel('RV');xlim(limx);
+            plot(eddy.t, eddy.RV./abs(eddy.RV(1)), 'Color', colors(ii,:));
+            ylabel('RV/|RV0|');xlim(limx);
 
             subplot(aa,2,7); hold on;
             plot(eddy.t, eddy.KE./eddy.KE(1), 'Color', colors(ii,:));
@@ -1278,7 +1278,7 @@ methods
         ylabel('Ls/RRdeep');xlim(limx);
 
         subplot(aa,2,6); hold on
-        plot(eddy.t,eddy.cvx,'Color',colors(ii,:));
+        plot(eddy.t,eddy.mvx,'Color',colors(ii,:));
         ylabel('cvx(km/day)');
         ylim([-5 5]);
         liney(0); xlim(limx);
@@ -1286,7 +1286,7 @@ methods
         %ylabel('x - center (km)');
 
         subplot(aa,2,8); hold on
-        plot(eddy.t,eddy.cvy,'Color',colors(ii,:));
+        plot(eddy.t,eddy.mvy,'Color',colors(ii,:));
         ylabel('cvy (km/day)');xlim(limx);
         ylim([-5 5]);
         %plot(eddy.t,eddy.cy/1000,'Color',colors(ii,:));
@@ -1319,26 +1319,26 @@ methods
             subplot(4,1,1);
             hold on;
             plot(eddy.t, runs.csflux.west.shelf(:,1), 'Color', colors(ii,:));
-            ylabel('Shelf water flux across shelfbreak');
+            ylabel('Shelf water flux - sb');
             title('West');
             xlim(limx);
 
             subplot(4,1,2);
             hold on;
             plot(eddy.t, runs.csflux.west.slope(:,1), 'Color', colors(ii,:));
-            ylabel('Slope water flux across shelfbreak');
+            ylabel('Slope water flux - sb');
             xlim(limx);
 
             subplot(4,1,3);
             hold on;
             plot(eddy.t, runs.csflux.west.pv(:,1), 'Color', colors(ii,:));
-            ylabel('West - PV flux');
+            ylabel('PV flux');
             xlim(limx);
 
             subplot(4,1,4);
             hold on;
             plot(eddy.t, runs.csflux.west.rv(:,1), 'Color', colors(ii,:));
-            ylabel('West - RV flux');
+            ylabel('RV flux');
             xlim(limx);
 
             figure(5);
@@ -1370,7 +1370,8 @@ methods
 
         %% plot water masses
         if isfield(runs.water.off, 'deep')
-            markers = {'-','--','-.',':'};
+            linestyle = {'-','--','-.','-'};
+            markers = {'none','none','none','.'};
             time = eddy.t;
             % normalize volumes by initial eddy volume
             evol0 = runs.eddy.vol(runs.eddy.tscaleind);
@@ -1381,23 +1382,29 @@ methods
             % colors: off = r, sl = g, sh = b , edd = k, mix = m
             subplot(3,1,1)
             hold on;
-            plot(time, runs.water.sl.deep/evol0, 'Color', ...
-                 colors(ii,:), 'LineStyle', markers{1});
+            hw = plot(time, runs.water.sl.deep/evol0, 'Color', ...
+                 colors(ii,:), 'LineStyle', linestyle{1}, 'Marker', ...
+                 markers{1});
             plot(time, runs.water.sh.deep/evol0, 'Color', ...
-                 colors(ii,:), 'LineStyle', markers{2});
+                 colors(ii,:), 'LineStyle', linestyle{2}, 'Marker', ...
+                 markers{2});
             ylabel('Deep region ');
             title('All volumes normalized by eddy volume at t=tscale');
             xlim(limx);
+            addlegend(hw, runs.name, 'NorthWest');
 
             subplot(312)
             hold on;
             plot(time, runs.water.off.slope/evol0, 'Color', ...
-                 colors(ii,:), 'LineStyle', markers{1});
+                 colors(ii,:), 'LineStyle', linestyle{1}, 'Marker', ...
+                 markers{1});
             plot(time, runs.water.sh.slope/evol0, 'Color', ...
-                 colors(ii,:), 'LineStyle', markers{3});
+                 colors(ii,:), 'LineStyle', linestyle{3}, 'Marker', ...
+                 markers{3});
             plot(time, runs.water.edd.slope/evol0, 'Color', ...
-                 colors(ii,:), 'LineStyle', markers{4});
-            %plot(time, runs.water.mix.slope/evol0, ['m' markers{num}]);
+                 colors(ii,:), 'LineStyle', linestyle{4}, 'Marker', ...
+                 markers{4});
+            %plot(time, runs.water.mix.slope/evol0, ['m' linestyle{num}]);
             legend('Offshore','Shelf','Eddy');
             ylabel('Slope region');
             xlim(limx);
@@ -1405,12 +1412,15 @@ methods
             subplot(313)
             hold on;
             plot(time, runs.water.off.shelf/evol0, 'Color', ...
-                 colors(ii,:), 'LineStyle', markers{1});
+                 colors(ii,:), 'LineStyle', linestyle{1}, 'Marker', ...
+                 markers{1});
             plot(time, runs.water.sl.shelf/evol0, 'Color', ...
-                 colors(ii,:), 'LineStyle', markers{2});
+                 colors(ii,:), 'LineStyle', linestyle{2}, 'Marker', ...
+                 markers{2});
             plot(time, runs.water.edd.shelf/evol0, 'Color', ...
-                 colors(ii,:), 'LineStyle', markers{4});
-            %plot(time, runs.water.mix.shelf/evol0,['m' markers{num}]);
+                 colors(ii,:), 'LineStyle', linestyle{4}, 'Marker', ...
+                 markers{4});
+            %plot(time, runs.water.mix.shelf/evol0,['m' linestyle{num}]);
             legend('Offshore','Slope','Eddy');
             ylabel('Shelf region');
             xlabel('Time (days)');
