@@ -1105,8 +1105,7 @@ methods
         % use center because export occurs west of the eastern edge
         westmask = bsxfun(@lt, runs.eddy.xr(:,1),  ...
                     runs.eddy.vor.cx(t0:end));
-        eastmask = bsxfun(@gt, runs.eddy.xr(:,1), ...
-                    runs.eddy.vor.cx(t0:end));
+        eastmask = 1 - westmask;
 
         % loop over all isobaths
         for kk=1:length(loc)
@@ -1284,7 +1283,7 @@ methods
         ylabel('Ls/RRdeep');xlim(limx);
 
         subplot(aa,2,6); hold on
-        plot(eddy.t,eddy.mvx,'Color',colors(ii,:));
+        plot(eddy.t,eddy.cvx,'Color',colors(ii,:));
         ylabel('cvx(km/day)');
         ylim([-5 5]);
         liney(0); xlim(limx);
@@ -1292,7 +1291,7 @@ methods
         %ylabel('x - center (km)');
 
         subplot(aa,2,8); hold on
-        plot(eddy.t,eddy.mvy,'Color',colors(ii,:));
+        plot(eddy.t,eddy.cvy,'Color',colors(ii,:));
         ylabel('cvy (km/day)');xlim(limx);
         ylim([-5 5]);
         %plot(eddy.t,eddy.cy/1000,'Color',colors(ii,:));
@@ -4433,10 +4432,14 @@ methods
     end
 
     function [ht] = set_title(runs,titlestr,tt)
-        ht = title([titlestr ' | ' runs.name ' | ' num2str(runs.time(tt)/86400)  ' days']);
+        ht = title([titlestr ' | ' runs.name ' | ' ...
+                    num2str(runs.time(tt)/86400)  ' days | t_nd = ' ...
+                   num2str(runs.time(tt)/runs.eddy.tscale)]);
     end
     function update_title(runs,ht,titlestr,tt)
-        set(ht,'String',[titlestr ' | ' runs.name ' | ' num2str(runs.time(tt)/86400)  ' days']);
+        set(ht,'String',[titlestr ' | ' runs.name ' | ' ...
+                         num2str(runs.time(tt)/86400)  ' days | t_nd = ' ...
+                          num2str(runs.time(tt)/runs.eddy.tscale)]);
     end
 
     function [hplot] = plot_bathy(runs,plottype,color)
