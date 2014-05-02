@@ -3,7 +3,7 @@ function [eddy] = track_eddy(dir1)
     if isobject(dir1)
         runobj = dir1;
         dir1 = runobj.dir;
-        fnames = roms_find_file(dir1,'his');
+        fnames = roms_find_file(dir1,'avg');
         file = char([dir1 '/' char(fnames(1))]);
         N = runobj.rgrid.N;
         [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
@@ -18,7 +18,7 @@ function [eddy] = track_eddy(dir1)
         params = runobj.params;
     else
         if isdir(dir1)
-            fnames = roms_find_file(dir1,'his');
+            fnames = roms_find_file(dir1,'avg');
             file = char([dir1 '/' char(fnames(1))]);
             [xr,yr,zr,~,~,~,grd] = dc_roms_var_grid(file,'temp');
             tic;
