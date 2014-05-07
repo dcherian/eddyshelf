@@ -131,7 +131,7 @@ function [eddy] = track_eddy(dir1)
             d_sbreak = Inf;
             thresh = nan;
         else
-            if tt == 46,
+            if tt == 132,
                 disp('debug time!');
             end
             mask = nan(sz);
@@ -390,7 +390,30 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
             % need to trace out outline, first find one point to start from
             % (convex hull doesn't do the job)
             [x0,y0] = ind2sub(size(maskreg),find(maskreg == 1,1,'first'));
-            points = bwtraceboundary(maskreg,[x0,y0],'E');
+            % Trace boundary points - sometimes the initial
+            % starting direction doesn't work, so I try all 4 in
+            % succession to find one that does
+            try
+                points = bwtraceboundary(maskreg,[x0,y0],'E');
+            catch ME
+                try
+                    points = bwtraceboundary(maskreg,[x0,y0],'W');
+                catch ME
+                    try
+                        points = bwtraceboundary(maskreg,[x0,y0], ...
+                                                 'N');
+                    catch ME
+                        try
+                            points = bwtraceboundary(maskreg,[x0,y0], ...
+                                                     'S');
+                        catch ME
+                            disp(['All 4 bwtraceboundary directions ' ...
+                                  'failed. This should not happen.']);
+                            rethrow(ME);
+                        end
+                    end
+                end
+            end
             points = bsxfun(@times,points,[dx dy]);
             if maximumCaliperDiameter(points) > max_dist, continue; end
            % if minimumCaliperDiameter(points) < min_dist, continue; end
