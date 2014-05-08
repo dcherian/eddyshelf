@@ -20,6 +20,8 @@ properties
     roms; ltrans;
     % eddy track data
     eddy; noeddy;
+    % along-shore jet properties
+    jet;
     % threshold values
     eddy_thresh = 0.7;
     % initial params
@@ -90,7 +92,7 @@ methods
             runs.zeta = double(ncread(runs.out_file,'zeta'));
             runs.time = double(ncread(runs.out_file,'ocean_time'));
         end
-        
+
         runs.makeVideo = 0; % no videos by default.
 
         % make run-name
@@ -830,38 +832,134 @@ methods
         %end
 
         %yz = repmat(runs.rgrid.y_u(1:runs.bathy.isl,1),[1 runs.rgrid.N]);
-        
+
         eddye = dc_roms_read_data(runs.dir, runs.eddname, [t0 Inf], ...
                 {'y' runs.bathy.isb runs.bathy.isl; ...
                  'z' 1 1}, [], runs.rgrid);
-             
+
         asbot = dc_roms_read_data(runs.dir, 'u', [t0 Inf], ...
                 {'y' runs.bathy.isb runs.bathy.isl; ...
                  'z' 1 1}, [], runs.rgrid);
-             
-        % track nose with dye
+
+        %% diagnostics
+        % track nose with dye - DONE
         % measure width and vel magnitude slightly behind nose
         % measure "baroclinity" of profile
-        %%
-        figure;
-        ii=1;
-        hv = pcolorcen(runs.rgrid.x_u(1,:)/1000, ...
-                runs.rgrid.y_u(runs.bathy.isb:runs.bathy.isl,1)/1000, ...
-                asbot(:,:,ii)');
-        hold on
-        [~,hd] = contour(runs.rgrid.xr(:,1)/1000, ...
-            runs.rgrid.yr(1,runs.bathy.isb:runs.bathy.isl)/1000, ...
-            eddye(:,:,ii)');
-        caxis([-0.1 0.1]); cbfreeze; 
-        for ii=2:size(eddye,3)
-            set(hv, 'cdata', asbot(:,:,ii)');
-            set(hd, 'zdata', eddye(:,:,ii)');
-            title(num2str(ii))
-            pause(0.03);
+
+        % let's find location of nose
+        thresh = 0.5
+        sz = size(eddye);
+        xd = runs.rgrid.xr(:,runs.bathy.isb:runs.bathy.isl);
+        xmask = reshape(xd, [sz(1)*sz(2) 1]);
+        masked = reshape((eddye .*  bsxfun( ...
+            @gt, xd, permute(runs.eddy.ee(t0:end), [3 1 2])) ...
+                                   > thresh), [sz(1)*sz(2) sz(3)]);
+        [dmax, idmax] = max(bsxfun(@times, masked, xmask), [], 1);
+        runs.jet.xnose = fillnan(dmax,min(xmask(:)));
+        runs.jet.ixnose = idmax;
+        runs.jet.thresh = thresh;
+
+        % width at nose
+        index = vecfind(xd(:,1), runs.jet.xnose);
+        index(runs.jet.xnose == 0) = NaN;
+        tstart = find(~isnan(index) == 1, 1, 'first'); % W.R.T
+                                                       % t0!!!!!
+
+        % read in data
+        [uprof,~,yu,zu,~] = dc_roms_read_data(runs.dir, 'u', [t0+tstart Inf], ...
+                                  {'x' min(index)-1 max(index)-1; ...
+                                   'y' runs.bathy.isb runs.bathy.isl}, ...
+                                  [], runs.rgrid);
+        dprof = dc_roms_read_data(runs.dir, runs.eddname, [t0+tstart Inf], ...
+                                  {'x' min(index) max(index); ...
+                                   'y' runs.bathy.isb runs.bathy.isl}, ...
+                                  [], runs.rgrid);
+
+        % 1 : take vertical profile of along-shore vel at index
+        % 2 : find level of maximum velocity = velocity scale
+        % 3 : then take cross shore section of velocity at that level
+        %     (interpolated) and figure out scale.
+
+        yu = squeeze(yu(1,:,:));
+        zu = squeeze(zu(1,:,:));
+        ixmin = min(index); % needed for indexing
+        h = runs.bathy.h(1, runs.bathy.isb:runs.bathy.isl);
+        for ii=1:size(uprof,4)
+            if isnan(index(tstart+ii-1)), continue; end
+            uvel = squeeze(uprof(index(tstart+ii-1)-ixmin+1,:,:, ...
+                                 ii));
+            dye  = squeeze(dprof(index(tstart+ii-1)-ixmin+1,:,:, ...
+                                 ii));
+            [runs.jet.vscale(ii), ivmax] = max(uvel(:) .* (dye(:) > ...
+                                                           thresh));
+            runs.jet.zscale(ii) = zu(ivmax);
+            [iy,iz] = ind2sub(size(uvel), ivmax);
+            runs.jet.h(ii) = h(iy);
+            runs.jet.bc(ii) = baroclinicity(zu(iy,:), uvel(iy,:));
         end
-        %% first one moves with eddy
+
+        %% plots of diagnostics
+        time = runs.time(t0+tstart:end)/86400;
+        figure;
+        subplot(3,1,1)
+        plot(time, runs.jet.vscale);
+        ylabel('Max. velocity');
+        subplot(3,1,2)
+        plot(time, runs.jet.zscale);
+        hold on
+        plot(time, runs.jet.h);
+        ylabel('z-loc of max vel');
+        subplot(313)
+        plot(time, runs.jet.bc);
+        ylabel('Baroclinicity measure');
+
+        %% animation
+        if isempty(runs.usurf), runs.read_velsurf; end
+        svel = runs.usurf(:,runs.bathy.isb:runs.bathy.isl,t0:end);
+        figure;
+        ii=40;
+        subplot(311)
+        hsv = pcolorcen(runs.rgrid.x_u(1,:)/1000, ...
+                       runs.rgrid.y_u(runs.bathy.isb:runs.bathy.isl,1)/1000, ...
+                       svel(:,:,ii)');
+        hold on
+        he1 = runs.plot_eddy_contour('contour',t0+ii-1);
+        caxis([-0.1 0.1]); cbfreeze; axis image
+        title('along-shore surface velocity');
+
+        subplot(3,1,2)
+        hbv = pcolorcen(runs.rgrid.x_u(1,:)/1000, ...
+                       runs.rgrid.y_u(runs.bathy.isb:runs.bathy.isl,1)/1000, ...
+                       asbot(:,:,ii)');
+        he2 = runs.plot_eddy_contour('contour',t0+ii-1);
+        colorbar; caxis([-0.1 0.1]); cbfreeze; axis image
+        title('Along-shore vel on s = 0');
+
+        subplot(313)
+        [hd] = pcolorcen(runs.rgrid.xr(:,1)/1000, ...
+                         runs.rgrid.yr(1,runs.bathy.isb:runs.bathy.isl)/1000, ...
+                         eddye(:,:,ii)');
+        he3 = runs.plot_eddy_contour('contour',t0+ii-1);
+        colorbar; caxis([0 1]); axis image
+        hl = linex(runs.jet.xnose(ii)/1000, '');
+
+        for ii=ii+1:size(eddye,3)
+            set(hsv, 'cdata', svel(:,:,ii)');
+            set(hbv, 'cdata', asbot(:,:,ii)');
+            set(hd, 'cdata', eddye(:,:,ii)');
+            runs.update_eddy_contour(he1, t0+ii-1);
+            runs.update_eddy_contour(he2, t0+ii-1);
+            runs.update_eddy_contour(he3, t0+ii-1);
+            set(hl, 'xdata', [1 1]*runs.jet.xnose(ii)/1000);
+            title(['Dye on s=0 | day no = ' num2str(t0+ii) ', ii=', num2str(ii)])
+            pause(0.05);
+        end
+
+        %% older animation showing cross-shore sections of
+        %% along-shore velocity
+        % first section moves with eddy
         xind = ix0(1) + [nan 10 60] *ceil(rr/runs.rgrid.dx);
-        
+
         tt = 1;
         xind(1) = ix0(tt) + nrr * ceil(rr/runs.rgrid.dx);
         subplot(2,3,[1 2 3])
