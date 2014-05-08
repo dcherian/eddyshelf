@@ -90,7 +90,7 @@ methods
             runs.zeta = double(ncread(runs.out_file,'zeta'));
             runs.time = double(ncread(runs.out_file,'ocean_time'));
         end
-
+        
         runs.makeVideo = 0; % no videos by default.
 
         % make run-name
@@ -110,6 +110,15 @@ methods
         [runs.bathy.xsl,runs.bathy.isl,runs.bathy.hsl] = ...
                         find_shelfbreak(runs.out_file,'slope');
         runs.bathy.h = runs.rgrid.h';
+
+        % remove background zeta
+        if runs.bathy.axis == 'x'
+            runs.zeta = bsxfun(@minus, runs.zeta, runs.zeta(:,1, ...
+                                                            1));
+        else
+            runs.zeta = bsxfun(@minus, runs.zeta, runs.zeta(1,:, ...
+                                                            1));
+        end
 
         % rossby radii
         runs.rrdeep = sqrt(runs.params.phys.N2)*max(runs.bathy.h(:)) ...
@@ -223,6 +232,7 @@ methods
                 runs.eddy.trevind = find(runs.eddy.cvx < 0,1,'first');
                 runs.eddy.trev = runs.time(runs.eddy.trevind);
             catch ME
+                disp('Eddy did not reverse direction');
                 runs.eddy.trev = nan;
             end
             if isempty(runs.eddy.trev), runs.eddy.trev = NaN; end
@@ -1132,8 +1142,7 @@ methods
         % use center because export occurs west of the eastern edge
         westmask = bsxfun(@lt, runs.eddy.xr(:,1),  ...
                     runs.eddy.vor.cx(t0:end));
-        eastmask = bsxfun(@gt, runs.eddy.xr(:,1), ...
-                    runs.eddy.vor.cx(t0:end));
+        eastmask = 1 - westmask;
 
         % loop over all isobaths
         for kk=1:length(loc)
@@ -1311,7 +1320,7 @@ methods
         ylabel('Ls/RRdeep');xlim(limx);
 
         subplot(aa,2,6); hold on
-        plot(eddy.t,eddy.mvx,'Color',colors(ii,:));
+        plot(eddy.t,eddy.cvx,'Color',colors(ii,:));
         ylabel('cvx(km/day)');
         ylim([-5 5]);
         liney(0); xlim(limx);
@@ -1319,7 +1328,7 @@ methods
         %ylabel('x - center (km)');
 
         subplot(aa,2,8); hold on
-        plot(eddy.t,eddy.mvy,'Color',colors(ii,:));
+        plot(eddy.t,eddy.cvy,'Color',colors(ii,:));
         ylabel('cvy (km/day)');xlim(limx);
         ylim([-5 5]);
         %plot(eddy.t,eddy.cy/1000,'Color',colors(ii,:));
@@ -1407,8 +1416,11 @@ methods
             markers = {'none','none','none','.'};
             time = eddy.t;
             % normalize volumes by initial eddy volume
-            evol0 = runs.eddy.vol(runs.eddy.tscaleind);
-
+            if isfield(runs.eddy, 'vol')
+                evol0 = 1;runs.eddy.vol(runs.eddy.tscaleind);
+            else
+                evol0 = 1;
+            end
             figure(3);
             set(gcf, 'Renderer', 'painters');
             % by regions
@@ -1459,6 +1471,18 @@ methods
             xlabel('Time (days)');
             xlim(limx);
         end
+
+        % background flow velocity estimates
+        figure(6)
+        subplot(211); hold on;
+        hbg = plot(time, runs.eddy.bgvel, 'Color', colors(ii,:));
+        ylabel('mean(vel. at x=eddy center)');
+        addlegend(hbg, runs.name, 'NorthWest');
+        subplot(212); hold on;
+        plot(time, squeeze(mean(runs.ubar(3,:,:),2)), 'Color', ...
+             colors(ii,:));
+        xlabel('Time');
+        ylabel('mean(inflow 2d vel)');
     end
 
     % this is incomplete
@@ -2888,8 +2912,8 @@ methods
         he = runs.plot_eddy_contour('contour',ii);
         ht = runs.set_title(titlestr,ii);
         if runs.params.flags.telescoping
-            linex([runs.params.grid.ixn runs.params.grid.ixp], '');
-            liney([runs.params.grid.iyp],'');
+            linex([runs.params.grid.ixn runs.params.grid.ixp], 'telescope','w');
+            liney([runs.params.grid.iyp],'telescope','w');
         end
         xlabel('X (km)');ylabel('Y (km)');
         axis image;
@@ -4460,10 +4484,14 @@ methods
     end
 
     function [ht] = set_title(runs,titlestr,tt)
-        ht = title([titlestr ' | ' runs.name ' | ' num2str(runs.time(tt)/86400)  ' days']);
+        ht = title([titlestr ' | ' runs.name ' | ' ...
+                    num2str(runs.time(tt)/86400)  ' days | t_nd = ' ...
+                   num2str(runs.time(tt)/runs.eddy.tscale)]);
     end
     function update_title(runs,ht,titlestr,tt)
-        set(ht,'String',[titlestr ' | ' runs.name ' | ' num2str(runs.time(tt)/86400)  ' days']);
+        set(ht,'String',[titlestr ' | ' runs.name ' | ' ...
+                         num2str(runs.time(tt)/86400)  ' days | t_nd = ' ...
+                          num2str(runs.time(tt)/runs.eddy.tscale)]);
     end
 
     function [hplot] = plot_bathy(runs,plottype,color)

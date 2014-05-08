@@ -3,7 +3,7 @@ function [eddy] = track_eddy(dir1)
     if isobject(dir1)
         runobj = dir1;
         dir1 = runobj.dir;
-        fnames = roms_find_file(dir1,'his');
+        fnames = roms_find_file(dir1,'avg');
         file = char([dir1 '/' char(fnames(1))]);
         N = runobj.rgrid.N;
         [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
@@ -18,7 +18,7 @@ function [eddy] = track_eddy(dir1)
         params = runobj.params;
     else
         if isdir(dir1)
-            fnames = roms_find_file(dir1,'his');
+            fnames = roms_find_file(dir1,'avg');
             file = char([dir1 '/' char(fnames(1))]);
             [xr,yr,zr,~,~,~,grd] = dc_roms_var_grid(file,'temp');
             tic;
@@ -42,13 +42,13 @@ function [eddy] = track_eddy(dir1)
         end
         params = read_params_from_ini(dir1);
     end
-    
+
     if strfind(file, 'his')
         tracer = 'rho';
     else
         tracer = 'temp';
     end
-    
+
     kk = 2; % if ncread fails, it will use fnames(kk,:)
     tt0 = 0; % offset for new history.average file - 0 initially, updated later
 
@@ -131,7 +131,7 @@ function [eddy] = track_eddy(dir1)
             d_sbreak = Inf;
             thresh = nan;
         else
-            if tt == 46,
+            if tt == 132,
                 disp('debug time!');
             end
             mask = nan(sz);
@@ -315,7 +315,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
 
     % algorithm options
     amp_thresh = 0.001; % Amplitude threshold (in m)
-    
+
     flag_found = 0;
 
     % minimum eddy rad. = 5 km, maximum = 100 km
@@ -390,7 +390,30 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
             % need to trace out outline, first find one point to start from
             % (convex hull doesn't do the job)
             [x0,y0] = ind2sub(size(maskreg),find(maskreg == 1,1,'first'));
-            points = bwtraceboundary(maskreg,[x0,y0],'E');
+            % Trace boundary points - sometimes the initial
+            % starting direction doesn't work, so I try all 4 in
+            % succession to find one that does
+            try
+                points = bwtraceboundary(maskreg,[x0,y0],'E');
+            catch ME
+                try
+                    points = bwtraceboundary(maskreg,[x0,y0],'W');
+                catch ME
+                    try
+                        points = bwtraceboundary(maskreg,[x0,y0], ...
+                                                 'N');
+                    catch ME
+                        try
+                            points = bwtraceboundary(maskreg,[x0,y0], ...
+                                                     'S');
+                        catch ME
+                            disp(['All 4 bwtraceboundary directions ' ...
+                                  'failed. This should not happen.']);
+                            rethrow(ME);
+                        end
+                    end
+                end
+            end
             points = bsxfun(@times,points,[dx dy]);
             if maximumCaliperDiameter(points) > max_dist, continue; end
            % if minimumCaliperDiameter(points) < min_dist, continue; end
@@ -496,9 +519,9 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
 
                 % make sure that region contains eddy.mx,eddy.my
                 if vormaskreg(ix(indx,indy),iy(indx,indy)) == 0
-                    continue; 
+                    continue;
                 end
-                
+
                 % extract information
                 vorprops  = regionprops(vormaskreg,zeta,'EquivDiameter', ...
                         'MinorAxisLength','MajorAxisLength','WeightedCentroid', ...
@@ -510,7 +533,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
 
                 xmax = fillnan(vormaskreg(:).*ix(:),0);
                 ymax = fillnan(vormaskreg(:).*iy(:),0);
-                
+
                 % Criterion 7 - solidity must be good - helps get rid of some
                 % thin 'isthumuses'
                 if vorprops.Solidity  < 0.75, continue; end
@@ -523,7 +546,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
                 % store eddy properties for return
                 eddy.vor.cx = dx/2 + vorprops.WeightedCentroid(2) * dx;
                 eddy.vor.cy = dy/2 + vorprops.WeightedCentroid(1) * dy;
-                
+
                 if eddy.vor.cy < sbreak; continue; end
 
                 eddy.vor.we   = dx/2 + nanmin(xmax) * dx; % west edge

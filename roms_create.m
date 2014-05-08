@@ -6,7 +6,7 @@
 % names cannot start with number
 [~,machine] = system('hostname');
 if strfind(machine,'scylla')
-    FOLDER    = '/scylla-a/home/dcherian/ROMS/runs/eddyshelf/topoeddy/run-7/';
+    FOLDER    = '/scylla-a/home/dcherian/ROMS/runs/eddyshelf/topoeddy/run-2/';
     prefix    = 'tes';
     addpath(genpath('/scylla-a/home/dcherian/tools/'));
 end
@@ -40,8 +40,8 @@ S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 % WikiROMS - Note that there are Lm by Mm computational points. 
 % If you want to create a grid that's neatly divisible by powers of 2, 
 % make sure Lm and Mm have those factors.
-S.Lm = 720;
-S.Mm = 300;
+S.Lm = 400;
+S.Mm = 189;
 S.N  = 72;
 
 %set value of dx,dy for uniform grid
@@ -129,7 +129,7 @@ end
 flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
 flags.bg_shear = 0;
 
-bg.ubt = NaN; % m/s barotropic velocity
+bg.ubt = 0.02; % m/s barotropic velocity
                    % if NaN; eddy.nl is used to determine it later
 bg.vbt = 0;-0.04; % m/s barotropic velocity
 bg.shear_fac = 0.2; 
@@ -147,11 +147,11 @@ flags.flat_bottom = 0; % set depth in Z above
 flags.crooked_bathy = 0;
 
 bathy.S_sh = 0; % Slope Burger number for shelf
-bathy.S_sl = 1; % slope Burger number for slope
+bathy.S_sl = 1.5; % slope Burger number for slope
 
-bathy.H_shelf  = 40;
-bathy.L_shelf  = 60 * 1000;
-bathy.L_slope  = 70 * 1000;
+bathy.H_shelf  = 50;
+bathy.L_shelf  = 40 * 1000;
+bathy.L_slope  = 50 * 1000;
 bathy.axis = 'y'; % CROSS SHELF AXIS
 bathy.loc  = 'l'; % h - high end of axis; l - low end
 bathy.sl_shelf = bathy.S_sh * f0/sqrt(N2);
@@ -183,12 +183,12 @@ bathy.comment = ['H_shelf = depth at coast | L_shelf = shelf width | ' ...
                  'later too in nondim.'];
              
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% GRID TELESCOPING
-flags.telescoping = 1; % telescope dx,dy
+flags.telescoping = 0; % telescope dx,dy
 
 grid.dxmin = dx0;
 grid.dymin = dy0;
-grid.dxmax = 4*dx0;
-grid.dymax = 4*dy0;
+grid.dxmax = 3*dx0;
+grid.dymax = 2.5*dy0;
 % p - positive side : axis > center
 % n - negative side : axis < center
 grid.xscalep = 75;
@@ -212,15 +212,15 @@ flags.eddy_zhang = ~flags.solidbody_katsman;
 flags.vprof_gaussian = 0;%~flags.eddy_zhang; % eddy is gaussian in vertical?
 
 % Eddy parameters - all distances in m
-eddy.Bu     = 2.5^2; % ratio of (eddy radius to deformation radius )^2
-eddy.nl     = 2; % eddy velocity scale / eddy translation velocity
+eddy.Bu     = 1; % ratio of (eddy radius to deformation radius)^2
+eddy.nl     = NaN; % eddy velocity scale / eddy translation velocity
                  % parameter
                  % if bg.ubt = NaN; this is used to determine it later
 
 eddy.dia    = NaN; % 2xNH/pi/f0 - determined later
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
-eddy.tamp   = 0.3; % controls gradient
+eddy.tamp   = 0.15; % controls gradient
 eddy.buffer_sp = 50*1000; % distance from  4.3 (2.3) *r0 to sponge edge
 eddy.buffer = NaN;7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
 eddy.cx     = NaN;100*1000; % if NaN, determined using buffer later
