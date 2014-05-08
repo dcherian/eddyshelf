@@ -90,7 +90,7 @@ phys.lat_ref = lat_ref; phys.f0 = f0; phys.beta = beta;
 phys.comment = ['rho0 = Boussinessq approx. | (T0,S0,R0,TCOEF,SCOEF) = linear EOS | ' ...
                 '(lat_ref,f0,beta) = coriolis beta plane parameters | ' ...
                 ' g = 9.81 m/s2 | N2 = Brunt Vaisalla frequency'];
-            
+
 %% Options
 
 calc_pv = 0;
@@ -236,7 +236,7 @@ eddy.comment = ['dia = diameter | depth = vertical scale | tamp = amplitude' ...
                 '(katsman) | nl = U/c in chelton terminology | Bu = ' ...
                 'burger number = (eddy.R /  deformation radius)^2 | ' ...
                 'Ldef = deformation radius NH/(pi*f0)'];
-            
+
 if flags.solidbody_katsman
     eddy.a      = 3;  % ? in Katsman et al. (2003) - NOT FOR ZHANG PROFILE
 end
@@ -284,7 +284,7 @@ c_grid(S.Lm+2,S.Mm+2,GRID_NAME,1);
 
 avalue='seconds since 0001-01-01 00:00:00';
 [~]=nc_attadd(INIname,'units',avalue,'ocean_time');
-  
+
 avalue='360.0 days in every year';
 [~]=nc_attadd(INIname,'calendar',avalue,'ocean_time');
 
@@ -300,21 +300,21 @@ nvars=length(V.Variables);
 % if (S.spherical),
 %   S.lon_rho = nc_read(GRDname, 'lon_rho');
 %   S.lat_rho = nc_read(GRDname, 'lat_rho');
-%   
+%
 %   S.lon_u   = nc_read(GRDname, 'lon_u');
 %   S.lat_u   = nc_read(GRDname, 'lat_u');
-%   
+%
 %   S.lon_v   = nc_read(GRDname, 'lon_v');
 %   S.lat_v   = nc_read(GRDname, 'lat_v');
-% else  
+% else
 %   S.x_rho   = nc_read(GRDname, 'x_rho');
 %   S.y_rho   = nc_read(GRDname, 'y_rho');
-%   
+%
 %   S.x_u     = nc_read(GRDname, 'x_u');
 %   S.y_u     = nc_read(GRDname, 'y_u');
-%   
+%
 %   S.x_v     = nc_read(GRDname, 'x_v');
-%   S.y_v     = nc_read(GRDname, 'y_v');  
+%   S.y_v     = nc_read(GRDname, 'y_v');
 % end
 
 %  Read in Land/Sea mask, if appropriate.
@@ -379,9 +379,9 @@ ymid = ceil(S.Mm/2);
 zmid = ceil(S.N/2);
 
 if ~flags.telescoping
-    
+
     S.uniform = 1;
-    
+
     S.x_rho = repmat([-dx0/2:dx0:X+dx0/2]',[1 S.Mm+2]);
     S.y_rho = repmat(-dy0/2:dy0:Y+dy0/2 ,[S.Lm+2 1]);
 
@@ -393,16 +393,16 @@ if ~flags.telescoping
 
     S.x_psi = repmat([0:dx0:X]',[1 S.Mm+1]);
     S.y_psi = repmat([0:dy0:Y],[S.Lm+1 1]);
-    
-    
+
+
     S.pm = 1./dx0 * ones(size(S.x_rho));
     S.pn = 1./dy0 * ones(size(S.x_rho));
 else
     S.uniform = 0;
-    
+
     ddx = grid.dxmax - grid.dxmin;
     ddy = grid.dymax - grid.dymin;
-    
+
     ixr = 1:S.Lm+2; iyr = 1:S.Mm+2;
     clear dx dy
     dx = grid.dxmin + ( (ixr <= grid.ixp & ixr >= grid.ixn) ...
@@ -411,14 +411,14 @@ else
     dy = grid.dymin + ( (iyr <= grid.iyp & iyr >= grid.iyn) ...
         + ddy * (iyr > grid.iyp) .* tanh( (iyr-grid.iyp)/grid.yscalep ) ...
         - ddy * (iyr < grid.iyn) .* tanh( (iyr-grid.iyn)/grid.yscalen ));
-   
+
     % pm,pn are dx,dy now. Inverted later
     dx = repmat(dx',[1 S.Mm+2]);
     dy = repmat(dy ,[S.Lm+2 1]);
-    
+
     S.x_rho = -3*dx(1,1)/2 + cumsum(dx,1);
     S.y_rho = -3*dy(1,1)/2 + cumsum(dy,2);
-    
+
     S.x_u = avg1(S.x_rho,1); S.y_u = avg1(S.y_rho,1);
     S.x_v = avg1(S.x_rho,2); S.y_v = avg1(S.y_rho,2);
     S.x_psi = avg1(avg1(S.x_rho,1),2); S.y_psi = avg1(avg1(S.y_rho,1),2);
@@ -427,7 +427,7 @@ end
 S.xl = S.x_v(end,1);
 S.el = S.y_u(1,end);
 
-X = S.xl; 
+X = S.xl;
 Y = S.el;
 
 % Calculate grid metrics
@@ -461,7 +461,7 @@ write_params_to_ini(INI_NAME,bg);
 write_params_to_ini(INI_NAME,grid);
 toc;
 
-fprintf('\n Initialization - %4.1f MB \n\n', monitor_memory_whos);   
+fprintf('\n Initialization - %4.1f MB \n\n', monitor_memory_whos);
 
 %% Bathymetry + Coriolis + more grid stuff
 % Coriolis with beta. f = f0 @ y=ymid
@@ -471,7 +471,7 @@ clear fnew
 
 if flags.flat_bottom
     S.h = Z * ones(size(S.x_rho));
-    
+
     bathy.xsb = 0;
     bathy.isb = 0;
     bathy.hsb = Z;
@@ -490,7 +490,7 @@ else
     else
         [S] = bathy_simple(S,bathy,X,Y,bathy.axis);
     end
-    
+
     switch bathy.axis
         case 'x'
             ax_cs = xrmat(:,1,1);
@@ -508,13 +508,13 @@ else
     fbathy = figure;
     subplot(133);
     plot(hvec,'b'); hold on
-    
-    % run smoother   
+
+    % run smoother
     for i=1:bathy.n_passes
         hvec = smooth(hvec,bathy.n_points);
-    end 
+    end
     plot(hvec,'k');
-    
+
     % smooth transition to deep water even more
     % find end of slope
     dh2dx2 = diff(hvec,2,1)./avg1(diff(ax_cs,1,1).^2,1);
@@ -522,12 +522,12 @@ else
     isl = isl - bathy.n_points;
     % smooth again!
 %    for i=1:bathy.n_passes
-%       hvec(isl:end) = smooth(hvec(isl:end),bathy.n_points*4); 
+%       hvec(isl:end) = smooth(hvec(isl:end),bathy.n_points*4);
 %    end
 %    reconstruct h
     S.h = repmat(hvec',[size(S.h,1) 1]);
     plot(hvec,'r*');
-    
+
     if bathy.axis == 'x'
         S.h = S.h';
     end
@@ -539,7 +539,7 @@ else
     % Calculate topographic beta
     b_sh = f0 * bathy.sl_shelf / bathy.H_shelf;
     b_sl = f0 * bathy.sl_slope / max(S.h(:));
-    
+
     % calculate for smoothed bathymetry
     % find shelfbreak
     dh2dx2 = diff(hvec,2,1)./avg1(diff(ax_cs,1,1).^2,1);
@@ -602,7 +602,7 @@ bathy_title = sprintf(['\n\n Beckmann & Haidvogel number (r_{x0}) = %f (< 0.2 , 
             ' Haney number (r_{x1}) = %f (< 9 , maybe 16)'], rx0,rx1);
 
 if ~exist('fbathy','var')
-    fbathy = figure; 
+    fbathy = figure;
 else
     figure(fbathy);
 end
@@ -614,7 +614,7 @@ if strcmp(bathy.axis,'x')
     %squeeze(rx1mat(:,ind,:)));
     xlabel(['x ' lx]);
     linex([bathy.xsb bathy.xsl]/fx);
-else 
+else
     ind = xmid;
     pcolor(squeeze(yrmat(ind,:,:))/fy,squeeze(zrmat(ind,:,:)), ...
         zeros(size(squeeze(rx1mat(ind,:,:)))));
@@ -692,7 +692,7 @@ switch bathy.axis
 
     case 'y'
         ax_cs = yrmat(1,:,1)'; % cross-shelf axis
-        axmat = yrmat; 
+        axmat = yrmat;
         ax_as = xrmat(:,1,1); % along shelf axis
         i_cs = 2; % along shelf axis
         i_as = 1; % cross-shelf axis
@@ -718,14 +718,14 @@ if flags.front
         coef = TCOEF;
         S.Tra = S.temp;
     end
-    
+
     front.dT = front.dRho/abs(coef)/R0; % delta tracer across front
     % divide dT/2 since tanh goes from (-1 to 1)*dT -> 2dT across front
     x0     = bathy.xsb + (zrmat + bathy.hsb)/front.slope;
     S.Tra  = front.dT/2 * (tanh( (axmat-x0)/front.Lx)) .* exp(- (zrmat/front.Lz).^2);
     S.Trax = front.dT/2/front.Lx * sech( (axmat-x0)/front.Lx).^2 .* exp(- (zrmat/front.Lz).^2);
     S.Tra  = S.Tra - min(S.Tra(:));
-    
+
     clear x x0
 
     % Make plots to check temperature field
@@ -735,7 +735,7 @@ if flags.front
     axt(3) = subplot(243);
     plot(ax_cs/1000,1+S.Trax(:,1)./max(abs(S.Trax(:,1)))); hold on
     plot(ax_cs/1000,1-S.h(:,1)./max(S.h(:)),'r')
-    xlabel('cross shelf axis (km)'); 
+    xlabel('cross shelf axis (km)');
     legend('Tracer gradient','bathy')
     S = flip_vars(flip_flag,S);
 
@@ -761,7 +761,7 @@ if flags.front
     axt(4) = subplot(244);
     contourf(xrmat(:,:,end)/1000,yrmat(:,:,end)/1000, S.Tra(:,:,end),40);
     xlabel('x (km)'); ylabel('y (km)'); title(ssttitle); colorbar
-    
+
     %fig;pcolorcen(squeeze(avg1(xrmat(:,ymid,:),1))/1000,squeeze(avg1(zrmat(:,ymid,:))),squeeze(S.Trax_sig(:,ymid,:)));
 
     % calculate velocity field
@@ -793,7 +793,7 @@ if flags.front
     % then calculate zeta
     S.zeta = nan([size(S.h,1) size(S.h,2)]);
     tmp = zeta_sign * f0/g * cumtrapz(zetahax,vmat(:,:,end),i_cs);
-    if flip_flag, 
+    if flip_flag,
         S.zeta = S.zeta';
         tmp = tmp';
         zetahax2 = zetahax2';
@@ -820,14 +820,14 @@ if flags.front
     % link appropriate axes
     linkaxes([axt(1) axt(2) axt(5) axt(6)],'xy');
     linkaxes([axt(4) axt(7)],'xy');
-    
+
     % if eddy then line is called after placing last graph
     if ~flags.eddy
         spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
     end
-    
+
     % calculate diagnostics
-    % define horizontal and vertical scales of jet  as half the core velocity 
+    % define horizontal and vertical scales of jet  as half the core velocity
     % like in Fratantoni et al (2001) & Linder & Gawarkiewicz (1998)
     if bathy.axis == 'x'
         vsurf = vmat(:,ymid,end);
@@ -836,7 +836,7 @@ if flags.front
         vsurf = vmat(xmid,:,end)';
         vvert = squeeze(vmat(xmid,:,:));
     end
-    
+
     [vm,imax] = max(abs(vsurf));
     ind = sort(find_approx(abs(vsurf),vm/2,2));
     front.hscale = ax_cs(ind(2))-ax_cs(ind(1));
@@ -847,7 +847,7 @@ if flags.front
     else
         front.vscale = abs(zrmat(xmid,imax,ind));
     end
-    
+
     if strcmpi(front.Tra,'salt')
         S.salt = S.salt + S.Tra;
     else
@@ -856,7 +856,7 @@ if flags.front
     % clear some vars
     clear S.Tra S.Trax S.Traz S.Tz
     fprintf('\n Writing front params');
-    
+
     write_params_to_ini(INI_NAME,front);
     toc;
 end % if shelfbreak front
@@ -866,20 +866,20 @@ fprintf('\n Front - %4.1f MB \n\n', monitor_memory_whos);
 %% Now create eddy using temperature
 
 if flags.eddy
-    
+
     % reset in case I'm debugging
     if ~flags.front
-        S.temp = strat; 
+        S.temp = strat;
         S.u = zeros(size(S.u));
         S.v = zeros(size(S.v));
-        S.zeta = zeros(size(S.zeta));               
+        S.zeta = zeros(size(S.zeta));
     end
-    
+
     % Set eddy parameters that depend on something else
     eddy.Ldef = sqrt(phys.N2)*Z/pi/f0; % deformation radius NH/pi/f
     % eddy.dia = 2*bathy.L_slope;
     eddy.dia = 2 * sqrt(eddy.Bu) * eddy.Ldef;
-    
+
     % check for consistency
     factor = 1/sqrt(eddy.Bu) * eddy.dia/2 / bathy.L_slope * pi/ bathy.S_sl;
     if factor > 1.05 || factor < 0.95
@@ -895,21 +895,21 @@ if flags.eddy
         xtra = (2.3)*eddy.dia/2;
     end
 
-    if isnan(eddy.buffer) 
+    if isnan(eddy.buffer)
         %start eddy 1 deformation radius away
         %from shelfbreak
         eddy.buffer = eddy.Ldef;
     end
-    
+
     switch bathy.axis % cross-shore axis
         case 'x'
             if isnan(eddy.cx)
                 eddy.cx = bathy.xsl+eddy.buffer+xtra;
-            end 
+            end
             if isnan(eddy.cy)
                 % add deformation radius buffer away from boundary
                 % note there is no sponge at the inflow boundary
-                eddy.cy = Y-eddy.Ldef-xtra-eddy.buffer_sp; 
+                eddy.cy = Y-eddy.Ldef-xtra-eddy.buffer_sp;
             end
             fprintf('Distance from eastern edge = %.2f km \n', ...
                     (X-eddy.cx-xtra)/1000);
@@ -961,8 +961,8 @@ if flags.eddy
         % temp. profile at rm - see paper for details
         rmnorm = nthroot( (eddy.a-2)/(eddy.a-1) , eddy.a);
         gamma = -2 * (eddy.a-2)./eddy.a ./ (rmnorm)^2;
-        
-        exponent = (eddy.a - 1)/eddy.a .* (rnorm.^(eddy.a) - rmnorm.^(eddy.a));        
+
+        exponent = (eddy.a - 1)/eddy.a .* (rnorm.^(eddy.a) - rmnorm.^(eddy.a));
         eddy.xyprof = (gamma/2 * rnorm.^2 + 1) .* (rnorm <= rmnorm) ...
                        + (gamma/2 *rmnorm^2 + 1) .* exp( -1 * exponent ) .* ...
                                                            (rnorm > rmnorm);
@@ -980,7 +980,7 @@ if flags.eddy
     % use half-Gaussian profile & normalize
     if flags.vprof_gaussian
         eddy.zprof = exp(-(eddy.z ./ eddy.depth) .^ 2);
-    else % energy in barotropic and BC1 mode  
+    else % energy in barotropic and BC1 mode
         eddy.zprof = (1+sin((- eddy.z)/Z * pi + eddy.theta0))/2;
         eddy.depth = Z/2;
     end
@@ -1003,7 +1003,7 @@ if flags.eddy
 %                 int_Tz(i,j) = trapz(squeeze(zrflat(i,j,:)),eddy.tz(i,j,:),3);
 %             end
 %         end
-        
+
         % SSH calculation is same for gradient wind & geostrophic balance!
         % also same for all profiles
         %S.zeta = S.zeta + TCOEF*eddy.tamp * int_Tz .* eddy.xyprof;
@@ -1011,7 +1011,7 @@ if flags.eddy
                  bsxfun(@minus,eddy.temp,eddy.temp(eddy.ix,eddy.iy,:)),3);
         S.zeta = S.zeta + eddy.zeta;
         S.zeta = S.zeta - min(S.zeta(:));
-        
+
         % Calculate azimuthal velocity shear (r d(theta)/dt)_z using geostrophic balance
         if flags.solidbody_katsman
             dTdr = gamma * rnorm ./ r0 .* (rnorm <= rmnorm) ...
@@ -1029,18 +1029,18 @@ if flags.eddy
             end
         end
         % rutz = eddy.tamp *(TCOEF*g) .* bsxfun(@times,eddy.tz,dTdr./f);
-        
+
         % azimuthal velocity = r d(theta)/dt
         rut = eddy.tamp * (TCOEF*g) .* bsxfun(@times,cumtrapz(eddy.z,eddy.tz,3),dTdr./f);
 %         rut = zeros(size(xrmat));
 %         for i=2:size(xrmat,3)
 %             rut(:,:,i) = rut(:,:,i-1) + rutz(:,:,i-1).*(zrmat(:,:,i)-zrmat(:,:,i-1));
 %         end
-        
+
         % solve quadratic for vel. if gradient wind balance
         vgeo = rut;
         if flags.use_gradient
-            rfb2 = r.*f ./ 2;            
+            rfb2 = r.*f ./ 2;
             sdisc = sqrt(1 + bsxfun(@times,vgeo,2./rfb2));% sqrt(discriminant)
             if isreal(sdisc) % gradient wind doesn't always work with anticyclones
                 rut = bsxfun(@times,(-1 + sdisc), rfb2);
@@ -1048,27 +1048,27 @@ if flags.eddy
             else
                 % cyclostrophic balance doesn't work yet
                 error(['gradient wind calculated complex v! - ' ...
-                         'Ro > 0.25']);       
+                         'Ro > 0.25']);
                 %rut = -sqrt(bsxfun(@times,vgeo,-2*rfb2)); % need -r for real solutions
             end
-        end  
-        
+        end
+
         eddy.u = -1 * bsxfun(@times,rut, sin(th));
         eddy.v =      bsxfun(@times,rut, cos(th));
-        
+
         % check angular momentum integral
 %         % if zero, eddy is isolated
 %         L = R0*(1 - TCOEF * eddy.temp) .* ...
 %             (bsxfun(@times,eddy.v,(S.x_rho - eddy.cx)) - ...
 %              bsxfun(@times,eddy.u,(S.y_rho - eddy.cy)));
-        
+
         S.u = S.u + avg1(eddy.u,1);
         S.v = S.v + avg1(eddy.v,2);
-        
-        % save max. azimuthal velocity for future   
+
+        % save max. azimuthal velocity for future
         [eddy.U,iU] = max(abs(rut(:,eddy.iy,end)));
         eddy.R = r(iU,eddy.iy);
-        
+
         % calculate nondim parameters
         nondim.eddy.Ro = eddy.U ./mean(f(rnorm < r(iU,eddy.iy)))./eddy.R;
         % The check at this point makes no sense. If I have got here the
@@ -1084,15 +1084,15 @@ if flags.eddy
                 nondim.eddy.Ro,nondim.eddy.Bu,nondim.eddy.Bu_temp, ...
                 nondim.eddy.Ri,nondim.eddy.Rh, bathy.L_slope/eddy.R, ...
                 nondim.eddy.gamma);
-        
-        
+
+
         % calculate Ro using vorticity
         vor = avg1(diff(eddy.v(:,:,end),1,1)./diff(xrmat(:,:,end),1,1),2) - ...
               avg1(diff(eddy.u(:,:,end),1,2)./diff(yrmat(:,:,end),1,2),1);
         Ro1 = vor./avg1(avg1(f,1),2);
         Ro1 = max(abs(Ro1(:)));
         fprintf('\n Max. Ro (vor/f)  = %.2f \n', Ro1);
-        
+
         Lr = eddy.Ldef;
         vgw1 = sqrt(N2) * Z;
         vr1 = -beta * Lr^2;
@@ -1107,7 +1107,7 @@ if flags.eddy
             'shelfbreak at %d days, x=%4d km\n'], ...
             vs1,tsl,ceil(eddy.cx/1000+vx*tsl),tsb,ceil(eddy.cx/1000+vx*tsb));
     end
-    
+
     %% check plots
     xind = ymid; yind = ymid; zind = 20;
 
@@ -1123,7 +1123,7 @@ if flags.eddy
     hold on
     [C,h] = contour(xrmat(:,:,1)./fx,yrmat(:,:,1)./fy,S.h,...
                 floor(linspace(min(S.h(:)),max(S.h(:)),5)),'k');
-    clabel(C,h);         
+    clabel(C,h);
     liney((Y-eddy.buffer_sp)/fy,'sponge');
     linex((X-eddy.buffer_sp)/fx,'sponge');
     if flags.telescoping
@@ -1131,9 +1131,9 @@ if flags.eddy
         liney([S.y_rho(1,grid.iyn) S.y_rho(1,grid.iyp)]/fy,'telescope', ...
               'w');
         contour(xrmat(:,:,1)./fx, yrmat(:,:,1)./fy, 1./S.pm, [1:0.5: ...
-                            grid.dxmax/grid.dxmin] * grid.dxmin, 'w'); 
+                            grid.dxmax/grid.dxmin] * grid.dxmin, 'w');
         contour(xrmat(:,:,1)./fx, yrmat(:,:,1)./fy, 1./S.pn, [1:0.5: ...
-                            grid.dxmax/grid.dymin] * grid.dymin, 'w'); 
+                            grid.dxmax/grid.dymin] * grid.dymin, 'w');
     end
     title('Zeta with eddy');
     if bathy.axis == 'y'
@@ -1149,10 +1149,10 @@ if flags.eddy
 %         cbfreeze(hcb,'off');
 %        spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
 %     end
-    
+
     xedd = eddy.ix;
     yedd = eddy.iy;
-    
+
     % check temperature profile
     figure;
     axe(1) = subplot(241);
@@ -1165,7 +1165,7 @@ if flags.eddy
     colorbar;
     title('temp (x=mid)');
     xlabel(['y' ly]); ylabel('z (m)');
-    
+
     axe(3) = subplot(243);
     contourf(squeeze(xvmat(:,yedd,:))/fx,squeeze(zvmat(:,yedd,:)),squeeze(S.v(:,yedd,:)),20);
     colorbar;
@@ -1176,7 +1176,7 @@ if flags.eddy
     colorbar;
     title('u (x=mid)');
     xlabel(['y' ly]); ylabel('z (m)');
-    
+
     axe(5) = subplot(245);
     contourf(squeeze(xrmat(:,yedd,:))/fx,squeeze(zrmat(:,yedd,:)),squeeze(eddy.temp(:,yedd,:)),20);
     colorbar;
@@ -1187,7 +1187,7 @@ if flags.eddy
     colorbar;
     title('Eddy temp (x=mid)');
     xlabel(['y' ly]); ylabel('z (m)');
-    
+
     axe(7) = subplot(247);
     contourf(squeeze(xvmat(:,yedd,:))/fx,squeeze(zvmat(:,yedd,:)),squeeze(eddy.v(:,yedd,:)),20);
     colorbar;
@@ -1198,14 +1198,14 @@ if flags.eddy
     colorbar;
     title('eddy u (x=mid)');
     xlabel(['y' ly]); ylabel('z (m)');
-    
+
     linkaxes([axe(1) axe(3) axe(5) axe(7)],'xy');
     linkaxes([axe(2) axe(4) axe(6) axe(8)],'xy');
-    
+
     spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
-    
+
     %% estimate speed based on van leeuwin (2007)
-    
+
     % first, K.E
     ke = 1/2 * (eddy.u.^2 + eddy.v.^2);
     pe = 0;
@@ -1215,22 +1215,22 @@ if flags.eddy
     num1 = 0;
     num2 = f0^2/h0 * Ld^2 * trapz(yrmat(1,:,1),trapz(xrmat(:,1,1),eta.^2,1),2);
     den = (2*Ld^2*trapz(yrmat(1,:,1),trapz(xrmat(:,1,1),eta,1),2));
-    
+
     gamma = (num1+num2)/den;
-    
+
     vr = beta * Ld^2;
-    
+
     fprintf(['\n Based on van Leeuwin (2007) : \n ' ...
             'Gamma = %.2f, Vr = %.2f m/s, Drift speed = %.2f m/s \n'], ...
         gamma, vr, vr*(1+gamma));
     %%
-    
+
     % clear variables to save space
 %    clear rut rutz dTdr strat r rnorm rfb2 sdisc
     %eddy.tz = []; eddy.temp = []; eddy.u = []; eddy.v = [];
 
     fprintf('\n Eddy - %4.1f MB \n\n', monitor_memory_whos);
-    
+
     fprintf('\n Writing eddy params');
     write_params_to_ini(INI_NAME,eddy);
     toc;
@@ -1249,20 +1249,20 @@ if flags.ubt_initial == 1
 %         idz2 = find_approx(squeeze(yrmat(1,:,1)),eddy.cy + eddy.dia/2 + buffer,1);
 %         idu1 = find_approx(squeeze(yumat(1,:,1)),eddy.cy - eddy.dia/2 - buffer,1);
 %         idu2 = find_approx(squeeze(yumat(1,:,1)),eddy.cy + eddy.dia/2 + buffer,1);
-% 
+%
 %         S.u(:,idu1:idu2,:) = S.u(:,idu1:idu2,:) + ubt;
-% 
+%
 %         z1 = cumtrapz(squeeze(yrmat(1,:,1)),-f./g * ubt,2);
 %         z1 = bsxfun(@minus,z1,z1(:,idz1));
 %         S.zeta(:,idz1:idz2) = S.zeta(:,idz1:idz2) + z1(:,idz1:idz2,:);
 %         S.zeta(:,idz2+1:end) = repmat(S.zeta(:,idz2),[1 size(S.zeta(:,idz2+1:end),2)]);
 %         plot(S.zeta(30,:));
-% 
+%
 %     else
-        if bg.ubt ~=0 && bg.vbt ~=0 
+        if bg.ubt ~=0 && bg.vbt ~=0
             error('Adding both x and y barotropic velocity in initial condition. WILL NOT WORK!');
         end
-        
+
         % modify ubt / vbt based on shear
         % bg.ubt , bg.vbt are scalars = value of background vel if no shear
         % if shear, then value of bg.ubt/vbt does not matter. one must be
@@ -1290,7 +1290,7 @@ if flags.ubt_initial == 1
             ubt = bg.ubt * ones(size(f));
             vbt = bg.vbt * ones(size(f));
         end
-        
+
         if bg.ubt ~= 0
             S.u = bsxfun(@plus,S.u,avg1(ubt,1));
             if flags.fplanezeta
@@ -1300,11 +1300,11 @@ if flags.ubt_initial == 1
             end
         end
         if bg.vbt ~=0
-            S.v = bsxfun(@plus,S.v,avg1(vbt,2)); 
+            S.v = bsxfun(@plus,S.v,avg1(vbt,2));
             if ~flags.fplanezeta
                S.zeta = S.zeta + cumtrapz(squeeze(xrmat(:,1,1)),f./g .* vbt,1);
             else
-               S.zeta = S.zeta + cumtrapz(squeeze(xrmat(:,1,1)),f0./g * vbt,1); 
+               S.zeta = S.zeta + cumtrapz(squeeze(xrmat(:,1,1)),f0./g * vbt,1);
             end
         end
 end
@@ -1336,7 +1336,7 @@ if flags.perturb_zeta == 1
     S.zeta = S.zeta + perturb; % .* ~(xrmat < x1 | xrmat > x2);
 end
 
-% remove mean zeta 
+% remove mean zeta
 S.zeta = S.zeta - nanmean(S.zeta(:));
 
 % ubar & vbar - use arango's uv_barotropic - works faster
@@ -1365,7 +1365,7 @@ if calc_pv
     grid1.xr = xrmat;
     grid1.yr = yrmat;
     grid1.zr = zrmat;
-    grid1.zw = zwmat; 
+    grid1.zw = zwmat;
 
     grid1.s_w = S.s_w; grid1.s_rho = S.s_rho;
 
@@ -1413,7 +1413,7 @@ if check_thermalwind
     % PERCENTAGE error in thermal wind balance
     diff_u = (avg1(UZ,2) - avg1(avg1(dRdy,1),3))./max(abs(UZ(:))) * 100;
     diff_v = (avg1(VZ,1) + avg1(avg1(dRdx,2),3))./max(abs(VZ(:))) * 100;
-    % 
+    %
     % figure;
     % subplot(211)
     % pcolorcen(squeeze(diff_v(:,yind,:))'); colorbar
@@ -1462,7 +1462,7 @@ if min(Ri(:)) <= 0.3
     error('Ri <= 0.3.');
 else
     fprintf('\n Min. Ri = %.3f\n\n', nanmin(Ri(:)));
-end 
+end
 
 Ri = nanmin(Ri(:));
 
@@ -1480,21 +1480,21 @@ if S.NPT > 0
     catch ME
         warning('Passive tracer variables already created?');
     end
-    
+
     % assign initial condition
     % important, we do not want grid scale discontinuity.
     % taper everything with gaussian or similar
-    
+
     % set dye_01 = cross-shelf label & dye_03 = eddy dye
     if bathy.axis == 'y'
-        if flags.eddy
+        if ~flags.front
             % cross-shelf dye
             dye_01 = yrmat;
         end
         % along-shelf dye
         dye_04 = xrmat;
     else
-        if flags.eddy
+        if ~flags.front
             % cross shelf dye
             dye_01 = xrmat;
         end
@@ -1505,10 +1505,10 @@ if S.NPT > 0
     if flags.front
         dye_01 = S.Tra;
     end
-    
+
     % second dye is always z-label
     dye_02 = zrmat;
-    
+
     % fourth dye tags eddy
      % set eddy dye
      if flags.eddy
@@ -1523,7 +1523,7 @@ if S.NPT > 0
         end
       end
 %     dye_01 = zeros(size(xrmat)); dye_02 = dye_01;
-% 
+%
 %     buffer = 6;
 %     % decrease from 1 to 0
 %     buffer_val_dec = repmat(cos( pi/2*(0:buffer-1)/(buffer-1) ), ...
@@ -1531,22 +1531,22 @@ if S.NPT > 0
 %     % increase from 0 to 1
 %     buffer_val_inc = repmat(fliplr(cos( pi/2*(0:buffer-1)/(buffer-1) )), ...
 %                                 [size(dye_01,1) 1 size(dye_01,3)]);
-% 
+%
 %     dye_01(:,1:bathy.isb,:) = 1;
 %     dye_01(:,bathy.isb+1:bathy.isb+buffer,:) = buffer_val_dec;
-% 
+%
 %     dye_02(:,bathy.isb-buffer:bathy.isb-1,:) = buffer_val_inc;
 %     dye_02(:,bathy.isb:bathy.isl,:) = 1;
 %     dye_02(:,bathy.isl+1:bathy.isl+buffer,:) = buffer_val_dec;
-% 
+%
 %     figure;
 %     subplot(211)
-%     pcolorcen(dye_01(:,:,end)'); 
+%     pcolorcen(dye_01(:,:,end)');
 %     title('dye_{01}');
 %     subplot(212)
 %     pcolorcen(dye_02(:,:,end)');
 %     title('dye_{02}');
-    
+
     % write to file
     for ii=1:S.NPT
         vname = sprintf('dye_%02d',ii);
@@ -1560,7 +1560,7 @@ end
 
 if flags.floats
     if ~flags.front
-       figure(hfeddy); 
+       figure(hfeddy);
     end
     str = 'select rectangle for float deployment';
     title(str);
@@ -1575,36 +1575,36 @@ end
 if flags.OBC == 1
     % copy from initial conditions structure
     Sbr = S;
-    
-    Sbr.ncname = BRY_NAME; 
+
+    Sbr.ncname = BRY_NAME;
     %  Set switches for boundary segments to process
     Sbr.boundary(1) = OBC.west;
     Sbr.boundary(2) = OBC.east;
     Sbr.boundary(3) = OBC.south;
     Sbr.boundary(4) = OBC.north;
-    
+
     VarGrd = {'spherical',                                                ...
           'Vtransform', 'Vstretching',                                ...
           'theta_s', 'theta_b', 'Tcline', 'hc',                       ...
           's_rho', 'Cs_r', 's_w', 'Cs_w'};
-      
+
     % create junk file with proper attributes
     [status] = c_boundary(Sbr);
-    
+
     % write OBC data, grid and passive tracer info to OBC file
     dc_roms_create_bry_file(Sbr);
-        
+
     bry_time = 0;
 
     boundaries = fieldnames(OBC);
     range   = {'(1,:,:)','(end,:,:)','(:,1,:)','(:,end,:)'};
     VarList = {'zeta'; 'u'; 'ubar';'v'; 'vbar';'temp';'salt'}; % variables to write
-    
+
     % set boundary condition data
     if flags.OBC_from_initial
         % if background flow is in initial condition, copy that to boundary
         % condition
-        
+
         for mm = 1:size(boundaries,1);
             if OBC.(char(boundaries(mm,:))) % if open boundary
                 for jj = 1:size(VarList,1)
@@ -1613,22 +1613,22 @@ if flags.OBC == 1
                 end
             end
         end
-        
+
     else % analytically calculate boundary condition
         % Set boundary condition fields
         % if flags.ubt_deep
         %     idy1_x = find(S.h(end,:) == max(S.h(end,:)));
         %     idy2_x = idy1_x(end);
         %     idy1_x = idy1_x(1);
-        % 
+        %
         %     % ADD for vbar if needed
         % else
         %    idy1_x = 1;
         %    idy2_x = S.Mm+2;
-        % 
+        %
         %    idy1_y = 1;
         %    idy2_y = S.Mm+1;
-        % end   
+        % end
         if OBC.east
                 ubar_east = zeros(size(S.u(end,:,1)));
                 ubar_east(1,idy1_x:idy2_x) = ubt;
@@ -1653,7 +1653,7 @@ if flags.OBC == 1
                 zeta_north = zeta_north - nanmean(zeta_north);
         end
     end
-    
+
     % Write boundary conditions to file
     for mm = 1:size(boundaries,1);
         if OBC.(char(boundaries(mm,:))) % if open boundary
@@ -1665,7 +1665,7 @@ if flags.OBC == 1
         end
     end
     nc_write(Sbr.ncname,'bry_time',bry_time,1);
-  
+
     % set and write passive tracer data boundary conditions
     if S.NPT > 0
        for mm=1:size(boundaries,1)
@@ -1689,29 +1689,29 @@ if flags.wind
     indh = find(S.h(:,1) == max(S.h(:)),1);
     iX = size(xrmat,1);
     wind.Lx = xrmat(end,1,end) - xrmat(indh,1,end);
-    
+
     % beta * V (depth integrated) = curl(tau)/rho0
     wind.tau0 = rho0 * phys.beta * wind.Lx * wind.v * Z;
-    
+
     sms_time = [0 wind.ramp 300] * 86400;
-    
+
     sustr = zeros([size(S.h) length(sms_time)]);
     svstr = zeros([size(S.h) length(sms_time)]);
-    
+
     svstr(indh:end,:,2) = (0 + (wind.tau0 - 0) *  (xrmat(indh:end,:,1)-xrmat(indh,1,1)) ...
                         /wind.Lx)/rho0;
     svstr(:,:,3) = svstr(:,:,2);
-    
+
     % create file
     dc_roms_wind_forcing(S,FRC_NAME);
-    
+
     % write to file
     ncwrite(FRC_NAME,'sms_time',sms_time);
     ncwrite(FRC_NAME,'sustr',sustr);
     ncwrite(FRC_NAME,'svstr',svstr);
-    
+
     fprintf('\n Wind - %4.1f MB \n\n', monitor_memory_whos);
-    
+
     write_params_to_ini(INI_NAME,wind);
     toc;
 end
@@ -1721,7 +1721,7 @@ end
 make_plot = 1;
 
 if make_plot
-    
+
     limx = [min(xrmat(:,1,1)) max(xrmat(:,1,1))]./fx;
     limy = [min(yrmat(1,:,1)) max(yrmat(1,:,1))]./fy;
 
@@ -1732,7 +1732,7 @@ if make_plot
         xind = xmid;
         yind = ymid;
     end
-    
+
     %% Plot all fields
     figure;
     ax(1) = subplot(241);
@@ -1740,19 +1740,19 @@ if make_plot
     colorbar;
     title('u');
     xlabel(['y ' lx]); ylabel('z (m)');
-    
+
     ax(2) = subplot(242);
     contourf(squeeze(yvmat(xind,:,:))./fx,squeeze(zvmat(xind,:,:)),squeeze(S.v(xind,:,:)),20);
     colorbar;
     title('v');
     xlabel(['y ' lx]); ylabel('z (m)');
-    
+
     ax(3) = subplot(243);
     contourf(squeeze(yrmat(xind,:,:))./fy,squeeze(zrmat(xind,:,:)),squeeze(S.rho(xind,:,:)),20);
     colorbar;
     title('rho');
     xlabel(['y ' lx]); ylabel('z (m)');
-    
+
     % fix pv script so that it returns proper co-ordinates
     if calc_pv
         ax(4) = subplot(244);
@@ -1761,7 +1761,7 @@ if make_plot
         title('PV');
         xlabel(['x ' lx]); ylabel('z (m)');
     end
-    
+
     % need to interpolate to constant z - surface
     ax(5) = subplot(245);
     contourf(xumat(:,:,end)./fx,yumat(:,:,end)./fy,squeeze(S.u(:,:,end)));
@@ -1806,10 +1806,10 @@ if make_plot
     title('SSH (zeta)');
     xlabel(['x ' lx]); ylabel(['y ' ly]);
     axis square;
-    
+
     linkaxes([ax(1:4)],'xy');
     linkaxes([ax(5:8)],'xy');
-    
+
     spaceplots(gcf,0.03*ones([1 4]),0.05*ones([1 4]))
 
 end
@@ -1867,7 +1867,7 @@ if (S.spherical),
     ncwrite(INIname, 'lat_u',       S.lat_u);
     ncwrite(INIname, 'lon_v',       S.lon_v);
     ncwrite(INIname, 'lat_v',       S.lat_v);
-    
+
     ncwrite(GRID_NAME, 'lon_rho',     S.lon_rho);
     ncwrite(GRID_NAME, 'lat_rho',     S.lat_rho);
     ncwrite(GRID_NAME, 'lon_u',       S.lon_u);
@@ -1881,7 +1881,7 @@ else
     ncwrite(INIname, 'y_u',         S.y_u);
     ncwrite(INIname, 'x_v',         S.x_v);
     ncwrite(INIname, 'y_v',         S.y_v);
-    
+
     ncwrite(GRID_NAME, 'x_rho',       S.x_rho);
     ncwrite(GRID_NAME, 'y_rho',       S.y_rho);
     ncwrite(GRID_NAME, 'x_u',         S.x_u);
@@ -1936,34 +1936,34 @@ if ~flags.flat_bottom
     S_sh,S_sl,b_sh,b_sl);
 end
 if flags.wind, cprintf('Red',sprintf('Wind tau0 = %.2e \n\n',wind.tau0)); end
-if flags.eddy, 
+if flags.eddy,
     fprintf('\n Eddy Parameters: ');
     fprintf('\n\t\t max. Ro = %.2f | Bu = %.2f | Bu_temp = %.2f | Ri = %.2f | Rh = %.2f\n\n', ....
                 nondim.eddy.Ro,nondim.eddy.Bu,nondim.eddy.Bu_temp,nondim.eddy.Ri,nondim.eddy.Rh);
     fprintf('\n Deploy float in center of eddy = (%d,%d) \n\n',eddy.ix,eddy.iy);
 end
 if flags.floats
-   xlo = find_approx(xrmat(:,1,1),min(floatx(:))*1000,1); 
-   xhi = find_approx(xrmat(:,1,1),max(floatx(:))*1000,1); 
-   ylo = find_approx(yrmat(1,:,1),min(floaty(:))*1000,1); 
-   yhi = find_approx(yrmat(1,:,1),max(floaty(:))*1000,1); 
+   xlo = find_approx(xrmat(:,1,1),min(floatx(:))*1000,1);
+   xhi = find_approx(xrmat(:,1,1),max(floatx(:))*1000,1);
+   ylo = find_approx(yrmat(1,:,1),min(floaty(:))*1000,1);
+   yhi = find_approx(yrmat(1,:,1),max(floaty(:))*1000,1);
    fprintf('\n Float deployment locations : (%d:%d , %d:%d)', xlo,xhi,ylo,yhi);
 end
 if beta == 0, warning('f-plane!!!'); end
 fprintf('\n\n');
 
 %% Old sbfront code
-    
+
 %     [S.Trax,mask_z] = hor_grad_tracer(axmat,ax_as,ax_cs,zrmat,i_cs,i_as,front,bathy);
 % %     S.Tz = mask_z .* exp(-(zrmat./front.LTz).^2);
 % %     S.Tz = S.Tz ./ nanmax(S.Tz(:));
 % %     S.Tz = N2/g/TCOEF .* (repnan(S.Tz,1));
 %     S.Traz = 0;%N2/g/coef .* ones(size(zrmat));
-% 
+%
 %     % use chain rule to get gradient on SIGMA LEVEL
 %     dzdx_s = diff(zrmat,1,i_cs)./diff(axmat,1,i_cs);
 %     S.Trax_sig = avg1(S.Trax,i_cs) + dzdx_s .* avg1(S.Traz,i_cs);
-% 
+%
 %     % then integrate to make T front
 %     % top to bottom integration done earlier
 %     % integrate in horizontal dirn.from left to right using gradients on SIGMA LEVEL
@@ -1984,39 +1984,39 @@ fprintf('\n\n');
 
 %         if flags.old_bathy
 %             bathy.sl_slope2 = bathy.sl_slope;
-% 
+%
 %             % main shelf
 %             [hx,hy,hdeep] = bathy_crooked(S.x_rho,S.y_rho,bathy,X,Y);
-% 
+%
 %             % second section
 %             B2 = bathy;
 %             B2.L_entry = 0 *1000;
 %             B2.L_shelf = 50*1000;
 %             [hx2,hy2,~] = bathy_crooked(S.x_rho,S.y_rho,B2,X,Y);
-% 
+%
 %             h1 = hx.*hy .*~(S.x_rho > (X-bathy.L_entry-bathy.L_slope));
 %             h2 = hx2 .* (S.y_rho > Y-B2.L_shelf) .*(S.x_rho > (X-bathy.L_entry-bathy.L_slope));
-% 
+%
 %         %     subplot(221); imagescnan(hx'); set(gca,'ydir','normal')
 %         %     subplot(222); imagescnan(hy'); set(gca,'ydir','normal')
 %         %     subplot(223); imagescnan(hx2');  set(gca,'ydir','normal')
 %         %     subplot(224); imagescnan(hy2');  set(gca,'ydir','normal')
-% 
+%
 %             % final bathymetry
 %             S.h = h1+h2;
 %             S.h(S.h == 0) = hdeep;
 %         end
 
-% 
+%
 %     if flags.tanh_bathymetry == 1
-%         scale = 20000;  
+%         scale = 20000;
 %         bathy.L_deep = Y - bathy.L_shelf;
-%         bathy.H_deep  = Z; 
+%         bathy.H_deep  = Z;
 %         S.hflat = Z*ones(size(S.h)); % constant depth
 %         % y-z profile
 %         %hy = H_deep + (H_shelf-H_deep)*(1+tanh( ((S.y_rho-L_deep)/20000) ))/2;
 %         %hx = H_shelf - (H_shelf-H_deep)*(1+tanh( ((S.x_rho-L_entry)/20000) ))/2;
-% 
+%
 %         hx = (1-tanh( ((S.x_rho-L_entry)/scale) ))/2;
 %         hy = (1+tanh( ((S.y_rho-L_deep)/scale) ))/2;
 %         S.h = H_deep + (H_shelf-H_deep) * (hx.*hy);
@@ -2032,7 +2032,7 @@ fprintf('\n\n');
 % K.rho0 = 1025;
 % K.alpha = TCOEF * ones(size(S.temp,1),size(S.temp,2));
 % K.beta  = SCOEF * ones(size(S.temp,1),size(S.temp,2));
-% 
+%
 % K.f = f;
 % K.pm = S.pm;
 % K.pn = S.pn;
@@ -2044,7 +2044,7 @@ fprintf('\n\n');
 % K.Hz = Hz;
 % K.Zr = zrmat;
 % K.Zw = zwmat;
-% 
+%
 % drho = rho_balance(K,S.temp-T0,S.salt-S0);
 % [u,v,zeta_rhs] = uv_balance(K,drho);
 % [zeta,~] = zeta_balance(K,0,drho);
@@ -2053,12 +2053,12 @@ fprintf('\n\n');
 % first re-calculate temperature (density) gradient
 % tgrid.xmat = xrmat; tgrid.ymat = yrmat; tgrid.zmat = zrmat; tgrid.s = S.s_rho;
 % rgrid.zw = permute(zwmat,[3 2 1]); rgrid.s_w = S.s_w;
-% 
+%
 % Tgrad1 = avg1(avg1(horgrad_cgrid(rgrid,tgrid,S.temp,i_cs),i_cs),i_as);
 % Tgrad = nan(size(velzmat));
 % if flip_flag
-%     Tgrad1 = permute(Tgrad1, [2 1 3]); 
-%     Tgrad = permute(Tgrad, [2 1 3]);  
+%     Tgrad1 = permute(Tgrad1, [2 1 3]);
+%     Tgrad = permute(Tgrad, [2 1 3]);
 % end
 % % % add values at end
 % Tgrad1(size(Tgrad1,1)+1,:,:) = Tgrad1(size(Tgrad1,1),:,:);
@@ -2068,7 +2068,7 @@ fprintf('\n\n');
 % if flip_flag, Tgrad = permute(Tgrad, [2 1 3]); end
 
 %% check gradient calculation
-% 
+%
 % tgrid.xmat = xrmat; tgrid.ymat = yrmat; tgrid.zmat = zrmat; tgrid.s = S.s_rho;
 % rgrid.zw = permute(zwmat,[3 2 1]); rgrid.s_w = S.s_w;
 
@@ -2076,8 +2076,8 @@ fprintf('\n\n');
 %     Tgrad1 = avg1(avg1(diff_cgrid(tgrid,S.temp,i_cs),i_cs),i_as);
 %     Tgrad = nan(size(velzmat));
 %     if flip_flag
-%         Tgrad1 = permute(Tgrad1, [2 1 3]); 
-%         Tgrad = permute(Tgrad, [2 1 3]);  
+%         Tgrad1 = permute(Tgrad1, [2 1 3]);
+%         Tgrad = permute(Tgrad, [2 1 3]);
 %     end
 %     % % add values at end
 %     Tgrad1(size(Tgrad1,1)+1,:,:) = Tgrad1(size(Tgrad1,1),:,:);
@@ -2085,8 +2085,8 @@ fprintf('\n\n');
 %     Tgrad(2:end,:,:) = Tgrad1;
 %     clear Tgrad1
 %     if flip_flag, Tgrad = permute(Tgrad, [2 1 3]); end
-% 
-% 
+%
+%
 %     dT = abs(Tgrad-avg1(S.Trax,i_as))./max(abs(S.Trax(:))) * 100;
 %     yind = S.Mm/2;
 %     figure
@@ -2107,7 +2107,7 @@ fprintf('\n\n');
 
 %% check eddy profile (normalized)
 % subplot(131)
-% pcolorcen(S.x_rho/1000,S.y_rho/1000,eddy.xyprof); 
+% pcolorcen(S.x_rho/1000,S.y_rho/1000,eddy.xyprof);
 % axis('square');colorbar; xlabel('x (km)'); ylabel('y (km)');
 % subplot(132)
 % plot(S.x_rho(:,1)/1000,eddy.xyprof(:,ymid),'*-');xlabel('x (km)');
@@ -2142,25 +2142,25 @@ fprintf('\n\n');
 %         p0 = abs(squeeze( zrmat(mm,:,:)))';
 %         dha(mm,:,:) = sw_gpan(s0,t0,p0)'./g;
 %     end
-%     
+%
 %     % relative to bottom
 %     dha = bsxfun(@minus,dha(:,:,1),dha);
-%     
+%
 %     S.zeta = dha(:,:,end);
 %     S.zeta = S.zeta - min(S.zeta(:));
 %     pcolorcen(S.zeta); colorbar; axis square;
-   % clear dha  
+   % clear dha
 
 %% old stuff for eddyshelf
 
 
-    
+
 %     % use cylindrical co-rodinates
 %     [ut1,ur1] = cart2pol(avg1(S.u,2),avg1(S.v,1));
-    
+
 %     fvdx = cumtrapz( xvmat(:,1,1), avg1(f,2)/g .* S.v(:,:,end),1);
 %     fudy = cumtrapz( yumat(1,:,1), avg1(f,1)/g .* S.u(:,:,end),2);
-%     
+%
 %     S.zeta(2:end-1,2:end-1) = avg1(avg1( avg1(fvdx,1) - avg1(fudy,2) ,1),2);
 %     S.zeta(:,1) = S.zeta(:,2) - ...
 %                         (yrmat(:,2,end) - yrmat(:,1,end)).*(S.zeta(:,3)-S.zeta(:,2)) ...
@@ -2183,16 +2183,16 @@ fprintf('\n\n');
 % hp = TCOEF * cumtrapz(squeeze(zrmat(1,1,:)),(S.temp - T0),3);
 % vg = g/f0*bsxfun(@rdivide,(hp(2:end,:,:) - hp(1:end-1,:,:)),xrmat(2:end,1,1)-xrmat(1:end-1,1,1));
 % ug = -g/f0*bsxfun(@rdivide,(hp(:,2:end,:) - hp(:,1:end-1,:)),squeeze(yrmat(:,2:end,1)-xrmat(:,1:end-1,1)));
-% 
+%
 % % Average to C-grid
 % vavgx = (vg(1:end-1,:,:) + vg(2:end,:,:))/2;
 % vavgxy = (vavgx(:,1:end-1,:) + vavgx(:,2:end,:))/2;
-% % insert extra rows 
+% % insert extra rows
 % S.v = nan(size(xvmat));
 % S.v(2:end-1,:,:) = vavgxy;
 % S.v(1,:,:) = S.v(2,:,:) - (xvmat(2,:,:)-xvmat(1,:,:)).*(S.v(3,:,:)-S.v(2,:,:))./(xvmat(3,:,:)-xvmat(2,:,:));
 % S.v(end,:,:) = S.v(end-1,:,:) + (xvmat(end,:,:)-xvmat(end-1,:,:)).*(S.v(end-1,:,:)-S.v(end-2,:,:))./(xvmat(end-1,:,:)-xvmat(end-2,:,:));
-% 
+%
 % % zeta
 % S.zeta = nan([size(xrmat,1) size(xrmat,2)]);
 % tmp = f0/g * cumtrapz(xvmat(:,1,1),S.v(:,:,end),1);
