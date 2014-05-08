@@ -813,18 +813,45 @@ methods
         t0 = 55;
         ix0 = vecfind(runs.rgrid.x_u(1,:),runs.eddy.vor.cx(t0:end));
         % along-shore velocity
-        if runs.bathy.axis == 'y'
+        %if runs.bathy.axis == 'y'
+        %    uas = dc_roms_read_data(runs.dir,'u',[t0 Inf], ...
+        %        {'y' 1 runs.bathy.isl},[],runs.rgrid);
+        %    zas = permute(runs.rgrid.z_u(:,1:runs.bathy.isl,:),[3 2 1]);
+        %end
 
-            uas = dc_roms_read_data(runs.dir,'u',[t0 Inf], ...
-                {'y' 1 runs.bathy.isl},[],runs.rgrid);
-            zas = permute(runs.rgrid.z_u(:,1:runs.bathy.isl,:),[3 2 1]);
-        end
-
-        yz = repmat(runs.rgrid.y_u(1:runs.bathy.isl,1),[1 runs.rgrid.N]);
-
-        % first one moves with eddy
-        xind = ix0(1) + [nan 10 20] *ceil(rr/runs.rgrid.dx);
+        %yz = repmat(runs.rgrid.y_u(1:runs.bathy.isl,1),[1 runs.rgrid.N]);
+        
+        eddye = dc_roms_read_data(runs.dir, runs.eddname, [t0 Inf], ...
+                {'y' runs.bathy.isb runs.bathy.isl; ...
+                 'z' 1 1}, [], runs.rgrid);
+             
+        asbot = dc_roms_read_data(runs.dir, 'u', [t0 Inf], ...
+                {'y' runs.bathy.isb runs.bathy.isl; ...
+                 'z' 1 1}, [], runs.rgrid);
+             
+        % track nose with dye
+        % measure width and vel magnitude slightly behind nose
+        % measure "baroclinity" of profile
         %%
+        figure;
+        ii=1;
+        hv = pcolorcen(runs.rgrid.x_u(1,:)/1000, ...
+                runs.rgrid.y_u(runs.bathy.isb:runs.bathy.isl,1)/1000, ...
+                asbot(:,:,ii)');
+        hold on
+        [~,hd] = contour(runs.rgrid.xr(:,1)/1000, ...
+            runs.rgrid.yr(1,runs.bathy.isb:runs.bathy.isl)/1000, ...
+            eddye(:,:,ii)');
+        caxis([-0.1 0.1]); cbfreeze; 
+        for ii=2:size(eddye,3)
+            set(hv, 'cdata', asbot(:,:,ii)');
+            set(hd, 'zdata', eddye(:,:,ii)');
+            title(num2str(ii))
+            pause(0.03);
+        end
+        %% first one moves with eddy
+        xind = ix0(1) + [nan 10 60] *ceil(rr/runs.rgrid.dx);
+        
         tt = 1;
         xind(1) = ix0(tt) + nrr * ceil(rr/runs.rgrid.dx);
         subplot(2,3,[1 2 3])
