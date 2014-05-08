@@ -21,8 +21,8 @@ function [xsb,isb,hsb,ax] = find_shelfbreak(fname,type)
         hvec = h(:,1);
         ax = 'h';
     end
-    dx = xr(2,1)-xr(1,1);
-    dh2dx2 = diff(hvec,2,1)./dx^2;
+    dx = avg1(diff(xr(:,1),1,1), 1);
+    dh2dx2 = diff(hvec,2,1)./dx.^2;
     if exist('type','var') && strcmpi(type,'slope')
         [~,isb] = min(dh2dx2);
     else
