@@ -1837,6 +1837,8 @@ fprintf('\n Started writing files...\n');
 
 % write git hash!
 [~, hash] = system('git log -n 1 --pretty=format:''%H''');
+% remove bash escape characters
+hash = hash(9:48)
 
 ncwriteatt(GRID_NAME, '/', 'git_hash', hash);
 ncwriteatt(INI_NAME, '/',  'git_hash', hash);
