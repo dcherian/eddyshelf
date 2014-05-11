@@ -890,12 +890,24 @@ methods
                                  ii));
             dye  = squeeze(dprof(index(tstart+ii-1)-ixmin+1,:,:, ...
                                  ii));
+            % find max. velocity
             [runs.jet.vscale(ii), ivmax] = max(uvel(:) .* (dye(:) > ...
                                                            thresh));
-            runs.jet.zscale(ii) = zu(ivmax);
             [iy,iz] = ind2sub(size(uvel), ivmax);
+            % location of max. NOSE velocity in vertical
+            runs.jet.zscale(ii) = zu(iy,iz);
+            % location of max. NOSE velocity in cross-shore co-ordinate
+            runs.jet.yscale(ii) = yu(iy,iz);
+
+            % depth of water at location of max NOSE velocity
             runs.jet.h(ii) = h(iy);
+
+            % baroclinicty of vertical profile at location of max
+            % NOSE velocity
             runs.jet.bc(ii) = baroclinicity(zu(iy,:), uvel(iy,:));
+
+            % width of jet at NOSE
+            runs.jet.width(ii) = 0;
         end
 
         %% plots of diagnostics
@@ -1508,11 +1520,12 @@ methods
             xlim(limx);
         end
 
+        time = eddy.t;
+        
         %% plot water masses
-        if isfield(runs.water.off, 'deep')
+        if isfield(runs.water, 'off')
             linestyle = {'-','--','-.','-'};
             markers = {'none','none','none','.'};
-            time = eddy.t;
             % normalize volumes by initial eddy volume
             if isfield(runs.eddy, 'vol')
                 evol0 = 1;runs.eddy.vol(runs.eddy.tscaleind);
