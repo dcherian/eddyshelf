@@ -10,6 +10,10 @@ if strfind(machine,'scylla')
     prefix    = 'tes';
     addpath(genpath('/scylla-a/home/dcherian/tools/'));
 end
+if strfind(machine,'poison')
+    FOLDER    = '/home/poison/deepak/ROMS/runs/eddyshelf/';
+    prefix    = 'tes';
+end
 if strfind(machine,'kadal')
     FOLDER = '/media/data/Work/eddyshelf/runs/';
     prefix    = 'tek';
@@ -37,11 +41,11 @@ FRC_NAME  = [FOLDER FRC_NAME  '.nc'];
 % Grid Parameters
 S.spherical = 0; % 0 - Cartesian, 1 - Spherical
 
-% WikiROMS - Note that there are Lm by Mm computational points. 
-% If you want to create a grid that's neatly divisible by powers of 2, 
+% WikiROMS - Note that there are Lm by Mm computational points.
+% If you want to create a grid that's neatly divisible by powers of 2,
 % make sure Lm and Mm have those factors.
-S.Lm = 400;
-S.Mm = 189;
+S.Lm = 412;
+S.Mm = 252;
 S.N  = 72;
 
 %set value of dx,dy for uniform grid
@@ -130,14 +134,14 @@ flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
 flags.bg_shear = 0;
 
 bg.ubt = 0.02; % m/s barotropic velocity
-                   % if NaN; eddy.nl is used to determine it later
+              % if NaN; eddy.nl is used to determine it later
 bg.vbt = 0;-0.04; % m/s barotropic velocity
-bg.shear_fac = 0.2; 
+bg.shear_fac = 0.2;
 bg.shear = NaN; % set later as bg.shear_fac * max(eddy vorticity)
 bg.comment = ['shear = shear_fac * max(eddy vorticity) | ', ...
               'ubt,vbt = whichever is non-zero gets assigned shear ', ...
               'if flags.bg_shear = 0, then ubt/vbt is added (again non-zero)'];
-          
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% BATHY
 % Bathymetry parameters - all measurements in m
 %flags.tanh_bathymetry = 0;
@@ -181,9 +185,9 @@ bathy.comment = ['H_shelf = depth at coast | L_shelf = shelf width | ' ...
                  'continental slope | S_sh, S_sl = slope burger ' ...
                  'numbers for shelf and slope. These are calculated ' ...
                  'later too in nondim.'];
-             
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% GRID TELESCOPING
-flags.telescoping = 0; % telescope dx,dy
+flags.telescoping = 1; % telescope dx,dy
 
 grid.dxmin = dx0;
 grid.dymin = dy0;
@@ -200,7 +204,7 @@ grid.yscalen = 75;
 % similarly for iy > iyp & iy < iyn
 grid.ixp = ceil(0.9*S.Lm);
 grid.ixn = floor(0.1*S.Lm);
-grid.iyp = (bathy.L_shelf + bathy.L_slope)*1.5/dx0;
+grid.iyp = ceil((bathy.L_shelf + bathy.L_slope)*1.50/dx0);
 grid.iyn = 1;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EDDY
@@ -217,13 +221,13 @@ eddy.nl     = NaN; % eddy velocity scale / eddy translation velocity
                  % parameter
                  % if bg.ubt = NaN; this is used to determine it later
 
-eddy.dia    = NaN; % 2xNH/pi/f0 - determined later
+eddy.dia    = NaN; % sqrt(Bu) * NH/pi/f0 - determined later
 eddy.R      = NaN; % radius of max. vel - determined later
 eddy.depth  = NaN; % depth below which flow is 'compensated' = Z/2 - determined later
-eddy.tamp   = 0.15; % controls gradient
+eddy.tamp   = 0.27; % controls gradient
 eddy.buffer_sp = 50*1000; % distance from  4.3 (2.3) *r0 to sponge edge
 eddy.buffer = NaN;7.5*1000; % distance from start of deep water to 4.3 (2.3) * dia
-eddy.cx     = NaN;100*1000; % if NaN, determined using buffer later
+eddy.cx     = NaN; % if NaN, determined using buffer later
 eddy.cy     = NaN;Y/2; %              "
 eddy.theta0 = pi/2; % surface phase anomaly from Zhang et al. (2013)
                     % 7/16 * pi for WCR
@@ -259,9 +263,9 @@ front.comment = ['Lx = horizontal scale | Tra = tracer var for front | ' ...
                  'Lz = vertical scale | slope = frontal slope | dT = change in' ...
                  'tracer value across front | dRho = change in density across front'];
 
-             
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% wind stress parameters
-wind.tau0 = 0; % set later 
+wind.tau0 = 0; % set later
 wind.ramp = 2; % days
 wind.v    = 0.05; % m/s
 
@@ -880,8 +884,9 @@ if flags.eddy
     % eddy.dia = 2*bathy.L_slope;
     eddy.dia = 2 * sqrt(eddy.Bu) * eddy.Ldef;
 
-    % check for consistency
-    factor = 1/sqrt(eddy.Bu) * eddy.dia/2 / bathy.L_slope * pi/ bathy.S_sl;
+    % check for consistency, just in case
+    factor = 1/sqrt(eddy.Bu) * eddy.dia/2 / bathy.L_slope * pi/ ...
+             bathy.S_sl - sqrt(N2)*bathy.hsb/pi/f0/eddy.Ldef;
     if factor > 1.05 || factor < 0.95
         error([' pi/S_sl * Le/Lsl * 1/sqrt(Bu) = ' ...
                 num2str(factor)]);
@@ -1231,8 +1236,6 @@ if flags.eddy
 
     fprintf('\n Eddy - %4.1f MB \n\n', monitor_memory_whos);
 
-    fprintf('\n Writing eddy params');
-    write_params_to_ini(INI_NAME,eddy);
     toc;
 end
 
@@ -1242,6 +1245,10 @@ end
 if flags.ubt_initial == 1
     if isnan(bg.ubt)
         bg.ubt = 1/2 * beta * eddy.R^2 + eddy.U/eddy.nl;
+    else
+        if isnan(eddy.nl)
+            eddy.nl = eddy.U/bg.ubt;
+        end
     end
 %     if flags.localize_jet
 %         % find appropriate indices
@@ -1308,6 +1315,11 @@ if flags.ubt_initial == 1
             end
         end
 end
+
+% write eddy params now (late) because eddy.nl might be calculated
+% in this cell
+fprintf('\n Writing eddy params');
+write_params_to_ini(INI_NAME,eddy);
 
 fprintf('\n BT vel - %4.1f MB \n\n', monitor_memory_whos);
 
@@ -1718,7 +1730,7 @@ end
 
 %% Check plots
 
-make_plot = 1;
+make_plot = 0;
 
 if make_plot
 
@@ -1822,6 +1834,15 @@ clear pv
 
 toc;
 fprintf('\n Started writing files...\n');
+
+% write git hash!
+[~, hash] = system('git log -n 1 --pretty=format:''%H''');
+% remove bash escape characters
+hash = hash(9:48)
+
+ncwriteatt(GRID_NAME, '/', 'git_hash', hash);
+ncwriteatt(INI_NAME, '/',  'git_hash', hash);
+ncwriteatt(BRY_NAME, '/',  'git_hash', hash);
 
 % grid file
 ncwrite(GRID_NAME,'xl',S.xl);
