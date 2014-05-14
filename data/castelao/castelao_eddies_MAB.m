@@ -2,11 +2,14 @@
 %close all
 %pack
 
-cd E:\Work\eddyshelf\data\castelao\
+%cd /media/data/Work/eddyshelf/data/castelao/
 
+% aviso data
 load aviso_daily_1992_2011_7days_40km_gap_Leff_mod_MAB
+% time snapshots
 load aviso_data_1992_2011_eddies_cyclones_7days_40km_gap_Leff_mod_MAB
 load aviso_data_1992_2011_eddies_anticyclones_7days_40km_gap_Leff_mod_MAB
+% trajectory files
 load 03eddy_trajectories_7days_gap40km_1992_Leff_mod_MAB_v5
 load 03eddy_trajectories_combined_7days_gap40km_1992_Leff_mod_MAB_v5
 load 03eddy_trajectories_7days_gap40km_1992_Leff_mod_MAB_v5_frequency
@@ -18,7 +21,7 @@ XX=Xuseast;
 YY=Yuseast;
 ZZ=Zuseast;
 
-%%
+%% renato's animation
 close all
  
 for BB=1:size(ssh30,3)
@@ -47,13 +50,46 @@ for BB=1:size(ssh30,3)
     pause(0.1)
     clf
 end
-        
+
+%%
+close all
+ 
+for BB=900:size(ssh30,3)
+    [cs,kk]=contourf(xx,yy,ssh30(:,:,BB),50);
+    set(kk,'linestyle','none')
+    colorbar
+    hold on
+    % coastline
+    plot(cx,cy,'k')
+    % bathymetry
+    [cc,hh] = contour(XX, YY, ZZ, [500 1000 2000 3000 4000 5000 6000],'k');
+    %xclabel(cc,hh);
+    caxis([-40 40])
+    
+    boundary=cBOUNDARY{BB};
+    for kkk=1:length(boundary)
+        plot(xx(boundary{kkk}),yy(boundary{kkk}),'.r')
+    end
+    plot(cXXmean{BB},cYYmean{BB},'or','markerfacecolor','r')
+%    plot(cXXext{BB},cYYext{BB},'or','markerfacecolor','r')
+    
+    boundary=aBOUNDARY{BB};
+    for kkk=1:length(boundary)
+        plot(xx(boundary{kkk}),yy(boundary{kkk}),'.b')
+    end
+    plot(aXXmean{BB},aYYmean{BB},'ob','markerfacecolor','b')
+%    plot(aXXext{BB},aYYext{BB},'ob','markerfacecolor','b')
+    
+    title([num2str(yearssh(BB)) '    ' num2str(dayssh(BB))])
+    pause(0.1)
+    clf
+end
 
 %% example of trajectory of an anticyclone
 close all
 
 mm = 5;
-    
+aaaa = 576
 te=find(yearssh==eayear{aaaa}(1) & dayssh== eaday{aaaa}(1)) ;  
 [cc,hh] = contour(Xuseast(1:mm:end,1:mm:end), ...
                       Yuseast(1:mm:end,1:mm:end), ...
