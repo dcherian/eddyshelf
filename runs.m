@@ -884,8 +884,10 @@ methods
         zu = squeeze(zu(1,:,:));
         ixmin = min(index); % needed for indexing
         h = runs.bathy.h(1, runs.bathy.isb:runs.bathy.isl);
+        % loop in time
         for ii=1:size(uprof,4)
             if isnan(index(tstart+ii-1)), continue; end
+            % get y-z cross-section
             uvel = squeeze(uprof(index(tstart+ii-1)-ixmin+1,:,:, ...
                                  ii));
             dye  = squeeze(dprof(index(tstart+ii-1)-ixmin+1,:,:, ...
@@ -907,7 +909,23 @@ methods
             runs.jet.bc(ii) = baroclinicity(zu(iy,:), uvel(iy,:));
 
             % width of jet at NOSE
-            runs.jet.width(ii) = 0;
+            % first interpolate to get velocity at constant
+            % z-level. this level is the location of
+            % max. along-shore velocity i.e., jet.zscale(ii)
+            ynew = yu(:,1);
+            znew = ones(size(ynew)) .* runs.jet.zscale(ii);
+            F = scatteredInterpolant(yu(:), zu(:), uvel(:));
+            unew = F(ynew, znew);
+            % calculate auto-covariance, find first zero crossing
+            % and multiply by 4 to get width
+            ucov = xcov(unew);
+            % symmetric, so discard first half
+            ucov = ucov(length(ynew):end);
+            iu = find(ucov < 0, 1, 'first');
+            iu = iu-1;
+            dy = min(1./runs.rgrid.pn(:));
+            runs.jet.uprof{ii} = unew;
+            runs.jet.width(ii) = 4 * dy * iu;
         end
 
         %% plots of diagnostics
@@ -1185,7 +1203,7 @@ methods
 
     % quantify cross-shelfbreak and along-shelfbreak fluxes of a whole
     % bunch of stuff:
-    function [] = fluxes(runs)
+    function [] = fluxes(runs, ftype)
 
         % Things I want to calculate fluxes of:
         % 1. RV & PV
@@ -1193,7 +1211,7 @@ methods
         ticstart = tic;
 
         % Use history or avg files?
-        ftype = 'his';
+        if ~exist('ftype', 'var') || isempty(ftype), ftype = 'his'; end
 
         vorname = [runs.dir '/ocean_vor.nc'];
         % need some kind of initial time instant - decided by streamer mask
@@ -1243,7 +1261,7 @@ methods
             time = dc_roms_read_data(runs.dir, 'ocean_time', [], {}, [], ...
                                  [], 'his');
             t0 = find_approx(time, runs.time(tstart), 1);
-            cxi = interp1(runs.time(t0:end), runs.eddy.vor.cx(t0:end), ...
+            cxi = interp1(runs.time(tstart:end), runs.eddy.vor.cx(tstart:end), ...
                       time(t0:end));
         else
             if strcmpi(ftype, 'avg')
@@ -1393,7 +1411,7 @@ methods
         %       colors = distinguishable_colors(10);
         colors = cbrewer('qual', 'Dark2', 8);
         aa = 6; bb = aa*2;
-        tloc = [1:0.5:3];
+        tloc = [1:0.5:floor(max(eddy.t))];
         tind = vecfind(eddy.t, tloc);
 
         % plot eddy tracks
@@ -1496,7 +1514,7 @@ methods
 
         %% plot fluxes
         if isfield(runs.csflux,'west')
-            ftime = runs.csflux.time/(eddy.tscale/86400);
+            ftime = runs.csflux.time/eddy.tscale;
             figure(4);
             subplot(4,1,1);
             hold on;
@@ -2264,7 +2282,7 @@ methods
         xsb = runs.bathy.xsb;
         isb = runs.bathy.isb;
 
-        slab = 20; % read 10 at a time
+        slab = 15; % read 10 at a time
 
         sz4dfull = [fliplr(size(runs.rgrid.z_r)) slab];
         sz4dsp = [prod(sz4dfull(1:3)) slab];
