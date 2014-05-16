@@ -1236,7 +1236,7 @@ if flags.eddy
     %    gamma, Vr, Vr*(gamma));
 
     A = max(abs(eddy.zeta(:)));
-    Nqg = sqrt(N2)*Z/g * Vr;
+    Nqg = f0*eddy.Ldef/g * Vr;
     gamma = Nqg/A - 1;
 
     % estimated westward translation speed
@@ -1248,6 +1248,8 @@ if flags.eddy
     fprintf(['\n Based on Early et al. (2011) : \n ' ...
             'Vr = %.3f m/s, Estimated (zonal, meridional) speed = (%.3f, %.3f) m/s\n'], ...
             Vr, Vest_zon, Vest_mer);
+    if Vest_zon > 0, error('Estimated zonal velocity is EASTWARD'); ...
+            end
     %%
 
     % clear variables to save space
@@ -1264,7 +1266,7 @@ end
 % modify velocity and free surface fields
 if flags.ubt_initial == 1
     if isnan(bg.ubt)
-        bg.ubt = -1*Vest_zon + eddy.U/eddy.nl;
+        bg.ubt = 1/3*abs(Vest_zon) + eddy.U/eddy.nl
     else
         if isnan(eddy.nl)
             eddy.nl = eddy.U/bg.ubt;
