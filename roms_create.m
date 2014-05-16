@@ -301,13 +301,13 @@ else
 %       hvec(isl:end) = smooth(hvec(isl:end),bathy.n_points*4);
 %    end
 %    reconstruct h
-    S.h = repmat(hvec',[size(S.h,1) 1]);
-    plot(hvec,'r*');
-
-    if bathy.axis == 'x'
-        S.h = S.h';
+    if bathy.axis == 'y'
+        S.h = repmat(hvec',[size(S.h,1) 1]);
+    else
+        S.h = repmat(hvec, [1 size(S.h, 2)]);
     end
-
+    plot(hvec,'r*');
+    
     % Calculate Burger numbers
     S_sh = bathy.sl_shelf * sqrt(N2)./f0; % shelf
     S_sl = bathy.sl_slope * sqrt(N2)./f0; % slope
@@ -386,7 +386,7 @@ subplot(131)
 if strcmp(bathy.axis,'x')
     ind = ymid;
     pcolor(squeeze(xrmat(:,ind,:))/fx,squeeze(zrmat(:,ind,:)), ...
-        zeros(squeeze(size(zrmat(:,ind,:)))));
+        zeros(size(squeeze(zrmat(:,ind,:)))));
     %squeeze(rx1mat(:,ind,:)));
     xlabel(['x ' lx]);
     linex([bathy.xsb bathy.xsl]/fx);
