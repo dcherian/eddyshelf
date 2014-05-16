@@ -537,8 +537,8 @@ else
     end
 
     % Calculate Burger numbers
-    S_sh = bathy.sl_shelf * sqrt(N2)./min(f(:)); % shelf
-    S_sl = bathy.sl_slope * sqrt(N2)./min(f(:)); % slope
+    S_sh = bathy.sl_shelf * sqrt(N2)./f0; % shelf
+    S_sl = bathy.sl_slope * sqrt(N2)./f0; % slope
 
     % Calculate topographic beta
     b_sh = f0 * bathy.sl_shelf / bathy.H_shelf;
