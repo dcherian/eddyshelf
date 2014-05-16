@@ -1243,7 +1243,7 @@ if flags.eddy
     % (3) in Early et al. (2011) is for quasi stable state expected at
     % t ~ 20/(beta * Ld) ~ 150-200 days. Based on fig. 8 in paper,
     % I divide their (3) estimate by 3/4
-    Vest_zon = Vr * (Nqg/A - 1) * 3/4;
+    Vest_zon = Vr * (Nqg/A - 1);
     Vest_mer = Vr/2 * Nqg/A * 1/2;
     fprintf(['\n Based on Early et al. (2011) : \n ' ...
             'Vr = %.3f m/s, Estimated (zonal, meridional) speed = (%.3f, %.3f) m/s\n'], ...
@@ -1264,7 +1264,7 @@ end
 % modify velocity and free surface fields
 if flags.ubt_initial == 1
     if isnan(bg.ubt)
-        bg.ubt = -1*Vest + eddy.U/eddy.nl;
+        bg.ubt = -1*Vest_zon + eddy.U/eddy.nl;
     else
         if isnan(eddy.nl)
             eddy.nl = eddy.U/bg.ubt;
