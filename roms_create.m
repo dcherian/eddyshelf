@@ -460,7 +460,6 @@ fprintf('\n Writing params \n');
 write_params_to_ini(INI_NAME,flags);
 write_params_to_ini(INI_NAME,bathy);
 write_params_to_ini(INI_NAME,phys);
-write_params_to_ini(INI_NAME,bg);
 write_params_to_ini(INI_NAME,grid);
 toc;
 
@@ -1339,8 +1338,9 @@ end
 
 % write eddy params now (late) because eddy.nl might be calculated
 % in this cell
-fprintf('\n Writing eddy params');
+fprintf('\n Writing eddy, bg params');
 write_params_to_ini(INI_NAME,eddy);
+write_params_to_ini(INI_NAME,bg);
 
 fprintf('\n BT vel - %4.1f MB \n\n', monitor_memory_whos);
 
