@@ -145,8 +145,8 @@ function [eddy] = track_eddy(dir1)
             iy2 = find_approx(yri(:,1),eddy.cy(tt-1)+ly,1);
 
             thresh = eddy.thresh(tt-1);
-            cx0 = eddy.cx(tt-1);
-            cy0 = eddy.cy(tt-1);
+            cx0 = eddy.vor.cx(tt-1);
+            cy0 = eddy.vor.cy(tt-1);
             mask(ix1:ix2,iy1:iy2) = 1;
             % distance to shelfbreak in *m*
 %            d_sbreak = eddy.cx(tt-1)-sbreak;
@@ -447,15 +447,8 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
             cy = dy/2 + props.WeightedCentroid(1) * dy;
 
             % discount eddies over shelf
-            if cy < sbreak; continue; end
-
-            % check displacement of center
-            % should be less than 10 grid cells
-            if ~isnan(cx) && ~isnan(cy)
-                if hypot(cx-cxn1, cy-cyn1) > 10*hypot(dx,dy)
-                    continue;
-                end
-            end
+            % do this with vorticity mask to be safer
+            %if cy < sbreak; continue; end
 
             % Criterion 7 - if multiple regions (eddies), only store the one
             % closest to shelfbreak
@@ -487,7 +480,6 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
             imax = indices(imax);
             indx = ix(imax);
             indy = iy(imax);
-
 
             % I have an eddy!!!
             %imagesc(zreg');
@@ -563,6 +555,14 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
 
                 if eddy.vor.cy < sbreak; continue; end
 
+                % check displacement of center
+                % should be less than 10 grid cells
+                if ~isnan(eddy.vor.cx) && ~isnan(eddy.vor.cy)
+                    if hypot(eddy.vor.cx-cxn1, eddy.vor.cy-cyn1) > 10*hypot(dx,dy)
+                        continue;
+                    end
+                end
+
                 eddy.vor.we   = dx/2 + nanmin(xmax) * dx; % west edge
                 eddy.vor.ee   = dx/2 + nanmax(xmax) * dx; % east edge
                 eddy.vor.ne   = dy/2 + nanmax(ymax) * dy; % south edge
@@ -572,13 +572,13 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
                 eddy.vor.mask = vormaskreg;
                 flag_found = 1;
                 fprintf('Eddy found with threshold %.3f \n', threshold);
-                % If I get here, I'm done.
+
+                imagesc(zeta' .* eddy.vor.mask');
+                pause(0.02)% If I get here, I'm done.
                 break;
             end
-            imagesc(zeta' .* eddy.vor.mask');
-            pause(0.02)
-%             linex(cx./dx); liney(cy./dy);
-%             linex(indx,[],'r'); liney(indy,[],'r');
+            %             linex(cx./dx); liney(cy./dy);
+            %             linex(indx,[],'r'); liney(indy,[],'r');
 %             linex(nanmin(xmax),[],'b'); linex(nanmax(xmax),[],'b');
 %             liney(nanmin(ymax),[],'b'); liney(nanmax(ymax),[],'b');
 
