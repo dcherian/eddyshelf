@@ -190,8 +190,7 @@ flags.telescoping = 1; % telescope dx,dy
 
 grid.dxmin = dx0;
 grid.dymin = dy0;
-grid.dxmax = 3*dx0;
-grid.dymax = 2.0*dy0;
+   
 % p - positive side : axis > center
 % n - negative side : axis < center
 grid.xscalep = 75;
@@ -199,13 +198,28 @@ grid.xscalen = 75;
 grid.yscalep = 75;
 grid.yscalen = 75;
 
-% telescope for ix > ixp & ix < ixn
-% similarly for iy > iyp & iy < iyn
-grid.ixp = ceil(0.9*S.Lm);
-grid.ixn = floor(0.1*S.Lm);
-grid.iyp = ceil((bathy.L_shelf + bathy.L_slope)*1.50/dx0);
-grid.iyn = 1;
+if bathy.axis == 'y'
+    grid.dxmax = 3*dx0;
+    grid.dymax = 2*dy0;
 
+    % telescope for ix > ixp & ix < ixn
+    % similarly for iy > iyp & iy < iyn
+    grid.ixp = ceil(0.9*S.Lm);
+    grid.ixn = floor(0.1*S.Lm);
+    grid.iyp = ceil((bathy.L_shelf + bathy.L_slope)*1.50/dx0);
+    grid.iyn = 1;
+else
+    grid.dxmax = 2*dx0;
+    grid.dymax = 3*dy0;
+
+    % telescope for ix > ixp & ix < ixn
+    % similarly for iy > iyp & iy < iyn
+    grid.ixp = ceil((bathy.L_shelf + bathy.L_slope)*1.50/dx0);
+    grid.ixn = 1;
+    grid.iyp = ceil(0.9*S.Mm);
+    grid.iyn = floor(0.1*S.Mm);
+end
+    
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EDDY
 % eddy momentum balance options
 %flags.use_radial    = 1; % use radial
