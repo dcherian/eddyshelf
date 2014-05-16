@@ -130,8 +130,10 @@ function [eddy] = track_eddy(dir1)
             mask = ones(sz);
             d_sbreak = Inf;
             thresh = nan;
+            cx0 = nan;
+            cy0 = nan;
         else
-            if tt == 132,
+            if tt == 79,
                 disp('debug time!');
             end
             mask = nan(sz);
@@ -143,6 +145,8 @@ function [eddy] = track_eddy(dir1)
             iy2 = find_approx(yri(:,1),eddy.cy(tt-1)+ly,1);
 
             thresh = eddy.thresh(tt-1);
+            cx0 = eddy.cx(tt-1);
+            cy0 = eddy.cy(tt-1);
             mask(ix1:ix2,iy1:iy2) = 1;
             % distance to shelfbreak in *m*
 %            d_sbreak = eddy.cx(tt-1)-sbreak;
@@ -156,7 +160,8 @@ function [eddy] = track_eddy(dir1)
         % find eddy using surface signatures
         fprintf('tt = %3d | ', tt);
         temp = eddy_diag(izeta .* mask, ...
-                            ivor.*mask,dxi,dyi,sbreak,thresh); %w(:,:,tt));
+                         ivor.*mask,dxi,dyi,sbreak,thresh, [], ...
+                         cx0, cy0); %w(:,:,tt));
         % let's interpolate the masks back to the coarser grid
         imask = interp2(xri,yri,temp.mask',xrgrd,yrgrd,'nearest')';
         ivormask = interp2(xri,yri,temp.vor.mask',xrgrd,yrgrd,'nearest')';
@@ -311,7 +316,7 @@ function [E] = sinefit(x0,T,zr)
 % only finds anticyclonic eddies
 
 % this routine is called at every timestep
-function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
+function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
 
     % algorithm options
     amp_thresh = 0.001; % Amplitude threshold (in m)
@@ -419,7 +424,7 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
            % if minimumCaliperDiameter(points) < min_dist, continue; end
 
             % Criterion 6 - Obuko-Weiss parameter must make sense
-            if exist('w','var')
+            if exist('w','var') && ~isempty(w)
                 thresh = 0.2 * std(w(:)); % see Isern-Fontanet et al. (2006)
                 wreg = w .* maskreg;
                 if mean(wreg(:)) > thresh
@@ -441,7 +446,16 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
             cx = dx/2 + props.WeightedCentroid(2) * dx;
             cy = dy/2 + props.WeightedCentroid(1) * dy;
 
+            % discount eddies over shelf
             if cy < sbreak; continue; end
+
+            % check displacement of center
+            % should be less than 10 grid cells
+            if ~isnan(cx) && ~isnan(cy)
+                if hypot(cx-cxn1, cy-cyn1) > 10*hypot(dx,dy)
+                    continue;
+                end
+            end
 
             % Criterion 7 - if multiple regions (eddies), only store the one
             % closest to shelfbreak
@@ -561,7 +575,8 @@ function [eddy] = eddy_diag(zeta,vor,dx,dy,sbreak,thresh,w)
                 % If I get here, I'm done.
                 break;
             end
-%             imagesc(zreg');
+            imagesc(zeta' .* eddy.vor.mask');
+            pause(0.02)
 %             linex(cx./dx); liney(cy./dy);
 %             linex(indx,[],'r'); liney(indy,[],'r');
 %             linex(nanmin(xmax),[],'b'); linex(nanmax(xmax),[],'b');

@@ -71,12 +71,12 @@ S.Tcline  = 500;    %  S-coordinate surface/bottom stretching width (m)
 
 % coriolis parameters
 lat_ref = 45;
-f0    = 5e-5; 2 * (2*pi/86400) * sind(lat_ref);
+f0    = 1e-4; 2 * (2*pi/86400) * sind(lat_ref);
 beta  = 6e-11;
 
 % Physical Parameters
-N2    = 1e-5;
-T0    = 30;
+N2    = 4e-5;
+T0    = 60;
 S0    = 28;
 R0    = 1027; % only for EOS purposes
 TCOEF = 1.7e-4;
@@ -85,7 +85,6 @@ g     = 9.81;
 rho0  = 1025; % Boussinesq
 
 %% save physical parameters to structure
-
 phys.rho0 = rho0;
 phys.T0 = T0; phys.S0 = S0; phys.R0 = R0;
 phys.SCOEF = SCOEF; phys.TCOEF = TCOEF;
@@ -133,7 +132,7 @@ end
 flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
 flags.bg_shear = 0;
 
-bg.ubt = 0.02; % m/s barotropic velocity
+bg.ubt = NaN; % m/s barotropic velocity
               % if NaN; eddy.nl is used to determine it later
 bg.vbt = 0;-0.04; % m/s barotropic velocity
 bg.shear_fac = 0.2;
@@ -192,7 +191,7 @@ flags.telescoping = 1; % telescope dx,dy
 grid.dxmin = dx0;
 grid.dymin = dy0;
 grid.dxmax = 3*dx0;
-grid.dymax = 2.5*dy0;
+grid.dymax = 2.0*dy0;
 % p - positive side : axis > center
 % n - negative side : axis < center
 grid.xscalep = 75;
@@ -217,7 +216,7 @@ flags.vprof_gaussian = 0;%~flags.eddy_zhang; % eddy is gaussian in vertical?
 
 % Eddy parameters - all distances in m
 eddy.Bu     = 1; % ratio of (eddy radius to deformation radius)^2
-eddy.nl     = NaN; % eddy velocity scale / eddy translation velocity
+eddy.nl     = 12.15; % eddy velocity scale / eddy translation velocity
                  % parameter
                  % if bg.ubt = NaN; this is used to determine it later
 
@@ -1245,11 +1244,11 @@ if flags.eddy
     % (3) in Early et al. (2011) is for quasi stable state expected at
     % t ~ 20/(beta * Ld) ~ 150-200 days. Based on fig. 8 in paper,
     % I divide their (3) estimate by 3/4
-    Vest = Vr * gamma * 3/4;
+    Vest_zon = Vr * (Nqg/A - 1) * 3/4;
+    Vest_mer = Vr/2 * Nqg/A * 1/2;
     fprintf(['\n Based on Early et al. (2011) : \n ' ...
-            'Gamma = %.2f, Vr = %.3f m/s, Estimated westward speed = %.3f m/s\n'], ...
-        gamma, Vr, Vest);
-
+            'Vr = %.3f m/s, Estimated (zonal, meridional) speed = (%.3f, %.3f) m/s\n'], ...
+            Vr, Vest_zon, Vest_mer);
     %%
 
     % clear variables to save space
@@ -1858,7 +1857,7 @@ toc;
 fprintf('\n Started writing files...\n');
 
 % write git hash!
-[~, hash] = system('git log -n 1 --pretty=format:''%H''');
+[~, hash] = system('TERM=xterm-256color git log -n 1 --pretty=format:''%H''');
 % remove bash escape characters
 hash = hash(9:48)
 
