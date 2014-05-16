@@ -213,6 +213,15 @@ methods
             clear data
         end
 
+        % load jet diagnostics if the file exists
+        if exist([dir '/jet.mat'],'file') && reset ~= 1
+            disp('Loading jet diagnostics');
+            data = load([dir '/jet.mat']);
+            runs.jet = data.jet;
+            clear data
+        end
+
+
         % extra processing of eddy track
         if ~runs.noeddy
            if isfield(runs.eddy,'cvx')
@@ -937,102 +946,91 @@ methods
             runs.jet.width(ii) = 4 * dy * iu;
         end
 
-        %% plots of diagnostics
-        time = runs.time(t0+tstart:end)/86400;
-        figure;
-        subplot(3,1,1)
-        plot(time, runs.jet.vscale);
-        ylabel('Max. velocity');
-        subplot(3,1,2)
-        plot(time, runs.jet.zscale);
-        hold on
-        plot(time, runs.jet.h);
-        ylabel('z-loc of max vel');
-        subplot(313)
-        plot(time, runs.jet.bc);
-        ylabel('Baroclinicity measure');
-
-        %% animation
-        if isempty(runs.usurf), runs.read_velsurf; end
-        svel = runs.usurf(:,runs.bathy.isb:runs.bathy.isl,t0:end);
-        figure;
-        ii=40;
-        subplot(311)
-        hsv = pcolorcen(runs.rgrid.x_u(1,:)/1000, ...
-                       runs.rgrid.y_u(runs.bathy.isb:runs.bathy.isl,1)/1000, ...
-                       svel(:,:,ii)');
-        hold on
-        he1 = runs.plot_eddy_contour('contour',t0+ii-1);
-        caxis([-0.1 0.1]); cbfreeze; axis image
-        title('along-shore surface velocity');
-
-        subplot(3,1,2)
-        hbv = pcolorcen(runs.rgrid.x_u(1,:)/1000, ...
-                       runs.rgrid.y_u(runs.bathy.isb:runs.bathy.isl,1)/1000, ...
-                       asbot(:,:,ii)');
-        he2 = runs.plot_eddy_contour('contour',t0+ii-1);
-        colorbar; caxis([-0.1 0.1]); cbfreeze; axis image
-        title('Along-shore vel on s = 0');
-
-        subplot(313)
-        [hd] = pcolorcen(runs.rgrid.xr(:,1)/1000, ...
-                         runs.rgrid.yr(1,runs.bathy.isb:runs.bathy.isl)/1000, ...
-                         eddye(:,:,ii)');
-        he3 = runs.plot_eddy_contour('contour',t0+ii-1);
-        colorbar; caxis([0 1]); axis image
-        hl = linex(runs.jet.xnose(ii)/1000, '');
-
-        for ii=ii+1:size(eddye,3)
-            set(hsv, 'cdata', svel(:,:,ii)');
-            set(hbv, 'cdata', asbot(:,:,ii)');
-            set(hd, 'cdata', eddye(:,:,ii)');
-            runs.update_eddy_contour(he1, t0+ii-1);
-            runs.update_eddy_contour(he2, t0+ii-1);
-            runs.update_eddy_contour(he3, t0+ii-1);
-            set(hl, 'xdata', [1 1]*runs.jet.xnose(ii)/1000);
-            title(['Dye on s=0 | day no = ' num2str(t0+ii) ', ii=', num2str(ii)])
-            pause(0.05);
-        end
-
-        %% older animation showing cross-shore sections of
-        %% along-shore velocity
-        % first section moves with eddy
-        xind = ix0(1) + [nan 10 60] *ceil(rr/runs.rgrid.dx);
-
-        tt = 1;
-        xind(1) = ix0(tt) + nrr * ceil(rr/runs.rgrid.dx);
-        subplot(2,3,[1 2 3])
-        hzeta = runs.plot_zeta('contourf',t0+tt-1);
-        hlines = linex(xind*runs.rgrid.dx/1000);
-        colorbar
-
-        subplot(234)
-        [~,huas1] = contourf(yz/1000,squeeze(zas(xind(1),:,:)), ...
-                        squeeze(uas(xind(1),:,:,tt)));
-        colorbar; caxis([-1 1]*0.1); ylim([-300 0]);
+        jet = runs.jet;
+        save([runs.dir '/jet.mat'], 'jet');
 
 
-        subplot(235)
-        [~,huas2] = contourf(yz/1000,squeeze(zas(xind(2),:,:)), ...
-                        squeeze(uas(xind(2),:,:,tt)));
-        colorbar; caxis([-1 1]*0.1); ylim([-1000 0]);
+        if debug
+            %% animation
+            if isempty(runs.usurf), runs.read_velsurf; end
+            svel = runs.usurf(:,runs.bathy.isb:runs.bathy.isl,t0:end);
+            figure;
+            ii=40;
+            subplot(311)
+            hsv = pcolorcen(runs.rgrid.x_u(1,:)/1000, ...
+                            runs.rgrid.y_u(runs.bathy.isb:runs.bathy.isl,1)/1000, ...
+                            svel(:,:,ii)');
+            hold on
+            he1 = runs.plot_eddy_contour('contour',t0+ii-1);
+            caxis([-0.1 0.1]); cbfreeze; axis image
+            title('along-shore surface velocity');
 
+            subplot(3,1,2)
+            hbv = pcolorcen(runs.rgrid.x_u(1,:)/1000, ...
+                            runs.rgrid.y_u(runs.bathy.isb:runs.bathy.isl,1)/1000, ...
+                            asbot(:,:,ii)');
+            he2 = runs.plot_eddy_contour('contour',t0+ii-1);
+            colorbar; caxis([-0.1 0.1]); cbfreeze; axis image
+            title('Along-shore vel on s = 0');
 
-        subplot(236)
-        [~,huas3] = contourf(yz/1000,squeeze(zas(xind(3),:,:)), ...
-                        squeeze(uas(xind(3),:,:,tt)));
-        colorbar; caxis([-1 1]*0.1); ylim([-1000 0]);
+            subplot(313)
+            [hd] = pcolorcen(runs.rgrid.xr(:,1)/1000, ...
+                             runs.rgrid.yr(1,runs.bathy.isb:runs.bathy.isl)/1000, ...
+                             eddye(:,:,ii)');
+            he3 = runs.plot_eddy_contour('contour',t0+ii-1);
+            colorbar; caxis([0 1]); axis image
+            hl = linex(runs.jet.xnose(ii)/1000, '');
 
-        for tt=2:size(uas,4)
-            runs.update_zeta(hzeta,t0+tt-1);
+            for ii=ii+1:size(eddye,3)
+                set(hsv, 'cdata', svel(:,:,ii)');
+                set(hbv, 'cdata', asbot(:,:,ii)');
+                set(hd, 'cdata', eddye(:,:,ii)');
+                runs.update_eddy_contour(he1, t0+ii-1);
+                runs.update_eddy_contour(he2, t0+ii-1);
+                runs.update_eddy_contour(he3, t0+ii-1);
+                set(hl, 'xdata', [1 1]*runs.jet.xnose(ii)/1000);
+                title(['Dye on s=0 | day no = ' num2str(t0+ii) ', ii=', num2str(ii)])
+                pause(0.05);
+            end
 
-            xind(1) = ix0(tt) + nrr * ceil(rr/runs.rgrid.dx);
-            set(hlines(1),'XData',[1 1]*xind(1)*runs.rgrid.dx/1000);
+            %% older animation showing cross-shore sections of
+            %% along-shore velocity
+            % first section moves with eddy
+            %xind = ix0(1) + [nan 10 60] *ceil(rr/runs.rgrid.dx);
 
-            set(huas1,'ZData',squeeze(uas(xind(1),:,:,tt)));
-            set(huas2,'ZData',squeeze(uas(xind(2),:,:,tt)));
-            set(huas3,'ZData',squeeze(uas(xind(3),:,:,tt)));
-            pause(0.2);
+            %tt = 1;
+            %xind(1) = ix0(tt) + nrr * ceil(rr/runs.rgrid.dx);
+            %subplot(2,3,[1 2 3])
+            %hzeta = runs.plot_zeta('contourf',t0+tt-1);
+            %hlines = linex(xind*runs.rgrid.dx/1000);
+            %colorbar
+
+            %subplot(234)
+            %[~,huas1] = contourf(yz/1000,squeeze(zas(xind(1),:,:)), ...
+            %                     squeeze(uas(xind(1),:,:,tt)));
+            %colorbar; caxis([-1 1]*0.1); ylim([-300 0]);
+
+            %subplot(235)
+            %[~,huas2] = contourf(yz/1000,squeeze(zas(xind(2),:,:)), ...
+            %                     squeeze(uas(xind(2),:,:,tt)));
+            %colorbar; caxis([-1 1]*0.1); ylim([-1000 0]);
+
+            %subplot(236)
+            %[~,huas3] = contourf(yz/1000,squeeze(zas(xind(3),:,:)), ...
+            %                     squeeze(uas(xind(3),:,:,tt)));
+            %colorbar; caxis([-1 1]*0.1); ylim([-1000 0]);
+
+            %for tt=2:size(uas,4)
+            %    runs.update_zeta(hzeta,t0+tt-1);
+            %
+            %    xind(1) = ix0(tt) + nrr * ceil(rr/runs.rgrid.dx);
+            %    set(hlines(1),'XData',[1 1]*xind(1)*runs.rgrid.dx/1000);
+            %
+            %    set(huas1,'ZData',squeeze(uas(xind(1),:,:,tt)));
+            %    set(huas2,'ZData',squeeze(uas(xind(2),:,:,tt)));
+            %    set(huas3,'ZData',squeeze(uas(xind(3),:,:,tt)));
+            %    pause(0.2);
+            %end
         end
     end
 
@@ -1651,6 +1649,21 @@ methods
              colors(ii,:));
         xlabel('Time');
         ylabel('mean(inflow 2d vel)');
+
+        % jet diagnostics
+        time = runs.time(t0+tstart:end)/86400;
+        figure(7);
+        subplot(3,1,1)
+        plot(time, runs.jet.vscale);
+        ylabel('Max. velocity');
+        subplot(3,1,2)
+        plot(time, runs.jet.zscale);
+        hold on
+        plot(time, -1*runs.jet.h);
+        ylabel('z-loc of max vel');
+        subplot(313)
+        plot(time, runs.jet.bc);
+        ylabel('Baroclinicity measure');
     end
 
     % this is incomplete
