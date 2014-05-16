@@ -1212,22 +1212,44 @@ if flags.eddy
     %% estimate speed based on van leeuwin (2007)
 
     % first, K.E
-    ke = 1/2 * (eddy.u.^2 + eddy.v.^2);
-    pe = 0;
-    h0 = Z/2; % average depth of upper layer
-    Ld = eddy.Ldef; % deformation radius
-    eta = eddy.temp(:,:,S.N/2);
-    num1 = 0;
-    num2 = f0^2/h0 * Ld^2 * trapz(yrmat(1,:,1),trapz(xrmat(:,1,1),eta.^2,1),2);
-    den = (2*Ld^2*trapz(yrmat(1,:,1),trapz(xrmat(:,1,1),eta,1),2));
+    %rho_eddy = R0 * (- TCOEF * (eddy.temp));
+    %ke = 1/2 * rho_eddy .* (eddy.u.^2 + eddy.v.^2);
+    %pe = 1/2 * g * rho_eddy .* zrmat;
 
-    gamma = (num1+num2)/den;
+    %dV = bsxfun(@times, diff(zwmat, 1, 3), 1./S.pm .* 1./S.pn);
 
-    vr = beta * Ld^2;
+    %MASS = sum(rho_eddy(:) .* dV(:));
+    %KE = sum(ke(:) .* dV(:));
+    %PE = sum(pe(:) .* -dV(:));
+    %gamma = (KE+PE)/MASS/g/Z;
 
-    fprintf(['\n Based on van Leeuwin (2007) : \n ' ...
-            'Gamma = %.2f, Vr = %.2f m/s, Drift speed = %.2f m/s \n'], ...
-        gamma, vr, vr*(1+gamma));
+    %h0 = Z/2; % average depth of upper layer
+    %Ld = eddy.Ldef; % deformation radius
+    %eta = eddy.temp(:,:,S.N/2);
+    %num1 = 0;
+    %num2 = f0^2/h0 * Ld^2 * trapz(yrmat(1,:,1),trapz(xrmat(:,1,1),eta.^2,1),2);
+    %den = (2*Ld^2*trapz(yrmat(1,:,1),trapz(xrmat(:,1,1),eta,1),2));
+    %gamma = (num1+num2)/den;
+
+    Vr = beta * eddy.Ldef^2;
+
+    %fprintf(['\n Based on van Leeuwin (2007) : \n ' ...
+    %        'Gamma = %.2f, Vr = %.3f m/s, Drift speed = %.3f m/s \n'], ...
+    %    gamma, Vr, Vr*(gamma));
+
+    A = max(abs(eddy.zeta(:)));
+    Nqg = sqrt(N2)*Z/g * Vr;
+    gamma = Nqg/A - 1;
+
+    % estimated westward translation speed
+    % (3) in Early et al. (2011) is for quasi stable state expected at
+    % t ~ 20/(beta * Ld) ~ 150-200 days. Based on fig. 8 in paper,
+    % I divide their (3) estimate by 3/4
+    Vest = Vr * gamma * 3/4;
+    fprintf(['\n Based on Early et al. (2011) : \n ' ...
+            'Gamma = %.2f, Vr = %.3f m/s, Estimated westward speed = %.3f m/s\n'], ...
+        gamma, Vr, Vest);
+
     %%
 
     % clear variables to save space
@@ -1244,7 +1266,7 @@ end
 % modify velocity and free surface fields
 if flags.ubt_initial == 1
     if isnan(bg.ubt)
-        bg.ubt = 1/2 * beta * eddy.R^2 + eddy.U/eddy.nl;
+        bg.ubt = -1*Vest + eddy.U/eddy.nl;
     else
         if isnan(eddy.nl)
             eddy.nl = eddy.U/bg.ubt;
