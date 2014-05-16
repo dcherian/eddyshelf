@@ -128,31 +128,31 @@ methods
         runs.rrshelf = sqrt(runs.params.phys.N2)*max(runs.bathy.hsb) ...
                     /mean(runs.rgrid.f(:))/pi;
 
-             % figure out dye names
-             for ii=1:4
-                 % dye name
-                 dname = ['dye_0' num2str(ii)];
-                 try % see if variable exists in ini
-                     vname = [];
-                     % dye description
-                     ddesc = ncreadatt([runs.dir roms_find_file(runs.dir,'ini')], ...
-                                         dname,'long_name');
-                     if strfind(ddesc,'cross shelf'), runs.csdname = dname; end
-                     if strfind(ddesc,'z dye'), runs.zdname = dname; end
-                     if strfind(ddesc,'along shelf'), runs.asdname = dname; end
-                     if strfind(ddesc,'eddy dye'), runs.eddname = dname; end
+        % figure out dye names
+        for ii=1:4
+            % dye name
+            dname = ['dye_0' num2str(ii)];
+            try % see if variable exists in ini
+                vname = [];
+                % dye description
+                ddesc = ncreadatt([runs.dir roms_find_file(runs.dir,'ini')], ...
+                                  dname,'long_name');
+                if strfind(ddesc,'cross shelf'), runs.csdname = dname; end
+                if strfind(ddesc,'z dye'), runs.zdname = dname; end
+                if strfind(ddesc,'along shelf'), runs.asdname = dname; end
+                if strfind(ddesc,'eddy dye'), runs.eddname = dname; end
 
-%                     % see if variable is in output files
-                     %try
-                     %    runs.(vname) = roms_read_data(filename,dname ...
-                     %       ,[1 1 runs.rgrid.N 1],[Inf Inf 1 Inf]);
-                     %catch ME
-                     %    warning([dname 'not in output files']);
-                     %end
-                 catch ME
-                     warning([dname 'not found in ini file']);
-                 end
-             end
+                %                     % see if variable is in output files
+                %try
+                %    runs.(vname) = roms_read_data(filename,dname ...
+                %       ,[1 1 runs.rgrid.N 1],[Inf Inf 1 Inf]);
+                %catch ME
+                %    warning([dname 'not in output files']);
+                %end
+            catch ME
+                warning([dname 'not found in ini file']);
+            end
+        end
         try
             runs.roms = floats('roms',runs.flt_file,runs.rgrid);
         catch
@@ -239,11 +239,20 @@ methods
             end
             if isempty(runs.eddy.trev), runs.eddy.trev = NaN; end
 
+            % Early et al (2011) estimates for zonal, meridional
+            % velocities
+            A = runs.eddy.amp(1);
+            Vr = runs.params.phys.beta * runs.rrdeep^2;
+            Nqg = sqrt(runs.params.phys.N2)*max(runs.bathy.h(:))/ ...
+                  runs.params.phys.g * Vr;
+            runs.eddy.Vest_zonal = Vr * (Nqg/A - 1) * 3/4;
+            runs.eddy.Vest_mer = Vr * Nqg/A * 1/4;
+
             % estimate southward vel.
             % (beta * Lr^2)^2 *1/2 * 1/amp * NH/g
-            runs.eddy.Vy = -(runs.params.phys.beta*(runs.params.eddy.dia(1)/2)^2)^2/2 ...
-                                    /runs.eddy.amp(1) * ...
-                            sqrt(runs.params.phys.N2)/runs.params.phys.g*max(runs.bathy.h(:));
+            %runs.eddy.Vy = -(runs.params.phys.beta*(runs.params.eddy.dia(1)/2)^2)^2/2 ...
+            %                        /runs.eddy.amp(1) * ...
+            %                sqrt(runs.params.phys.N2)/runs.params.phys.g*max(runs.bathy.h(:));
 
 %                            -(run3.params.phys.beta*(run3.params.eddy.dia(1)/2)^2)^2 ...
 %                                        *1/2 * 1/run3.eddy.amp(1) * ...
@@ -1271,12 +1280,12 @@ methods
             end
         end
         tinf = length(time);
-        
+
         % initialize
         runs.csflux.west.shelf = nan([tinf length(loc)]);
         runs.csflux.west.slope = nan([tinf length(loc)]);
         runs.csflux.west.eddy = nan([tinf length(loc)]);
-        
+
         runs.csflux.east.shelf = nan([tinf length(loc)]);
         runs.csflux.east.slope = nan([tinf length(loc)]);
         runs.csflux.east.eddy = nan([tinf length(loc)]);
@@ -1292,7 +1301,7 @@ methods
                 runs.csflux.east.rv = nan([tinf length(loc)]);
             end
         end
-                
+
         % east and west (w.r.t eddy center) masks
         % use center because export occurs west of the eastern edge
         westmask = bsxfun(@lt, runs.eddy.xr(:,1), cxi);
@@ -1369,7 +1378,7 @@ methods
                 count = [Inf 1 Inf Inf];
                 pv = ncread(vorname,'pv',start,count);
                 rv = avg1(avg1(ncread(vorname,'rv',start,count+[0 1 0 0]),1),2);
-                
+
                 % get vorticity fluxes
                 % first, depth integrated
                 pvcsflux = squeeze(trapz(avg1(runs.rgrid.z_r(:,runs.csflux.ix(kk)+1,1),1), ...
@@ -1569,7 +1578,7 @@ methods
         end
 
         time = eddy.t;
-        
+
         %% plot water masses
         if isfield(runs.water, 'off')
             linestyle = {'-','--','-.','-'};
