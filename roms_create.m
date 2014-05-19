@@ -1016,7 +1016,7 @@ if flags.eddy
     % estimated westward translation speed
     % (3) in Early et al. (2011) is for quasi stable state expected at
     % t ~ 20/(beta * Ld) ~ 150-200 days. Based on fig. 8 in paper,
-    % I divide their (3) estimate by 3/4
+    % These are actual estimates. The reduction factor is applied later.
     Vest_zon = Vr * (Nqg/A - 1);
     Vest_mer = Vr/2 * Nqg/A * 1/2;
     fprintf(['\n Based on Early et al. (2011) : \n ' ...
@@ -1040,7 +1040,7 @@ end
 % modify velocity and free surface fields
 if flags.ubt_initial == 1
     if isnan(bg.ubt)
-        bg.ubt = 1/3*abs(Vest_zon) + eddy.U/eddy.nl
+        bg.ubt = 1/2*abs(Vest_zon) + eddy.U/eddy.nl
     else
         if isnan(eddy.nl)
             eddy.nl = eddy.U/bg.ubt;
