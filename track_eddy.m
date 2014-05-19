@@ -67,7 +67,7 @@ function [eddy] = track_eddy(dir1)
                     bsxfun(@rdivide, diff(v,1,1), diff(avg1(xr(:,:,1),2),1,1)) ...
                   - bsxfun(@rdivide, diff(u,1,2), diff(avg1(yr(:,:,1),1),1,2)) ...
                   ,1),2);
-    clear u v
+    
     xr   = xr(2:end-1,2:end-1,end);
     yr   = yr(2:end-1,2:end-1,end);
 
@@ -191,6 +191,9 @@ function [eddy] = track_eddy(dir1)
 
         eddy.Ls(tt) = temp.Ls;
 
+        V = hypot(avg1(u(:,2:end-1,tt), 1) .* ivormask, ...
+                  avg1(v(2:end-1,:,tt), 2) .* ivormask);
+        eddy.V(tt) = max(V(:));
         eddy.vor.we(tt) = temp.vor.we;
         eddy.vor.ee(tt) = temp.vor.ee;
         eddy.vor.ne(tt) = temp.vor.ne;
