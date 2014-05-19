@@ -252,10 +252,10 @@ methods
             % velocities
             A = runs.eddy.amp(1);
             Vr = runs.params.phys.beta * runs.rrdeep^2;
-            Nqg = sqrt(runs.params.phys.N2)*max(runs.bathy.h(:))/ ...
+            Nqg = runs.params.phys.f0 * runs.params.eddy.Ldef / ...
                   runs.params.phys.g * Vr;
-            runs.eddy.Vest_zonal = Vr * (Nqg/A - 1) * 3/4;
-            runs.eddy.Vest_mer = Vr * Nqg/A * 1/4;
+            runs.eddy.Vest_zonal = Vr * (Nqg/A - 1);
+            runs.eddy.Vest_mer = Vr * Nqg/A;
 
             % estimate southward vel.
             % (beta * Lr^2)^2 *1/2 * 1/amp * NH/g
@@ -840,6 +840,8 @@ methods
         % number of rossby radii east of eddy to plot section
         nrr = 8;
 
+        debug = 0;
+
         t0 = 55;
         ix0 = vecfind(runs.rgrid.x_u(1,:),runs.eddy.vor.cx(t0:end));
         % along-shore velocity
@@ -852,25 +854,29 @@ methods
         %yz = repmat(runs.rgrid.y_u(1:runs.bathy.isl,1),[1 runs.rgrid.N]);
 
         eddye = dc_roms_read_data(runs.dir, runs.eddname, [t0 Inf], ...
-                {'y' runs.bathy.isb runs.bathy.isl; ...
-                 'z' 1 1}, [], runs.rgrid);
+                                  {runs.bathy.axis runs.bathy.isb runs.bathy.isl; ...
+                                  'z' 1 1}, [], runs.rgrid);
 
         asbot = dc_roms_read_data(runs.dir, 'u', [t0 Inf], ...
-                {'y' runs.bathy.isb runs.bathy.isl; ...
-                 'z' 1 1}, [], runs.rgrid);
+                                  {runs.bathy.axis runs.bathy.isb runs.bathy.isl; ...
+                                  'z' 1 1}, [], runs.rgrid);
 
         %% diagnostics
-        % track nose with dye - DONE
-        % measure width and vel magnitude slightly behind nose
-        % measure "baroclinity" of profile
-
         % let's find location of nose
         thresh = 0.5
         sz = size(eddye);
-        xd = runs.rgrid.xr(:,runs.bathy.isb:runs.bathy.isl);
+        if runs.bathy.axis == 'y'
+            xd = runs.rgrid.xr(:,runs.bathy.isb:runs.bathy.isl);
+            edge = runs.eddy.ee;
+            xdvec = xd(:,1);
+        else
+            xd = runs.rgrid.yr(runs.bathy.isb:runs.bathy.isl,:);
+            edge = runs.eddy.se;
+            xdvec = xd(1,:)';
+        end
         xmask = reshape(xd, [sz(1)*sz(2) 1]);
         masked = reshape((eddye .*  bsxfun( ...
-            @gt, xd, permute(runs.eddy.ee(t0:end), [3 1 2])) ...
+            @gt, xd, permute(edge(t0:end), [3 1 2])) ...
                                    > thresh), [sz(1)*sz(2) sz(3)]);
         [dmax, idmax] = max(bsxfun(@times, masked, xmask), [], 1);
         runs.jet.xnose = fillnan(dmax,min(xmask(:)));
@@ -878,38 +884,64 @@ methods
         runs.jet.thresh = thresh;
 
         % width at nose
-        index = vecfind(xd(:,1), runs.jet.xnose);
+        index = vecfind(xdvec, runs.jet.xnose);
         index(runs.jet.xnose == 0) = NaN;
         tstart = find(~isnan(index) == 1, 1, 'first'); % W.R.T
                                                        % t0!!!!!
 
         % read in data
-        [uprof,~,yu,zu,~] = dc_roms_read_data(runs.dir, 'u', [t0+tstart Inf], ...
-                                  {'x' min(index)-1 max(index)-1; ...
-                                   'y' runs.bathy.isb runs.bathy.isl}, ...
-                                  [], runs.rgrid);
-        dprof = dc_roms_read_data(runs.dir, runs.eddname, [t0+tstart Inf], ...
-                                  {'x' min(index) max(index); ...
-                                   'y' runs.bathy.isb runs.bathy.isl}, ...
-                                  [], runs.rgrid);
-
+        if runs.bathy.axis == 'y'
+            [uprof,~,yu,zu,~] = dc_roms_read_data(runs.dir, 'u', [t0+tstart Inf], ...
+                                                  {'x' min(index)-1 max(index)-1; ...
+                                'y' runs.bathy.isb runs.bathy.isl}, ...
+                                                  [], runs.rgrid);
+            dprof = dc_roms_read_data(runs.dir, runs.eddname, [t0+tstart Inf], ...
+                                      {'x' min(index) max(index); ...
+                                'y' runs.bathy.isb runs.bathy.isl}, ...
+                                      [], runs.rgrid);
+        else
+            [uprof,yu,~,zu,~] = dc_roms_read_data(runs.dir, 'v', [t0+tstart Inf], ...
+                                                  {'y' min(index)-1 max(index)-1; ...
+                                'x' runs.bathy.isb runs.bathy.isl}, ...
+                                                  [], runs.rgrid);
+            dprof = dc_roms_read_data(runs.dir, runs.eddname, [t0+tstart Inf], ...
+                                      {'y' min(index) max(index); ...
+                                'x' runs.bathy.isb runs.bathy.isl}, ...
+                                      [], runs.rgrid);
+        end
         % 1 : take vertical profile of along-shore vel at index
         % 2 : find level of maximum velocity = velocity scale
         % 3 : then take cross shore section of velocity at that level
         %     (interpolated) and figure out scale.
 
-        yu = squeeze(yu(1,:,:));
-        zu = squeeze(zu(1,:,:));
+
+        if runs.bathy.axis == 'y'
+            yu = squeeze(yu(1,:,:));
+            zu = squeeze(zu(1,:,:));
+            h = runs.bathy.h(1, runs.bathy.isb:runs.bathy.isl);
+        else
+            yu = squeeze(yu(:,1,:));
+            zu = squeeze(zu(:,1,:));
+            h = runs.bathy.h(runs.bathy.isb:runs.bathy.isl,1);
+        end
         ixmin = min(index); % needed for indexing
-        h = runs.bathy.h(1, runs.bathy.isb:runs.bathy.isl);
+        
         % loop in time
         for ii=1:size(uprof,4)
             if isnan(index(tstart+ii-1)), continue; end
             % get y-z cross-section
-            uvel = squeeze(uprof(index(tstart+ii-1)-ixmin+1,:,:, ...
-                                 ii));
-            dye  = squeeze(dprof(index(tstart+ii-1)-ixmin+1,:,:, ...
-                                 ii));
+
+            if runs.bathy.axis == 'y'
+                uvel = squeeze(uprof(index(tstart+ii-1)-ixmin+1,:,:, ...
+                                     ii));
+                dye  = squeeze(dprof(index(tstart+ii-1)-ixmin+1,:,:, ...
+                                     ii));
+            else
+                uvel = squeeze(uprof(:,index(tstart+ii-1)-ixmin+1,:, ...
+                                     ii));
+                dye  = squeeze(dprof(:,index(tstart+ii-1)-ixmin+1,:, ...
+                                     ii));
+            end
             % find max. velocity
             [runs.jet.vscale(ii), ivmax] = max(uvel(:) .* (dye(:) > ...
                                                            thresh));
@@ -2584,8 +2616,10 @@ methods
         % save data to structure
         eddy = runs.eddy;
         eddy.vol = cell2mat(volcell);
-        eddy.PV = cell2mat(intpv);
-        eddy.RV = cell2mat(intrv);
+        if dopv
+            eddy.PV = cell2mat(intpv);
+            eddy.RV = cell2mat(intrv);
+        end
         eddy.KE = cell2mat(intke);
         eddy.PE = cell2mat(intpe);
 
