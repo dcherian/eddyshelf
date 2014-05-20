@@ -861,6 +861,17 @@ methods
                                   {runs.bathy.axis runs.bathy.isb runs.bathy.isl; ...
                                   'z' 1 1}, [], runs.rgrid);
 
+        % allocate variables
+        runs.jet.xnose = nan(size(runs.time));
+        runs.jet.ixnose = nan(size(runs.time));
+        runs.jet.vscale = nan(size(runs.time));
+        runs.jet.yscale = nan(size(runs.time));
+        runs.jet.zscale = nan(size(runs.time));
+        runs.jet.h = nan(size(runs.time));
+        runs.jet.bc = nan(size(runs.time));
+        run.jet.uprof = cell(size(runs.time));
+        runs.jet.width = nan(size(runs.time));
+
         %% diagnostics
         % let's find location of nose
         thresh = 0.5
@@ -875,17 +886,26 @@ methods
             xdvec = xd(1,:)';
         end
         xmask = reshape(xd, [sz(1)*sz(2) 1]);
-        masked = reshape((eddye .*  bsxfun( ...
-            @gt, xd, permute(edge(t0:end), [3 1 2])) ...
-                                   > thresh), [sz(1)*sz(2) sz(3)]);
+
+        if runs.bathy.axis == 'y'
+            % jet is east of eddy
+            masked = reshape((eddye .*  bsxfun( ...
+                @gt, xd, permute(edge(t0:end), [3 1 2])) ...
+                              > thresh), [sz(1)*sz(2) sz(3)]);
+        else
+            % jet is south of eddy
+            masked = reshape((eddye .*  bsxfun( ...
+                @lt, xd, permute(edge(t0:end), [3 1 2])) ...
+                              > thresh), [sz(1)*sz(2) sz(3)]);
+        end
         [dmax, idmax] = max(bsxfun(@times, masked, xmask), [], 1);
-        runs.jet.xnose = fillnan(dmax,min(xmask(:)));
-        runs.jet.ixnose = idmax;
+        runs.jet.xnose(t0:end) = fillnan(dmax,min(xmask(:)));
+        runs.jet.ixnose(t0:end) = idmax;
         runs.jet.thresh = thresh;
 
         % width at nose
-        index = vecfind(xdvec, runs.jet.xnose);
-        index(runs.jet.xnose == 0) = NaN;
+        index = vecfind(xdvec, runs.jet.xnose(t0:end));
+        index(runs.jet.xnose(t0:end) == 0) = NaN;
         tstart = find(~isnan(index) == 1, 1, 'first'); % W.R.T
                                                        % t0!!!!!
 
@@ -909,12 +929,11 @@ methods
                                 'x' runs.bathy.isb runs.bathy.isl}, ...
                                       [], runs.rgrid);
         end
+
         % 1 : take vertical profile of along-shore vel at index
         % 2 : find level of maximum velocity = velocity scale
         % 3 : then take cross shore section of velocity at that level
         %     (interpolated) and figure out scale.
-
-
         if runs.bathy.axis == 'y'
             yu = squeeze(yu(1,:,:));
             zu = squeeze(zu(1,:,:));
@@ -925,12 +944,13 @@ methods
             h = runs.bathy.h(runs.bathy.isb:runs.bathy.isl,1);
         end
         ixmin = min(index); % needed for indexing
-        
+
         % loop in time
         for ii=1:size(uprof,4)
             if isnan(index(tstart+ii-1)), continue; end
             % get y-z cross-section
 
+            tind = t0 + tstart + ii - 1
             if runs.bathy.axis == 'y'
                 uvel = squeeze(uprof(index(tstart+ii-1)-ixmin+1,:,:, ...
                                      ii));
@@ -943,27 +963,27 @@ methods
                                      ii));
             end
             % find max. velocity
-            [runs.jet.vscale(ii), ivmax] = max(uvel(:) .* (dye(:) > ...
-                                                           thresh));
+            [runs.jet.vscale(tind), ivmax] = max(uvel(:) .* ...
+                                                         (dye(:) > thresh));
             [iy,iz] = ind2sub(size(uvel), ivmax);
             % location of max. NOSE velocity in vertical
-            runs.jet.zscale(ii) = zu(iy,iz);
+            runs.jet.zscale(tind) = zu(iy,iz);
             % location of max. NOSE velocity in cross-shore co-ordinate
-            runs.jet.yscale(ii) = yu(iy,iz);
+            runs.jet.yscale(tind) = yu(iy,iz);
 
             % depth of water at location of max NOSE velocity
-            runs.jet.h(ii) = h(iy);
+            runs.jet.h(tind) = h(iy);
 
             % baroclinicty of vertical profile at location of max
             % NOSE velocity
-            runs.jet.bc(ii) = baroclinicity(zu(iy,:), uvel(iy,:));
+            runs.jet.bc(tind) = baroclinicity(zu(iy,:), uvel(iy,:));
 
             % width of jet at NOSE
             % first interpolate to get velocity at constant
             % z-level. this level is the location of
-            % max. along-shore velocity i.e., jet.zscale(ii)
+            % max. along-shore velocity i.e., jet.zscale(tind)
             ynew = yu(:,1);
-            znew = ones(size(ynew)) .* runs.jet.zscale(ii);
+            znew = ones(size(ynew)) .* runs.jet.zscale(tind);
             F = scatteredInterpolant(yu(:), zu(:), uvel(:));
             unew = F(ynew, znew);
             % calculate auto-covariance, find first zero crossing
@@ -974,13 +994,12 @@ methods
             iu = find(ucov < 0, 1, 'first');
             iu = iu-1;
             dy = min(1./runs.rgrid.pn(:));
-            runs.jet.uprof{ii} = unew;
-            runs.jet.width(ii) = 4 * dy * iu;
+            runs.jet.uprof{tind} = unew;
+            runs.jet.width(tind) = 4 * dy * iu;
         end
 
         jet = runs.jet;
         save([runs.dir '/jet.mat'], 'jet');
-
 
         if debug
             %% animation
@@ -1677,24 +1696,29 @@ methods
         ylabel('mean(vel. at x=eddy center)');
         addlegend(hbg, runs.name, 'NorthWest');
         subplot(212); hold on;
-        plot(time, squeeze(mean(runs.ubar(3,:,:),2)), 'Color', ...
-             colors(ii,:));
+        if runs.bathy.axis == 'y'
+            plot(time, squeeze(mean(runs.ubar(3,:,:),2)), 'Color', ...
+                 colors(ii,:));
+        else
+            plot(time, squeeze(mean(runs.vbar(:,3,:),1)), 'Color', ...
+                 colors(ii,:));
+        end
         xlabel('Time');
         ylabel('mean(inflow 2d vel)');
 
         % jet diagnostics
-        time = runs.time(t0+tstart:end)/86400;
+        time = runs.time/86400;
         figure(7);
         subplot(3,1,1)
-        plot(time, runs.jet.vscale);
+        plot(time, runs.jet.vscale, 'Color', colors(ii,:));
         ylabel('Max. velocity');
         subplot(3,1,2)
-        plot(time, runs.jet.zscale);
+        plot(time, runs.jet.zscale, 'Color', colors(ii,:));
         hold on
-        plot(time, -1*runs.jet.h);
+        plot(time, -1*runs.jet.h, 'Color', colors(ii,:));
         ylabel('z-loc of max vel');
         subplot(313)
-        plot(time, runs.jet.bc);
+        plot(time, runs.jet.bc, 'Color', colors(ii,:));
         ylabel('Baroclinicity measure');
     end
 
@@ -1774,6 +1798,7 @@ methods
                 runs.vbar = dc_roms_read_data(runs.dir, 'vbar', [], ...
                                               {}, [], runs.rgrid);
             end
+            bg = runs.vbar;
             cind = vecfind(runs.rgrid.y_rho(:,1), runs.eddy.cy);
             edgeind = vecfind(runs.rgrid.y_rho(:,1), runs.eddy.ee);
             for ii = 1:size(bg,3)
