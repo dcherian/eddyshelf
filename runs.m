@@ -950,7 +950,7 @@ methods
             if isnan(index(tstart+ii-1)), continue; end
             % get y-z cross-section
 
-            tind = t0 + tstart + ii - 1
+            tind = t0 + tstart + ii - 1;
             if runs.bathy.axis == 'y'
                 uvel = squeeze(uprof(index(tstart+ii-1)-ixmin+1,:,:, ...
                                      ii));
