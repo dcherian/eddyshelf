@@ -1351,7 +1351,7 @@ methods
 
         if exist(vorname, 'file')
             pvtime = ncread(vorname, 'ocean_time');
-            if pvtime == time
+            if isequal(pvtime', time) || isequal(pvtime, time)
                 dopv = 1;
                 runs.csflux.west.pv = nan([tinf length(loc)]);
                 runs.csflux.west.rv = nan([tinf length(loc)]);
@@ -1718,17 +1718,22 @@ methods
         % jet diagnostics
         time = runs.time/86400;
         figure(7);
-        subplot(3,1,1)
+        subplot(3,2,1)
         plot(time, runs.jet.vscale, 'Color', colors(ii,:));
         ylabel('Max. velocity');
-        subplot(3,1,2)
+        subplot(3,2,2)
         plot(time, runs.jet.zscale, 'Color', colors(ii,:));
         hold on
-        plot(time, -1*runs.jet.h, 'Color', colors(ii,:));
+        plot(time, -1*runs.jet.h, 'Color', colors(ii,:), 'LineStyle', ...
+             '-.');
         ylabel('z-loc of max vel');
-        subplot(313)
+        subplot(323)
         plot(time, runs.jet.bc, 'Color', colors(ii,:));
+        liney(0);
         ylabel('Baroclinicity measure');
+        subplot(324)
+        plot(time, runs.jet.yscale, 'Color', colors(ii,:));
+        ylabel('y-loc of max. vel');
     end
 
     % this is incomplete
