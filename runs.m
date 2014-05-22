@@ -45,9 +45,13 @@ properties
 end
 methods
     % constructor
-    function [runs] = runs(dir,reset)
+    function [runs] = runs(dir, reset,  do_all)
         if ~exist('reset','var')
             reset = 0;
+        end
+
+        if ~exist('do_all', 'var')
+            do_all = 0;
         end
 
         if isdir(dir)
@@ -188,40 +192,6 @@ methods
             runs.eddy = track_eddy(dir);
         end
 
-        % load streamer data if it exists.
-        if exist([dir '/streamer.mat'], 'file') && reset ~= 1
-            disp('Loading streamer data');
-            streamer = load([dir '/streamer.mat'],'streamer');
-            runs.streamer = streamer.streamer;
-            clear streamer;
-        end
-
-        % load water mass data
-        if exist([dir '/watermass.mat'],'file') && reset ~= 1
-            disp('Loading water mass data');
-            water = load([dir '/watermass.mat'], 'water');
-            runs.water = water.water;
-            clear water
-        end
-
-        % load fluxes if the file exists
-        if exist([dir '/fluxes.mat'],'file') && reset ~= 1
-            disp('Loading fluxes');
-            data = load([dir '/fluxes.mat']);
-            runs.csflux = data.csflux;
-            runs.asflux = data.asflux;
-            clear data
-        end
-
-        % load jet diagnostics if the file exists
-        if exist([dir '/jet.mat'],'file') && reset ~= 1
-            disp('Loading jet diagnostics');
-            data = load([dir '/jet.mat']);
-            runs.jet = data.jet;
-            clear data
-        end
-
-
         % extra processing of eddy track
         if ~runs.noeddy
            if isfield(runs.eddy,'cvx')
@@ -277,6 +247,45 @@ methods
             %        (runs.params.bg.ubt -  ...
             %        runs.params.phys.beta/2*(runs.eddy.dia/2),^2);
         end
+        
+        if do_all == 1
+            runs.water_census;
+            runs.jetdetect;
+        end
+
+        % load streamer data if it exists.
+        if exist([dir '/streamer.mat'], 'file') && reset ~= 1
+            disp('Loading streamer data');
+            streamer = load([dir '/streamer.mat'],'streamer');
+            runs.streamer = streamer.streamer;
+            clear streamer;
+        end
+
+        % load water mass data
+        if exist([dir '/watermass.mat'],'file') && reset ~= 1
+            disp('Loading water mass data');
+            water = load([dir '/watermass.mat'], 'water');
+            runs.water = water.water;
+            clear water
+        end
+
+        % load fluxes if the file exists
+        if exist([dir '/fluxes.mat'],'file') && reset ~= 1
+            disp('Loading fluxes');
+            data = load([dir '/fluxes.mat']);
+            runs.csflux = data.csflux;
+            runs.asflux = data.asflux;
+            clear data
+        end
+
+        % load jet diagnostics if the file exists
+        if exist([dir '/jet.mat'],'file') && reset ~= 1
+            disp('Loading jet diagnostics');
+            data = load([dir '/jet.mat']);
+            runs.jet = data.jet;
+            clear data
+        end
+
         if exist(runs.ltrans_file,'file')
             runs.ltrans = floats('ltrans',runs.ltrans_file,runs.rgrid);
         end
