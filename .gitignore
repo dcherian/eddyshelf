@@ -10,6 +10,7 @@
 *.csv
 ltrans*.txt
 *.fig
+roms_create_params.m
 .emacs.desktop
 pathdef.m
 TAGS
