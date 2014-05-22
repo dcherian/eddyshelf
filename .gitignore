@@ -10,6 +10,10 @@
 *.csv
 ltrans*.txt
 *.fig
+.emacs.desktop
+pathdef.m
+TAGS
+tags
 videos/
 runs/
 presentations/
