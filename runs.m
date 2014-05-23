@@ -2392,8 +2392,8 @@ methods
         % define regions
         % deep region
         regdp = sparse(reshape(cs > xsl, sz3dsp));
-        regsl = sparse(reshape(cs <= xsl & cs > xsb, sz3dsp));
-        regsh = sparse(reshape(cs <=xsb, sz3dsp));
+        regsl = sparse(reshape(cs <= xsl & cs >= xsb, sz3dsp));
+        regsh = sparse(reshape(cs < xsb, sz3dsp));
 
         dV = reshape(runs.rgrid.dV, sz3dsp);
 
