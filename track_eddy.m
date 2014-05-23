@@ -133,7 +133,7 @@ function [eddy] = track_eddy(dir1)
             cx0 = nan;
             cy0 = nan;
         else
-            if tt == 79,
+            if tt == 172,
                 disp('debug time!');
             end
             mask = nan(sz);
@@ -576,8 +576,8 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
                 flag_found = 1;
                 fprintf('Eddy found with threshold %.3f \n', threshold);
 
-                imagesc(zeta' .* eddy.vor.mask');
-                pause(0.02)% If I get here, I'm done.
+                %imagesc(zeta' .* eddy.vor.mask');
+                %pause(0.02)% If I get here, I'm done.
                 break;
             end
             %             linex(cx./dx); liney(cy./dy);
@@ -626,6 +626,7 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
     end
 
     if ~exist('eddy','var')
+        warning('Eddy not found! Going to smaller threshold');
         eddy.cx   = NaN;
         eddy.cy   = NaN;
         eddy.mx   = NaN;
@@ -644,7 +645,12 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
         eddy.lmin = NaN;
         eddy.vormask = NaN;
         eddy.thresh =  NaN;
-        disp('Eddy not found!');
+
+        % let's try again with lower threshold = 0
+        % unless we have already tried that
+        if thresh_min > 0
+            eddy = eddy_diag(zeta, vor, dx, dy, sbreak, 0, w, cxn1, cyn1);
+        end
     end
 
     try
