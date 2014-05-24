@@ -251,6 +251,7 @@ methods
         if do_all == 1
             runs.water_census;
             runs.jetdetect;
+            runs.eddy_bulkproperties;
         end
 
         % load streamer data if it exists.
@@ -1596,18 +1597,24 @@ methods
             ylabel('Slope water flux - sb');
             xlim(limx);
 
-            subplot(4,1,3);
-            hold on;
-            plot(ftime, runs.csflux.west.pv(:,1), 'Color', colors(ii,:));
-            ylabel('PV flux');
-            xlim(limx);
+            try
+                subplot(4,1,3);
+                hold on;
+                plot(ftime, runs.csflux.west.pv(:,1), 'Color', colors(ii,:));
+                ylabel('PV flux');
+                xlim(limx);
+            catch ME
+            end
 
-            subplot(4,1,4);
-            hold on;
-            plot(ftime, runs.csflux.west.rv(:,1), 'Color', colors(ii,:));
-            ylabel('RV flux');
-            xlim(limx);
-
+            try
+                subplot(4,1,4);
+                hold on;
+                plot(ftime, runs.csflux.west.rv(:,1), 'Color', colors(ii,:));
+                ylabel('RV flux');
+                xlim(limx);
+            catch ME
+            end
+            
             figure(5);
             subplot(4,1,1);
             hold on;
@@ -1622,17 +1629,20 @@ methods
             ylabel('Slope water flux - sb');
             xlim(limx);
 
-            subplot(4,1,3);
-            hold on;
-            plot(ftime, runs.csflux.east.pv(:,1), 'Color', colors(ii,:));
-            ylabel('PV flux');
-            xlim(limx);
+            try
+                subplot(4,1,3);
+                hold on;
+                plot(ftime, runs.csflux.east.pv(:,1), 'Color', colors(ii,:));
+                ylabel('PV flux');
+                xlim(limx);
 
-            subplot(4,1,4);
-            hold on;
-            plot(ftime, runs.csflux.east.rv(:,1), 'Color', colors(ii,:));
-            ylabel('RV flux');
-            xlim(limx);
+                subplot(4,1,4);
+                hold on;
+                plot(ftime, runs.csflux.east.rv(:,1), 'Color', colors(ii,:));
+                ylabel('RV flux');
+                xlim(limx);
+            catch ME
+            end
         end
 
         time = eddy.t;
