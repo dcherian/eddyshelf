@@ -1770,6 +1770,14 @@ end
 if beta == 0, warning('f-plane!!!'); end
 fprintf('\n\n');
 
+% figure out appropriate viscosity
+% I need min sqrt(visc4) = 42 :) for stability with dt=300 and good
+% results - see runew-05
+grdscl = sqrt(1./S.pm .* 1./S.pn);
+grdmax = max(gridscl(:));
+factor = (grdscl/grdmax).^3;
+fprintf('Max visc4 = ', (42/min(factor(:)))^4);
+
 %% Old sbfront code
 
 %     [S.Trax,mask_z] = hor_grad_tracer(axmat,ax_as,ax_cs,zrmat,i_cs,i_as,front,bathy);
