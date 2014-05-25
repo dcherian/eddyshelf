@@ -1388,6 +1388,9 @@ methods
 
         % loop over all isobaths
         for kk=1:length(loc)
+            disp(['Doing isobath ' num2str(kk) '/', ...
+                  num2str(length(loc))]);
+                  
             % read along-shore section of cross-shore vel.
             % dimensions = (x/y , z , t )
             % average carefully to get values at RHO point
@@ -1852,6 +1855,40 @@ methods
         end
     end
 
+    % check eddy vertical scale estimations
+    function [] = eddy_vscale(runs)
+        if ~isfield(runs.eddy, 'zT') || isempty(runs.eddy.zT)
+            for ii=1:size(runs.eddy.T, 1)
+                ix = vecfind(runs.rgrid.x_rho(1,:), ...
+                             runs.eddy.vor.cx(ii));
+                iy = vecfind(runs.rgrid.y_rho(:,1), ...
+                             runs.eddy.vor.cy(ii));
+                runs.eddy.zT(ii,:) = squeeze(runs.rgrid.z_r(:, iy, ix))'; 
+            end
+            runs.eddy.tmat = repmat(runs.time', [1 size(runs.eddy.T, ...
+                                                     2)]);
+            eddy = runs.eddy;
+            save([runs.dir '/eddytrack.mat'], 'eddy');
+        end
+
+        figure;
+        contourf(runs.eddy.tmat, runs.eddy.zT, ...
+                 runs.eddy.T./max(runs.eddy.T(:)),  40);
+        colormap(flipud(colormap('bone')));
+        caxis([0 1]);
+        hold all
+        plot(runs.time/86400, -1*runs.eddy.Lz2, 'c');
+        plot(runs.time/86400, -1*runs.eddy.Lgauss, 'm');
+        ylabel('Z (m)'); xlabel('Time (days)');
+        title('Scaled temp anomaly at eddy center');
+        colorbar;
+        legend('Scaled temp anomaly', 'sine fit', 'Gaussian fit', 'Location', ...
+               'SouthEast');
+        contour(runs.eddy.tmat, runs.eddy.zT, runs.eddy.T, [0], ...
+                'LineWidth', 2,'Color', 'k');
+
+    end
+
     % calculate upwelling in eddy
     function [] = eddy_upwelling(runs)
 
@@ -1919,6 +1956,9 @@ methods
             runs.eddy.zdcen = runs.domain_integratesp(zdyessh, reshape(dV,sz3dsp))' ...
                            ./ runs.eddy.vol;
         end
+
+        eddy = runs.eddy;
+        save([runs.dir '/eddytrack.mat'], 'eddy');
     end
 
     % detect streamer contours
