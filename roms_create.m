@@ -1774,9 +1774,10 @@ fprintf('\n\n');
 % I need min sqrt(visc4) = 42 :) for stability with dt=300 and good
 % results - see runew-05
 grdscl = sqrt(1./S.pm .* 1./S.pn);
-grdmax = max(gridscl(:));
+grdmax = max(grdscl(:));
 factor = (grdscl/grdmax).^3;
-fprintf('Max visc4 = ', (42/min(factor(:)))^4);
+fprintf('Max visc4 = %e  | max diff4 = %e\n', (42/min(factor(:)))^2, ...
+        (15/min(factor(:)))^2);
 
 %% Old sbfront code
 
