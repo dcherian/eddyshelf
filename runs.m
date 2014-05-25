@@ -696,94 +696,105 @@ methods
         ii = 1; colors(1) = 'b';
         aa = 5; bb = aa*2;
 
-        tind = find(runs.time == runs.eddy.trev);
+        tind = runs.eddy.tscaleind; find(runs.time == runs.eddy.trev);
 
-        figure;
-        subplot(aa,2,[1:2:bb-2*2]); hold on
-        pcolorcen(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.bathy.h);
-        xlabel('X (km)'); ylabel('Y (km)');
-        plot(eddy.cx/1000,eddy.cy/1000,'Color',colors(ii,:),'LineWidth',2);
-        plot(eddy.cx(tind)/1000,eddy.cy(tind)/1000,'*','Color',colors(ii,:), ...
-                'MarkerSize',12);
-        colorbar
-        if runs.bathy.axis == 'x'
-            plot(eddy.we/1000,eddy.cy/1000,'k');
-        else
-            plot(eddy.cx/1000,eddy.se/1000,'k');
+        % choose plots
+        trackflag = 0
+        watermassflag = 0
+        plumeflag = 0
+        
+        if trackflag
+            figure;
+            subplot(aa,2,[1:2:bb-2*2]); hold on
+            pcolorcen(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.bathy.h);
+            xlabel('X (km)'); ylabel('Y (km)');
+            plot(eddy.cx/1000,eddy.cy/1000,'Color',colors(ii,:),'LineWidth',2);
+            plot(eddy.cx(tind)/1000,eddy.cy(tind)/1000,'*','Color',colors(ii,:), ...
+                 'MarkerSize',12);
+            colorbar
+            if runs.bathy.axis == 'x'
+                plot(eddy.we/1000,eddy.cy/1000,'k');
+            else
+                plot(eddy.cx/1000,eddy.se/1000,'k');
+            end
+            axis image; axis tight
+            title('Bathy + eddy track');
+            subplot(aa,2,2); hold on
+            plot(eddy.t,eddy.amp,'Color',colors(ii,:));
+            ylabel('amplitude (m)');
+            linex(tind);
+            subplot(aa,2,4); hold on
+            plot(eddy.t,eddy.dia/1000,'Color',colors(ii,:));
+            ylabel('diameter (km)');
+            linex(tind);
+            subplot(aa,2,6); hold on
+            plot(eddy.t,eddy.cx/1000,'Color',colors(ii,:));
+            ylabel('x - center (km)');
+            linex(tind);
+            subplot(aa,2,8); hold on
+            plot(eddy.t,eddy.cy/1000,'Color',colors(ii,:));
+            ylabel('y - center (km)');
+            linex(tind);
+            subplot(aa,2,10); hold on
+            plot(eddy.t,eddy.prox/1000,'Color',colors(ii,:));
+            liney(min(eddy.prox/1000));
+            ylabel('Proximity (km)');
+            xlabel('time (days)');
+            linex(tind);
         end
-        axis image; axis tight
-        title('Bathy + eddy track');
-        subplot(aa,2,2); hold on
-        plot(eddy.t,eddy.amp,'Color',colors(ii,:));
-        ylabel('amplitude (m)');
-        linex(tind);
-        subplot(aa,2,4); hold on
-        plot(eddy.t,eddy.dia/1000,'Color',colors(ii,:));
-        ylabel('diameter (km)');
-        linex(tind);
-        subplot(aa,2,6); hold on
-        plot(eddy.t,eddy.cx/1000,'Color',colors(ii,:));
-        ylabel('x - center (km)');
-        linex(tind);
-        subplot(aa,2,8); hold on
-        plot(eddy.t,eddy.cy/1000,'Color',colors(ii,:));
-        ylabel('y - center (km)');
-        linex(tind);
-        subplot(aa,2,10); hold on
-        plot(eddy.t,eddy.prox/1000,'Color',colors(ii,:));
-        liney(min(eddy.prox/1000));
-        ylabel('Proximity (km)');
-        xlabel('time (days)');
-        linex(tind);
-
+        
         %% water mass plots
         time = runs.time/86400;
-        figure;
-        % by regions
-        subplot(3,1,1)
-        semilogy(time, runs.water.off.deep, ...
-                time, runs.water.sl.deep, ...
-                time, runs.water.sh.deep, ...
-                time, runs.water.edd.deep, ...
-                time, runs.water.mix.deep);
-        legend('offshore','slope','shelf','eddy','mix');
-        ylabel('Deep region (m^3)');
-        subplot(312)
-        semilogy(time, runs.water.off.slope, ...
-                time, runs.water.sl.slope, ...
-                time, runs.water.sh.slope, ...
-                time, runs.water.edd.slope, ...
-                time, runs.water.mix.slope);
-        ylabel('Slope region (m^3)');
-        subplot(313)
-        semilogy(time, runs.water.off.shelf, ...
-                time, runs.water.sl.shelf, ...
-                time, runs.water.sh.shelf, ...
-                time, runs.water.edd.shelf, ...
-                time, runs.water.mix.shelf);
-        ylabel('Shelf region (m^3)');
-        xlabel('Time (days)');
-
+        if watermassflag
+            figure;
+            % by regions
+            subplot(3,1,1)
+            semilogy(time, runs.water.off.deep, ...
+                     time, runs.water.sl.deep, ...
+                     time, runs.water.sh.deep, ...
+                     time, runs.water.edd.deep, ...
+                     time, runs.water.mix.deep);
+            legend('offshore','slope','shelf','eddy','mix');
+            ylabel('Deep region (m^3)');
+            subplot(312)
+            semilogy(time, runs.water.off.slope, ...
+                     time, runs.water.sl.slope, ...
+                     time, runs.water.sh.slope, ...
+                     time, runs.water.edd.slope, ...
+                     time, runs.water.mix.slope);
+            ylabel('Slope region (m^3)');
+            subplot(313)
+            semilogy(time, runs.water.off.shelf, ...
+                     time, runs.water.sl.shelf, ...
+                     time, runs.water.sh.shelf, ...
+                     time, runs.water.edd.shelf, ...
+                     time, runs.water.mix.shelf);
+            ylabel('Shelf region (m^3)');
+            xlabel('Time (days)');
+        end
+        
         %% study plumes
         % offshore plume on shelf &
         % shelf plume on slope
-        figure;
-        subplot(211)
-        ax = plotyy( ...%time,runs.water.eddmix.xshelf/1000 - runs.eddy.vor.ee/1000, ...
-               time,runs.water.eddmix.zshelf./runs.bathy.hsb, ...
-               time,runs.water.eddmix.yshelf/1000 - runs.bathy.xsb/1000);
-        set(get(ax(1),'YLabel'),'String','Zcentroid / Depth at shelfbreak');
-        set(get(ax(2),'YLabel'),'String','Distance from shelfbreak (km)');
-        set(ax(1),'Ylim',[-1 0],'YTick',[-1 -0.5 0]);
-        title('Offshore water plume on shelf');
-        subplot(212)
-        ax = plotyy( ...%time,runs.water.eddmix.xshelf/1000 - runs.eddy.vor.ee/1000, ...
-               time,runs.water.sh.zslope./runs.bathy.hsb, ...
-               time,runs.water.sh.yslope/1000 - runs.bathy.xsb/1000);
-        set(get(ax(1),'YLabel'),'String','Zcentroid / Depth at shelfbreak');
-        set(get(ax(2),'YLabel'),'String','Distance from shelfbreak (km)');
-        set(ax(1),'Ylim',[-1 0],'YTick',[-1 -0.5 0]);
-        title('Shelf water plume on slope');
+        if plumeflag
+            figure;
+            subplot(211)
+            ax = plotyy( ...%time,runs.water.eddmix.xshelf/1000 - runs.eddy.vor.ee/1000, ...
+                time,runs.water.eddmix.zshelf./runs.bathy.hsb, ...
+                time,runs.water.eddmix.yshelf/1000 - runs.bathy.xsb/1000);
+            set(get(ax(1),'YLabel'),'String','Zcentroid / Depth at shelfbreak');
+            set(get(ax(2),'YLabel'),'String','Distance from shelfbreak (km)');
+            set(ax(1),'Ylim',[-1 0],'YTick',[-1 -0.5 0]);
+            title('Offshore water plume on shelf');
+            subplot(212)
+            ax = plotyy( ...%time,runs.water.eddmix.xshelf/1000 - runs.eddy.vor.ee/1000, ...
+                time,runs.water.sh.zslope./runs.bathy.hsb, ...
+                time,runs.water.sh.yslope/1000 - runs.bathy.xsb/1000);
+            set(get(ax(1),'YLabel'),'String','Zcentroid / Depth at shelfbreak');
+            set(get(ax(2),'YLabel'),'String','Distance from shelfbreak (km)');
+            set(ax(1),'Ylim',[-1 0],'YTick',[-1 -0.5 0]);
+            title('Shelf water plume on slope');
+        end
 
         % by water masses
 %         if ~isempty(runs.water.off.deep)
@@ -823,23 +834,32 @@ methods
         if isfield(runs.eddy.vor,'vol')
             figure;
             subplot(211)
-            plot(runs.time/86400,runs.eddy.vor.vol);
-            ylabel('Volume (m^3)');
+            %plot(runs.time/86400,runs.eddy.vor.vol);
+            %ylabel('Volume (m^3)');
+            plot(runs.csflux.time/86400, ...
+                 runs.csflux.west.shelf(:,1)/1e6);
+            hold all
+            plot(runs.csflux.time/86400, ...
+                 runs.csflux.east.slope(:,1)/1e6);
+            liney(0);
+            ylabel('Transport (Sv)');
+            legend('West - shelf water', 'East - slope water');
+            
             subplot(212)
             plot(runs.time/86400,abs(runs.eddy.vor.zdcen));
-            hold on
-            plot(runs.time/86400,abs(runs.eddy.vor.zcen),'g');
-            plot(eddy.t,eddy.hcen/2,'b');
+            hold all
+            plot(runs.time/86400,abs(runs.eddy.vor.zcen));
+            plot(eddy.t,eddy.hcen/2);
             plot(eddy.t, ...
-                runs.params.phys.f0 / sqrt(runs.params.phys.N2) * runs.eddy.dia,'r');
-            plot(eddy.t,eddy.Lz2,'k');
+                runs.params.phys.f0 / sqrt(runs.params.phys.N2) * runs.eddy.Ls*2);
+            plot(eddy.t,eddy.Lgauss);
             xlabel('Time (days)');
             ylabel('Z-scale (m)');
             linex(tind);
             suplabel(runs.dir,'t');
             packrows(2,1);
             legend('z-centroid','zdye-centroid', ...
-                'H_{center}/2','f*L/N','vertical scale','Location','SouthWest');
+                'H_{center}/2','f*dia/N','vertical (Gaussian) scale');
         end
     end
 
