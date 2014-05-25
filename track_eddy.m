@@ -223,6 +223,7 @@ function [eddy] = track_eddy(dir1)
                                                     1 1 Inf 1])));
         end
 
+        eddy.zT(tt,:) = ze;
         if params.bathy.axis == 'x'
             Ti = double(squeeze(ncread(file,tracer, ...
                     [imx  size(xr,2)  1 tt-tt0],[1 1 Inf 1])));
@@ -236,23 +237,26 @@ function [eddy] = track_eddy(dir1)
             Ti = params.phys.T0 - 1./params.phys.TCOEF * ...
                     (Ti - params.phys.R0);
         end
+
+        % let's save anomaly instead
+        eddy.T(tt,:) = eddy.T(tt,:) - Ti';
         opts = optimset('MaxFunEvals',1e5);
         if ~isfield(params.flags,'vprof_gaussian') || params.flags.vprof_gaussian
-            [x2,~,exitflag] = fminsearch(@(x) gaussfit2(x,eddy.T(tt,:)'-Ti,ze), ...
+            [x2,~,exitflag] = fminsearch(@(x) gaussfit2(x,eddy.T(tt,:)',ze), ...
                 initGuess2,opts);
             if ~exitflag, x2(2) = NaN; end
-            %[x3,~,exitflag] = fminsearch(@(x) gaussfit3(x,eddy.T(tt,:)'-Ti,ze),initGuess3,opts);
+            %[x3,~,exitflag] = fminsearch(@(x) gaussfit3(x,eddy.T(tt,:)',ze),initGuess3,opts);
             %if ~exitflag, x3(2) = NaN; end
             eddy.Lz2(tt)  = abs(x2(2));
             %eddy.Lz3(tt)  = NaN;%abs(x3(2));
         else
             %fit sinusoid
-            [x2,~,exitflag] = fminsearch(@(x) sinefit(x,eddy.T(tt,:)'-Ti,ze), ...
+            [x2,~,exitflag] = fminsearch(@(x) sinefit(x,eddy.T(tt,:)',ze), ...
                                 initGuess,opts);
             if ~exitflag, x2(2) = NaN; end
             eddy.Lz2(tt) = abs(2*pi/x2(2));
             % save gaussian fit too
-            [x2,~,exitflag] = fminsearch(@(x) gaussfit2(x,eddy.T(tt,:)'-Ti,ze), ...
+            [x2,~,exitflag] = fminsearch(@(x) gaussfit2(x,eddy.T(tt,:)',ze), ...
                         initGuessGauss,opts);
             if ~exitflag, x2(2) = NaN; end
             eddy.Lgauss(tt) = abs(x2(2));
@@ -281,6 +285,8 @@ function [eddy] = track_eddy(dir1)
     %eddy.Lz3(abs(eddy.Lz3) > max(abs(zr(:)))) = NaN;
     toc;
 
+    eddy.tmat = repmat(eddy.t', [1 size(eddy.T,2)]);
+
     eddy.comment = ['(cx,cy) = Location of weighted center (m) | ' ...
                     '(mx,my) = Location of SSH max closest to shelfbreak (m) | ' ...
                     'amp = amplitude (m) | dia = diameter of circle with same area (m) | ' ...
@@ -290,9 +296,16 @@ function [eddy] = track_eddy(dir1)
                     'Lgauss = vertical scale (m) when fitting Gaussian - happens with sine fits too | ' ...
                     'Lz2,3 = Vertical scale (m) when fitting without & with linear trend | ' ...
                     'T = temp profile at (mx,my) | L = equiv diameter for vorticity < 0 region '...
-                    'Lmin/Lmaj = minor/major axis length | Ls = speed based definition in Chelton et al. (2011)'];
+                    'Lmin/Lmaj = minor/major axis length | Ls = ' ...
+                    'speed based definition in Chelton et al. (2011) ' ...
+                    '| tmat = time vector in t x z array form | zT ' ...
+                    '= zvector at eddy center.'];
 
     save([dir1 '/eddytrack.mat'],'eddy');
+    if exist('runobj', 'var')
+        runobj.eddy = eddy;
+    end
+    
     disp('Done.');
 
 % Gaussian fit for vertical scale - called by fminsearch
