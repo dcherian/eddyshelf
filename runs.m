@@ -20,6 +20,8 @@ properties
     roms; ltrans;
     % eddy track data
     eddy; noeddy;
+    % wnoise metric
+    wmetric;
     % along-shore jet properties
     jet;
     % threshold values
@@ -187,6 +189,8 @@ methods
         runs.eddy.tscaleind = find_approx(runs.eddy.my, runs.bathy.xsl, 1);
         runs.eddy.tscale = runs.time(runs.eddy.tscaleind);
 
+        runs.ndtime = (runs.time - runs.eddy.tscale);
+
         % rerun track_eddy if not new enough
         if ~isfield(runs.eddy,'vor')
             runs.eddy = track_eddy(dir);
@@ -247,7 +251,7 @@ methods
             %        (runs.params.bg.ubt -  ...
             %        runs.params.phys.beta/2*(runs.eddy.dia/2),^2);
         end
-        
+
         if do_all == 1
             runs.water_census;
             runs.jetdetect;
@@ -702,7 +706,7 @@ methods
         trackflag = 0
         watermassflag = 0
         plumeflag = 0
-        
+
         if trackflag
             figure;
             subplot(aa,2,[1:2:bb-2*2]); hold on
@@ -742,7 +746,7 @@ methods
             xlabel('time (days)');
             linex(tind);
         end
-        
+
         %% water mass plots
         time = runs.time/86400;
         if watermassflag
@@ -772,7 +776,7 @@ methods
             ylabel('Shelf region (m^3)');
             xlabel('Time (days)');
         end
-        
+
         %% study plumes
         % offshore plume on shelf &
         % shelf plume on slope
@@ -844,7 +848,7 @@ methods
             liney(0);
             ylabel('Transport (Sv)');
             legend('West - shelf water', 'East - slope water');
-            
+
             subplot(212)
             plot(runs.time/86400,abs(runs.eddy.vor.zdcen));
             hold all
@@ -1390,7 +1394,7 @@ methods
         for kk=1:length(loc)
             disp(['Doing isobath ' num2str(kk) '/', ...
                   num2str(length(loc))]);
-                  
+
             % read along-shore section of cross-shore vel.
             % dimensions = (x/y , z , t )
             % average carefully to get values at RHO point
@@ -1637,7 +1641,7 @@ methods
                 xlim(limx);
             catch ME
             end
-            
+
             figure(5);
             subplot(4,1,1);
             hold on;
@@ -1863,7 +1867,7 @@ methods
                              runs.eddy.vor.cx(ii));
                 iy = vecfind(runs.rgrid.y_rho(:,1), ...
                              runs.eddy.vor.cy(ii));
-                runs.eddy.zT(ii,:) = squeeze(runs.rgrid.z_r(:, iy, ix))'; 
+                runs.eddy.zT(ii,:) = squeeze(runs.rgrid.z_r(:, iy, ix))';
             end
             runs.eddy.tmat = repmat(runs.time', [1 size(runs.eddy.T, ...
                                                      2)]);
@@ -1886,6 +1890,22 @@ methods
                'SouthEast');
         contour(runs.eddy.tmat, runs.eddy.zT, runs.eddy.T, [0], ...
                 'LineWidth', 2,'Color', 'k');
+
+    end
+
+    % check w-noise level
+    function [] = wnoise(runs)
+        w = dc_roms_read_data(runs.dir, 'w', [], {'y' runs.bathy.isl-5 ...
+                            runs.bathy.isl+5}, [], runs.rgrid, ...
+                              'avg');
+
+        % reduce
+        mask = ~permute(repnan(runs.eddy.mask(:,runs.bathy.isl-5: ...
+                                      runs.bathy.isl+5,:), 0), [1 2 4 3]);
+        sz = size(w);
+        runs.wmetric = max(abs(reshape(bsxfun(@times, w(2:end-1,:,:,:), mask), ...
+                             [(sz(1)-2)*sz(2)*sz(3) sz(4)])), [], 1);
+        plot(runs.wmetric);
 
     end
 
