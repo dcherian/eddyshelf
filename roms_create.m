@@ -386,25 +386,25 @@ subplot(131)
 if strcmp(bathy.axis,'x')
     ind = ymid;
     pcolor(squeeze(xrmat(:,ind,:))/fx,squeeze(zrmat(:,ind,:)), ...
-        zeros(size(squeeze(zrmat(:,ind,:)))));
-    %squeeze(rx1mat(:,ind,:)));
+           ...%        zeros(size(squeeze(zrmat(:,ind,:)))));
+           squeeze(rx1mat(:,ind,:)));
     xlabel(['x ' lx]);
     linex([bathy.xsb bathy.xsl]/fx);
 else
     ind = xmid;
     pcolor(squeeze(yrmat(ind,:,:))/fy,squeeze(zrmat(ind,:,:)), ...
-        zeros(size(squeeze(rx1mat(ind,:,:)))));
-        %squeeze(rx1mat(ind,:,:)));
+           ... %zeros(size(squeeze(rx1mat(ind,:,:)))));
+           squeeze(rx1mat(ind,:,:)));
     xlabel(['y ' ly]);
     linex([bathy.xsb bathy.xsl]/fx);
 end
 colorbar;
-title(['Z = ' num2str(Z) ' m']);  ylabel(['z (m)']);
+title(bathy_title);
 
-subplot(132)
-pcolor(S.x_rho/fx,S.y_rho/fy,zeros(size(S.x_rho)));
-title(bathy_title); colorbar;
-xlabel(['x ' lx]); ylabel(['y ' ly]); zlabel('z (m)');
+%subplot(132)
+%pcolor(S.x_rho/fx,S.y_rho/fy,zeros(size(S.x_rho)));
+%title(bathy_title); colorbar;
+%xlabel(['x ' lx]); ylabel(['y ' ly]); zlabel('z (m)');
 %beautify;
 
 %subplot(133)
@@ -412,7 +412,34 @@ xlabel(['x ' lx]); ylabel(['y ' ly]); zlabel('z (m)');
 %xlabel(['x ' lx]); ylabel(['y ' ly]); title('f/h');
 %beautify;
 
-spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
+% calculate rotation angles to estimate effect of S-surface
+% momentum mixing
+% Redi (1982) notation
+% delta^2 = (dz/dx)_s ^2 + (dz/dy)_s ^2
+subplot(132);
+visc = 800;
+
+dzdx = abs(bsxfun(@rdivide, diff(zrmat, 1, 1), avg1(dx, 1)));
+dzdy = abs(bsxfun(@rdivide, diff(zrmat, 1, 2), avg1(dy, 2)));
+delta2 = avg1(dzdx, 2).^2 + avg1(dzdy, 1).^2;
+factor = fillnan(delta2./(1+delta2), 0);
+dzmat = avg1(avg1(diff(zwmat, 1, 3), 1), 2);
+viscz = visc*factor; %-1*addnan(-visc*factor,0);
+timescale = addnan((dzmat/2).^4 ./ (viscz) /86400, 1000);
+
+if bathy.axis == 'y'
+    contourf(avg1(squeeze(yrmat(xmid,:,:)), 1)/1000, ...
+           avg1(squeeze(zrmat(xmid, :, :)), 1), ...
+           squeeze(factor(xmid, :,:)));
+    colormap(flipud(colormap('bone')));
+    colorbar;
+    %    caxis([0 1]);
+else
+    pcolor(squeeze(xrmat(:,ymid,:))/1000, squeeze(zrmat(:,ymid, :)), ...
+           squeeze(delta2(:, ymid, :)));
+end
+title('estimated vertical visc factor');
+%spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
 
 % save for later use
 bathy.h = S.h;
