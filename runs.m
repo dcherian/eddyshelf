@@ -1907,10 +1907,11 @@ methods
                                1);
             tse = find_approx(runs.eddy.se, runs.bathy.xsl, 1);
             linex([tse tcen], [], 'r');
+            title(['Eddy dye profiles | ' runs.name]);
             subplot(212)
         end
         contourf(runs.eddy.tmat, runs.eddy.zT, ...
-                 runs.eddy.T./max(runs.eddy.T(:)),  40);
+                 runs.eddy.T./max(runs.eddy.T(1,:)),  40);
         colormap(flipud(colormap('bone')));
         caxis([0 1]);
         hold all
@@ -1924,6 +1925,81 @@ methods
         contour(runs.eddy.tmat, runs.eddy.zT, runs.eddy.T, [0], ...
                 'LineWidth', 2,'Color', 'k');
 
+    end
+
+    % plot eddye
+    function [] = plot_eddye(runs, days)
+        tindices = vecfind(runs.time/86400, days)
+        nt = length(tindices);
+        yz = repmat(runs.rgrid.y_rho(:,1), [1 runs.rgrid.N]);
+
+        hf1 = figure; maximize();
+        hf2 = figure; maximize();
+        hf3 = figure; maximize();
+
+        tback = double(squeeze(ncread(runs.out_file, 'temp', [1 1 1 1], ...
+                                      [1 Inf Inf 1])));
+        %zdback = double(squeeze(ncread(runs.out_file, runs.zdname, ...
+        %                               [1 1 1 1], [1 Inf Inf
+        %                               1])));
+        zback = runs.rgrid.z_r(:,:,1)';
+        for ii=1:nt
+            figure(hf1);
+            ed = dc_roms_read_data(runs.dir, runs.eddname, tindices(ii), ...
+                                   {'x' num2str(runs.eddy.cx(tindices(ii))) ...
+                                num2str(runs.eddy.cx(tindices(ii)))}, [], ...
+                                runs.rgrid, 'avg');
+
+            subplot(1, nt, ii)
+            contourf(yz/1000, runs.rgrid.z_r(:,:,1)', ed);
+            liney(-1 * runs.eddy.Lgauss(tindices(ii)));
+            colorbar;
+            colormap(flipud(colormap('bone')))
+            title(['day' num2str(days(ii))]);
+
+            figure(hf2);
+            temp = dc_roms_read_data(runs.dir, 'temp', tindices(ii), ...
+                                   {'x' num2str(runs.eddy.cx(tindices(ii))) ...
+                                num2str(runs.eddy.cx(tindices(ii)))}, [], ...
+                                runs.rgrid, 'avg');
+
+            subplot(1, nt, ii)
+            contourf(yz/1000, runs.rgrid.z_r(:,:,1)', temp-tback);
+            shading flat;
+            liney(-1 * runs.eddy.Lgauss(tindices(ii)));
+            colorbar;
+            caxis([-0.25 0.25]); % [-1 1] * max(abs(temp(:)-tback(:))) );
+            title(['day' num2str(days(ii))]);
+
+            figure(hf3);
+            zd = dc_roms_read_data(runs.dir, runs.zdname, tindices(ii), ...
+                                   {'x' num2str(runs.eddy.cx(tindices(ii))) ...
+                                   num2str(runs.eddy.cx(tindices(ii)))}, [], ...
+                                   runs.rgrid, 'avg');
+
+            subplot(1, nt, ii)
+            contourf(yz/1000, runs.rgrid.z_r(:,:,1)', zd-zback);
+            shading flat;
+            hold on
+            contour(yz/1000, runs.rgrid.z_r(:,:,1)', ed, 1, 'k', ...
+                    'LineWidth', 2);
+            liney(-1 * runs.eddy.Lgauss(tindices(ii)));
+            colorbar;
+            caxis( [-1 1] * max(abs(zd(:)-zback(:))) );
+            title(['day' num2str(days(ii))]);
+        end
+
+        figure(hf1)
+        suplabel('eddy dye', 't');
+        spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
+
+        figure(hf2)
+        suplabel('temp anomaly', 't');
+        spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
+
+        figure(hf3)
+        suplabel('z-dye', 't');
+        spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
     end
 
     % check w-noise level
