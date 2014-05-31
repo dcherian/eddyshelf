@@ -1803,8 +1803,8 @@ fprintf('\n\n');
 grdscl = sqrt(1./S.pm .* 1./S.pn);
 grdmax = max(grdscl(:));
 factor = (grdscl/grdmax).^3;
-fprintf('Max visc4 = %e  | max diff4 = %e\n', (42/min(factor(:)))^2, ...
-        (15/min(factor(:)))^2);
+fprintf('Max visc4 = %e  | max diff4 = %e\n', (sqrt(5e6)/min(factor(:)))^2, ...
+        (18/min(factor(:)))^2);
 
 %% Old sbfront code
 
