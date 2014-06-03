@@ -1998,7 +1998,7 @@ methods
         spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
 
         figure(hf3)
-        suplabel('z-dye', 't');
+        suplabel('z-dye - z-level', 't');
         spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
     end
 
