@@ -3919,7 +3919,7 @@ methods
         zwnew = unique([linspace(zmin, -1*runs.bathy.hsb, 70) ...
                         linspace(-1*runs.bathy.hsb, zmax-0.01, 36)]');
         zrnew = avg1(zwnew);
-        
+
         % prepare grids for differentiation
         xvor = avg1(avg1(runs.rgrid.xr,1),2);
         yvor = avg1(avg1(runs.rgrid.yr,1),2);
@@ -4047,7 +4047,7 @@ methods
             %plot(-1*squeeze(wz(ix+1, iy+1,:)), zrnew)
             %plot(squeeze(cont(ix, iy, :)), zrnew);
             %legend('ux + vy', 'wz', 'ux + vy + wz');
-                        
+
             % tendency term code - not really needed since it is probably a
             % bad estimate when using daily snapshots .
 %             if debug
@@ -4071,7 +4071,7 @@ methods
                     avg1(v(2:end-1,:,:),2) .* avg1(rvy,1),3);
             vadv = avg1(avg1( avg1(avg1(w(:,:,2:end-1),1),2) .* rvz ...
                               ,1),2);
-            
+
             budget = str + tilt - hadv - vadv - beta;
 
           %  sol = -runs.params.phys.g/runs.params.phys.rho0 .* ...
