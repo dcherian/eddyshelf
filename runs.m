@@ -3914,19 +3914,24 @@ methods
         debug = 0;
 
         %%
-        znew = linspace(min(runs.rgrid.z_r(:)), max(runs.rgrid.z_r(:)), 50)';
+        zmin = min(runs.rgrid.z_r(:));
+        zmax = max(runs.rgrid.z_r(:,end,end));
+        zwnew = unique([linspace(zmin, -1*runs.bathy.hsb, 70) ...
+                        linspace(-1*runs.bathy.hsb, zmax-0.01, 36)]');
+        zrnew = avg1(zwnew);
+        
         % prepare grids for differentiation
         xvor = avg1(avg1(runs.rgrid.xr,1),2);
         yvor = avg1(avg1(runs.rgrid.yr,1),2);
         N = runs.rgrid.N;
-        Nnew = length(znew);
+        Nnew = length(zrnew);
 
         % setup grid
         [sx sy] = size(runs.rgrid.x_rho');
         gridu.xmat = repmat(runs.rgrid.x_u',[1 1 Nnew]);
         gridu.ymat = repmat(runs.rgrid.y_u',[1 1 Nnew]);
         gridu.zmat = permute(runs.rgrid.z_u,[3 2 1]);
-        gridu.znew = repmat(permute(znew,[ 3 2 1]),[sx-1 sy 1]);
+        gridu.znew = repmat(permute(zrnew,[3 2 1]),[sx-1 sy 1]);
         %gridu.s = runs.rgrid.s_rho;
         %gridu.zw = runs.rgrid.z_w;
         %gridu.s_w = runs.rgrid.s_w;
@@ -3934,7 +3939,7 @@ methods
         gridv.xmat = repmat(runs.rgrid.x_v',[1 1 Nnew]);
         gridv.ymat = repmat(runs.rgrid.y_v',[1 1 Nnew]);
         gridv.zmat = permute(runs.rgrid.z_v,[3 2 1]);
-        gridv.znew = repmat(permute(znew,[ 3 2 1]),[sx sy-1 1]);
+        gridv.znew = repmat(permute(zrnew,[3 2 1]),[sx sy-1 1]);
         %gridv.s = runs.rgrid.s_rho;
         %gridv.zw = runs.rgrid.z_w;
         %gridv.s_w = runs.rgrid.s_w;
@@ -3942,15 +3947,15 @@ methods
         gridr.xmat = repmat(runs.rgrid.x_rho',[1 1 Nnew]);
         gridr.ymat = repmat(runs.rgrid.y_rho',[1 1 Nnew]);
         gridr.zmat = permute(runs.rgrid.z_r,[3 2 1]);
-        gridr.znew = repmat(permute(znew,[3 2 1]),[sx sy 1]);
+        gridr.znew = repmat(permute(zrnew,[3 2 1]),[sx sy 1]);
         %gridr.s = runs.rgrid.s_rho;
         %gridr.zw = runs.rgrid.z_r;
         %gridr.s_w = runs.rgrid.s_w;
 
-        gridw.xmat = repmat(runs.rgrid.x_rho',[1 1 Nnew]);
-        gridw.ymat = repmat(runs.rgrid.y_rho',[1 1 Nnew]);
+        gridw.xmat = repmat(runs.rgrid.x_rho',[1 1 Nnew+1]);
+        gridw.ymat = repmat(runs.rgrid.y_rho',[1 1 Nnew+1]);
         gridw.zmat = permute(runs.rgrid.z_w,[3 2 1]);
-        gridw.znew = repmat(permute(znew,[3 2 1]),[sx sy 1]);
+        gridw.znew = repmat(permute(zwnew,[3 2 1]),[sx sy 1]);
         %gridw.s = runs.rgrid.s_w;
         %gridw.zw = runs.rgrid.z_w;
         %gridw.s_w = runs.rgrid.s_w;
@@ -3958,7 +3963,7 @@ methods
         gridrv.xmat = repmat(xvor,[1 1 Nnew]);
         gridrv.ymat = repmat(yvor,[1 1 Nnew]);
         gridrv.zmat = avg1(avg1(avg1(permute(runs.rgrid.z_r,[3 2 1]),1),2),3);
-        gridrv.znew = repmat(permute(znew,[3 2 1]),[sx-1 sy-1 1]);
+        gridrv.znew = repmat(permute(zrnew,[3 2 1]),[sx-1 sy-1 1]);
         gridrv.s = avg1(runs.rgrid.s_rho);
         gridrv.zw = avg1(avg1(avg1(permute(runs.rgrid.z_w,[3 2 1]),1),2),3);
         gridrv.s_w = avg1(runs.rgrid.s_w);
@@ -3971,7 +3976,9 @@ methods
         xavg = avg1(avg1(xvor,1),2)/1000; yavg = avg1(avg1(yvor,1),2)/1000;
 
         depthRange = [100 -max(runs.bathy.h(:))];
-        trange = tind:2:size(runs.zeta,3);
+        timehis = dc_roms_read_data(runs.dir, 'ocean_time', [], {}, ...
+                                    [], runs.rgrid, 'his');
+        trange = tind:2:length(timehis);
 
         disp(['starting from t instant = ' num2str(trange(1))]);
         runs.vorbudget.hadv = nan(length(trange)-1);
@@ -3984,9 +3991,10 @@ methods
         %runs.vorbudget.conthis = runs.vorbudget.hadv;
         %%
         for kk=1:length(trange)-1
-            tt = trange(kk);
-            zeta = runs.zeta(2:end-1,2:end-1,tt);
-
+            tt = 42;trange(kk);
+            %zeta = runs.zeta(2:end-1,2:end-1,tt);
+            zeta = dc_roms_read_data(runs.dir, 'zeta', tt, {}, [], ...
+                                     runs.rgrid, 'his');
             % read data
             %fname = [runs.dir '/ocean_his.nc.new2'];
             %fname = runs.out_file;
@@ -3995,17 +4003,21 @@ methods
             %w  = double(ncread(fname,'w',[1 1 1 tt],[Inf Inf Inf 1]));
             %zeta = double(ncread(fname,'zeta',[1 1 tt],[Inf Inf 1]));
 
-            u = dc_roms_read_data(runs.dir,'u',tt,{},[],runs.rgrid);
-            v = dc_roms_read_data(runs.dir,'v',tt,{},[],runs.rgrid);
-            w = dc_roms_read_data(runs.dir,'w',tt,{},[],runs.rgrid);
-            rho = dc_roms_read_data(runs.dir,'rho',tt,{},[],runs.rgrid);
+            uh = dc_roms_read_data(runs.dir,'u',tt,{},[],runs.rgrid, ...
+                                  'his');
+            vh = dc_roms_read_data(runs.dir,'v',tt,{},[],runs.rgrid, ...
+                                  'his');
+            wh = dc_roms_read_data(runs.dir,'w',tt,{},[],runs.rgrid, ...
+                                  'his');
+            rhoh = dc_roms_read_data(runs.dir,'rho',tt,{},[],runs.rgrid, ...
+                                    'his');
 
             % interpolate to znew depths
             disp('interpolating variables');
-            u = interpolate(u, gridu.zmat, znew);
-            v = interpolate(v, gridv.zmat, znew);
-            w = interpolate(w, gridw.zmat, znew);
-            rho = interpolate(rho, gridr.zmat, znew);
+            u = interpolate(uh, gridu.zmat, zrnew);
+            v = interpolate(vh, gridv.zmat, zrnew);
+            w = interpolate(wh, gridw.zmat, zwnew);
+            rho = interpolate(rhoh, gridr.zmat, zrnew);
 
             ux = diff(u,1,1)./diff(gridu.xmat,1,1);
             uy = diff(u,1,2)./diff(gridu.ymat,1,2);
@@ -4023,6 +4035,19 @@ methods
             ry = diff(rho,1,2)./diff(gridr.ymat,1,2);
             rz = diff(rho,1,3)./diff(gridr.znew,1,3);
 
+            cont = ux(:, 2:end-1, :) + vy(2:end-1, :, :) + ...
+                   wz(2:end-1, 2:end-1, :);
+
+            % check cont
+            %ix = 150; iy = 164;
+            %ix = 240; iy = 164
+            %figure; hold all;
+            %hold all;
+            %plot(squeeze(ux(ix, iy+1,:)) + squeeze(vy(ix+1, iy,:)), zrnew)
+            %plot(-1*squeeze(wz(ix+1, iy+1,:)), zrnew)
+            %plot(squeeze(cont(ix, iy, :)), zrnew);
+            %legend('ux + vy', 'wz', 'ux + vy + wz');
+                        
             % tendency term code - not really needed since it is probably a
             % bad estimate when using daily snapshots .
 %             if debug
@@ -4039,23 +4064,27 @@ methods
 
             str = avg1(-1 * avg1(avg1(bsxfun(@plus,rv,avg1(avg1(runs.rgrid.f',1),2)),1),2) ...
                             .* (ux(:,2:end-1,:,:) + vy(2:end-1,:,:)),3);
-            tilt = -1 * avg1(avg1( avg1(avg1(wx,2),3) .* avg1(vz,1) + ...
-                    avg1(avg1(wy,1),3) .* avg1(uz,2) ,1),2);
+            tilt = -1 * avg1(avg1( avg1(wx(:,:,2:end-1),2) .* avg1(vz,1) + ...
+                    avg1(wy(:,:,2:end-1),1) .* avg1(uz,2) ,1),2);
             beta = avg1(avg1(runs.params.phys.beta * v(2:end-1,:,:),2),3);
             hadv = avg1( avg1(u(:,2:end-1,:),1) .* avg1(rvx,2) + ...
                     avg1(v(2:end-1,:,:),2) .* avg1(rvy,1),3);
-            vadv = avg1(avg1( avg1(avg1(avg1(w,1),2),3) .* rvz ,1),2);
+            vadv = avg1(avg1( avg1(avg1(w(:,:,2:end-1),1),2) .* rvz ...
+                              ,1),2);
+            
+            budget = str + tilt - hadv - vadv - beta;
 
           %  sol = -runs.params.phys.g/runs.params.phys.rho0 .* ...
           %          ( avg1(rx,2) .* avg1(zy,1) - avg1(ry,1) .* avg1(zx,2));
 
-            zint = avg1(znew);
-            RV   = trapz(zint, repnan(rv,0), 3);
+            zint = avg1(zrnew);
+            RV   = trapz(zrnew, repnan(rv,0), 3);
             STR  = trapz(zint, repnan(str,0), 3);
             TILT = trapz(zint, repnan(tilt,0), 3);
             BETA = trapz(zint, repnan(beta,0), 3);
             HADV = trapz(zint, repnan(hadv,0), 3);
             VADV = trapz(zint, repnan(vadv,0), 3);
+            ADV = HADV + VADV;
 
             BUD = trapz(zint, repnan( str+tilt - beta - hadv -vadv,0), 3);
 
@@ -4065,7 +4094,7 @@ methods
             if kk == 1
                 figure; maximize();
                 ax(1) = subplot(2,4,[1:2]);
-                hvor = pcolor(xavg,yavg,RV); hold on; shading flat;
+                hvor = pcolor(xvor/1000,yvor/1000,RV); hold on; shading flat;
                 axis image;
                 ht = runs.set_title('Depth avg rvor',tt);
                 he(1) = runs.plot_eddy_contour('contour',tt);
