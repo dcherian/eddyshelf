@@ -14,7 +14,7 @@ function [out] = interpolate(var, z_in, z_out)
     
     tic;
     parfor ii=1:sz(1)*sz(2)
-        out(ii,:) = interp1(z_in(ii,:), var(ii,:), z_out);
+        out(ii,:) = interp1(z_in(ii,:), var(ii,:), z_out, 'linear');
     end
     toc;
     
