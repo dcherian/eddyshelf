@@ -4,6 +4,16 @@
 function [xsb,isb,hsb,ax] = find_shelfbreak(fname,type)
 
     h = ncread(fname,'h');
+
+    % flat bottom case
+    if isequal(h, max(h(:)) * ones(size(h)))
+        xsb = 0;
+        isb = 1;
+        hsb = max(h(:));
+        ax = 'y';
+        return
+    end
+    
     if max(max(diff(h,1,1))) < 1e-3
         try
             xr = ncread(fname,'y_rho')';
