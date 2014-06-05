@@ -245,6 +245,10 @@ fnew = f0*ones(size(S.x_rho));
 f = fnew + beta * (S.y_rho - S.y_rho(1,ymid));
 clear fnew
 
+if isnan(bathy.H_shelf)
+    bathy.H_shelf = bathy.H_sbreak - bathy.sl_shelf * bathy.L_shelf;
+end
+
 if flags.flat_bottom
     S.h = Z * ones(size(S.x_rho));
 
