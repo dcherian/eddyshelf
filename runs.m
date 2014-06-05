@@ -3982,7 +3982,7 @@ methods
         debug = 0;
 
         %%
-        zmin = min(runs.rgrid.z_r(:));
+        zmin = -1 * runs.bathy.hsb;min(runs.rgrid.z_r(:));
         zmax = max(runs.rgrid.z_r(:,end,end));
         zwnew = unique([linspace(zmin, -1*runs.bathy.hsb, 70) ...
                         linspace(-1*runs.bathy.hsb, zmax-0.01, 36)]');
@@ -4134,9 +4134,10 @@ methods
             rvx = diff(rv,1,1)./diff(gridrv.xmat,1,1);
             rvy = diff(rv,1,2)./diff(gridrv.ymat,1,2);
             rvz = diff(rv,1,3)./diff(gridrv.znew,1,3);
-
-            str = avg1(-1 * avg1(avg1(bsxfun(@plus,rv,avg1(avg1(runs.rgrid.f',1),2)),1),2) ...
-                            .* (ux(:,2:end-1,:,:) + vy(2:end-1,:,:)),3);
+            
+            str = avg1(-1 * avg1(avg1(bsxfun(@plus, rv, ...
+                                             avg1(avg1(runs.rgrid.f',1),2)),1) ...
+                                 ,2) .* (ux(:,2:end-1,:,:) + vy(2:end-1,:,:)),3);
             tilt = -1 * avg1(avg1( avg1(wx(:,:,2:end-1),2) .* avg1(vz,1) + ...
                     avg1(wy(:,:,2:end-1),1) .* avg1(uz,2) ,1),2);
             beta = avg1(avg1(runs.params.phys.beta * v(2:end-1,:,:),2),3);
@@ -4169,7 +4170,7 @@ methods
                 ax(1) = subplot(2,4,[1:2]);
                 hvor = pcolor(xvor/1000,yvor/1000,RV); hold on; shading flat;
                 axis image;
-                ht = runs.set_title('Depth avg rvor',tt/2);
+                ht = runs.set_title('Depth int rvor', floor(tt/2));
                 he(1) = runs.plot_eddy_contour('contour',floor(tt/2));
                 hbathy = runs.plot_bathy('contour','k');
                 shading flat
@@ -4199,21 +4200,21 @@ methods
 %                 caxis([-1 1] * max(abs(TEND(:))));
 %                 title('d\xi/dt');
 
-                ax(5) = subplot(2,4,6);
+                ax(5) = subplot(2,4,7);
                 hgadv = pcolor(xavg,yavg,-ADV); colorbar; shading flat;
                 he(5) = runs.plot_eddy_contour('contour', floor(tt/2));
                 hbathy = runs.plot_bathy('contour','k');
                 caxis([-1 1] * max(abs(ADV(:))));
                 title('-Advection');
 
-                ax(6) = subplot(2,4,7);
+                ax(6) = subplot(2,4,8);
                 htilt = pcolor(xavg,yavg,TILT); colorbar; shading flat;
                 he(6) = runs.plot_eddy_contour('contour', floor(tt/2));
                 hbathy = runs.plot_bathy('contour','k');
                 caxis([-1 1] * max(abs(TILT(:))));
                 title('Tilting');
 
-                ax(7) = subplot(2,4,8);
+                ax(7) = subplot(2,4,[5 6]);
                 hstr = pcolor(xavg,yavg,STR); colorbar; hold on; shading flat;
                 %hquiv = quiverclr(xavg(xran,yran),yavg(xran,yran), ...
                 %    ubar(xran,yran),vbar(xran,yran),0.3,STR(xran,yran), ...
@@ -4239,8 +4240,8 @@ methods
                 catch ME
                 end
 
-                runs.update_eddy_contour(he,tt);
-                runs.update_title(ht,titlestr,tt);
+                runs.update_eddy_contour(he,floor(tt/2));
+                runs.update_title(ht,titlestr,floor(tt/2));
                 runs.video_update();
                 pause(0.01);
             end
