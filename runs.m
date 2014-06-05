@@ -5036,7 +5036,10 @@ methods
             mask = runs.eddy.mask(:,:,tt);
         end
         for ii=1:length(handle)
-            set(handle(ii),'ZData',mask);
+            try
+                set(handle(ii),'ZData',mask);
+            catch ME
+            end
         end
     end
 
@@ -5055,7 +5058,7 @@ methods
         if ~exist('color','var'), color = 'w'; end
         if strcmpi(plottype,'contour')
             [cc,hplot] = contour(runs.rgrid.xr/1000,runs.rgrid.yr/1000, ...
-                            runs.rgrid.h',[200 500 1000 1500 2000],'k');
+                            runs.rgrid.h',[200 500 1000 1500 2000],color);
             clabel(cc,hplot,'LabelSpacing',108*3);
             if runs.bathy.axis == 'y'
                 liney(runs.bathy.xsb/1000,'shelfbreak',color);
