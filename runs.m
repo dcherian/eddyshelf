@@ -12,6 +12,8 @@ properties
     csdye; asdye; zdye; eddye; % cross-shore, along-shore, z dyes, eddy dye
     % dye names
     csdname; asdname; zdname; eddname;
+    % velocity names
+    csvelname; asvelname;
     % vorticity budget
     vorbudget;
     % grid & bathymetry
@@ -163,6 +165,14 @@ methods
         try
             runs.roms = floats('roms',runs.flt_file,runs.rgrid);
         catch
+        end
+
+        if runs.bathy.axis == 'y'
+            runs.asvelname = 'u';
+            runs.csvelname = 'v';
+        else
+            runs.asvelname = 'v';
+            runs.csvelname = 'u';
         end
 
         % load eddy track
