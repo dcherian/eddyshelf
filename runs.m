@@ -897,6 +897,57 @@ methods
         end
     end
 
+    % make plots like dewar & hogg - looking for hydraulic jump
+    function [] = tempvelsec(runs)
+
+        t0 = 50;
+        [temp, xt, yt, ~] = dc_roms_read_data(runs.dir, 'temp', [t0 Inf], ...
+                                 {runs.bathy.axis runs.bathy.isb runs.bathy.isl; ...
+                                  'z' 1 1}, [], runs.rgrid, 'avg');
+        [asvel, xas, yas, ~] = dc_roms_read_data(runs.dir, runs.asvelname, [t0 Inf], ...
+                                  {runs.bathy.axis runs.bathy.isb runs.bathy.isl; ...
+                                  'z' 1 1}, [], runs.rgrid, 'avg');
+
+        xas = xas(:,:,1); yas = yas(:,:,1);
+        xt = xt(:,:,1); yt = yt(:,:,1);
+
+        vscale = max(abs(asvel(:)));
+
+        figure;
+        tt = 1;
+        tind = t0 + tt - 1;
+        hgvel = pcolorcen(xas/1000, yas/1000, asvel(:,:,tt));
+        caxis([-1 1]*vscale); cbfreeze; freezeColors;
+        hold on;
+        [~,hgtemp] = contour(xt/1000, yt/1000, temp(:,:,tt), 40, ...
+                             'k');
+        hbathy = runs.plot_bathy('contour', 'b');
+        hgt = title(['tt = '  num2str(runs.time(t0 + tt - 1)/86400) ...
+                     ' days']);
+        set(gca, 'ydir', 'reverse');
+        % mark eddy extents
+        hglinex = linex([runs.eddy.vor.we(tind) runs.eddy.vor.ee(tind)]/1000);
+        hgliney = liney([runs.eddy.vor.se(tind) runs.eddy.vor.ne(tind)]/1000);
+        pause(0.01);
+        for tt = 2:size(temp,3)
+            tind = t0 + tt - 1;
+            set(hgvel, 'CData', asvel(:,:,tt));
+            set(hgtemp, 'ZData', temp(:,:,tt));
+            set(hgt, 'String', ['tt = '  num2str(runs.time(t0 + tt ...
+                                                           - 1)/86400) ...
+                                ' days']);
+            set(hglinex(1), 'XData', [1 1]*runs.eddy.vor.we(tind)/ ...
+                            1000);
+            set(hglinex(2), 'XData', [1 1]*runs.eddy.vor.ee(tind)/ ...
+                            1000);
+            set(hgliney(1), 'YData', [1 1]*runs.eddy.vor.ne(tind)/ ...
+                            1000);
+            set(hgliney(2), 'YData', [1 1]*runs.eddy.vor.se(tind)/ ...
+                            1000);
+            pause(0.01);
+        end
+    end
+
     % quantify cross-shelfbreak and along-shelfbreak fluxes of a whole
     % bunch of stuff:
     function [] = fluxes(runs, ftype)
