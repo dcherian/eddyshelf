@@ -111,6 +111,7 @@ methods
         % params & bathy
         runs.params = read_params_from_ini(runs.dir);
         runs.bathy = runs.params.bathy;
+        runs.params.misc = roms_load_misc(runs.out_file);
 
         % fill bathy
         [runs.bathy.xsb,runs.bathy.isb,runs.bathy.hsb] = ...
