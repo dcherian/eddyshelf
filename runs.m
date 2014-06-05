@@ -378,271 +378,38 @@ methods
         xlabel('Time (days)'); ylabel('Depth averaged temperature (without mean)');
     end
 
-   %% analysis
+    % this is incomplete
+    function [] = tracer_budget(runs)
+        tracer = roms_read_data(runs.out_file,runs.zdname);
+        s = size(tracer);
+        %Itracer = domain_integrate(tracer, ...
+        %                runs.rgrid.xr,runs.rgrid.yr,runs.rgrid.zr);
 
-    function [] = transport(runs)
-        % need some kind of initial time instant - decided by streamer mask
-        % now
-        runs.eutrans = [];
-        t0 = find(repnan(runs.streamer.time,0) == 0,1,'last') + 1;
-        tinf = length(runs.time);
-        revind = runs.eddy.trevind;
-        h = runs.bathy.h(2:end-1,2:end-1);
+        clear N
 
-        ix = vecfind(runs.eddy.xr(:,1),runs.eddy.mx(t0:end));
-        iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.my(t0:end));
-        hcen = h(sub2ind(size(runs.eddy.xr),ix,iy))';
+        lim = linspace(min(min(tracer(:,:,end,1))),max(max(tracer(:,:,end,1))),90);
+        tracer = reshape(tracer,[s(1)*s(2)*s(3) s(4)]);
 
-        iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.se(t0:end));
-        hedge = h(sub2ind(size(runs.eddy.xr),ix,iy))';
-        distance = 5*runs.rrshelf; % 5 times rossby radius
-
-        if runs.params.bathy.axis == 'x'
-            csvelid = 'u';
-            error(' not built for north-south isobaths');
-        else
-            csvelid = 'v';
-            loc = sort([nanmean(runs.eddy.se(revind:end)) ...
-                    nanmean(runs.eddy.cy(revind:end)) ...
-                    runs.bathy.xsb  ...
-                    runs.bathy.xsl]);
-                %runs.rgrid.y_rho(vecfind(runs.bathy.h(1,:),[250 1000]),1)']);
+        for i=1:s(4)
+            [N(:,i),bins] = histc(tracer(:,i),lim);
         end
 
-        % save locations
-        runs.eutrans.x = loc;
-        % save indices for locations
-        runs.eutrans.ix = vecfind(runs.rgrid.yr(1,:),loc);%find_approx(runs.rgrid.yr(1,:),loc,1);
-        % save isobath values
-        runs.eutrans.h = ceil(runs.bathy.h(1,runs.eutrans.ix));
-        % find west edge indices
-        iwest = vecfind(runs.eddy.xr(:,1),runs.eddy.we);
-
-        % initialize
-        runs.eutrans.Itrans = nan([tinf length(loc)]);
-        runs.eutrans.nodye.Itrans = nan([tinf length(loc)]);
-
-        % extract streamer mask
-        strmask = reshape(full(runs.streamer.west.mask), runs.streamer.sz4dfull);
-
-        % loop over all isobaths
-        for kk=1:length(loc)
-            % read along-shore section of cross-shore vel.
-            % dimensions = (x/y , z , t )
-            %cs_vel = double(squeeze(ncread(runs.out_file,csvelid, ...
-            %    [1 runs.eutrans.ix(kk) 1 t0],[Inf 1 Inf Inf])));
-            cs_vel = dc_roms_read_data(runs.dir, csvelid, ...
-                [t0 Inf],{runs.bathy.axis runs.eutrans.ix(kk) runs.eutrans.ix(kk)}, ...
-                [],runs.rgrid);
-            mask = nan(size(cs_vel));
-            for tt=1:size(cs_vel,3)
-                mask(1:iwest(tt),:,tt) = 1;
-            end
-            % restrict calculation to region above shelfbreak depth
-            zmask = (abs(squeeze(runs.rgrid.z_r(:,runs.eutrans.ix(kk),:))   )' ...
-                            < runs.bathy.hsb);
-            mask = bsxfun(@times,mask,fillnan(zmask,0));
-
-            runs.eutrans.nodye.trans(:,:,kk) = squeeze(trapz( ...
-                            runs.rgrid.z_r(:,runs.eutrans.ix(kk),1), ...
-                            mask .* cs_vel,2));
-
-            runs.eutrans.nodye.Itrans(t0:tinf,kk) = squeeze(nansum( ...
-                runs.eutrans.nodye.trans(:,:,kk) ...
-                                        .* runs.rgrid.dx,1))';
-
-            % if I have passive tracer info I can calculate transport
-            % using that
-            mask = nan(size(cs_vel));
-            % mark eastern edge as edge of region I'm interested in
-            % removes streamer associated with cyclone running away
-            ieast = vecfind(runs.eddy.xr(:,1),runs.eddy.ee);
-            for tt=1:size(cs_vel,3)
-                mask(1:ieast(tt),:,tt) = 1;
-            end
-
-            mask = bsxfun(@times,mask,fillnan(zmask,0));
-            % dye_01 is always cross-shore dye
-            dye = dc_roms_read_data(runs.dir,runs.csdname, ...
-                [t0 Inf],{runs.bathy.axis runs.eutrans.ix(kk) runs.eutrans.ix(kk)}, ...
-                [],runs.rgrid);
-            dyemask = (dye >= runs.bathy.xsb) & ...
-                        (dye <=(runs.bathy.xsb + distance));
-            mask = mask .* fillnan(dyemask,0);
-            runs.eutrans.trans(:,:,kk) = squeeze(trapz( ...
-                    runs.rgrid.z_r(:,runs.eutrans.ix(kk),1), ...
-                    mask .* cs_vel,2));
-            runs.eutrans.Itrans(t0:tinf,kk) = squeeze(nansum( ...
-                        runs.eutrans.trans(:,:,kk) .* dx,1))';
-
-            % all runs now have passive tracer. I use streamer mask to
-            % calculate transport
-            mask = squeeze(strmask(:,runs.eutrans.ix(kk),:,t0:tinf));
-
-            % (x,t,location)
-            runs.streamer.trans(:,:,kk) = squeeze(trapz( ...
-                    runs.rgrid.z_r(:,runs.eutrans.ix(kk),1), ...
-                    mask .* cs_vel,2));
-            % integrate in x get (t, location)
-            runs.streamer.Itrans(t0:tinf,kk) = squeeze(nansum( ...
-                        runs.streamer.trans(:,:,kk) .* dx,1))';
-        end
-
-        %% plot transport
-
-        figure;
-        subplot(6,1,[1 2])
-        plot(runs.time/86400,runs.eutrans.Itrans/1e6);
-        hold on
-        %plot(runs.rgrid.ocean_time(t0:end)/86400,runs.eutrans.dye.Itrans/1e6,'--');
-        limx = xlim;
-        legend(num2str(runs.eutrans.h'),'Location','NorthWest');
-        ylabel('Eulerian Transport (Sv)');
-        title(['Isobaths in legend | Z < ' num2str(ceil(runs.bathy.hsb)) ' m ' ...
-            '| mean eddy center isobath = '  num2str(mean(hcen)) ' m ' ...
-            '| mean eddy edge isobath = ' num2str(mean(hedge)) 'm']);
-        beautify;
-        subplot(6,1,[3 4 5])
-        plot(runs.time/86400,runs.eutrans.Itrans/1e6,'-');
-        limx = xlim;
-        legend(num2str(runs.eutrans.h'),'Location','NorthWest');
-        ylabel('Dye Transport (Sv)');
-        ylim([-0.05 0.3]); liney(0.1,[])
-        beautify;
-        subplot(6,1,6)
-        [ax,~,~] = plotyy(runs.eddy.t,runs.eddy.prox/1000,runs.eddy.t, ...
-                runs.eddy.hcen);
-        set(ax(1),'XLim',limx);set(ax(2),'XLim',limx);
-        set(ax(1),'XTickLabel',[]); axes(ax(2));
-        set(get(ax(1),'ylabel'),'String','Proximity (km)');
-        set(get(ax(2),'ylabel'),'String','h @ center of eddy');
-        xlabel('Time (days)');
-
-        % throw out locations where dye trans is pretty much zero to
-        % make plot cleaner
-        arr = [1:length(loc)];
-        for kk=1:length(loc)
-            if median(runs.eutrans.Itrans(:,kk)) < 1
-                arr(arr == kk) = [];
-            end
-        end
+        colors = flipud(repmat(linspace(0,0.9,s(4))',[1 3]));
         figure
-        plot(runs.time(t0:end)/86400,(runs.eutrans.nodye.Itrans(:,arr) - runs.eutrans.Itrans(:,arr)) ...
-            ./ runs.eutrans.Itrans(:,arr) * 100);
-        ylim([-100 700]); liney(0);
-        legend(num2str(runs.eutrans.h(:,arr)'),'Location','NorthWest');
-        title('percentage over-estimation = (eulerian - dye)/ dye');
-        beautify;
-
-        %% normalized transport plot
-        %xmat = bsxfun(@minus,repmat(runs.rgrid.xr(:,1)/1000,[1 length(runs.rgrid.ocean_time)]), ...
-        %                     runs.eddy.cx/1000);
-        %tmat = repmat(runs.rgrid.ocean_time'/86400,[size(xmat,1) 1]);
-        %plot(xmat,ntrans); linex(0)
-        %disp_plot(runs.eutrans.dye.trans(:,:,4),xmat,runs.rgrid.ocean_time);
-
-        time = runs.time/86400;
-        % normalize by max.
-        mtrans = max(abs(runs.eutrans.dye.trans),[],1);
-        ntrans = bsxfun(@rdivide,runs.eutrans.dye.trans, mtrans);
-        mtrans = squeeze(mtrans);
-
-        scrsz = get(0, 'ScreenSize');
-        figure('Position', [1 scrsz(4) scrsz(3) scrsz(4)]);
-        for kk = 1:size(runs.eutrans.Itrans,2)
-            % figure out eddy edges at latitude of transport calculation
-            emask = fillnan((bsxfun(@times, ...
-                squeeze(abs(diff(runs.eddy.mask(:,runs.eutrans.ix(kk),:),1))), ...
-                [1:size(runs.eddy.mask,1)-1]')'),0)';
-            left = nanmin(emask); right = nanmax(emask);
-            tmask = cut_nan(time' .* fillnan(~isnan(left),0));
-            cmask = cut_nan(runs.eddy.cx/1000 .* fillnan(~isnan(left),0));
-
-            clf;
-            set(gcf,'Renderer','painters')
-            subplot(1,5,[1 2 3]);
-            hold on
-            for ii=1:size(runs.rgrid.ocean_time)
-               plot(runs.rgrid.xr(:,1)/1000 - runs.eddy.cx(ii)/1000, ...
-                   ntrans(:,ii,kk) + time(ii));
-            end
-            xlim([-200 50]);ylim([40 90]);
-            %plot(runs.eddy.ee/1000 - runs.eddy.cx/1000,time,'r*');
-            %plot(runs.eddy.we/1000 - runs.eddy.cx/1000,time,'r*');
-            plot(runs.rgrid.xr(cut_nan(left),1)'/1000 - cmask,tmask,'r*');
-            plot(runs.rgrid.xr(cut_nan(right),1)'/1000 - cmask,tmask,'k*');
-
-            linex(0,'eddy center'); linex(-75);
-            ylabel('Time (days)'); xlabel('X - X_{center}');
-            title(['Normalized Transport (m^2/s) across '  ...
-                num2str(runs.eutrans.h(kk)) 'm isobath | red dots = edges']);
-            beautify([14 14 16]);
-            subplot(154)
-            hold on
-            if kk ~=1
-                plot(mtrans(:,1:kk-1),time,'Color',0.75*[1 1 1]);
-            end
-            if kk ~= size(runs.eutrans.Itrans,2)
-                plot(mtrans(:,kk+1:end),time,'Color',0.75*[1 1 1]);
-            end
-            plot(mtrans(:,kk),time,'b');
-            xlabel('Max. Transport (m^2/day)');
-            ylim([40 90]);xlim([0 40]);
-            beautify([14 14 16]);
-
-            subplot(155)
-            hold on
-            if kk ~=1
-                plot(runs.eutrans.dye.Itrans(:,1:kk-1)/1e6,time,'Color',0.75*[1 1 1]);
-            end
-            if kk ~= size(runs.eutrans.Itrans,2)
-                plot(runs.eutrans.dye.Itrans(:,kk+1:end)/1e6,time,'Color',0.75*[1 1 1]);
-            end
-            plot(runs.eutrans.dye.Itrans(:,kk)/1e6,time,'b');
-            ylim([40 90]);xlabel('Total Transport (Sv)');
-            title(sprintf('Max transport = %.2f Sv',(max(runs.eutrans.dye.Itrans(:,kk)/1e6))));
-            xlim([-0.2 0.2]); linex(0);
-
-            export_fig(sprintf('images/transport/%04d.png',runs.eutrans.h(kk)));
-        end
-
-        %% plotting tests
-%            figure;
-%             clim = [runs.bathy.xsb/1000 runs.bathy.xsb/1000+distance/1000];
-%             rrfac = 7;
-%             for ind = 1:size(runs.eddy.mask,3)
-%                 clf
-%                 subplot(211)
-%                 pcolorcen(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.dye(:,:,ind)/1000); hold on
-%                 dxi = 7; dyi = 7;
-%                 if ~isempty(runs.usurf) && ~isempty(runs.vsurf)
-%                     hq = quiver(runs.eddy.xr(1:dxi:end,1:dyi:end)/1000,runs.eddy.yr(1:dxi:end,1:dyi:end)/1000, ...
-%                         runs.usurf(1:dxi:end,1:dyi:end,ind),runs.vsurf(1:dxi:end,1:dyi:end,ind));
-%                 end
-%                 caxis(clim);
-%                 hold on
-%                 title(['t = ' num2str(runs.rgrid.ocean_time(ind)/86400) ' days']);
-%                 [~,hh] = contour(runs.eddy.xr/1000, runs.eddy.yr/1000,runs.eddy.mask(:,:,ind),1,'k');
-%                 set(hh,'LineWidth',2);
-%                 [~,hz] = contour(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.zeta(:,:,ind),5,'k');
-%                 plot(runs.rgrid.xr/1000,runs.eutrans.trans(:,ind)*10);
-%                 xlim([0 max(runs.rgrid.xr(:))/1000])
-%                 linex(runs.eddy.we(ind)/1000); liney(runs.bathy.xsb/1000,'shelfbreak','b');
-%                 linex(runs.eddy.we(ind)/1000 - rrfac*rr/1000,[num2str(rrfac) ' * RR']);
-%                 linex(runs.eddy.we(ind)/1000 - 50,'center - 50 km');
-%
-%                 subplot(212)
-%                 plot(runs.rgrid.xr/1000,runs.eutrans.trans(:,ind));
-%                 title('Transport (m^2/sec)');
-%                 ylim([floor(min(runs.eutrans.trans(:))) ceil(max(runs.eutrans.trans(:)))]);
-%                 xlim([0 max(runs.rgrid.xr(:))/1000]);linex(runs.eddy.we(ind)/1000);
-%
-%                 linex(runs.eddy.we(ind)/1000 - rrfac*rr/1000,[num2str(rrfac) ' * RR']);
-%                 liney(0);linex(runs.eddy.we(ind)/1000 - 50,'center - 50 km');
-%                 pause
-%             end
+        set(gca,'ColorOrder',colors); hold all
+        plot(lim/1000,N);
+        set(gcf,'Colormap',colors);
+        hcbar = colorbar;
+        tlab = ceil(runs.rgrid.ocean_time(get(hcbar,'YTick'))/86400);
+        set(hcbar,'YTickLabel',num2str(tlab))
+        xlabel('Cross-shore axis (km)');
+        ylabel('Count');
+        cblabel('Time (days)');
+        beautify ([14 14 16]);
 
     end
+
+   %% analysis
 
     function [] = plot_simplepv(runs)
        % this function contours the qgpv approximation of the
@@ -1119,180 +886,6 @@ methods
         end
     end
 
-    % study vorticity export onto shelf
-    function [] = vorexport(runs)
-        vorname = [runs.dir '/ocean_vor.nc'];
-        t0 = 1;
-
-        start = [1 1 1 t0];
-        % isb-1 since they are on interior RHO points
-        count = [Inf runs.bathy.isb-1 Inf Inf];
-
-        Las = max(runs.rgrid.x_rho(:));
-        Lcs = runs.bathy.xsb;
-
-        dx = runs.rgrid.xr(2,1)-runs.rgrid.xr(1,1);
-
-        % both at interior RHO points
-        pv = ncread(vorname,'pv',start,count);
-        rv = avg1(avg1(ncread(vorname,'rv',start,count+[0 1 0 0]),1),2);
-
-        if runs.bathy.axis == 'y'
-            csvel = avg1(avg1(dc_roms_read_data(runs.dir,'v',[t0 Inf], ...
-                {'y' runs.bathy.isb-1 runs.bathy.isb},[],runs.rgrid),2),3);
-            csvel = csvel(2:end-1,:,:,:);
-
-            % location for calculation along-shore flux of rv/pv
-            asloc = runs.eddy.vor.ee(t0:end) + dx*3;
-
-            % full RHO points
-            iasmin = find(runs.rgrid.xr(:,1) == min(asloc));
-            iasmax = find(runs.rgrid.xr(:,1) == max(asloc));
-
-            % faster to read whole thing and then discard
-            asvel = avg1(avg1(dc_roms_read_data(runs.dir,'u',[t0 Inf], ...
-                {'y' 2 runs.bathy.isb}, [], runs.rgrid),1),3);
-            % average to RHO points
-            asvel = avg1(asvel(iasmin-1:iasmax,:,:,:),1);
-            % shift indices since I'm now on interior RHO points for pv,rv
-            iasmin = iasmin - 1;
-            iasmax = iasmax - 1;
-
-            % use center because export occurs west of the eastern edge
-            csmask = bsxfun(@gt, runs.eddy.xr(:,1),  ...
-                permute(runs.eddy.vor.cx(t0:end),[3 1 2]));
-        else
-            error('Not implemented for NS isobaths');
-            csvel = avg1(avg1(dc_roms_read_data(runs.dir,'u',[t0 Inf], ...
-                {'x' runs.bathy.isb runs.bathy.isb+1},[],runs.rgrid),1),3);
-            csvel = csvel(2:end-1,:,:,:);
-            % use center because export occurs north of the southern edge
-            csmask = bsxfun(@gt, runs.eddy.yr(1,:)',  ...
-                permute(runs.eddy.vor.cy(t0:end),[3 1 2]));
-        end
-        %%
-        % csvel = csvel(:,:,:,1:38)
-        % These are fluxes across the shelfbreak  - technically represent
-        % eddy only. I need to quantify vorticity exported permanently onto
-        % the shelf , so it might better to do an along shore flux
-        % downstream (east) of the eddy, over the shelf. The idea is that
-        % vorticity is dumped on the shelf and then moves downstream. So
-        % along-shore flux when calculated sufficiently far downstream of
-        % the eddy, should represent permanent export of vorticity (and
-        % mass) on the shelf
-
-        % isb - 1 to account for being on interior RHO points - isb
-        % includes the boundary points too
-        pvcsflux = squeeze(bsxfun(@times,pv(:,runs.bathy.isb-1,:,:), csvel));
-        rvcsflux = squeeze(bsxfun(@times,rv(:,runs.bathy.isb-1,:,:), csvel));
-
-        asmask = bsxfun(@eq, runs.rgrid.xr(iasmin+1:iasmax+1,2:runs.bathy.isb), ...
-            permute(asloc,[1 3 4 2]));
-
-        pvasflux = squeeze(sum( ...
-            bsxfun(@times, pv(iasmin:iasmax,:,:,:).*asvel, asmask),1));
-        rvasflux = squeeze(sum( ...
-            bsxfun(@times, rv(iasmin:iasmax,:,:,:).*asvel, asmask),1));
-
-        dV = avg1(runs.rgrid.dV,3);
-        dVas = squeeze(sum( ...
-             bsxfun(@times, dV(iasmin:iasmax,2:runs.bathy.isb,:), asmask)));
-
-        runs.csflux.pv = squeeze(sum(sum(bsxfun(@times, ...
-                     bsxfun(@times,pvcsflux, squeeze( ...
-                     dV(2:end-1,runs.bathy.isb-1,:)))...
-                     ,csmask),1),2)) ...
-                    /runs.bathy.hsb/Las;
-
-        runs.csflux.rv = squeeze(sum(sum(bsxfun(@times, ...
-                     bsxfun(@times,rvcsflux, squeeze( ...
-                     dV(2:end-1,runs.bathy.isb-1,:)))...
-                     ,csmask),1),2)) ...
-                    /runs.bathy.hsb/Las;
-
-        PVASFLUX = squeeze(sum(sum(pvasflux .* dVas,1),2)) ...
-                    /runs.bathy.hsb/Lcs;
-        RVASFLUX = squeeze(sum(sum(rvasflux .* dVas,1),2)) ...
-                    /runs.bathy.hsb/Lcs;
-
-        oPVCSFLUX = orderofmagn(runs.csflux.pv);
-        oRVCSFLUX = orderofmagn(runs.csflux.rv);
-        oPVASFLUX = orderofmagn(runs.asflux.pv);
-        oRVASFLUX = orderofmagn(runs.asflux.rv);
-
-        oPV = min(oPVCSFLUX, oPVASFLUX);
-        oRV = min(oRVCSFLUX, oRVASFLUX);
-
-        %%
-%        figure;
-%        tt0 = 40;
-%        isb = runs.bathy.isb;
-%        [~,hc] = contourf(runs.rgrid.xr(2:end-1,2:isb)/1000, ...
-%                          runs.rgrid.yr(2:end-1,2:isb)/1000, ...
-%                          rv(:,:,end,tt0));
-%        colorbar;
-%         caxis([-1 1]*4*10^(orderofmagn(rv(:,:,end,:))));
-%
-%         hlines = linex([asloc(1) asloc(1)]/1000);
-%         for tt=tt0+1:size(rv,4)
-%             set(hc,'ZData',rv(:,:,end,tt));
-%
-%             set(hlines(1),'XData',[1 1]*runs.eddy.cx(tt)/1000);
-%             set(hlines(2),'XData',[1 1]*asloc(tt-tt0+1)/1000);
-%             pause();
-%         end
-%         % quantify loss of vorticity in eddy
-%         xmin = min(runs.eddy.vor.we); xmax = max(runs.eddy.vor.ee);
-%         ymin = min(runs.eddy.vor.se); ymax = max(runs.eddy.vor.ne);
-%
-%         ixmin = find_approx(runs.eddy.xr(:,1),xmin);
-%         ixmax = find_approx(runs.eddy.xr(:,1),xmax);
-%         iymin = find_approx(runs.eddy.yr(1,:),ymin);
-%         iymax = find_approx(runs.eddy.yr(1,:),ymax);
-%
-%         tic;
-%         disp('Reading pv and rv for eddy');
-%         pveddy = ncread(vorname,'pv',[ixmin+1 iymin+1 1 t0],[ixmax+1 iymax+1 Inf Inf]);
-%         rveddy = ncread(vorname,'pv',[ixmin+1 iymin+1 1 t0],[ixmax+1 iymax+1 Inf Inf]);
-%         toc;
-%
-%         % TODO: add dye mask here
-%         bsxfun(@times, bsxfun(@times,pveddy, ...
-%             permute(runs.eddy.vormask(ixmin:ixmax,iymin:iymax,:),[1 2 4 3])), ...
-%             runs.rgrid.dV(ixmin:ixmax,iymin:iymax,:));
-        %%
-        figure;
-        subplot(211)
-        plot(runs.time(t0:end)/86400, runs.csflux.pv./10^(oPVCSFLUX), ...
-              runs.time(t0:end)/86400, runs.asflux.pv./10^(oPVASFLUX));
-         legend(['CS flux x 10^{' num2str(oPVCSFLUX) '}'], ...
-                ['AS flux x 10^{' num2str(oPVASFLUX) '}']);
-%        legend('cross-shore','along-shore');
-        ylabel(['PV flux']);
-        set(gca,'YTick',[-5:5]);
-        beautify([18 16 16]);
-        liney(0);
-        title([runs.name ' | CS =  across shelfbreak | AS = east edge + 3dx']);
-        subplot(212)
-        plot(runs.time(t0:end)/86400, runs.csflux.rv./10^(oRVCSFLUX), ...
-             runs.time(t0:end)/86400, runs.asflux.rv./10^(oRVASFLUX));
-
-            set(gca,'YTick',[-5:5]);
-         legend(['CS flux x 10^{' num2str(oRVCSFLUX) '}'], ...
-                ['AS flux x 10^{' num2str(oRVASFLUX) '}']);
-%        legend('cross-shore','along-shore');
-        liney(0); ylim([-3 3]);
-        beautify([18 16 16]);
-        ylabel(['Rel. Vor. Flux']);
-        xlabel('Time (days)');
-
-        %% save fluxes
-        csflux = runs.csflux;
-        asflux = runs.asflux;
-        save([runs.dir '/fluxes.mat'], 'csflux', 'asflux');
-
-    end
-
     % quantify cross-shelfbreak and along-shelfbreak fluxes of a whole
     % bunch of stuff:
     function [] = fluxes(runs, ftype)
@@ -1496,6 +1089,7 @@ methods
         save([runs.dir '/fluxes.mat'], 'csflux', 'asflux');
     end
 
+    % comparison plots
     function [] = compare_plot(runs,num)
         eddy = runs.eddy;
         % 86400 since eddy.t is already in days
@@ -1773,37 +1367,6 @@ methods
         end
     end
 
-    % this is incomplete
-    function [] = tracer_budget(runs)
-        tracer = roms_read_data(runs.out_file,runs.zdname);
-        s = size(tracer);
-        %Itracer = domain_integrate(tracer, ...
-        %                runs.rgrid.xr,runs.rgrid.yr,runs.rgrid.zr);
-
-        clear N
-
-        lim = linspace(min(min(tracer(:,:,end,1))),max(max(tracer(:,:,end,1))),90);
-        tracer = reshape(tracer,[s(1)*s(2)*s(3) s(4)]);
-
-        for i=1:s(4)
-            [N(:,i),bins] = histc(tracer(:,i),lim);
-        end
-
-        colors = flipud(repmat(linspace(0,0.9,s(4))',[1 3]));
-        figure
-        set(gca,'ColorOrder',colors); hold all
-        plot(lim/1000,N);
-        set(gcf,'Colormap',colors);
-        hcbar = colorbar;
-        tlab = ceil(runs.rgrid.ocean_time(get(hcbar,'YTick'))/86400);
-        set(hcbar,'YTickLabel',num2str(tlab))
-        xlabel('Cross-shore axis (km)');
-        ylabel('Count');
-        cblabel('Time (days)');
-        beautify ([14 14 16]);
-
-    end
-
     % calculate surface vorticity field
     function [] = calc_vorsurf(runs)
         if isempty(runs.usurf) || isempty(runs.vsurf)
@@ -1927,7 +1490,8 @@ methods
 
     end
 
-    % plot eddye
+    % plot eddye - cross-sections to compare against diagnosed vertical
+    % scale
     function [] = plot_eddye(runs, days)
         tindices = vecfind(runs.time/86400, days)
         nt = length(tindices);
@@ -2280,8 +1844,9 @@ methods
             %zsf = fillnan(full(zs),0);
             %sz = size(runs.streamer.west.mask(:,tstart:tend));
             parfor kk=1:length(bins)-1
-                temparray(kk,:) = sum(bsxfun(@times, (zs < bins(kk) & zs >= bins(kk+1)), ...
-                               dVs),1);
+                temparray(kk,:) = sum(bsxfun(@times, ...
+                                  (zs < bins(kk) & zs >= bins(kk+1)), ...
+                                  dVs),1);
             end
             runs.streamer.west.Vbin(:,tstart:tend) = temparray;
             runs.streamer.bins = bins;
@@ -2556,7 +2121,7 @@ methods
         ylabel(' Depth (m) '); xlabel('day');
     end
 
-    % offshore water census
+    % water mass census in full domain
     function [] = water_census(runs)
 
         ticstart = tic;
@@ -3032,7 +2597,448 @@ methods
          end
     end
 
-    function [] = distrib_csz_old(runs)
+    %% deprecated functions
+
+    % study vorticity export onto shelf
+    % now in fluxes
+    function [] = deprecated_vorexport(runs)
+        vorname = [runs.dir '/ocean_vor.nc'];
+        t0 = 1;
+
+        start = [1 1 1 t0];
+        % isb-1 since they are on interior RHO points
+        count = [Inf runs.bathy.isb-1 Inf Inf];
+
+        Las = max(runs.rgrid.x_rho(:));
+        Lcs = runs.bathy.xsb;
+
+        dx = runs.rgrid.xr(2,1)-runs.rgrid.xr(1,1);
+
+        % both at interior RHO points
+        pv = ncread(vorname,'pv',start,count);
+        rv = avg1(avg1(ncread(vorname,'rv',start,count+[0 1 0 0]),1),2);
+
+        if runs.bathy.axis == 'y'
+            csvel = avg1(avg1(dc_roms_read_data(runs.dir,'v',[t0 Inf], ...
+                {'y' runs.bathy.isb-1 runs.bathy.isb},[],runs.rgrid),2),3);
+            csvel = csvel(2:end-1,:,:,:);
+
+            % location for calculation along-shore flux of rv/pv
+            asloc = runs.eddy.vor.ee(t0:end) + dx*3;
+
+            % full RHO points
+            iasmin = find(runs.rgrid.xr(:,1) == min(asloc));
+            iasmax = find(runs.rgrid.xr(:,1) == max(asloc));
+
+            % faster to read whole thing and then discard
+            asvel = avg1(avg1(dc_roms_read_data(runs.dir,'u',[t0 Inf], ...
+                {'y' 2 runs.bathy.isb}, [], runs.rgrid),1),3);
+            % average to RHO points
+            asvel = avg1(asvel(iasmin-1:iasmax,:,:,:),1);
+            % shift indices since I'm now on interior RHO points for pv,rv
+            iasmin = iasmin - 1;
+            iasmax = iasmax - 1;
+
+            % use center because export occurs west of the eastern edge
+            csmask = bsxfun(@gt, runs.eddy.xr(:,1),  ...
+                permute(runs.eddy.vor.cx(t0:end),[3 1 2]));
+        else
+            error('Not implemented for NS isobaths');
+            csvel = avg1(avg1(dc_roms_read_data(runs.dir,'u',[t0 Inf], ...
+                {'x' runs.bathy.isb runs.bathy.isb+1},[],runs.rgrid),1),3);
+            csvel = csvel(2:end-1,:,:,:);
+            % use center because export occurs north of the southern edge
+            csmask = bsxfun(@gt, runs.eddy.yr(1,:)',  ...
+                permute(runs.eddy.vor.cy(t0:end),[3 1 2]));
+        end
+        %%
+        % csvel = csvel(:,:,:,1:38)
+        % These are fluxes across the shelfbreak  - technically represent
+        % eddy only. I need to quantify vorticity exported permanently onto
+        % the shelf , so it might better to do an along shore flux
+        % downstream (east) of the eddy, over the shelf. The idea is that
+        % vorticity is dumped on the shelf and then moves downstream. So
+        % along-shore flux when calculated sufficiently far downstream of
+        % the eddy, should represent permanent export of vorticity (and
+        % mass) on the shelf
+
+        % isb - 1 to account for being on interior RHO points - isb
+        % includes the boundary points too
+        pvcsflux = squeeze(bsxfun(@times,pv(:,runs.bathy.isb-1,:,:), csvel));
+        rvcsflux = squeeze(bsxfun(@times,rv(:,runs.bathy.isb-1,:,:), csvel));
+
+        asmask = bsxfun(@eq, runs.rgrid.xr(iasmin+1:iasmax+1,2:runs.bathy.isb), ...
+            permute(asloc,[1 3 4 2]));
+
+        pvasflux = squeeze(sum( ...
+            bsxfun(@times, pv(iasmin:iasmax,:,:,:).*asvel, asmask),1));
+        rvasflux = squeeze(sum( ...
+            bsxfun(@times, rv(iasmin:iasmax,:,:,:).*asvel, asmask),1));
+
+        dV = avg1(runs.rgrid.dV,3);
+        dVas = squeeze(sum( ...
+             bsxfun(@times, dV(iasmin:iasmax,2:runs.bathy.isb,:), asmask)));
+
+        runs.csflux.pv = squeeze(sum(sum(bsxfun(@times, ...
+                     bsxfun(@times,pvcsflux, squeeze( ...
+                     dV(2:end-1,runs.bathy.isb-1,:)))...
+                     ,csmask),1),2)) ...
+                    /runs.bathy.hsb/Las;
+
+        runs.csflux.rv = squeeze(sum(sum(bsxfun(@times, ...
+                     bsxfun(@times,rvcsflux, squeeze( ...
+                     dV(2:end-1,runs.bathy.isb-1,:)))...
+                     ,csmask),1),2)) ...
+                    /runs.bathy.hsb/Las;
+
+        PVASFLUX = squeeze(sum(sum(pvasflux .* dVas,1),2)) ...
+                    /runs.bathy.hsb/Lcs;
+        RVASFLUX = squeeze(sum(sum(rvasflux .* dVas,1),2)) ...
+                    /runs.bathy.hsb/Lcs;
+
+        oPVCSFLUX = orderofmagn(runs.csflux.pv);
+        oRVCSFLUX = orderofmagn(runs.csflux.rv);
+        oPVASFLUX = orderofmagn(runs.asflux.pv);
+        oRVASFLUX = orderofmagn(runs.asflux.rv);
+
+        oPV = min(oPVCSFLUX, oPVASFLUX);
+        oRV = min(oRVCSFLUX, oRVASFLUX);
+
+        %%
+%        figure;
+%        tt0 = 40;
+%        isb = runs.bathy.isb;
+%        [~,hc] = contourf(runs.rgrid.xr(2:end-1,2:isb)/1000, ...
+%                          runs.rgrid.yr(2:end-1,2:isb)/1000, ...
+%                          rv(:,:,end,tt0));
+%        colorbar;
+%         caxis([-1 1]*4*10^(orderofmagn(rv(:,:,end,:))));
+%
+%         hlines = linex([asloc(1) asloc(1)]/1000);
+%         for tt=tt0+1:size(rv,4)
+%             set(hc,'ZData',rv(:,:,end,tt));
+%
+%             set(hlines(1),'XData',[1 1]*runs.eddy.cx(tt)/1000);
+%             set(hlines(2),'XData',[1 1]*asloc(tt-tt0+1)/1000);
+%             pause();
+%         end
+%         % quantify loss of vorticity in eddy
+%         xmin = min(runs.eddy.vor.we); xmax = max(runs.eddy.vor.ee);
+%         ymin = min(runs.eddy.vor.se); ymax = max(runs.eddy.vor.ne);
+%
+%         ixmin = find_approx(runs.eddy.xr(:,1),xmin);
+%         ixmax = find_approx(runs.eddy.xr(:,1),xmax);
+%         iymin = find_approx(runs.eddy.yr(1,:),ymin);
+%         iymax = find_approx(runs.eddy.yr(1,:),ymax);
+%
+%         tic;
+%         disp('Reading pv and rv for eddy');
+%         pveddy = ncread(vorname,'pv',[ixmin+1 iymin+1 1 t0],[ixmax+1 iymax+1 Inf Inf]);
+%         rveddy = ncread(vorname,'pv',[ixmin+1 iymin+1 1 t0],[ixmax+1 iymax+1 Inf Inf]);
+%         toc;
+%
+%         % TODO: add dye mask here
+%         bsxfun(@times, bsxfun(@times,pveddy, ...
+%             permute(runs.eddy.vormask(ixmin:ixmax,iymin:iymax,:),[1 2 4 3])), ...
+%             runs.rgrid.dV(ixmin:ixmax,iymin:iymax,:));
+        %%
+        figure;
+        subplot(211)
+        plot(runs.time(t0:end)/86400, runs.csflux.pv./10^(oPVCSFLUX), ...
+              runs.time(t0:end)/86400, runs.asflux.pv./10^(oPVASFLUX));
+         legend(['CS flux x 10^{' num2str(oPVCSFLUX) '}'], ...
+                ['AS flux x 10^{' num2str(oPVASFLUX) '}']);
+%        legend('cross-shore','along-shore');
+        ylabel(['PV flux']);
+        set(gca,'YTick',[-5:5]);
+        beautify([18 16 16]);
+        liney(0);
+        title([runs.name ' | CS =  across shelfbreak | AS = east edge + 3dx']);
+        subplot(212)
+        plot(runs.time(t0:end)/86400, runs.csflux.rv./10^(oRVCSFLUX), ...
+             runs.time(t0:end)/86400, runs.asflux.rv./10^(oRVASFLUX));
+
+            set(gca,'YTick',[-5:5]);
+         legend(['CS flux x 10^{' num2str(oRVCSFLUX) '}'], ...
+                ['AS flux x 10^{' num2str(oRVASFLUX) '}']);
+%        legend('cross-shore','along-shore');
+        liney(0); ylim([-3 3]);
+        beautify([18 16 16]);
+        ylabel(['Rel. Vor. Flux']);
+        xlabel('Time (days)');
+
+        %% save fluxes
+        csflux = runs.csflux;
+        asflux = runs.asflux;
+        save([runs.dir '/fluxes.mat'], 'csflux', 'asflux');
+
+    end
+
+    function [] = deprecated_transport(runs)
+        % need some kind of initial time instant - decided by streamer mask
+        % now
+        runs.eutrans = [];
+        t0 = find(repnan(runs.streamer.time,0) == 0,1,'last') + 1;
+        tinf = length(runs.time);
+        revind = runs.eddy.trevind;
+        h = runs.bathy.h(2:end-1,2:end-1);
+
+        ix = vecfind(runs.eddy.xr(:,1),runs.eddy.mx(t0:end));
+        iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.my(t0:end));
+        hcen = h(sub2ind(size(runs.eddy.xr),ix,iy))';
+
+        iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.se(t0:end));
+        hedge = h(sub2ind(size(runs.eddy.xr),ix,iy))';
+        distance = 5*runs.rrshelf; % 5 times rossby radius
+
+        if runs.params.bathy.axis == 'x'
+            csvelid = 'u';
+            error(' not built for north-south isobaths');
+        else
+            csvelid = 'v';
+            loc = sort([nanmean(runs.eddy.se(revind:end)) ...
+                    nanmean(runs.eddy.cy(revind:end)) ...
+                    runs.bathy.xsb  ...
+                    runs.bathy.xsl]);
+                %runs.rgrid.y_rho(vecfind(runs.bathy.h(1,:),[250 1000]),1)']);
+        end
+
+        % save locations
+        runs.eutrans.x = loc;
+        % save indices for locations
+        runs.eutrans.ix = vecfind(runs.rgrid.yr(1,:),loc);%find_approx(runs.rgrid.yr(1,:),loc,1);
+        % save isobath values
+        runs.eutrans.h = ceil(runs.bathy.h(1,runs.eutrans.ix));
+        % find west edge indices
+        iwest = vecfind(runs.eddy.xr(:,1),runs.eddy.we);
+
+        % initialize
+        runs.eutrans.Itrans = nan([tinf length(loc)]);
+        runs.eutrans.nodye.Itrans = nan([tinf length(loc)]);
+
+        % extract streamer mask
+        strmask = reshape(full(runs.streamer.west.mask), runs.streamer.sz4dfull);
+
+        % loop over all isobaths
+        for kk=1:length(loc)
+            % read along-shore section of cross-shore vel.
+            % dimensions = (x/y , z , t )
+            %cs_vel = double(squeeze(ncread(runs.out_file,csvelid, ...
+            %    [1 runs.eutrans.ix(kk) 1 t0],[Inf 1 Inf Inf])));
+            cs_vel = dc_roms_read_data(runs.dir, csvelid, ...
+                [t0 Inf],{runs.bathy.axis runs.eutrans.ix(kk) runs.eutrans.ix(kk)}, ...
+                [],runs.rgrid);
+            mask = nan(size(cs_vel));
+            for tt=1:size(cs_vel,3)
+                mask(1:iwest(tt),:,tt) = 1;
+            end
+            % restrict calculation to region above shelfbreak depth
+            zmask = (abs(squeeze(runs.rgrid.z_r(:,runs.eutrans.ix(kk),:))   )' ...
+                            < runs.bathy.hsb);
+            mask = bsxfun(@times,mask,fillnan(zmask,0));
+
+            runs.eutrans.nodye.trans(:,:,kk) = squeeze(trapz( ...
+                            runs.rgrid.z_r(:,runs.eutrans.ix(kk),1), ...
+                            mask .* cs_vel,2));
+
+            runs.eutrans.nodye.Itrans(t0:tinf,kk) = squeeze(nansum( ...
+                runs.eutrans.nodye.trans(:,:,kk) ...
+                                        .* runs.rgrid.dx,1))';
+
+            % if I have passive tracer info I can calculate transport
+            % using that
+            mask = nan(size(cs_vel));
+            % mark eastern edge as edge of region I'm interested in
+            % removes streamer associated with cyclone running away
+            ieast = vecfind(runs.eddy.xr(:,1),runs.eddy.ee);
+            for tt=1:size(cs_vel,3)
+                mask(1:ieast(tt),:,tt) = 1;
+            end
+
+            mask = bsxfun(@times,mask,fillnan(zmask,0));
+            % dye_01 is always cross-shore dye
+            dye = dc_roms_read_data(runs.dir,runs.csdname, ...
+                [t0 Inf],{runs.bathy.axis runs.eutrans.ix(kk) runs.eutrans.ix(kk)}, ...
+                [],runs.rgrid);
+            dyemask = (dye >= runs.bathy.xsb) & ...
+                        (dye <=(runs.bathy.xsb + distance));
+            mask = mask .* fillnan(dyemask,0);
+            runs.eutrans.trans(:,:,kk) = squeeze(trapz( ...
+                    runs.rgrid.z_r(:,runs.eutrans.ix(kk),1), ...
+                    mask .* cs_vel,2));
+            runs.eutrans.Itrans(t0:tinf,kk) = squeeze(nansum( ...
+                        runs.eutrans.trans(:,:,kk) .* dx,1))';
+
+            % all runs now have passive tracer. I use streamer mask to
+            % calculate transport
+            mask = squeeze(strmask(:,runs.eutrans.ix(kk),:,t0:tinf));
+
+            % (x,t,location)
+            runs.streamer.trans(:,:,kk) = squeeze(trapz( ...
+                    runs.rgrid.z_r(:,runs.eutrans.ix(kk),1), ...
+                    mask .* cs_vel,2));
+            % integrate in x get (t, location)
+            runs.streamer.Itrans(t0:tinf,kk) = squeeze(nansum( ...
+                        runs.streamer.trans(:,:,kk) .* dx,1))';
+        end
+
+        %% plot transport
+
+        figure;
+        subplot(6,1,[1 2])
+        plot(runs.time/86400,runs.eutrans.Itrans/1e6);
+        hold on
+        %plot(runs.rgrid.ocean_time(t0:end)/86400,runs.eutrans.dye.Itrans/1e6,'--');
+        limx = xlim;
+        legend(num2str(runs.eutrans.h'),'Location','NorthWest');
+        ylabel('Eulerian Transport (Sv)');
+        title(['Isobaths in legend | Z < ' num2str(ceil(runs.bathy.hsb)) ' m ' ...
+            '| mean eddy center isobath = '  num2str(mean(hcen)) ' m ' ...
+            '| mean eddy edge isobath = ' num2str(mean(hedge)) 'm']);
+        beautify;
+        subplot(6,1,[3 4 5])
+        plot(runs.time/86400,runs.eutrans.Itrans/1e6,'-');
+        limx = xlim;
+        legend(num2str(runs.eutrans.h'),'Location','NorthWest');
+        ylabel('Dye Transport (Sv)');
+        ylim([-0.05 0.3]); liney(0.1,[])
+        beautify;
+        subplot(6,1,6)
+        [ax,~,~] = plotyy(runs.eddy.t,runs.eddy.prox/1000,runs.eddy.t, ...
+                runs.eddy.hcen);
+        set(ax(1),'XLim',limx);set(ax(2),'XLim',limx);
+        set(ax(1),'XTickLabel',[]); axes(ax(2));
+        set(get(ax(1),'ylabel'),'String','Proximity (km)');
+        set(get(ax(2),'ylabel'),'String','h @ center of eddy');
+        xlabel('Time (days)');
+
+        % throw out locations where dye trans is pretty much zero to
+        % make plot cleaner
+        arr = [1:length(loc)];
+        for kk=1:length(loc)
+            if median(runs.eutrans.Itrans(:,kk)) < 1
+                arr(arr == kk) = [];
+            end
+        end
+        figure
+        plot(runs.time(t0:end)/86400,(runs.eutrans.nodye.Itrans(:,arr) - runs.eutrans.Itrans(:,arr)) ...
+            ./ runs.eutrans.Itrans(:,arr) * 100);
+        ylim([-100 700]); liney(0);
+        legend(num2str(runs.eutrans.h(:,arr)'),'Location','NorthWest');
+        title('percentage over-estimation = (eulerian - dye)/ dye');
+        beautify;
+
+        %% normalized transport plot
+        %xmat = bsxfun(@minus,repmat(runs.rgrid.xr(:,1)/1000,[1 length(runs.rgrid.ocean_time)]), ...
+        %                     runs.eddy.cx/1000);
+        %tmat = repmat(runs.rgrid.ocean_time'/86400,[size(xmat,1) 1]);
+        %plot(xmat,ntrans); linex(0)
+        %disp_plot(runs.eutrans.dye.trans(:,:,4),xmat,runs.rgrid.ocean_time);
+
+        time = runs.time/86400;
+        % normalize by max.
+        mtrans = max(abs(runs.eutrans.dye.trans),[],1);
+        ntrans = bsxfun(@rdivide,runs.eutrans.dye.trans, mtrans);
+        mtrans = squeeze(mtrans);
+
+        scrsz = get(0, 'ScreenSize');
+        figure('Position', [1 scrsz(4) scrsz(3) scrsz(4)]);
+        for kk = 1:size(runs.eutrans.Itrans,2)
+            % figure out eddy edges at latitude of transport calculation
+            emask = fillnan((bsxfun(@times, ...
+                squeeze(abs(diff(runs.eddy.mask(:,runs.eutrans.ix(kk),:),1))), ...
+                [1:size(runs.eddy.mask,1)-1]')'),0)';
+            left = nanmin(emask); right = nanmax(emask);
+            tmask = cut_nan(time' .* fillnan(~isnan(left),0));
+            cmask = cut_nan(runs.eddy.cx/1000 .* fillnan(~isnan(left),0));
+
+            clf;
+            set(gcf,'Renderer','painters')
+            subplot(1,5,[1 2 3]);
+            hold on
+            for ii=1:size(runs.rgrid.ocean_time)
+               plot(runs.rgrid.xr(:,1)/1000 - runs.eddy.cx(ii)/1000, ...
+                   ntrans(:,ii,kk) + time(ii));
+            end
+            xlim([-200 50]);ylim([40 90]);
+            %plot(runs.eddy.ee/1000 - runs.eddy.cx/1000,time,'r*');
+            %plot(runs.eddy.we/1000 - runs.eddy.cx/1000,time,'r*');
+            plot(runs.rgrid.xr(cut_nan(left),1)'/1000 - cmask,tmask,'r*');
+            plot(runs.rgrid.xr(cut_nan(right),1)'/1000 - cmask,tmask,'k*');
+
+            linex(0,'eddy center'); linex(-75);
+            ylabel('Time (days)'); xlabel('X - X_{center}');
+            title(['Normalized Transport (m^2/s) across '  ...
+                num2str(runs.eutrans.h(kk)) 'm isobath | red dots = edges']);
+            beautify([14 14 16]);
+            subplot(154)
+            hold on
+            if kk ~=1
+                plot(mtrans(:,1:kk-1),time,'Color',0.75*[1 1 1]);
+            end
+            if kk ~= size(runs.eutrans.Itrans,2)
+                plot(mtrans(:,kk+1:end),time,'Color',0.75*[1 1 1]);
+            end
+            plot(mtrans(:,kk),time,'b');
+            xlabel('Max. Transport (m^2/day)');
+            ylim([40 90]);xlim([0 40]);
+            beautify([14 14 16]);
+
+            subplot(155)
+            hold on
+            if kk ~=1
+                plot(runs.eutrans.dye.Itrans(:,1:kk-1)/1e6,time,'Color',0.75*[1 1 1]);
+            end
+            if kk ~= size(runs.eutrans.Itrans,2)
+                plot(runs.eutrans.dye.Itrans(:,kk+1:end)/1e6,time,'Color',0.75*[1 1 1]);
+            end
+            plot(runs.eutrans.dye.Itrans(:,kk)/1e6,time,'b');
+            ylim([40 90]);xlabel('Total Transport (Sv)');
+            title(sprintf('Max transport = %.2f Sv',(max(runs.eutrans.dye.Itrans(:,kk)/1e6))));
+            xlim([-0.2 0.2]); linex(0);
+
+            export_fig(sprintf('images/transport/%04d.png',runs.eutrans.h(kk)));
+        end
+
+        %% plotting tests
+%            figure;
+%             clim = [runs.bathy.xsb/1000 runs.bathy.xsb/1000+distance/1000];
+%             rrfac = 7;
+%             for ind = 1:size(runs.eddy.mask,3)
+%                 clf
+%                 subplot(211)
+%                 pcolorcen(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.dye(:,:,ind)/1000); hold on
+%                 dxi = 7; dyi = 7;
+%                 if ~isempty(runs.usurf) && ~isempty(runs.vsurf)
+%                     hq = quiver(runs.eddy.xr(1:dxi:end,1:dyi:end)/1000,runs.eddy.yr(1:dxi:end,1:dyi:end)/1000, ...
+%                         runs.usurf(1:dxi:end,1:dyi:end,ind),runs.vsurf(1:dxi:end,1:dyi:end,ind));
+%                 end
+%                 caxis(clim);
+%                 hold on
+%                 title(['t = ' num2str(runs.rgrid.ocean_time(ind)/86400) ' days']);
+%                 [~,hh] = contour(runs.eddy.xr/1000, runs.eddy.yr/1000,runs.eddy.mask(:,:,ind),1,'k');
+%                 set(hh,'LineWidth',2);
+%                 [~,hz] = contour(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.zeta(:,:,ind),5,'k');
+%                 plot(runs.rgrid.xr/1000,runs.eutrans.trans(:,ind)*10);
+%                 xlim([0 max(runs.rgrid.xr(:))/1000])
+%                 linex(runs.eddy.we(ind)/1000); liney(runs.bathy.xsb/1000,'shelfbreak','b');
+%                 linex(runs.eddy.we(ind)/1000 - rrfac*rr/1000,[num2str(rrfac) ' * RR']);
+%                 linex(runs.eddy.we(ind)/1000 - 50,'center - 50 km');
+%
+%                 subplot(212)
+%                 plot(runs.rgrid.xr/1000,runs.eutrans.trans(:,ind));
+%                 title('Transport (m^2/sec)');
+%                 ylim([floor(min(runs.eutrans.trans(:))) ceil(max(runs.eutrans.trans(:)))]);
+%                 xlim([0 max(runs.rgrid.xr(:))/1000]);linex(runs.eddy.we(ind)/1000);
+%
+%                 linex(runs.eddy.we(ind)/1000 - rrfac*rr/1000,[num2str(rrfac) ' * RR']);
+%                 liney(0);linex(runs.eddy.we(ind)/1000 - 50,'center - 50 km');
+%                 pause
+%             end
+
+    end
+
+    function [] = deprecated_distrib_csz(runs)
         % lets subtract out mean at each z-level to account for near
         % surface and near bottom upwelling.
         % This has to be done after interpolating to constant z-level
