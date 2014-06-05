@@ -1330,9 +1330,7 @@ methods
             csvelid = 'v';
             asvelid = 'u';
             bathyax = 2;
-            loc = sort([runs.bathy.xsb  runs.bathy.xsl...
-                    nanmean(runs.eddy.se(revind:end)) ...
-                    nanmean(runs.eddy.cy(revind:end))]);
+            loc = linspace(runs.bathy.xsb, runs.bathy.xsl, 4);
             indices = vecfind(runs.eddy.yr(1,:),loc);
                 %runs.rgrid.y_rho(vecfind(runs.bathy.h(1,:),[250 1000]),1)']);
         end
@@ -1753,24 +1751,26 @@ methods
         ylabel('mean(inflow 2d vel)');
 
         % jet diagnostics
-        time = runs.time/86400;
-        figure(7);
-        subplot(3,2,1)
-        plot(time, runs.jet.vscale, 'Color', colors(ii,:));
-        ylabel('Max. velocity');
-        subplot(3,2,2)
-        plot(time, runs.jet.zscale, 'Color', colors(ii,:));
-        hold on
-        plot(time, -1*runs.jet.h, 'Color', colors(ii,:), 'LineStyle', ...
-             '-.');
-        ylabel('z-loc of max vel');
-        subplot(323)
-        plot(time, runs.jet.bc, 'Color', colors(ii,:));
-        liney(0);
-        ylabel('Baroclinicity measure');
-        subplot(324)
-        plot(time, runs.jet.yscale, 'Color', colors(ii,:));
-        ylabel('y-loc of max. vel');
+        if isfield('jet', runs)
+            time = runs.time/86400;
+            figure(7);
+            subplot(3,2,1)
+            plot(time, runs.jet.vscale, 'Color', colors(ii,:));
+            ylabel('Max. velocity');
+            subplot(3,2,2)
+            plot(time, runs.jet.zscale, 'Color', colors(ii,:));
+            hold on
+            plot(time, -1*runs.jet.h, 'Color', colors(ii,:), 'LineStyle', ...
+                 '-.');
+            ylabel('z-loc of max vel');
+            subplot(323)
+            plot(time, runs.jet.bc, 'Color', colors(ii,:));
+            liney(0);
+            ylabel('Baroclinicity measure');
+            subplot(324)
+            plot(time, runs.jet.yscale, 'Color', colors(ii,:));
+            ylabel('y-loc of max. vel');
+        end
     end
 
     % this is incomplete
@@ -3978,7 +3978,7 @@ methods
         depthRange = [100 -max(runs.bathy.h(:))];
         timehis = dc_roms_read_data(runs.dir, 'ocean_time', [], {}, ...
                                     [], runs.rgrid, 'his');
-        trange = tind:2:length(timehis);
+        trange = tind:4:length(timehis);
 
         disp(['starting from t instant = ' num2str(trange(1))]);
         runs.vorbudget.hadv = nan(length(trange)-1);
