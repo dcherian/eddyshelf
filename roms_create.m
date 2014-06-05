@@ -1787,8 +1787,11 @@ end
 if flags.wind, cprintf('Red',sprintf('Wind tau0 = %.2e \n\n',wind.tau0)); end
 if flags.eddy,
     fprintf('\n Eddy Parameters: ');
-    fprintf('\n\t\t max. Ro = %.2f | Bu = %.2f | Bu_temp = %.2f | Ri = %.2f | Rh = %.2f\n\n', ....
-                nondim.eddy.Ro,nondim.eddy.Bu,nondim.eddy.Bu_temp,nondim.eddy.Ri,nondim.eddy.Rh);
+    fprintf('\n max. Ro = %.2f | Bu = %.2f | Bu_temp = %.2f | Ri = %.2f | Rh = %.2f | Lsl/R = %.2f | H_sb/H_eddy = %.2f\n\n', ....
+            nondim.eddy.Ro,nondim.eddy.Bu,nondim.eddy.Bu_temp, ...
+            nondim.eddy.Ri,nondim.eddy.Rh, bathy.L_slope/eddy.R, ...
+            nondim.eddy.gamma);
+    
     fprintf('\n Deploy float in center of eddy = (%d,%d) \n\n',eddy.ix,eddy.iy);
 end
 if flags.floats
