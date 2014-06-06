@@ -303,6 +303,11 @@ methods
                                                               runs.csflux.west.shelfwater.trans(:,1,:)) ...
                                                                   > ...
                                                                   0, 0), [], 2);
+                time = runs.csflux.time;
+                dt = [time(2)-time(1) diff(time)];
+                runs.csflux.west.shelfwater.itrans = squeeze(nansum( ...
+                    bsxfun(@times, runs.csflux.west.shelfwater.trans(:,1,:), ...
+                           dt'), 1));
             end
         end
 
@@ -1130,6 +1135,10 @@ methods
                                                               runs.csflux.west.shelfwater.trans(:,1,:)) ...
                                                                   > ...
                                                                   0, 0), [], 2);
+                dt = [time(2)-time(1) diff(time)];
+                runs.csflux.west.shelfwater.itrans = squeeze(nansum( ...
+                    bsxfun(@times, runs.csflux.west.shelfwater.trans(:,1,:), ...
+                           dt'), 1));
             end
             toc;
 
@@ -1537,6 +1546,7 @@ methods
         % shelf water envelope
         if isfield(runs.csflux.west.shelfwater, 'envelope');
             figure(9)
+            subplot(2,1,1)
             hold on
             hline = plot(runs.csflux.time/86400, ...
                          runs.csflux.west.shelfwater.envelope/ runs.rrshelf, ...
@@ -1545,6 +1555,12 @@ methods
             xlabel('Time');
             ylabel({'Location of water parcel farthest from shelfbreak' ...
                     'in terms of shelfbreak rossby radius'})
+
+            subplot(2,1,2)
+            plot(runs.csflux.west.shelfwater.bins/runs.rrshelf, ...
+                 runs.csflux.west.shelfwater.itrans, 'color', colors(ii,:));
+            ylabel('Total volume transported');
+            xlabel('Bin = location / RR_{shelf} ');
         end
     end
 
