@@ -1531,7 +1531,21 @@ methods
         suplabel(runs.dir,'t');
         %        packrows(2,1);
         legend('z-centroid','zdye-centroid', ...
-               'H_{center}/2','f*dia/N','vertical (Gaussian) scale');
+               'H_{center}/2','f*dia/N',['vertical (Gaussian) ' ...
+                            'scale']);
+
+        % shelf water envelope
+        if isfield(runs.csflux.west.shelfwater, 'envelope');
+            figure(9)
+            hold on
+            hline = plot(runs.csflux.time/86400, ...
+                         runs.csflux.west.shelfwater.envelope/ runs.rrshelf, ...
+                         'Color', colors(ii,:));
+            addlegend(hline, runs.name);
+            xlabel('Time');
+            ylabel({'Location of water parcel farthest from shelfbreak' ...
+                    'in terms of shelfbreak rossby radius'})
+        end
     end
 
     % calculate surface vorticity field
