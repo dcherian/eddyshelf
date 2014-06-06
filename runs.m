@@ -1720,7 +1720,7 @@ methods
         clear eddye vormask
 
         disp('cleared memory');
-        
+
         dV = reshape(runs.rgrid.dV(ixm:ixM,iym:iyM,:),sz3dsp);
 
         zdye = reshape(zdye,sz4dsp);
@@ -4172,7 +4172,7 @@ methods
             rvx = diff(rv,1,1)./diff(gridrv.xmat,1,1);
             rvy = diff(rv,1,2)./diff(gridrv.ymat,1,2);
             rvz = diff(rv,1,3)./diff(gridrv.znew,1,3);
-            
+
             str = avg1(-1 * avg1(avg1(bsxfun(@plus, rv, ...
                                              avg1(avg1(runs.rgrid.f',1),2)),1) ...
                                  ,2) .* (ux(:,2:end-1,:,:) + vy(2:end-1,:,:)),3);
