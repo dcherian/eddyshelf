@@ -1005,7 +1005,7 @@ methods
             csvelid = 'v';
             asvelid = 'u';
             bathyax = 2;
-            loc = linspace(runs.bathy.xsb, runs.bathy.xsl, 4);
+            loc = runs.bathy.xsb; %linspace(runs.bathy.xsb, runs.bathy.xsl, 4);
             indices = vecfind(runs.eddy.yr(1,:),loc);
                 %runs.rgrid.y_rho(vecfind(runs.bathy.h(1,:),[250 1000]),1)']);
         end
@@ -1557,6 +1557,7 @@ methods
                     'in terms of shelfbreak rossby radius'})
 
             subplot(2,1,2)
+            hold on;
             plot(runs.csflux.west.shelfwater.bins/runs.rrshelf, ...
                  runs.csflux.west.shelfwater.itrans, 'color', colors(ii,:));
             ylabel('Total volume transported');
