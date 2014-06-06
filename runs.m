@@ -2315,9 +2315,9 @@ methods
             % offshore water
             maskoff = sparse(reshape(csdye > xsl, sz4dsp));
             % slope water
-            masksl  = sparse(reshape(csdye <= xsl & csdye > xsb, sz4dsp));
+            masksl  = sparse(reshape(csdye <= xsl & csdye >= xsb, sz4dsp));
             % shelf water
-            masksh  = sparse(reshape(csdye <= xsb, sz4dsp));
+            masksh  = sparse(reshape(csdye < xsb, sz4dsp));
             % eddy water
             masked  = sparse(reshape(eddye > eddye_thresh, sz4dsp));
             % "mixed water"
