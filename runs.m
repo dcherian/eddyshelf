@@ -1689,15 +1689,22 @@ methods
             permute(runs.eddy.vormask(ixm-1:ixM-1,iym-1:iyM-1,:),[1 2 4 3]) ...
             , [1 1 runs.rgrid.N 1]), sz4dsp));
 
+        % this is the combined mask matrix
+        evormask = eddye .* vormask;
+        clear eddye vormask
+
+        disp('cleared memory');
+        
         dV = reshape(runs.rgrid.dV(ixm:ixM,iym:iyM,:),sz3dsp);
 
         zdye = reshape(zdye,sz4dsp);
 
         % first with vormask
-        zdyevor = zdye .* vormask;
-        zedd = bsxfun(@times, vormask, reshape(permute( ...
+        zdyevor = zdye .* evormask;
+        zedd = bsxfun(@times, evormask, reshape(permute( ...
             runs.rgrid.z_r(:,iym:iyM,ixm:ixM),[3 2 1]), sz3dsp));
-        runs.eddy.vor.vol = full(squeeze(sum(bsxfun(@times,vormask,dV),1))');
+        runs.eddy.vor.vol = full(squeeze(sum(bsxfun(@times, evormask, ...
+                                                    dV),1))');
         runs.eddy.vor.zdcen = runs.domain_integratesp(zdyevor, dV)' ...
                         ./ runs.eddy.vor.vol;
         runs.eddy.vor.zcen = runs.domain_integratesp(zedd,dV)' ...
@@ -1705,6 +1712,7 @@ methods
 
         % then with ssh mask - though really vormask is what i'm looking
         % for
+        %{
         if use_sshmask
             mask = sparse(reshape(repmat( ...
                permute(runs.eddy.mask(ixm-1:ixM-1,iym-1:iyM-1,:),[1 2 4 3]) ...
@@ -1713,7 +1721,8 @@ methods
             runs.eddy.vol = full(squeeze(sum(bsxfun(@times,mask,dV) ,1))');
             runs.eddy.zdcen = runs.domain_integratesp(zdyessh, reshape(dV,sz3dsp))' ...
                            ./ runs.eddy.vol;
-        end
+            end
+         %}
 
         eddy = runs.eddy;
         save([runs.dir '/eddytrack.mat'], 'eddy');
