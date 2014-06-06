@@ -1160,8 +1160,12 @@ methods
         % 86400 since eddy.t is already in days
         eddy.t = eddy.t./ (eddy.tscale/86400);
         ii = num;
-        %       colors = distinguishable_colors(10);
+
+        % line styles, markers & colors
         colors = cbrewer('qual', 'Dark2', 8);
+        linestyle = {'-','--','-.','-'};
+        markers = {'none','none','none','.'};
+
         aa = 6; bb = aa*2;
         tloc = [1:0.5:floor(max(eddy.t))];
         tind = vecfind(eddy.t, tloc);
@@ -1333,8 +1337,6 @@ methods
 
         %% plot water masses
         if isfield(runs.water, 'off')
-            linestyle = {'-','--','-.','-'};
-            markers = {'none','none','none','.'};
             % normalize volumes by initial eddy volume
             if isfield(runs.eddy, 'vol')
                 evol0 = 1;runs.eddy.vol(runs.eddy.tscaleind);
@@ -1411,25 +1413,49 @@ methods
 
         % jet diagnostics
         if isfield('jet', runs)
-            time = runs.time/86400;
+            jtime = runs.time/86400;
             figure(7);
             subplot(3,2,1)
-            plot(time, runs.jet.vscale, 'Color', colors(ii,:));
+            plot(jtime, runs.jet.vscale, 'Color', colors(ii,:));
             ylabel('Max. velocity');
             subplot(3,2,2)
-            plot(time, runs.jet.zscale, 'Color', colors(ii,:));
+            plot(jtime, runs.jet.zscale, 'Color', colors(ii,:));
             hold on
-            plot(time, -1*runs.jet.h, 'Color', colors(ii,:), 'LineStyle', ...
+            plot(jtime, -1*runs.jet.h, 'Color', colors(ii,:), 'LineStyle', ...
                  '-.');
             ylabel('z-loc of max vel');
             subplot(323)
-            plot(time, runs.jet.bc, 'Color', colors(ii,:));
+            plot(jtime, runs.jet.bc, 'Color', colors(ii,:));
             liney(0);
             ylabel('Baroclinicity measure');
             subplot(324)
             plot(time, runs.jet.yscale, 'Color', colors(ii,:));
             ylabel('y-loc of max. vel');
         end
+
+        figure(8);
+        set(gcf, 'Renderer', 'painters');
+        subplot(2,1,1)
+        hold on
+        plot(runs.csflux.time/eddy.tscale, ...
+             runs.csflux.west.shelf(:,1)/1e6, 'Color', colors(ii,:));
+        plot(runs.csflux.time/eddy.tscale, ...
+             runs.csflux.east.slope(:,1)/1e6, 'Color', colors(ii,:), ...
+             'LineStyle', linestyle{2});
+        liney(0);
+        ylabel('Transport (Sv)');
+        legend('West - shelf water', 'East - slope water');
+
+        subplot(2,1,2)
+        hold on
+        plot(eddy.t,eddy.hcen/2, 'Color', colors(ii,:));
+        xlabel('Time (days)');
+        ylabel('Z-scale (m)');
+        %linex(tind);
+        suplabel(runs.dir,'t');
+        %        packrows(2,1);
+        legend('z-centroid','zdye-centroid', ...
+               'H_{center}/2','f*dia/N','vertical (Gaussian) scale');
     end
 
     % calculate surface vorticity field
