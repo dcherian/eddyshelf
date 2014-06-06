@@ -613,7 +613,7 @@ methods
 %         end
 %
         %% eddy upwelling + vertical scale
-        if isfield(runs.eddy.vor,'vol')
+        %if isfield(runs.eddy.vor,'vol')
             figure;
             subplot(211)
             %plot(runs.time/86400,runs.eddy.vor.vol);
@@ -628,9 +628,12 @@ methods
             legend('West - shelf water', 'East - slope water');
 
             subplot(212)
-            plot(runs.time/86400,abs(runs.eddy.vor.zdcen));
             hold all
-            plot(runs.time/86400,abs(runs.eddy.vor.zcen));
+            try
+                plot(runs.time/86400,abs(runs.eddy.vor.zdcen));
+                plot(runs.time/86400,abs(runs.eddy.vor.zcen));
+            catch ME
+            end
             plot(eddy.t,eddy.hcen/2);
             plot(eddy.t, ...
                 runs.params.phys.f0 / sqrt(runs.params.phys.N2) * runs.eddy.Ls*2);
@@ -642,7 +645,7 @@ methods
             packrows(2,1);
             legend('z-centroid','zdye-centroid', ...
                 'H_{center}/2','f*dia/N','vertical (Gaussian) scale');
-        end
+            %end
     end
 
     % study along-shore jet
