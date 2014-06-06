@@ -292,6 +292,18 @@ methods
             runs.csflux = data.csflux;
             runs.asflux = data.asflux;
             clear data
+
+            if ~isfield(runs.csflux.west.shelfwater, 'envelope')
+                disp('Calculating shelfwater envelope');
+                bins = runs.csflux.west.shelfwater.bins;
+                binmat = repmat(bins, ...
+                                [size(runs.csflux.west.shelfwater.trans,1) 1]);
+                runs.csflux.west.shelfwater.envelope = nanmin(binmat .* ...
+                                                              fillnan(squeeze( ...
+                                                              runs.csflux.west.shelfwater.trans(:,1,:)) ...
+                                                                  > ...
+                                                                  0, 0), [], 2);
+            end
         end
 
         % load jet diagnostics if the file exists
