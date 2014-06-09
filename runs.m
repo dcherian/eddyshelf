@@ -20,6 +20,8 @@ properties
     rgrid; bathy
     % float data
     roms; ltrans;
+    % sponge details
+    sponge;
     % eddy track data
     eddy; noeddy;
     % wnoise metric
@@ -130,6 +132,9 @@ methods
             runs.zeta = bsxfun(@minus, runs.zeta, runs.zeta(1,:, ...
                                                             1));
         end
+
+        % read in sponge
+        runs.sponge = ncread(runs.out_file, 'visc2_r') > 0;
 
         % rossby radii
         runs.rrdeep = sqrt(runs.params.phys.N2)*max(runs.bathy.h(:)) ...
