@@ -1117,7 +1117,7 @@ methods
             runs.csflux.eddy(:,:,kk) = squeeze(trapz( ...
                 runs.rgrid.z_r(:,runs.csflux.ix(kk)+1,1), ...
                 eddymask .* csvel,3));
-            
+
             % water mass analysis of fluxes
             tic;
             for mmm = 1:maxrr-1
@@ -2482,6 +2482,7 @@ methods
         toc(ticstart);
 
         time = runs.time/86400;
+
 
         runs.water.comment = [''];
 
