@@ -2353,7 +2353,7 @@ methods
         xsb = runs.bathy.xsb;
         isb = runs.bathy.isb;
 
-        slab = 15; % read 10 at a time
+        slab = 40; % read 10 at a time
 
         sz4dfull = [fliplr(size(runs.rgrid.z_r)) slab];
         sz4dsp = [prod(sz4dfull(1:3)) slab];
@@ -2373,9 +2373,12 @@ methods
         regsl = sparse(reshape(cs <= xsl & cs >= xsb, sz3dsp));
         regsh = sparse(reshape(cs < xsb, sz3dsp));
 
-        dV = reshape(runs.rgrid.dV, sz3dsp);
+        % include sponge filtering in dV
+        % i.e., set dV=0 in sponge region
+        dV = reshape(bsxfun(@times, runs.rgrid.dV, ~runs.sponge), sz3dsp);
 
-        dz = dV ./ runs.rgrid.dx ./ runs.rgrid.dy;
+        % not sure if dz is needed
+        %dz = dV ./ runs.rgrid.dx ./ runs.rgrid.dy;
         xsp = reshape(repmat(runs.rgrid.xr,[1 1 runs.rgrid.N]), sz3dsp);
         ysp = reshape(repmat(runs.rgrid.yr,[1 1 runs.rgrid.N]), sz3dsp);
         zsp = reshape(permute(runs.rgrid.z_r,[3 2 1]), sz3dsp);
@@ -2389,8 +2392,10 @@ methods
                 sz4dfull(end) = tend-tt+1;
                 sz4dsp(end) = tend-tt+1;
             end
-            csdye = dc_roms_read_data(runs.dir,runs.csdname,[tt tend],{},[],runs.rgrid);
-            eddye = dc_roms_read_data(runs.dir,runs.eddname,[tt tend],{},[],runs.rgrid);
+            csdye = dc_roms_read_data(runs.dir,runs.csdname,[tt ...
+                                tend],{},[],runs.rgrid, 'avg', 'single');
+            eddye = dc_roms_read_data(runs.dir,runs.eddname,[tt ...
+                                tend],{},[],runs.rgrid, 'avg', 'single');
             % define water masses
             % offshore water
             maskoff = sparse(reshape(csdye > xsl, sz4dsp));
@@ -2476,19 +2481,15 @@ methods
             % how uniform is the "plume" in the vertical - i.e.,
             % baroclinicity - RMS (tracer) / RMS (depth avg tracer)
 
-
-
         end
         toc(ticstart);
 
         time = runs.time/86400;
-
-
         runs.water.comment = [''];
-
         water = runs.water;
-
-
+        
+        save([runs.dir '/watermass.mat'], 'water');
+        
         %%
         % calculate total classified volume
         if debug
@@ -2510,7 +2511,6 @@ methods
             figure;
             plot(water.totvol - water.classvol);
         end
-        save([runs.dir '/watermass.mat'], 'water');
     end
 
     % eddy bulk properties - integrated PV, RV, volume, energy
