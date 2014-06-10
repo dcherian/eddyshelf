@@ -2497,13 +2497,17 @@ methods
         time = runs.time/86400;
         runs.water.comment = [''];
         water = runs.water;
+
+        water.totvol = sum(dV(:));
+        water.shvol = sum(dV(:) .* full(regsh));
+        water.slvol = sum(dV(:) .* full(regsl));
+        water.dpvol = sum(dV(:) .* full(regdp));
         
         save([runs.dir '/watermass.mat'], 'water');
         
         %%
         % calculate total classified volume
         if debug
-            water.totvol = sum(dV(:));
             masses = fieldnames(runs.water);
             classvol = zeros(size(runs.water.mix.deep));
             for ii=1:length(masses)
