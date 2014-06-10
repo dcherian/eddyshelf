@@ -1072,10 +1072,20 @@ methods
             end
         end
 
+        % sponge mask
+        if runs.bathy.axis == 'y'
+            spongemask = ~runs.sponge(2:end-1,1);
+        else
+            spongemask = ~runs.sponge(1,2:end-1);
+        end
+
         % east and west (w.r.t eddy center) masks
         % use center because export occurs west of the eastern edge
-        westmask = bsxfun(@lt, runs.eddy.xr(:,1), cxi);
-        eastmask = 1 - westmask;
+        westmask = bsxfun(@times, ...
+                          bsxfun(@lt, runs.eddy.xr(:,1), cxi), ...
+                          spongemask);
+        eastmask = bsxfun(@times, 1 - westmask, ...
+                          spongemask);
 
         % loop over all isobaths
         for kk=1:length(loc)
@@ -1106,7 +1116,7 @@ methods
             slopemask = (csdye >= runs.bathy.xsb) & ...
                         (csdye <= runs.bathy.xsl);
             eddymask = eddye > runs.eddy_thresh;
-
+            
             % transports
             runs.csflux.shelf(:,:,kk) = squeeze(trapz( ...
                 runs.rgrid.z_r(:,runs.csflux.ix(kk)+1,1), ...
