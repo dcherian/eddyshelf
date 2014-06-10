@@ -838,6 +838,7 @@ methods
         end
 
         jet = runs.jet;
+        jet.hash  = githash;
         save([runs.dir '/jet.mat'], 'jet');
 
         if debug
@@ -1223,6 +1224,10 @@ methods
         asflux = runs.asflux;
         csflux.time = time;
         asflux.time = time;
+
+        csflux.hash = githash;
+        asflux.hash = githash;
+        
         save([runs.dir '/fluxes.mat'], 'csflux', 'asflux');
     end
 
@@ -1874,7 +1879,8 @@ methods
             end
          %}
 
-        eddy = runs.eddy;
+         eddy = runs.eddy;
+         eddy.hash = githash;
         save([runs.dir '/eddytrack.mat'], 'eddy');
     end
 
@@ -2315,6 +2321,7 @@ methods
         % save to file
         disp('Writing to file');tic;
         streamer = runs.streamer;
+        streamer.hash = githash;
         save([runs.dir '/streamer.mat'],'streamer');
         toc;
     end
@@ -2502,6 +2509,8 @@ methods
         water.shvol = sum(dV(:) .* full(regsh));
         water.slvol = sum(dV(:) .* full(regsl));
         water.dpvol = sum(dV(:) .* full(regdp));
+
+        water.hash = githash;
         
         save([runs.dir '/watermass.mat'], 'water');
         
@@ -2655,6 +2664,8 @@ methods
         eddy.KE = cell2mat(intke);
         eddy.PE = cell2mat(intpe);
 
+        eddy.hash = githash;
+        
         save([runs.dir '/eddytrack.mat'],'eddy');
     end
 
@@ -4428,6 +4439,7 @@ methods
 
 
         vorbudget = runs.vorbudget;
+        vorbudget.hash = githash;
         save([runs.dir '/vorbudget.mat'],'vorbudget');
 
     end
@@ -4803,6 +4815,7 @@ methods
 
 
         vorbudget = runs.vorbudget;
+        vorbudget.hash = githash;
         save([runs.dir '/vorbudget.mat'],'vorbudget');
     end
 
