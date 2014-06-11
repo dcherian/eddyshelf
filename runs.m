@@ -4268,10 +4268,10 @@ methods
             %rhoh = dc_roms_read_data(runs.dir,'rho',tt,{},[],runs.rgrid, ...
             %                         'his');
 
-            ubar = dc_roms_read_data(runs.dir, 'ubar', tt, {}, [], ...
-                                     runs.rgrid, 'his');
-            vbar = dc_roms_read_data(runs.dir, 'vbar', tt, {}, [], ...
-                                     runs.rgrid, 'his');
+            %ubar = dc_roms_read_data(runs.dir, 'ubar', tt, {}, [], ...
+            %                         runs.rgrid, 'his');
+            %vbar = dc_roms_read_data(runs.dir, 'vbar', tt, {}, [], ...
+            %                         runs.rgrid, 'his');
 
             % interpolate to znew depths
             disp('interpolating variables');
@@ -4371,6 +4371,15 @@ methods
             ADV = HADV + VADV;
             BUD = STR + BFRIC + TILT - BETA - ADV;
 
+            % ubar, vbar calculated for depth averaged interval
+            % only
+            ubar = trapz(zrnew, repnan(avg1(u(:,2:end-1,:),1),0), 3) ...
+                         ./ hmat;
+            vbar = trapz(zrnew, repnan(avg1(v(2:end-1,:,:),2),0), ...
+                         3) ./ hmat;
+            ubar(logical(repnan(runs.eddy.vormask(:,:,ceil(tt/2)),0))) = 0;
+            vbar(logical(repnan(runs.eddy.vormask(:,:,ceil(tt/2)),0))) = 0;
+            
             if debug
                 BUD = BUD - DRVDT;
                 imagesc(BUD');
@@ -4396,7 +4405,10 @@ methods
             runs.vorbudget.budget = nansum( BUD(:) .* dV(:) .* ...
                                           hmat(:))./vol;
             
+            limc = [-1 1] * nanmax(abs(ADV(:)));
             limy = [0 150];
+            limx = [xvor(find(~runs.sponge(:,1) == 1, 1, 'first'),1) ...
+                    xvor(find(~runs.sponge(:,1) == 1, 1, 'last'),1)]/1000;
             titlestr = 'Depth integrated rvor';
             % plot
             if kk == 1
@@ -4408,15 +4420,17 @@ methods
                 he(1) = runs.plot_eddy_contour('contour',ceil(tt/2));
                 hbathy = runs.plot_bathy('contour','k');
                 shading flat
-                caxis([-1 1] * nanmax(abs(RV(:)))); colorbar;
-                ylim(limy);
+                caxis([-1 1] * nanmax(abs(RV(:))));
+                colorbar;
+                ylim(limy); xlim(limx);
 
                 ax(2) = subplot(2,4,3);
                 hbet = pcolor(xavg,yavg,-BETA); colorbar; shading flat;
                 he(2) = runs.plot_eddy_contour('contour', ceil(tt/2));
                 hbathy = runs.plot_bathy('contour','k');
-                caxis([-1 1] * nanmax(abs(BETA(:))));
+                caxis(limc/10); %caxis([-1 1] * nanmax(abs(BETA(:))));
                 title('- \beta V');
+                ylim(limy); xlim(limx);
 
                 ax(3) = subplot(2,4,4); cla
                 xran = 1:6:size(xavg,1); yran = 1:4:size(yavg,2);
@@ -4425,7 +4439,7 @@ methods
                 title('(ubar,vbar)');
                 he(3) = runs.plot_eddy_contour('contour', ceil(tt/2));
                 hbathy = runs.plot_bathy('contour','k');
-                ylim(limy);
+                ylim(limy); xlim(limx);
 
 %                 ax(4) = subplot(2,4,5);
 %                 htend = pcolor(xavg,yavg,TEND); colorbar; shading flat;
@@ -4438,14 +4452,14 @@ methods
                 hgadv = pcolor(xavg,yavg,-ADV); colorbar; shading flat;
                 he(5) = runs.plot_eddy_contour('contour', ceil(tt/2));
                 hbathy = runs.plot_bathy('contour','k');
-                caxis([-1 1] * max(abs(ADV(:))));
+                caxis(limc); %caxis([-1 1] * max(abs(ADV(:))));
                 title('-Advection');
 
                 ax(6) = subplot(2,4,8);
                 htilt = pcolor(xavg,yavg,TILT); colorbar; shading flat;
                 he(6) = runs.plot_eddy_contour('contour', ceil(tt/2));
                 hbathy = runs.plot_bathy('contour','k');
-                caxis([-1 1] * max(abs(TILT(:))));
+                caxis(limc/10); %caxis([-1 1] * max(abs(TILT(:))));
                 title('Tilting');
 
                 ax(7) = subplot(2,4,[5 6]);
@@ -4456,7 +4470,7 @@ methods
                 %set(gca,'color',[0 0 0]);
                 he(7) = runs.plot_eddy_contour('contour',ceil(tt/2));
                 hbathy = runs.plot_bathy('contour','k');
-                caxis([-1 1] * max(abs(STR(:))));
+                caxis(limc); %caxis([-1 1] * max(abs(STR(:))));
                 title('Stretching = (f+\xi)w_z')
                 spaceplots(0.06*ones([1 4]),0.05*ones([1 2]))
                 linkaxes(ax,'xy');
@@ -4492,7 +4506,6 @@ methods
         plot(runs.vorbudget.time,runs.vorbudget.budget,'k');
         title('signs so that all terms are on RHS and tendency is LHS');
         legend('hadv','vadv','tilt','str','sol','beta','budget');
-
 
         vorbudget = runs.vorbudget;
         vorbudget.hash = githash;
