@@ -269,6 +269,7 @@ methods
         end
 
         if do_all == 1
+            runs.fluxes;
             runs.water_census;
             runs.jetdetect;
             runs.eddy_bulkproperties;
@@ -288,6 +289,15 @@ methods
             water = load([dir '/watermass.mat'], 'water');
             runs.water = water.water;
             clear water
+        end
+
+        % load vorticity budget data
+          % load water mass data
+        if exist([dir '/vorbudget.mat'],'file') && reset ~= 1
+            disp('Loading vorticity budget');
+            vorbudget = load([dir '/vorbudget.mat'], 'vorbudget');
+            runs.vorbudget = vorbudget.vorbudget;
+            clear vorbudget
         end
 
         % load fluxes if the file exists
