@@ -4214,10 +4214,16 @@ methods
         gridrv.zw = avg1(avg1(avg1(permute(runs.rgrid.z_w,[3 2 1]),1),2),3);
         gridrv.s_w = avg1(runs.rgrid.s_w);
 
-        % for depth integration
+        % for depth integration - banas code
         h = runs.bathy.h(2:end-1,2:end-1);
         csr = runs.rgrid.Cs_r(2:end-1);
         csw = runs.rgrid.Cs_w(2:end-1);
+
+        % for depth-averaging
+        hmax = max(abs(zint)); % max. depth of integration
+        hmat = h .* (h <= hmax) + hmax .* (h > hmax);
+        % add in sponge mask
+        hmat = hmat .* fillnan(~runs.sponge(2:end-1, 2:end-1), 0);
 
         xavg = avg1(avg1(xvor,1),2)/1000; yavg = avg1(avg1(yvor,1),2)/1000;
 
@@ -4232,8 +4238,11 @@ methods
         runs.vorbudget.tilt = runs.vorbudget.hadv;
         runs.vorbudget.str  = runs.vorbudget.hadv;
         runs.vorbudget.beta = runs.vorbudget.hadv;
+        runs.vorbudget.bfric = runs.vorbudget.hadv;
         %runs.vorbudget.sol = runs.vorbudget.hadv;
         runs.vorbudget.budget = runs.vorbudget.hadv;
+        runs.vorbudget.comment = ['hadv + vadv + beta = str + tilt  ' ...
+                            '+ bfric'];
         %runs.vorbudget.conthis = runs.vorbudget.hadv;
         %%
         for kk=1:length(trange)-1
@@ -4244,11 +4253,10 @@ methods
             % read data
             %fname = [runs.dir '/ocean_his.nc.new2'];
             %fname = runs.out_file;
-            %u1 = double(ncread(fname,'u',[1 1 1 tt],[Inf Inf Inf 2]));
-            %v1 = double(ncread(fname,'v',[1 1 1 tt],[Inf Inf Inf 2]));
-            %w  = double(ncread(fname,'w',[1 1 1 tt],[Inf Inf Inf 1]));
+                        %w  = double(ncread(fname,'w',[1 1 1 tt],[Inf Inf Inf 1]));
             %zeta = double(ncread(fname,'zeta',[1 1 tt],[Inf Inf 1]));
 
+            % read in history file data
             uh = dc_roms_read_data(runs.dir,'u',tt,{},[],runs.rgrid, ...
                                   'his');
             vh = dc_roms_read_data(runs.dir,'v',tt,{},[],runs.rgrid, ...
@@ -4313,6 +4321,27 @@ methods
             rvy = diff(rv,1,2)./diff(gridrv.ymat,1,2);
             rvz = diff(rv,1,3)./diff(gridrv.znew,1,3);
 
+            if debug
+                u1h = double(ncread(runs.dir,'u',[1 1 1 tt+1],[Inf Inf Inf 1]));
+                v1h = double(ncread(runs.dir,'v',[1 1 1 tt+1],[Inf Inf ...
+                                    Inf 1]));
+                t1 = double(ncread(runs.dir, 'ocean_time'));
+                
+                u1 = interpolate(u1h, gridu.zmat, zrnew);
+                v1 = interpolate(v1h, gridv.zmat, zrnew);
+
+                u1y = diff(u1,1,2)./diff(gridu.ymat,1,2);
+                v1x = diff(v1,1,1)./diff(gridv.xmat,1,1);
+
+                rv1 = v1x-u1y;
+
+                % calculate term and average to agree with 'budget' size
+                drvdt = avg1(avg1(avg1( ...
+                    (rv1-rv)./(t1(tt+1)-t1(tt)), 1), 2), 3);
+
+                DRVDT = trapz(zint, repnan(drvdt, 0), 3)./hmat;
+            end
+            
             str = avg1(-1 * avg1(avg1(bsxfun(@plus, rv, ...
                                              avg1(avg1(runs.rgrid.f',1),2)),1) ...
                                  ,2) .* (ux(:,2:end-1,:,:) + vy(2:end-1,:,:)),3);
@@ -4330,36 +4359,62 @@ methods
           %          ( avg1(rx,2) .* avg1(zy,1) - avg1(ry,1) .* avg1(zx,2));
 
             zint = avg1(zrnew);
-            RV   = trapz(zrnew, repnan(rv,0), 3);
-            STR  = trapz(zint, repnan(str,0), 3);
-            TILT = trapz(zint, repnan(tilt,0), 3);
-            BETA = trapz(zint, repnan(beta,0), 3);
-            HADV = trapz(zint, repnan(hadv,0), 3);
-            VADV = trapz(zint, repnan(vadv,0), 3);
+            RV   = avg1(avg1(trapz(zrnew, repnan(rv,0), 3),1), 2) ...
+                   ./ hmat;
+            STR  = trapz(zint, repnan(str,0), 3) ./ hmat;
+            BFRIC = -runs.params.misc.rdrg * RV ./ hmat;
+            TILT = trapz(zint, repnan(tilt,0), 3) ./ hmat;
+            BETA = trapz(zint, repnan(beta,0), 3) ./ hmat;
+            HADV = trapz(zint, repnan(hadv,0), 3) ./ hmat;
+            VADV = trapz(zint, repnan(vadv,0), 3) ./ hmat;
             ADV = HADV + VADV;
+            BUD = STR + BFRIC + TILT - BETA - ADV;
 
-            BUD = trapz(zint, repnan( str+tilt - beta - hadv -vadv,0), 3);
-
+            if debug
+                BUD = BUD - DRVDT;
+                imagesc(BUD');
+            end
+            %BUD = trapz(zint, repnan( str+tilt - beta - hadv -vadv,0), 3);
+            
+            % save volume averaged quantities
+            dV = 1./runs.rgrid.pm(2:end-1,2:end-1)' .* 1./runs.rgrid.pn(2:end-1, 2:end-1)' ...
+                 .* hmat;
+            vol = nansum(dV(:));
+            runs.vorbudget.hadv = nansum( HADV(:) .* dV(:) .* ...
+                                          hmat(:))./vol;
+            runs.vorbudget.vadv = nansum( VADV(:) .* dV(:) .* ...
+                                          hmat(:))./vol;
+            runs.vorbudget.tilt = nansum( TILT(:) .* dV(:) .* ...
+                                          hmat(:))./vol;
+            runs.vorbudget.str = nansum( STR(:) .* dV(:) .* ...
+                                          hmat(:))./vol;
+            runs.vorbudget.beta = nansum( BETA(:) .* dV(:) .* ...
+                                          hmat(:))./vol;
+            runs.vorbudget.bfric = nansum( BFRIC(:) .* dV(:) .* ...
+                                          hmat(:))./vol;
+            runs.vorbudget.budget = nansum( BUD(:) .* dV(:) .* ...
+                                          hmat(:))./vol;
+            
             limy = [0 150];
             titlestr = 'Depth integrated rvor';
             % plot
             if kk == 1
                 figure; maximize();
                 ax(1) = subplot(2,4,[1:2]);
-                hvor = pcolor(xvor/1000,yvor/1000,RV); hold on; shading flat;
+                hvor = pcolor(xavg, yavg, RV); hold on; shading flat;
                 axis image;
-                ht = runs.set_title('Depth int rvor', floor(tt/2));
-                he(1) = runs.plot_eddy_contour('contour',floor(tt/2));
+                ht = runs.set_title('Depth int rvor', ceil(tt/2));
+                he(1) = runs.plot_eddy_contour('contour',ceil(tt/2));
                 hbathy = runs.plot_bathy('contour','k');
                 shading flat
-                caxis([-1 1] * max(abs(RV(:)))); colorbar;
+                caxis([-1 1] * nanmax(abs(RV(:)))); colorbar;
                 ylim(limy);
 
                 ax(2) = subplot(2,4,3);
                 hbet = pcolor(xavg,yavg,-BETA); colorbar; shading flat;
-                he(2) = runs.plot_eddy_contour('contour', floor(tt/2));
+                he(2) = runs.plot_eddy_contour('contour', ceil(tt/2));
                 hbathy = runs.plot_bathy('contour','k');
-                caxis([-1 1] * max(abs(BETA(:))));
+                caxis([-1 1] * nanmax(abs(BETA(:))));
                 title('- \beta V');
 
                 ax(3) = subplot(2,4,4); cla
@@ -4367,27 +4422,27 @@ methods
                 hquiv = quiver(xavg(xran,yran),yavg(xran,yran), ...
                         ubar(xran,yran), vbar(xran,yran),1.5);
                 title('(ubar,vbar)');
-                he(3) = runs.plot_eddy_contour('contour', floor(tt/2));
+                he(3) = runs.plot_eddy_contour('contour', ceil(tt/2));
                 hbathy = runs.plot_bathy('contour','k');
                 ylim(limy);
 
 %                 ax(4) = subplot(2,4,5);
 %                 htend = pcolor(xavg,yavg,TEND); colorbar; shading flat;
-%                 he(4) = runs.plot_eddy_contour('contour', floor(tt/2));
+%                 he(4) = runs.plot_eddy_contour('contour', ceil(tt/2));
 %                 hbathy = runs.plot_bathy('contour','k');
 %                 caxis([-1 1] * max(abs(TEND(:))));
 %                 title('d\xi/dt');
 
                 ax(5) = subplot(2,4,7);
                 hgadv = pcolor(xavg,yavg,-ADV); colorbar; shading flat;
-                he(5) = runs.plot_eddy_contour('contour', floor(tt/2));
+                he(5) = runs.plot_eddy_contour('contour', ceil(tt/2));
                 hbathy = runs.plot_bathy('contour','k');
                 caxis([-1 1] * max(abs(ADV(:))));
                 title('-Advection');
 
                 ax(6) = subplot(2,4,8);
                 htilt = pcolor(xavg,yavg,TILT); colorbar; shading flat;
-                he(6) = runs.plot_eddy_contour('contour', floor(tt/2));
+                he(6) = runs.plot_eddy_contour('contour', ceil(tt/2));
                 hbathy = runs.plot_bathy('contour','k');
                 caxis([-1 1] * max(abs(TILT(:))));
                 title('Tilting');
@@ -4398,7 +4453,7 @@ methods
                 %    ubar(xran,yran),vbar(xran,yran),0.3,STR(xran,yran), ...
                 %    [-1 1]*1e-11);
                 %set(gca,'color',[0 0 0]);
-                he(7) = runs.plot_eddy_contour('contour',floor(tt/2));
+                he(7) = runs.plot_eddy_contour('contour',ceil(tt/2));
                 hbathy = runs.plot_bathy('contour','k');
                 caxis([-1 1] * max(abs(STR(:))));
                 title('Stretching = (f+\xi)w_z')
@@ -4418,8 +4473,8 @@ methods
                 catch ME
                 end
 
-                runs.update_eddy_contour(he,floor(tt/2));
-                runs.update_title(ht,titlestr,floor(tt/2));
+                runs.update_eddy_contour(he,ceil(tt/2));
+                runs.update_title(ht,titlestr,ceil(tt/2));
                 runs.video_update();
                 pause(0.01);
             end
