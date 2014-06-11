@@ -4165,6 +4165,8 @@ methods
         zwnew = unique([linspace(zmin, -1*runs.bathy.hsb, 70) ...
                         linspace(-1*runs.bathy.hsb, zmax-0.01, 36)]');
         zrnew = avg1(zwnew);
+        % for integrating quantities later
+        zint = avg1(zrnew);
 
         % prepare grids for differentiation
         xvor = avg1(avg1(runs.rgrid.xr,1),2);
@@ -4358,7 +4360,6 @@ methods
           %  sol = -runs.params.phys.g/runs.params.phys.rho0 .* ...
           %          ( avg1(rx,2) .* avg1(zy,1) - avg1(ry,1) .* avg1(zx,2));
 
-            zint = avg1(zrnew);
             RV   = avg1(avg1(trapz(zrnew, repnan(rv,0), 3),1), 2) ...
                    ./ hmat;
             STR  = trapz(zint, repnan(str,0), 3) ./ hmat;
