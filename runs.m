@@ -833,7 +833,7 @@ methods
             % max. along-shore velocity i.e., jet.zscale(tind)
             ynew = yu(:,1);
             znew = ones(size(ynew)) .* runs.jet.zscale(tind);
-            F = scatteredInterpolant(yu(:), zu(:), uvel(:));
+            F = scatteredInterpolant(yu(:), zu(:), double(uvel(:)));
             unew = F(ynew, znew);
             % calculate auto-covariance, find first zero crossing
             % and multiply by 4 to get width
@@ -2610,7 +2610,7 @@ methods
 
             masked  = sparse(reshape(eddye > thresh, sz));
             maskvor = sparse(reshape( repmat( ...
-                    permute(vormask(:,:,tt:tend), [1 2 4 3]), ...
+                    permute(logical(repnan(vormask(:,:,tt:tend), 0)), [1 2 4 3]), ...
                     [1 1 N 1]), sz));
 
             %vol{tt} = runs.domain_integratesp(masked.*maskvor, dVsp);
@@ -2631,27 +2631,27 @@ methods
                     [tt tend],{'x' 2 sz4dfull(1)+1; 'y' 2 sz4dfull(2)+1}, ...
                     [], rgrid, [], 'single');
 
-            pe = - runs.params.phys.TCOEF* bsxfun(@times, ...
+            pe = double(- runs.params.phys.TCOEF* bsxfun(@times, ...
                         bsxfun(@minus, temp, tback), zr)  ...
-                    .* runs.params.phys.g;
+                    .* runs.params.phys.g);
 
             intpe{mm} = full(nansum( bsxfun(@times, ...
                         masked.*maskvor.*reshape(pe, sz), dVsp)));
 
             intke{mm} = full(nansum( bsxfun(@times, ...
-                    masked.*maskvor.*reshape(0.5 * (u.^2 + v.^2), sz), dVsp)));
+                    masked.*maskvor.*reshape(0.5 * double(u.^2 + v.^2), sz), dVsp)));
 
             % integrated PV, RV
             if dopv
                 disp('Reading pv, rv');
-                pv = single(ncread(pvname, 'pv',[1 1 1 tt],[Inf Inf Inf tend-tt+1])); %#ok<*PROP>
-                rv = single(avg1(avg1(ncread(pvname, 'rv',[1 1 1 tt], ...
+                pv = double(ncread(pvname, 'pv',[1 1 1 tt],[Inf Inf Inf tend-tt+1])); %#ok<*PROP>
+                rv = double(avg1(avg1(ncread(pvname, 'rv',[1 1 1 tt], ...
                             [Inf Inf Inf tend-tt+1]),1),2));
                 % pv,rv are at N-1 levels in vertical, so we need
                 % to calculate masks again
                 masked  = sparse(reshape(avg1(eddye,3) > thresh, szpv));
                 maskvor = sparse(reshape( repmat( ...
-                            permute(vormask(:,:,tt:tend), [1 2 4 3]), ...
+                            permute(logical(vormask(:,:,tt:tend)), [1 2 4 3]), ...
                             [1 1 N-1 1]), szpv));
 
                 intpv{mm} = full(nansum( bsxfun(@times, ....
