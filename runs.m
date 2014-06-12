@@ -2371,7 +2371,7 @@ methods
         eddye_thresh = runs.eddy_thresh;
 
         % check classified vol against total volume
-        debug = 1;
+        debug = 0;
 
         % my region boundaries are based on location of shelfbreak and
         % slopebreak. Let's make it easy.
@@ -2435,6 +2435,15 @@ methods
             % "mixed water"
             maskmix = sparse(reshape(eddye <= eddye_thresh & eddye > 0.01,sz4dsp));
 
+            % shift in water parcels
+            %dcsmask = reshape(bsxfun(@minus, csdye, cs), sz4dsp)/ ...
+            %          1000;
+            %dcsmask = dcsmask .* (abs(dcsmask)<0.5);
+
+            %cssh =  (dcsmask .* full(masksh)) > 0;
+            %masksl(cssh) = 1;
+            
+            
             % the eddy's velocity field mixes up csdye and makes it look
             % like slope water?
             % in any case i want all 5 to add up to total volume, so let's
