@@ -4400,19 +4400,19 @@ methods
             dV = 1./runs.rgrid.pm(2:end-1,2:end-1)' .* 1./runs.rgrid.pn(2:end-1, 2:end-1)' ...
                  .* hmat;
             vol = nansum(dV(:));
-            runs.vorbudget.hadv = nansum( HADV(:) .* dV(:) .* ...
+            runs.vorbudget.hadv(kk) = nansum( HADV(:) .* dV(:) .* ...
                                           hmat(:))./vol;
-            runs.vorbudget.vadv = nansum( VADV(:) .* dV(:) .* ...
+            runs.vorbudget.vadv(kk) = nansum( VADV(:) .* dV(:) .* ...
                                           hmat(:))./vol;
-            runs.vorbudget.tilt = nansum( TILT(:) .* dV(:) .* ...
+            runs.vorbudget.tilt(kk) = nansum( TILT(:) .* dV(:) .* ...
                                           hmat(:))./vol;
-            runs.vorbudget.str = nansum( STR(:) .* dV(:) .* ...
+            runs.vorbudget.str(kk) = nansum( STR(:) .* dV(:) .* ...
                                           hmat(:))./vol;
-            runs.vorbudget.beta = nansum( BETA(:) .* dV(:) .* ...
+            runs.vorbudget.beta(kk) = nansum( BETA(:) .* dV(:) .* ...
                                           hmat(:))./vol;
-            runs.vorbudget.bfric = nansum( BFRIC(:) .* dV(:) .* ...
+            runs.vorbudget.bfric(kk) = nansum( BFRIC(:) .* dV(:) .* ...
                                           hmat(:))./vol;
-            runs.vorbudget.budget = nansum( BUD(:) .* dV(:) .* ...
+            runs.vorbudget.budget(kk) = nansum( BUD(:) .* dV(:) .* ...
                                           hmat(:))./vol;
             
             limc = [-1 1] * nanmax(abs(ADV(:)));
@@ -4435,11 +4435,19 @@ methods
                 ylim(limy); xlim(limx);
 
                 ax(2) = subplot(2,4,3);
-                hbet = pcolor(xavg,yavg,-BETA); colorbar; shading flat;
+
+                if runs.params.misc.rdrg == 0
+                    hbet = pcolor(xavg,yavg,-BETA);
+                    title('- \beta V');
+                else
+                    hbet = pcolor(xavg, yavg, BFRIC);
+                    title('Bottom Friction');
+                end
+                colorbar; shading flat;
                 he(2) = runs.plot_eddy_contour('contour', ceil(tt/2));
                 hbathy = runs.plot_bathy('contour','k');
-                caxis(limc/10); %caxis([-1 1] * nanmax(abs(BETA(:))));
-                title('- \beta V');
+                caxis(limc); %caxis([-1 1] * nanmax(abs(BETA(:))));
+                
                 ylim(limy); xlim(limx);
 
                 ax(3) = subplot(2,4,4); cla
@@ -4489,7 +4497,11 @@ methods
             else
                 set(hvor ,'cdata',RV);
                 set(hgadv ,'cdata',-ADV);
-                set(hbet ,'cdata',-BETA);
+                if runs.params.misc.rdrg == 0
+                    set(hbet ,'cdata',-BETA);
+                else
+                    set(hbet, 'cdata', BFRIC);
+                end
                 set(hstr ,'cdata',STR);
                 set(htilt,'cdata',TILT);
                 %set(htend,'cdata',TEND);
@@ -4506,12 +4518,12 @@ methods
         end
         runs.video_write();
 
-        runs.vorbudget.time = runs.time(trange(1:end-1));
+        runs.vorbudget.time = timehis(trange(1:end-1));
         plot(runs.vorbudget.time,-runs.vorbudget.hadv,'r'); hold on
         plot(runs.vorbudget.time,-runs.vorbudget.vadv,'g');
         plot(runs.vorbudget.time,runs.vorbudget.tilt,'b');
         plot(runs.vorbudget.time,runs.vorbudget.str,'c');
-        plot(runs.vorbudget.time,runs.vorbudget.sol,'m');
+        %plot(runs.vorbudget.time,runs.vorbudget.sol,'m');
         plot(runs.vorbudget.time,-runs.vorbudget.beta,'y');
         plot(runs.vorbudget.time,runs.vorbudget.budget,'k');
         title('signs so that all terms are on RHS and tendency is LHS');
