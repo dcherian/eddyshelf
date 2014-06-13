@@ -688,8 +688,13 @@ if flags.eddy
     eddy.dia = 2 * sqrt(eddy.Bu) * eddy.Ldef;
 
     % check for consistency, just in case
-    factor = 1/sqrt(eddy.Bu) * eddy.dia/2 / bathy.L_slope * pi/ ...
-             bathy.S_sl - sqrt(N2)*bathy.hsb/pi/f0/eddy.Ldef;
+    if ~flags.flat_bottom
+        factor = 1/sqrt(eddy.Bu) * eddy.dia/2 / bathy.L_slope * pi/ ...
+                 bathy.S_sl - sqrt(N2)*bathy.hsb/pi/f0/eddy.Ldef;
+    else
+        factor = 1;
+    end
+    
     if factor > 1.05 || factor < 0.95
         error([' pi/S_sl * Le/Lsl * 1/sqrt(Bu) = ' ...
                 num2str(factor)]);
