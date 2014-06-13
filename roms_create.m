@@ -794,7 +794,7 @@ if flags.eddy
     if flags.vprof_gaussian
         eddy.zprof = exp(-(eddy.z ./ eddy.depth) .^ 2);
     else % energy in barotropic and BC1 mode
-        eddy.zprof = (1+sin((- eddy.z)/Z * pi + eddy.theta0))/2;
+        eddy.zprof = abs((cos((- eddy.z)/Z * pi + eddy.theta0)));
         eddy.depth = Z/2;
     end
     %eddy.zprof = eddy.zprof./trapz(eddy.z,eddy.zprof);
