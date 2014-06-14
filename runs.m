@@ -4166,7 +4166,7 @@ methods
 
     end
 
-    function [] = animate_vorbudget(runs,tind)
+    function [] = animate_vorbudget(runs,tind, plotflag)
         if ~exist('tind','var')
             tind = 1;
         end
@@ -4175,6 +4175,10 @@ methods
 %             end
 
         runs.video_init('vor');
+
+        if ~exist('plotflag', 'var')
+            plotflag = 1;
+        end
 
         debug = 0;
 
@@ -4423,111 +4427,117 @@ methods
                                           hmat(:))./vol;
             runs.vorbudget.budget(kk) = nansum( BUD(:) .* dV(:) .* ...
                                           hmat(:))./vol;
-            
-            limc = [-1 1] * nanmax(abs(ADV(:)));
-            limy = [0 150];
-            limx = [xvor(find(~runs.sponge(:,1) == 1, 1, 'first'),1) ...
-                    xvor(find(~runs.sponge(:,1) == 1, 1, 'last'),1)]/1000;
-            titlestr = 'Depth integrated rvor';
-            % plot
-            if kk == 1
-                figure; maximize();
-                ax(1) = subplot(2,4,[1:2]);
-                hvor = pcolor(xavg, yavg, RV); hold on; shading flat;
-                axis image;
-                ht = runs.set_title('Depth int rvor', ceil(tt/2));
-                he(1) = runs.plot_eddy_contour('contour',ceil(tt/2));
-                hbathy = runs.plot_bathy('contour','k');
-                shading flat
-                caxis([-1 1] * nanmax(abs(RV(:))));
-                colorbar;
-                ylim(limy); xlim(limx);
 
-                ax(2) = subplot(2,4,3);
-
-                if runs.params.misc.rdrg == 0
-                    hbet = pcolor(xavg,yavg,-BETA);
-                    title('- \beta V');
+            if plotflag
+                limc = [-1 1] * nanmax(abs(ADV(:)));
+                limy = [0 150];
+                limx = [xvor(find(~runs.sponge(:,1) == 1, 1, 'first'),1) ...
+                        xvor(find(~runs.sponge(:,1) == 1, 1, 'last'),1)]/1000;
+                titlestr = 'Depth integrated rvor';
+                % plot
+                if kk == 1
+                    figure; maximize();
+                    ax(1) = subplot(2,4,[1:2]);
+                    hvor = pcolor(xavg, yavg, RV); hold on; shading flat;
+                    axis image;
+                    ht = runs.set_title('Depth int rvor', ceil(tt/2));
+                    he(1) = runs.plot_eddy_contour('contour',ceil(tt/2));
+                    hbathy = runs.plot_bathy('contour','k');
+                    shading flat
+                    caxis([-1 1] * nanmax(abs(RV(:))));
+                    colorbar;
+                    ylim(limy); xlim(limx);
+                    
+                    ax(2) = subplot(2,4,3);
+                    
+                    if runs.params.misc.rdrg == 0
+                        hbet = pcolor(xavg,yavg,-BETA);
+                        title('- \beta V');
+                    else
+                        hbet = pcolor(xavg, yavg, BFRIC);
+                        title('Bottom Friction');
+                    end
+                    colorbar; shading flat;
+                    he(2) = runs.plot_eddy_contour('contour', ceil(tt/2));
+                    hbathy = runs.plot_bathy('contour','k');
+                    caxis(limc); %caxis([-1 1] * nanmax(abs(BETA(:))));
+                    
+                    ylim(limy); xlim(limx);
+                    
+                    ax(3) = subplot(2,4,4); cla
+                    xran = 1:6:size(xavg,1); yran = 1:4:size(yavg,2);
+                    hquiv = quiver(xavg(xran,yran),yavg(xran,yran), ...
+                                   ubar(xran,yran), vbar(xran,yran),1.5);
+                    title('(ubar,vbar)');
+                    he(3) = runs.plot_eddy_contour('contour', ceil(tt/2));
+                    hbathy = runs.plot_bathy('contour','k');
+                    ylim(limy); xlim(limx);
+                    
+                    %                 ax(4) = subplot(2,4,5);
+                    %                 htend = pcolor(xavg,yavg,TEND); colorbar; shading flat;
+                    %                 he(4) = runs.plot_eddy_contour('contour', ceil(tt/2));
+                    %                 hbathy = runs.plot_bathy('contour','k');
+                    %                 caxis([-1 1] * max(abs(TEND(:))));
+                    %                 title('d\xi/dt');
+                    
+                    ax(5) = subplot(2,4,7);
+                    hgadv = pcolor(xavg,yavg,-ADV); colorbar; shading flat;
+                    he(5) = runs.plot_eddy_contour('contour', ceil(tt/2));
+                    hbathy = runs.plot_bathy('contour','k');
+                    caxis(limc); %caxis([-1 1] * max(abs(ADV(:))));
+                    title('-Advection');
+                    
+                    ax(6) = subplot(2,4,8);
+                    htilt = pcolor(xavg,yavg,TILT); colorbar; shading flat;
+                    he(6) = runs.plot_eddy_contour('contour', ceil(tt/2));
+                    hbathy = runs.plot_bathy('contour','k');
+                    caxis(limc/10); %caxis([-1 1] * max(abs(TILT(:))));
+                    title('Tilting');
+                    
+                    ax(7) = subplot(2,4,[5 6]);
+                    hstr = pcolor(xavg,yavg,STR); colorbar; hold on; shading flat;
+                    %hquiv = quiverclr(xavg(xran,yran),yavg(xran,yran), ...
+                    %    ubar(xran,yran),vbar(xran,yran),0.3,STR(xran,yran), ...
+                    %    [-1 1]*1e-11);
+                    %set(gca,'color',[0 0 0]);
+                    he(7) = runs.plot_eddy_contour('contour',ceil(tt/2));
+                    hbathy = runs.plot_bathy('contour','k');
+                    caxis(limc); %caxis([-1 1] * max(abs(STR(:))));
+                    title('Stretching = (f+\xi)w_z')
+                    spaceplots(0.06*ones([1 4]),0.05*ones([1 2]))
+                    linkaxes(ax,'xy');
+                    runs.video_update();
+                    pause();
                 else
-                    hbet = pcolor(xavg, yavg, BFRIC);
-                    title('Bottom Friction');
+                    set(hvor ,'cdata',RV);
+                    set(hgadv ,'cdata',-ADV);
+                    if runs.params.misc.rdrg == 0
+                        set(hbet ,'cdata',-BETA);
+                    else
+                        set(hbet, 'cdata', BFRIC);
+                    end
+                    set(hstr ,'cdata',STR);
+                    set(htilt,'cdata',TILT);
+                    %set(htend,'cdata',TEND);
+                    try
+                        set(hquiv,'udata',ubar(xran,yran),'vdata',vbar(xran,yran));
+                    catch ME
+                    end
+                    
+                    runs.update_eddy_contour(he,ceil(tt/2));
+                    runs.update_title(ht,titlestr,ceil(tt/2));
+                    runs.video_update();
+                    pause(0.01);
                 end
-                colorbar; shading flat;
-                he(2) = runs.plot_eddy_contour('contour', ceil(tt/2));
-                hbathy = runs.plot_bathy('contour','k');
-                caxis(limc); %caxis([-1 1] * nanmax(abs(BETA(:))));
-                
-                ylim(limy); xlim(limx);
-
-                ax(3) = subplot(2,4,4); cla
-                xran = 1:6:size(xavg,1); yran = 1:4:size(yavg,2);
-                hquiv = quiver(xavg(xran,yran),yavg(xran,yran), ...
-                        ubar(xran,yran), vbar(xran,yran),1.5);
-                title('(ubar,vbar)');
-                he(3) = runs.plot_eddy_contour('contour', ceil(tt/2));
-                hbathy = runs.plot_bathy('contour','k');
-                ylim(limy); xlim(limx);
-
-%                 ax(4) = subplot(2,4,5);
-%                 htend = pcolor(xavg,yavg,TEND); colorbar; shading flat;
-%                 he(4) = runs.plot_eddy_contour('contour', ceil(tt/2));
-%                 hbathy = runs.plot_bathy('contour','k');
-%                 caxis([-1 1] * max(abs(TEND(:))));
-%                 title('d\xi/dt');
-
-                ax(5) = subplot(2,4,7);
-                hgadv = pcolor(xavg,yavg,-ADV); colorbar; shading flat;
-                he(5) = runs.plot_eddy_contour('contour', ceil(tt/2));
-                hbathy = runs.plot_bathy('contour','k');
-                caxis(limc); %caxis([-1 1] * max(abs(ADV(:))));
-                title('-Advection');
-
-                ax(6) = subplot(2,4,8);
-                htilt = pcolor(xavg,yavg,TILT); colorbar; shading flat;
-                he(6) = runs.plot_eddy_contour('contour', ceil(tt/2));
-                hbathy = runs.plot_bathy('contour','k');
-                caxis(limc/10); %caxis([-1 1] * max(abs(TILT(:))));
-                title('Tilting');
-
-                ax(7) = subplot(2,4,[5 6]);
-                hstr = pcolor(xavg,yavg,STR); colorbar; hold on; shading flat;
-                %hquiv = quiverclr(xavg(xran,yran),yavg(xran,yran), ...
-                %    ubar(xran,yran),vbar(xran,yran),0.3,STR(xran,yran), ...
-                %    [-1 1]*1e-11);
-                %set(gca,'color',[0 0 0]);
-                he(7) = runs.plot_eddy_contour('contour',ceil(tt/2));
-                hbathy = runs.plot_bathy('contour','k');
-                caxis(limc); %caxis([-1 1] * max(abs(STR(:))));
-                title('Stretching = (f+\xi)w_z')
-                spaceplots(0.06*ones([1 4]),0.05*ones([1 2]))
-                linkaxes(ax,'xy');
-                runs.video_update();
-                pause();
-            else
-                set(hvor ,'cdata',RV);
-                set(hgadv ,'cdata',-ADV);
-                if runs.params.misc.rdrg == 0
-                    set(hbet ,'cdata',-BETA);
-                else
-                    set(hbet, 'cdata', BFRIC);
-                end
-                set(hstr ,'cdata',STR);
-                set(htilt,'cdata',TILT);
-                %set(htend,'cdata',TEND);
-                try
-                    set(hquiv,'udata',ubar(xran,yran),'vdata',vbar(xran,yran));
-                catch ME
-                end
-
-                runs.update_eddy_contour(he,ceil(tt/2));
-                runs.update_title(ht,titlestr,ceil(tt/2));
-                runs.video_update();
-                pause(0.01);
-            end
+            end            
         end
-        runs.video_write();
 
+        if plotflag
+            runs.video_write();
+        end
         runs.vorbudget.time = timehis(trange(1:end-1));
+
+        figure;
         plot(runs.vorbudget.time,-runs.vorbudget.hadv,'r'); hold on
         plot(runs.vorbudget.time,-runs.vorbudget.vadv,'g');
         plot(runs.vorbudget.time,runs.vorbudget.tilt,'b');
