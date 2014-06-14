@@ -4291,6 +4291,8 @@ methods
         %%
         for kk=1:length(trange)-1
             tt = trange(kk);
+            disp(['kk = ' num2str(kk) '/' num2str(length(trange)-1) ...
+                  ' | tt = ' num2str(tt) ' days | plotflag = ' num2str(plotflag)]);
             %zeta = runs.zeta(2:end-1,2:end-1,tt);
             zeta = dc_roms_read_data(runs.dir, 'zeta', tt, {}, [], ...
                                      runs.rgrid, 'his');
