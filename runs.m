@@ -1127,7 +1127,7 @@ methods
             slopemask = (csdye >= runs.bathy.xsb) & ...
                         (csdye <= runs.bathy.xsl);
             eddymask = eddye > runs.eddy_thresh;
-            
+
             % transports
             runs.csflux.shelf(:,:,kk) = squeeze(trapz( ...
                 runs.rgrid.z_r(:,runs.csflux.ix(kk)+1,1), ...
@@ -1237,7 +1237,7 @@ methods
 
         csflux.hash = githash;
         asflux.hash = githash;
-        
+
         save([runs.dir '/fluxes.mat'], 'csflux', 'asflux');
     end
 
@@ -2442,8 +2442,8 @@ methods
 
             %cssh =  (dcsmask .* full(masksh)) > 0;
             %masksl(cssh) = 1;
-            
-            
+
+
             % the eddy's velocity field mixes up csdye and makes it look
             % like slope water?
             % in any case i want all 5 to add up to total volume, so let's
@@ -2530,9 +2530,9 @@ methods
         water.dpvol = sum(dV(:) .* full(regdp));
 
         water.hash = githash;
-        
+
         save([runs.dir '/watermass.mat'], 'water');
-        
+
         %%
         % calculate total classified volume
         if debug
@@ -2684,7 +2684,7 @@ methods
         eddy.PE = cell2mat(intpe);
 
         eddy.hash = githash;
-        
+
         save([runs.dir '/eddytrack.mat'],'eddy');
     end
 
@@ -4284,7 +4284,7 @@ methods
         runs.vorbudget.shelf.tilt = runs.vorbudget.hadv;
         runs.vorbudget.shelf.beta = runs.vorbudget.hadv;
         runs.vorbudget.shelf.bfric = runs.vorbudget.hadv;
-        
+
         runs.vorbudget.comment = ['hadv + vadv + beta = str + tilt  ' ...
                             '+ bfric'];
         %runs.vorbudget.conthis = runs.vorbudget.hadv;
@@ -4374,7 +4374,7 @@ methods
                 v1h = double(ncread(runs.dir,'v',[1 1 1 tt+1],[Inf Inf ...
                                     Inf 1]));
                 t1 = double(ncread(runs.dir, 'ocean_time'));
-                
+
                 u1 = interpolate(u1h, gridu.zmat, zrnew);
                 v1 = interpolate(v1h, gridv.zmat, zrnew);
 
@@ -4390,12 +4390,12 @@ methods
                 DRVDT = trapz(zint, repnan(drvdt, 0), 3)./hmat;
             end
 
-            
+
             str = avg1(avg1(avg1(bsxfun(@plus, rv, ...
                                              avg1(avg1(runs.rgrid.f',1),2)),1) ...
                                  ,2) .* ... %-1 *(ux(:,2:end-1,:,:) +
                                             wz(2:end-1,2:end-1,:), 3);%vy(2:end-1,:,:)),3);
-                        
+
             tilt = -1 * avg1(avg1( avg1(wx(:,:,2:end-1),2) .* avg1(vz,1) + ...
                     avg1(wy(:,:,2:end-1),1) .* avg1(uz,2) ,1),2);
             beta = avg1(avg1(runs.params.phys.beta * v(2:end-1,:,:),2),3);
@@ -4419,7 +4419,7 @@ methods
                                                   dV(:));
             runs.vorbudget.shelf.beta(kk) = nansum(beta(:) .* shelfmask(:) .* ...
                                                   dV(:));
-            
+
           %  sol = -runs.params.phys.g/runs.params.phys.rho0 .* ...
           %          ( avg1(rx,2) .* avg1(zy,1) - avg1(ry,1) .* avg1(zx,2));
 
@@ -4445,13 +4445,13 @@ methods
                          3) ./ hmat;
             ubar(logical(repnan(runs.eddy.vormask(:,:,ceil(tt/2)),0))) = 0;
             vbar(logical(repnan(runs.eddy.vormask(:,:,ceil(tt/2)),0))) = 0;
-            
+
             if debug
                 BUD = BUD - DRVDT;
                 imagesc(BUD');
             end
             %BUD = trapz(zint, repnan( str+tilt - beta - hadv -vadv,0), 3);
-            
+
             % save volume averaged quantities
             runs.vorbudget.hadv(kk) = nansum( HADV(:) .* dVxy(:) .* ...
                                           hmat(:))./vol;
@@ -4487,9 +4487,9 @@ methods
                     caxis([-1 1] * nanmax(abs(RV(:))));
                     colorbar;
                     ylim(limy); xlim(limx);
-                    
+
                     ax(2) = subplot(2,4,3);
-                    
+
                     if runs.params.misc.rdrg == 0
                         hbet = pcolor(xavg,yavg,-BETA);
                         title('- \beta V');
@@ -4501,9 +4501,9 @@ methods
                     he(2) = runs.plot_eddy_contour('contour', ceil(tt/2));
                     hbathy = runs.plot_bathy('contour','k');
                     caxis(limc); %caxis([-1 1] * nanmax(abs(BETA(:))));
-                    
+
                     ylim(limy); xlim(limx);
-                    
+
                     ax(3) = subplot(2,4,4); cla
                     xran = 1:6:size(xavg,1); yran = 1:4:size(yavg,2);
                     hquiv = quiver(xavg(xran,yran),yavg(xran,yran), ...
@@ -4512,28 +4512,28 @@ methods
                     he(3) = runs.plot_eddy_contour('contour', ceil(tt/2));
                     hbathy = runs.plot_bathy('contour','k');
                     ylim(limy); xlim(limx);
-                    
+
                     %                 ax(4) = subplot(2,4,5);
                     %                 htend = pcolor(xavg,yavg,TEND); colorbar; shading flat;
                     %                 he(4) = runs.plot_eddy_contour('contour', ceil(tt/2));
                     %                 hbathy = runs.plot_bathy('contour','k');
                     %                 caxis([-1 1] * max(abs(TEND(:))));
                     %                 title('d\xi/dt');
-                    
+
                     ax(5) = subplot(2,4,7);
                     hgadv = pcolor(xavg,yavg,-ADV); colorbar; shading flat;
                     he(5) = runs.plot_eddy_contour('contour', ceil(tt/2));
                     hbathy = runs.plot_bathy('contour','k');
                     caxis(limc); %caxis([-1 1] * max(abs(ADV(:))));
                     title('-Advection');
-                    
+
                     ax(6) = subplot(2,4,8);
                     htilt = pcolor(xavg,yavg,TILT); colorbar; shading flat;
                     he(6) = runs.plot_eddy_contour('contour', ceil(tt/2));
                     hbathy = runs.plot_bathy('contour','k');
                     caxis(limc/10); %caxis([-1 1] * max(abs(TILT(:))));
                     title('Tilting');
-                    
+
                     ax(7) = subplot(2,4,[5 6]);
                     hstr = pcolor(xavg,yavg,STR); colorbar; hold on; shading flat;
                     %hquiv = quiverclr(xavg(xran,yran),yavg(xran,yran), ...
@@ -4563,13 +4563,13 @@ methods
                         set(hquiv,'udata',ubar(xran,yran),'vdata',vbar(xran,yran));
                     catch ME
                     end
-                    
+
                     runs.update_eddy_contour(he,ceil(tt/2));
                     runs.update_title(ht,titlestr,ceil(tt/2));
                     runs.video_update();
                     pause(0.01);
                 end
-            end            
+            end
         end
 
         if plotflag
