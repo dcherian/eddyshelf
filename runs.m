@@ -4167,6 +4167,9 @@ methods
     end
 
     function [] = animate_vorbudget(runs,tind, plotflag)
+
+        vorbudgetstart = tic;
+
         if ~exist('tind','var')
             tind = 1;
         end
@@ -4594,6 +4597,7 @@ methods
         vorbudget.hash = githash;
         save([runs.dir '/vorbudget.mat'],'vorbudget');
 
+        toc(vorbudgetstart);
     end
 
     function [] = animate_vorbudget_deprecated(runs,tind)
