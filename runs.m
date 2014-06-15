@@ -1595,6 +1595,19 @@ methods
             ylabel('Total volume transported');
             xlabel('Bin = location / RR_{shelf} ');
         end
+
+        % shelf water vorticity budget
+        figure(10)
+        subplot(2,1,1)
+        hold all
+        hline = plot(runs.csflux.time/86400, runs.csflux.west.shelf, ...
+                     'Color', colors(ii,:));
+        addlegend(hline, runs.name);
+        
+        subplot(2,1,2)
+        hold all
+        hline = plot(runs.vorbudget.time/86400, ...
+                     runs.vorbudget.shelf.str, 'Color', colors(ii,:));
     end
 
     % calculate surface vorticity field
@@ -3611,8 +3624,8 @@ methods
 %                         cut_nan(squeeze(nanmean(ys2(cxind+1:end,cyind+1:end,tt),2)))'];
 %             end
     end
-
-   %% animation functions
+    
+    %% animation functions
     function [] = animate_zeta(runs, t0)
         runs.video_init('zeta');
 
@@ -4164,6 +4177,26 @@ methods
             pause(0.1);
         end
 
+    end
+
+    function [] = plot_shelfvorbudget(runs)
+        figure;
+        subplot(2,1,1)
+        plot(runs.csflux.time/86400, runs.csflux.west.shelf/1e6);
+        limx = xlim;
+        
+        subplot(2,1,2)
+        time = runs.vorbudget.time/86400;
+        hold all
+        plot(time, runs.vorbudget.shelf.str, ...
+             time, runs.vorbudget.shelf.hadv + runs.vorbudget.shelf.vadv, ...
+             time, runs.vorbudget.shelf.tilt, ...
+             time, runs.vorbudget.shelf.bfric, ...
+             time, runs.vorbudget.shelf.beta);
+        plot(time, runs.vorbudget.shelf.hadv, 'Color',[1 1 1]*0.7);
+        plot(time, runs.vorbudget.shelf.vadv, 'Color',[1 1 1]*0.7);
+        xlim(limx);
+        legend('str', 'adv', 'tilt', 'bfric', 'beta', 'hadv', 'vadv');
     end
 
     function [] = animate_vorbudget(runs,tind, plotflag)
