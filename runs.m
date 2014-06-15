@@ -4333,7 +4333,7 @@ methods
         for kk=1:length(trange)-1
             tt = trange(kk);
             disp(['kk = ' num2str(kk) '/' num2str(length(trange)-1) ...
-                  ' | tt = ' num2str(tt) ' days | plotflag = ' num2str(plotflag)]);
+                  ' | tt = ' num2str(tt/2) ' days | plotflag = ' num2str(plotflag)]);
             %zeta = runs.zeta(2:end-1,2:end-1,tt);
             zeta = dc_roms_read_data(runs.dir, 'zeta', tt, {}, [], ...
                                      runs.rgrid, 'his');
@@ -4433,7 +4433,6 @@ methods
                 DRVDT = trapz(zint, repnan(drvdt, 0), 3)./hmat;
             end
 
-
             str = avg1(avg1(avg1(bsxfun(@plus, rv, ...
                                              avg1(avg1(runs.rgrid.f',1),2)),1) ...
                                  ,2) .* ... %-1 *(ux(:,2:end-1,:,:) +
@@ -4450,8 +4449,14 @@ methods
             budget = str + tilt - hadv - vadv - beta;
 
             % shelf water budget
-            shelfmask = (avg1(csd(2:end-1, 2:end-1, :),3) < runs.bathy.xsb);
-            shelfmaskrv = (csd(2:end-1, 2:end-1, :) < runs.bathy.xsb);
+            % shelf water mask defined with csdye + I remove sponge
+            % region based on filtering already done in hmat
+            shelfmask = (avg1(csd(2:end-1, 2:end-1, :),3) < ...
+                         runs.bathy.xsb) .* ~isnan(hmat);
+            shelfmaskrv = (csd(2:end-1, 2:end-1, :) < runs.bathy.xsb) ...
+                .* ~isnan(hmat);
+
+            % calculate vorticity eqn terms
             runs.vorbudget.shelf.str(kk) = nansum(str(:) .* shelfmask(:) .*...
                                                   dV(:));
             runs.vorbudget.shelf.tilt(kk) = nansum(tilt(:) .* shelfmask(:) .* ...
