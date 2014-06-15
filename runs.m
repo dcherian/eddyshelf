@@ -4606,7 +4606,7 @@ methods
         plot(runs.vorbudget.time,-runs.vorbudget.beta,'y');
         plot(runs.vorbudget.time,runs.vorbudget.budget,'k');
         title('signs so that all terms are on RHS and tendency is LHS');
-        legend('hadv','vadv','tilt','str','sol','beta','budget');
+        legend('hadv','vadv','tilt','str','beta','budget');
 
         vorbudget = runs.vorbudget;
         vorbudget.hash = githash;
