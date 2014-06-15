@@ -4253,6 +4253,11 @@ methods
         % add in sponge mask
         hmat = hmat .* fillnan(~runs.sponge(2:end-1, 2:end-1), 0);
 
+        % for bottom friction I need to mask out the area that
+        % doesn't touch the bottom
+        hbfric = fillnan(hmat .* (hmat == runs.bathy.h(2:end-1,2:end-1)), ...
+                         0);
+
         xavg = avg1(avg1(xvor,1),2)/1000; yavg = avg1(avg1(yvor,1),2)/1000;
 
         depthRange = [100 -max(runs.bathy.h(:))];
@@ -4328,7 +4333,7 @@ methods
             u = interpolate(uh, gridu.zmat, zrnew);
             v = interpolate(vh, gridv.zmat, zrnew);
             w = interpolate(wh, gridw.zmat, zwnew);
-            csd = interpolate(csdye, gridr.zmat, avg1(zrnew));
+            csd = interpolate(csdye, gridr.zmat, zrnew);
             % rho = interpolate(rhoh, gridr.zmat, zrnew);
 
             ux = diff(u,1,1)./diff(gridu.xmat,1,1);
@@ -4412,8 +4417,8 @@ methods
             budget = str + tilt - hadv - vadv - beta;
 
             % shelf water budget
-            shelfmask = (csd(2:end-1, 2:end-1, :) < ...
-                               runs.bathy.xsb);
+            shelfmask = (avg1(csd(2:end-1, 2:end-1, :),3) < runs.bathy.xsb);
+            shelfmaskrv = (csd(2:end-1, 2:end-1, :) < runs.bathy.xsb);
             runs.vorbudget.shelf.str(kk) = nansum(str(:) .* shelfmask(:) .*...
                                                   dV(:));
             runs.vorbudget.shelf.tilt(kk) = nansum(tilt(:) .* shelfmask(:) .* ...
@@ -4425,13 +4430,23 @@ methods
             runs.vorbudget.shelf.beta(kk) = nansum(beta(:) .* shelfmask(:) .* ...
                                                   dV(:));
 
-          %  sol = -runs.params.phys.g/runs.params.phys.rho0 .* ...
-          %          ( avg1(rx,2) .* avg1(zy,1) - avg1(ry,1) .* avg1(zx,2));
+            %  sol = -runs.params.phys.g/runs.params.phys.rho0 .* ...
+            %          ( avg1(rx,2) .* avg1(zy,1) - avg1(ry,1) .* avg1(zx,2));
 
+            % depth INTEGRATED QUANTITIES
             RV   = avg1(avg1(trapz(zrnew, repnan(rv,0), 3),1), 2) ...
                    ./ hmat;
+
+            % for bfric calculation
+            RVSHELF = trapz(zrnew, avg1(avg1(repnan(rv,0), 1), 2) .* ...
+                                        shelfmaskrv, 3);
+            
+            % depth - AVERAGED quantities
+            BFRICSHELF = -runs.params.misc.rdrg * RVSHELF ./ ...
+                hbfric;
+
             STR  = trapz(zint, repnan(str,0), 3) ./ hmat;
-            BFRIC = -runs.params.misc.rdrg * RV ./ hmat;
+            BFRIC = -runs.params.misc.rdrg * RV ./ hbfric ./ hmat;
             TILT = trapz(zint, repnan(tilt,0), 3) ./ hmat;
             BETA = trapz(zint, repnan(beta,0), 3) ./ hmat;
             HADV = trapz(zint, repnan(hadv,0), 3) ./ hmat;
@@ -4439,8 +4454,8 @@ methods
             ADV = HADV + VADV;
             BUD = STR + BFRIC + TILT - BETA - ADV;
 
-            %runs.vorbudget.shelf.bfric(kk) = nansum(bfric(:) .* shelfmask(:) .* ...
-            %                                        dV(:));
+            runs.vorbudget.bfric(kk) = nansum( BFRICSHELF(:) .* dVxy(:) .* ...
+                                               hmat(:))./vol;
 
             % ubar, vbar calculated for depth averaged interval
             % only
