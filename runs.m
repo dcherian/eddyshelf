@@ -201,9 +201,16 @@ methods
             runs.noeddy = 0;
         end
 
+        % if gaussian profile then track_eddy fits Lz2. copy to
+        % Lgauss for backwards compatibility
+        if runs.params.flags.vprof_gaussian
+            runs.eddy.Lgauss = runs.eddy.Lz2;
+            runs.eddy.Lz2 = nan(size(runs.eddy.Lz2));
+        end
+
         % scale time by eddy translation
         runs.eddy.tscaleind = find_approx(runs.eddy.my, runs.bathy.xsl, 1);
-        runs.eddy.tscale = runs.time(runs.eddy.tscaleind);
+        runs.eddy.tscale = runs.eddy.t(runs.eddy.tscaleind) .* 86400;
 
         runs.ndtime = (runs.time - runs.eddy.tscale);
 
@@ -272,7 +279,7 @@ methods
             runs.fluxes;
             runs.water_census;
             runs.jetdetect;
-            runs.eddy_bulkproperties;
+            %runs.eddy_bulkproperties;
         end
 
         % load streamer data if it exists.
