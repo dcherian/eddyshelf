@@ -4309,7 +4309,7 @@ methods
         depthRange = [100 -max(runs.bathy.h(:))];
         timehis = dc_roms_read_data(runs.dir, 'ocean_time', [], {}, ...
                                     [], runs.rgrid, 'his');
-        trange = tind:4:length(timehis);
+        trange = tind:1:length(timehis);
 
         dVxy = 1./runs.rgrid.pm(2:end-1,2:end-1)' .* 1./runs.rgrid.pn(2:end-1, 2:end-1)' ...
                .* hmat;
@@ -4317,7 +4317,6 @@ methods
                     runs.rgrid.pn(2:end-1, 2:end-1)', ...
                     permute(diff(zrnew), [3 2 1]));
         vol = nansum(dVxy(:));
-
 
         disp(['starting from t instant = ' num2str(trange(1))]);
 
@@ -4491,7 +4490,7 @@ methods
             % for bfric calculation
             RVSHELF = trapz(zrnew, avg1(avg1(repnan(rv,0), 1), 2) .* ...
                                         shelfmaskrv, 3);
-            
+
             % depth - AVERAGED quantities
             BFRICSHELF = -runs.params.misc.rdrg * RVSHELF ./ ...
                 hbfric;
@@ -4505,7 +4504,7 @@ methods
             ADV = HADV + VADV;
             BUD = STR + BFRIC + TILT - BETA - ADV;
 
-            runs.vorbudget.bfric(kk) = nansum( BFRICSHELF(:) .* dVxy(:) .* ...
+            runs.vorbudget.shelf.bfric(kk) = nansum( BFRICSHELF(:) .* dVxy(:) .* ...
                                                hmat(:))./vol;
 
             % ubar, vbar calculated for depth averaged interval
