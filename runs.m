@@ -1393,6 +1393,7 @@ methods
         xlim(limx);
 
         %% plot fluxes
+        %{
         if isfield(runs.csflux,'west')
             ftime = runs.csflux.time/eddy.tscale;
             figure(4);
@@ -1456,7 +1457,7 @@ methods
             catch ME
             end
         end
-
+        %}
         time = eddy.t;
 
         %% plot water masses
@@ -1519,6 +1520,7 @@ methods
         end
 
         % background flow velocity estimates
+        %{
         figure(6)
         subplot(211); hold on;
         hbg = plot(time, runs.eddy.bgvel, 'Color', colors(ii,:));
@@ -1534,6 +1536,7 @@ methods
         end
         xlabel('Time');
         ylabel('mean(inflow 2d vel)');
+        %}
 
         % jet diagnostics
         if isfield('jet', runs)
@@ -1572,18 +1575,18 @@ methods
 
         subplot(2,1,2)
         hold on
-        plot(eddy.t,eddy.hcen/2, 'Color', colors(ii,:));
+        hline = plot(eddy.t,eddy.hcen, 'Color', colors(ii,:));
         xlabel('Time (days)');
-        ylabel('Z-scale (m)');
+        ylabel('center-isobath');
         %linex(tind);
         suplabel(runs.dir,'t');
         %        packrows(2,1);
-        legend('z-centroid','zdye-centroid', ...
-               'H_{center}/2','f*dia/N',['vertical (Gaussian) ' ...
-                            'scale']);
+        addlegend(hline, runs.name);
 
         % shelf water envelope
-        if isfield(runs.csflux.west.shelfwater, 'envelope');
+        if isfield(runs.csflux.west.shelfwater, 'envelope')
+            normtrans = sum(runs.csflux.west.shelfwater.itrans);
+
             figure(9)
             subplot(2,1,1)
             hold on
@@ -1598,23 +1601,26 @@ methods
             subplot(2,1,2)
             hold on;
             plot(runs.csflux.west.shelfwater.bins/runs.rrshelf, ...
-                 runs.csflux.west.shelfwater.itrans, 'color', colors(ii,:));
+                 runs.csflux.west.shelfwater.itrans./normtrans, 'color', colors(ii,:));
             ylabel('Total volume transported');
             xlabel('Bin = location / RR_{shelf} ');
         end
 
         % shelf water vorticity budget
-        figure(10)
-        subplot(2,1,1)
-        hold all
-        hline = plot(runs.csflux.time/86400, runs.csflux.west.shelf, ...
-                     'Color', colors(ii,:));
-        addlegend(hline, runs.name);
-        
-        subplot(2,1,2)
-        hold all
-        hline = plot(runs.vorbudget.time/86400, ...
-                     runs.vorbudget.shelf.str, 'Color', colors(ii,:));
+        if isfield(runs, 'vorbudget')
+            figure(10)
+            subplot(2,1,1)
+            hold all
+            hline = plot(runs.csflux.time/86400, runs.csflux.west.shelf, ...
+                         'Color', colors(ii,:));
+            addlegend(hline, runs.name);
+
+            subplot(2,1,2)
+            hold all
+            hline = plot(runs.vorbudget.time/86400, ...
+                         runs.vorbudget.shelf.str, 'Color', ...
+                         colors(ii,:));
+        end
     end
 
     % calculate surface vorticity field
