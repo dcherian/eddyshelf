@@ -3637,7 +3637,7 @@ methods
 %                         cut_nan(squeeze(nanmean(ys2(cxind+1:end,cyind+1:end,tt),2)))'];
 %             end
     end
-    
+
     %% animation functions
     function [] = animate_zeta(runs, t0)
         runs.video_init('zeta');
@@ -4197,7 +4197,7 @@ methods
         subplot(2,1,1)
         plot(runs.csflux.time/86400, runs.csflux.west.shelf/1e6);
         limx = xlim;
-        
+
         subplot(2,1,2)
         time = runs.vorbudget.time/86400;
         hold all
