@@ -1692,6 +1692,7 @@ methods
         U = hypot(avg1(u0(:,2:end-1,:), 1), avg1(v0(2:end-1,:,:), ...
                                                  2));
 
+        % volume of eddy that satisfies U/c criterion
         dV = bsxfun(@times, runs.rgrid.dV(2:end-1, 2:end-1,:) ...
                     .* (U > c), runs.eddy.vormask(:,:,1));
         runs.eddy.Ucvol = nansum(dV(:));
