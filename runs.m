@@ -4312,9 +4312,16 @@ methods
                                     [], runs.rgrid, 'his');
         trange = tind:1:length(timehis);
 
+        % AREA AVERAGING - for bottom friction terms
+        dA = 1./runs.rgrid.pm(2:end-1,2:end-1)' .* 1./runs.rgrid.pn(2:end-1, ...
+                                                          2:end-1)';
+        dA = dA .* ~runs.sponge(2:end-1, 2:end-1);
+        area = sum(dA(:));
+
+        % VOLUME AVERAGING
         % 2D array - water column volume for each (x,y) - masked
-        dVxy = 1./runs.rgrid.pm(2:end-1,2:end-1)' .* 1./runs.rgrid.pn(2:end-1, 2:end-1)' ...
-               .* hmat;
+        %dVxy = 1./runs.rgrid.pm(2:end-1,2:end-1)' .* 1./runs.rgrid.pn(2:end-1, 2:end-1)' ...
+        %.* hmat;
 
         % 3D array - cell volumes for each (x,y,z)
         % nansum(dV(:))  ~= nansum(dVxy(:)) since,
@@ -4324,11 +4331,9 @@ methods
                             size(hmat,2)]);
         zmat(bsxfun(@lt, zmat, -1 * hmat)) = NaN;
         dV = bsxfun(@times, ...
-                    bsxfun(@times, 1./runs.rgrid.pm(2:end-1, 2:end-1)' .* 1./ ...
-                           runs.rgrid.pn(2:end-1, 2:end-1)', ...
-                           diff(zmat, 1, 3)), ...
+                    bsxfun(@times, dA, diff(zmat, 1, 3)), ...
                     ~isnan(hmat));
-        vol = sum(dV(:));
+        vol = nansum(dV(:));
         %disp(['error in volumes = ' num2str((vol - nansum(dVxy(:)))./vol ...
         %                                    * 100) ' percent']);
         disp(['starting from t instant = ' num2str(trange(1))]);
@@ -4514,13 +4519,9 @@ methods
             ADV = HADV + VADV;
 
             % FRICTION only when integrating to bottom surface
-            BFRIC = -runs.params.misc.rdrg .* rvbot ./ hmat .* (hmat ...
-                                                              == ...
-                                                              h);
+            BFRIC = -runs.params.misc.rdrg .* rvbot ./ hmat .* ...
+                    (hmat == h);
             BFRICSHELF = BFRIC .* shelfmaskbot;
-
-            bfric = repmat(BFRIC, [1 1 size(str,3)]);
-            bfricshelf = repmat(BFRICSHELF, [1 1 size(str,3)]);
 
             % BUDGET = TEND = d(RV)/dt
             BUD = STR + BFRIC + TILT - BETA - ADV;
@@ -4554,8 +4555,8 @@ methods
                                                   dV(:))./vol;
             runs.vorbudget.shelf.beta(kk) = nansum(beta(:) .* shelfmask(:) .* ...
                                                   dV(:))./vol;
-            runs.vorbudget.shelf.bfric(kk) = nansum(bfricshelf(:) ...
-                                                    .* dV(:))./vol;
+            runs.vorbudget.shelf.bfric(kk) = nansum(BFRICSHELF(:) ...
+                                                    .* dA(:)) ./ area;
 
             % save volume averaged quantities for whole domain
             runs.vorbudget.rv(kk) = nansum(rvavg(:) .* dV(:)) ./ vol;
@@ -4564,7 +4565,8 @@ methods
             runs.vorbudget.hadv(kk) = nansum(hadv(:) .* dV(:)) ./ vol;
             runs.vorbudget.vadv(kk) = nansum(vadv(:) .* dV(:)) ./ vol;
             runs.vorbudget.beta(kk) = nansum(beta(:) .* dV(:)) ./ vol;
-            runs.vorbudget.bfric(kk) = nansum(bfric(:) .* dV(:))./vol;
+            runs.vorbudget.bfric(kk) = nansum(BFRIC(:) .* dA(:)) ./ ...
+                area;
 
             if plotflag
                 limc = [-1 1] * nanmax(abs(ADV(:)));
