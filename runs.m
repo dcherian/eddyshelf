@@ -4513,8 +4513,14 @@ methods
             VADV = trapz(zint, repnan(vadv,0), 3) ./ hmat;
             ADV = HADV + VADV;
 
-            % FRICTION
-            BFRIC = -runs.params.misc.rdrg .* rvbot ./ hmat;
+            % FRICTION only when integrating to bottom surface
+            BFRIC = -runs.params.misc.rdrg .* rvbot ./ hmat .* (hmat ...
+                                                              == ...
+                                                              h);
+            BFRICSHELF = BFRIC .* shelfmaskbot;
+
+            bfric = repmat(BFRIC, [1 1 size(str,3)]);
+            bfricshelf = repmat(BFRICSHELF, [1 1 size(str,3)]);
 
             % BUDGET = TEND = d(RV)/dt
             BUD = STR + BFRIC + TILT - BETA - ADV;
@@ -4548,8 +4554,8 @@ methods
                                                   dV(:))./vol;
             runs.vorbudget.shelf.beta(kk) = nansum(beta(:) .* shelfmask(:) .* ...
                                                   dV(:))./vol;
-            runs.vorbudget.shelf.bfric(kk) = -runs.params.misc.rdrg ...
-                .* nansum( rvbot(:) .* shelfmaskbot(:) ./ hmat(:));
+            runs.vorbudget.shelf.bfric(kk) = nansum(bfricshelf(:) ...
+                                                    .* dV(:))./vol;
 
             % save volume averaged quantities for whole domain
             runs.vorbudget.rv(kk) = nansum(rvavg(:) .* dV(:)) ./ vol;
@@ -4558,8 +4564,7 @@ methods
             runs.vorbudget.hadv(kk) = nansum(hadv(:) .* dV(:)) ./ vol;
             runs.vorbudget.vadv(kk) = nansum(vadv(:) .* dV(:)) ./ vol;
             runs.vorbudget.beta(kk) = nansum(beta(:) .* dV(:)) ./ vol;
-            runs.vorbudget.bfric(kk) = -runs.params.misc.rdrg .* ...
-                nansum( rvbot(:) ./ hmat(:));
+            runs.vorbudget.bfric(kk) = nansum(bfric(:) .* dV(:))./vol;
 
             if plotflag
                 limc = [-1 1] * nanmax(abs(ADV(:)));
