@@ -4312,13 +4312,25 @@ methods
                                     [], runs.rgrid, 'his');
         trange = tind:1:length(timehis);
 
+        % 2D array - water column volume for each (x,y) - masked
         dVxy = 1./runs.rgrid.pm(2:end-1,2:end-1)' .* 1./runs.rgrid.pn(2:end-1, 2:end-1)' ...
                .* hmat;
-        dV = bsxfun(@times, 1./runs.rgrid.pm(2:end-1, 2:end-1)' .* 1./ ...
-                    runs.rgrid.pn(2:end-1, 2:end-1)', ...
-                    permute(diff(zrnew), [3 2 1]));
-        vol = nansum(dVxy(:));
 
+        % 3D array - cell volumes for each (x,y,z)
+        % nansum(dV(:))  ~= nansum(dVxy(:)) since,
+        % i'm integrating to a level just
+        % above the bottom.
+        zmat = repmat(permute(zrnew, [3 2 1]), [size(hmat,1) ...
+                            size(hmat,2)]);
+        zmat(bsxfun(@lt, zmat, -1 * hmat)) = NaN;
+        dV = bsxfun(@times, ...
+                    bsxfun(@times, 1./runs.rgrid.pm(2:end-1, 2:end-1)' .* 1./ ...
+                           runs.rgrid.pn(2:end-1, 2:end-1)', ...
+                           diff(zmat, 1, 3)), ...
+                    ~isnan(hmat));
+        vol = sum(dV(:));
+        %disp(['error in volumes = ' num2str((vol - nansum(dVxy(:)))./vol ...
+        %                                    * 100) ' percent']);
         disp(['starting from t instant = ' num2str(trange(1))]);
 
         % save vorticity budget for whole domain
@@ -4398,8 +4410,8 @@ methods
             %ry = diff(rho,1,2)./diff(gridr.ymat,1,2);
             %rz = diff(rho,1,3)./diff(gridr.znew,1,3);
 
-            cont = ux(:, 2:end-1, :) + vy(2:end-1, :, :) + ...
-                   wz(2:end-1, 2:end-1, :);
+            %cont = ux(:, 2:end-1, :) + vy(2:end-1, :, :) + ...
+            %       wz(2:end-1, 2:end-1, :);
 
             % check cont
             %ix = 150; iy = 164;
@@ -4424,6 +4436,8 @@ methods
             rvx = diff(rv,1,1)./diff(gridrv.xmat,1,1);
             rvy = diff(rv,1,2)./diff(gridrv.ymat,1,2);
             rvz = diff(rv,1,3)./diff(gridrv.znew,1,3);
+
+            rvavg = avg1(avg1(avg1(rv, 1), 2), 3);
 
             if debug
                 u1h = double(ncread(runs.dir,'u',[1 1 1 tt+1],[Inf Inf Inf 1]));
@@ -4466,47 +4480,44 @@ methods
             % region based on filtering already done in hmat
             shelfmask = bsxfun(@times, (avg1(csd(2:end-1, 2:end-1, :),3) < ...
                          runs.bathy.xsb), ~isnan(hmat));
-            shelfmaskrv = bsxfun(@times, (csd(2:end-1, 2:end-1, :) < runs.bathy.xsb) ...
-                                , ~isnan(hmat));
-
-            % calculate vorticity eqn terms
-            runs.vorbudget.shelf.str(kk) = nansum(str(:) .* shelfmask(:) .*...
-                                                  dV(:));
-            runs.vorbudget.shelf.tilt(kk) = nansum(tilt(:) .* shelfmask(:) .* ...
-                                                  dV(:));
-            runs.vorbudget.shelf.hadv(kk) = nansum(hadv(:) .* shelfmask(:) .* ...
-                                                  dV(:));
-            runs.vorbudget.shelf.vadv(kk) = nansum(vadv(:) .* shelfmask(:) .* ...
-                                                  dV(:));
-            runs.vorbudget.shelf.beta(kk) = nansum(beta(:) .* shelfmask(:) .* ...
-                                                  dV(:));
-
+            %shelfmaskrv = bsxfun(@times, avg1(avg1(csd,1),2) < ...
+            %                            runs.bathy.xsb, ~isnan(hmat));
             %  sol = -runs.params.phys.g/runs.params.phys.rho0 .* ...
             %          ( avg1(rx,2) .* avg1(zy,1) - avg1(ry,1) .* avg1(zx,2));
 
+            % need bottom vorticity for bfric calculation
+            rvbot = nan(size(rvavg(:,:,1)));
+            shelfmaskbot = rvbot;
+            tic;
+            for ii = 1:size(rvbot,1)
+                for jj = 1:size(rvbot,2)
+                    % locate first 0  since z=1 is bottom
+                    zind = find(isnan(squeeze(rvavg(ii,jj,:))) ...
+                                == 0, 1, 'first');
+                    rvbot(ii,jj) = rvavg(ii, jj, zind);
+                    shelfmaskbot(ii,jj) = shelfmask(ii, jj, zind);
+                end
+            end
+            toc;
+
             % depth INTEGRATED QUANTITIES
-            RV   = avg1(avg1(trapz(zrnew, repnan(rv,0), 3),1), 2) ...
-                   ./ hmat;
+            RV   = avg1(avg1(trapz(zrnew, repnan(rv,0), 3),1), 2);
+            %RVSHELF = trapz(zrnew, repnan(rvavg,0) .* ...
+            %                shelfmask, 3);
 
-            % for bfric calculation
-            RVSHELF = trapz(zrnew, avg1(avg1(repnan(rv,0), 1), 2) .* ...
-                                        shelfmaskrv, 3);
-
-            % depth - AVERAGED quantities
-            BFRICSHELF = -runs.params.misc.rdrg * RVSHELF ./ ...
-                hbfric;
-
+            % depth - AVERAGED quantities for plotting
             STR  = trapz(zint, repnan(str,0), 3) ./ hmat;
-            BFRIC = -runs.params.misc.rdrg * RV ./ hbfric ./ hmat;
             TILT = trapz(zint, repnan(tilt,0), 3) ./ hmat;
             BETA = trapz(zint, repnan(beta,0), 3) ./ hmat;
             HADV = trapz(zint, repnan(hadv,0), 3) ./ hmat;
             VADV = trapz(zint, repnan(vadv,0), 3) ./ hmat;
             ADV = HADV + VADV;
-            BUD = STR + BFRIC + TILT - BETA - ADV;
 
-            runs.vorbudget.shelf.bfric(kk) = nansum( BFRICSHELF(:) .* dVxy(:) .* ...
-                                               hmat(:))./vol;
+            % FRICTION
+            BFRIC = -runs.params.misc.rdrg .* rvbot ./ hmat;
+
+            % BUDGET = TEND = d(RV)/dt
+            BUD = STR + BFRIC + TILT - BETA - ADV;
 
             % ubar, vbar calculated for depth averaged interval
             % only
@@ -4523,21 +4534,32 @@ methods
             end
             %BUD = trapz(zint, repnan( str+tilt - beta - hadv -vadv,0), 3);
 
-            % save volume averaged quantities
-            runs.vorbudget.hadv(kk) = nansum( HADV(:) .* dVxy(:) .* ...
-                                          hmat(:))./vol;
-            runs.vorbudget.vadv(kk) = nansum( VADV(:) .* dVxy(:) .* ...
-                                          hmat(:))./vol;
-            runs.vorbudget.tilt(kk) = nansum( TILT(:) .* dVxy(:) .* ...
-                                          hmat(:))./vol;
-            runs.vorbudget.str(kk) = nansum( STR(:) .* dVxy(:) .* ...
-                                          hmat(:))./vol;
-            runs.vorbudget.beta(kk) = nansum( BETA(:) .* dVxy(:) .* ...
-                                          hmat(:))./vol;
-            runs.vorbudget.bfric(kk) = nansum( BFRIC(:) .* dVxy(:) .* ...
-                                          hmat(:))./vol;
-            runs.vorbudget.budget(kk) = nansum( BUD(:) .* dVxy(:) .* ...
-                                          hmat(:))./vol;
+            % calculate vorticity eqn terms - with shelfmask -
+            % volume averaged
+            runs.vorbudget.shelf.rv(kk) = nansum(rvavg(:) .* shelfmask(:) ...
+                                                 .* dV(:)) ./ vol
+            runs.vorbudget.shelf.str(kk) = nansum(str(:) .* shelfmask(:) .*...
+                                                  dV(:))./vol;
+            runs.vorbudget.shelf.tilt(kk) = nansum(tilt(:) .* shelfmask(:) .* ...
+                                                  dV(:))./vol;
+            runs.vorbudget.shelf.hadv(kk) = nansum(hadv(:) .* shelfmask(:) .* ...
+                                                  dV(:))./vol;
+            runs.vorbudget.shelf.vadv(kk) = nansum(vadv(:) .* shelfmask(:) .* ...
+                                                  dV(:))./vol;
+            runs.vorbudget.shelf.beta(kk) = nansum(beta(:) .* shelfmask(:) .* ...
+                                                  dV(:))./vol;
+            runs.vorbudget.shelf.bfric(kk) = -runs.params.misc.rdrg ...
+                .* nansum( rvbot(:) .* shelfmaskbot(:) ./ hmat(:));
+
+            % save volume averaged quantities for whole domain
+            runs.vorbudget.rv(kk) = nansum(rvavg(:) .* dV(:)) ./ vol;
+            runs.vorbudget.str(kk) = nansum(str(:) .* dV(:)) ./ vol;
+            runs.vorbudget.tilt(kk) = nansum(tilt(:) .* dV(:)) ./ vol;
+            runs.vorbudget.hadv(kk) = nansum(hadv(:) .* dV(:)) ./ vol;
+            runs.vorbudget.vadv(kk) = nansum(vadv(:) .* dV(:)) ./ vol;
+            runs.vorbudget.beta(kk) = nansum(beta(:) .* dV(:)) ./ vol;
+            runs.vorbudget.bfric(kk) = -runs.params.misc.rdrg .* ...
+                nansum( rvbot(:) ./ hmat(:));
 
             if plotflag
                 limc = [-1 1] * nanmax(abs(ADV(:)));
