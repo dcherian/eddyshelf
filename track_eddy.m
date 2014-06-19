@@ -226,23 +226,23 @@ function [eddy] = track_eddy(dir1)
 
         try
             eddy.dyecen(tt,:) = double(squeeze(ncread(file, 'dye_03', [imx imy 1 tt-tt0], ...
-                                                      [1 1 Inf 1])));          
+                                                      [1 1 Inf 1])));
         catch ME
         end
-        
+
         eddy.zT(tt,:) = ze;
         if params.bathy.axis == 'x'
-            Ti = double(squeeze(ncread(file,tracer, ...
+            Ti = double(squeeze(ncread(file, tracer, ...
                                        [imx  size(xr,2)  1 tt-tt0],[1 1 Inf 1])));
         else
-            Ti = double(squeeze(ncread(file,tracer, ...
+            Ti = double(squeeze(ncread(file, tracer, ...
                                        [size(xr,1)  imy  1 tt-tt0],[1 1 Inf 1])));
         end
         if strcmpi(tracer, 'rho')
             eddy.T(tt,:) = params.phys.T0 - 1./params.phys.TCOEF * ...
-                    (eddy.T(tt,:) - params.phys.R0);
+                    (1000+eddy.T(tt,:) - params.phys.R0)/params.phys.R0;
             Ti = params.phys.T0 - 1./params.phys.TCOEF * ...
-                    (Ti - params.phys.R0);
+                 (1000 + Ti - params.phys.R0)/params.phys.R0;
         end
 
         % let's save anomaly instead
