@@ -201,9 +201,16 @@ methods
             runs.noeddy = 0;
         end
 
+        % if gaussian profile then track_eddy fits Lz2. copy to
+        % Lgauss for backwards compatibility
+        if runs.params.flags.vprof_gaussian
+            runs.eddy.Lgauss = runs.eddy.Lz2;
+            runs.eddy.Lz2 = nan(size(runs.eddy.Lz2));
+        end
+
         % scale time by eddy translation
         runs.eddy.tscaleind = find_approx(runs.eddy.my, runs.bathy.xsl, 1);
-        runs.eddy.tscale = runs.time(runs.eddy.tscaleind);
+        runs.eddy.tscale = runs.eddy.t(runs.eddy.tscaleind) .* 86400;
 
         runs.ndtime = (runs.time - runs.eddy.tscale);
 
@@ -272,9 +279,10 @@ methods
         end
 
         if do_all == 1
+            runs.fluxes;
             runs.water_census;
             runs.jetdetect;
-            runs.eddy_bulkproperties;
+            %runs.eddy_bulkproperties;
         end
 
         % load streamer data if it exists.
@@ -291,6 +299,15 @@ methods
             water = load([dir '/watermass.mat'], 'water');
             runs.water = water.water;
             clear water
+        end
+
+        % load vorticity budget data
+          % load water mass data
+        if exist([dir '/vorbudget.mat'],'file') && reset ~= 1
+            disp('Loading vorticity budget');
+            vorbudget = load([dir '/vorbudget.mat'], 'vorbudget');
+            runs.vorbudget = vorbudget.vorbudget;
+            clear vorbudget
         end
 
         % load fluxes if the file exists
@@ -826,7 +843,7 @@ methods
             % max. along-shore velocity i.e., jet.zscale(tind)
             ynew = yu(:,1);
             znew = ones(size(ynew)) .* runs.jet.zscale(tind);
-            F = scatteredInterpolant(yu(:), zu(:), uvel(:));
+            F = scatteredInterpolant(yu(:), zu(:), double(uvel(:)));
             unew = F(ynew, znew);
             % calculate auto-covariance, find first zero crossing
             % and multiply by 4 to get width
@@ -1120,7 +1137,7 @@ methods
             slopemask = (csdye >= runs.bathy.xsb) & ...
                         (csdye <= runs.bathy.xsl);
             eddymask = eddye > runs.eddy_thresh;
-            
+
             % transports
             runs.csflux.shelf(:,:,kk) = squeeze(trapz( ...
                 runs.rgrid.z_r(:,runs.csflux.ix(kk)+1,1), ...
@@ -1230,7 +1247,7 @@ methods
 
         csflux.hash = githash;
         asflux.hash = githash;
-        
+
         save([runs.dir '/fluxes.mat'], 'csflux', 'asflux');
     end
 
@@ -1379,6 +1396,7 @@ methods
         xlim(limx);
 
         %% plot fluxes
+        %{
         if isfield(runs.csflux,'west')
             ftime = runs.csflux.time/eddy.tscale;
             figure(4);
@@ -1442,7 +1460,7 @@ methods
             catch ME
             end
         end
-
+        %}
         time = eddy.t;
 
         %% plot water masses
@@ -1505,6 +1523,7 @@ methods
         end
 
         % background flow velocity estimates
+        %{
         figure(6)
         subplot(211); hold on;
         hbg = plot(time, runs.eddy.bgvel, 'Color', colors(ii,:));
@@ -1520,6 +1539,7 @@ methods
         end
         xlabel('Time');
         ylabel('mean(inflow 2d vel)');
+        %}
 
         % jet diagnostics
         if isfield('jet', runs)
@@ -1558,18 +1578,18 @@ methods
 
         subplot(2,1,2)
         hold on
-        plot(eddy.t,eddy.hcen/2, 'Color', colors(ii,:));
+        hline = plot(eddy.t,eddy.hcen, 'Color', colors(ii,:));
         xlabel('Time (days)');
-        ylabel('Z-scale (m)');
+        ylabel('center-isobath');
         %linex(tind);
         suplabel(runs.dir,'t');
         %        packrows(2,1);
-        legend('z-centroid','zdye-centroid', ...
-               'H_{center}/2','f*dia/N',['vertical (Gaussian) ' ...
-                            'scale']);
+        addlegend(hline, runs.name);
 
         % shelf water envelope
-        if isfield(runs.csflux.west.shelfwater, 'envelope');
+        if isfield(runs.csflux.west.shelfwater, 'envelope')
+            normtrans = sum(runs.csflux.west.shelfwater.itrans);
+
             figure(9)
             subplot(2,1,1)
             hold on
@@ -1584,9 +1604,25 @@ methods
             subplot(2,1,2)
             hold on;
             plot(runs.csflux.west.shelfwater.bins/runs.rrshelf, ...
-                 runs.csflux.west.shelfwater.itrans, 'color', colors(ii,:));
+                 runs.csflux.west.shelfwater.itrans./normtrans, 'color', colors(ii,:));
             ylabel('Total volume transported');
             xlabel('Bin = location / RR_{shelf} ');
+        end
+
+        % shelf water vorticity budget
+        if isfield(runs, 'vorbudget')
+            figure(10)
+            subplot(2,1,1)
+            hold all
+            hline = plot(runs.csflux.time/86400, runs.csflux.west.shelf, ...
+                         'Color', colors(ii,:));
+            addlegend(hline, runs.name);
+
+            subplot(2,1,2)
+            hold all
+            hline = plot(runs.vorbudget.time/86400, ...
+                         runs.vorbudget.shelf.str, 'Color', ...
+                         colors(ii,:));
         end
     end
 
@@ -1659,6 +1695,7 @@ methods
         U = hypot(avg1(u0(:,2:end-1,:), 1), avg1(v0(2:end-1,:,:), ...
                                                  2));
 
+        % volume of eddy that satisfies U/c criterion
         dV = bsxfun(@times, runs.rgrid.dV(2:end-1, 2:end-1,:) ...
                     .* (U > c), runs.eddy.vormask(:,:,1));
         runs.eddy.Ucvol = nansum(dV(:));
@@ -2364,7 +2401,7 @@ methods
         eddye_thresh = runs.eddy_thresh;
 
         % check classified vol against total volume
-        debug = 1;
+        debug = 0;
 
         % my region boundaries are based on location of shelfbreak and
         % slopebreak. Let's make it easy.
@@ -2427,6 +2464,15 @@ methods
             masked  = sparse(reshape(eddye > eddye_thresh, sz4dsp));
             % "mixed water"
             maskmix = sparse(reshape(eddye <= eddye_thresh & eddye > 0.01,sz4dsp));
+
+            % shift in water parcels
+            %dcsmask = reshape(bsxfun(@minus, csdye, cs), sz4dsp)/ ...
+            %          1000;
+            %dcsmask = dcsmask .* (abs(dcsmask)<0.5);
+
+            %cssh =  (dcsmask .* full(masksh)) > 0;
+            %masksl(cssh) = 1;
+
 
             % the eddy's velocity field mixes up csdye and makes it look
             % like slope water?
@@ -2514,9 +2560,9 @@ methods
         water.dpvol = sum(dV(:) .* full(regdp));
 
         water.hash = githash;
-        
+
         save([runs.dir '/watermass.mat'], 'water');
-        
+
         %%
         % calculate total classified volume
         if debug
@@ -2603,7 +2649,7 @@ methods
 
             masked  = sparse(reshape(eddye > thresh, sz));
             maskvor = sparse(reshape( repmat( ...
-                    permute(vormask(:,:,tt:tend), [1 2 4 3]), ...
+                    permute(logical(repnan(vormask(:,:,tt:tend), 0)), [1 2 4 3]), ...
                     [1 1 N 1]), sz));
 
             %vol{tt} = runs.domain_integratesp(masked.*maskvor, dVsp);
@@ -2624,27 +2670,27 @@ methods
                     [tt tend],{'x' 2 sz4dfull(1)+1; 'y' 2 sz4dfull(2)+1}, ...
                     [], rgrid, [], 'single');
 
-            pe = - runs.params.phys.TCOEF* bsxfun(@times, ...
+            pe = double(- runs.params.phys.TCOEF* bsxfun(@times, ...
                         bsxfun(@minus, temp, tback), zr)  ...
-                    .* runs.params.phys.g;
+                    .* runs.params.phys.g);
 
             intpe{mm} = full(nansum( bsxfun(@times, ...
                         masked.*maskvor.*reshape(pe, sz), dVsp)));
 
             intke{mm} = full(nansum( bsxfun(@times, ...
-                    masked.*maskvor.*reshape(0.5 * (u.^2 + v.^2), sz), dVsp)));
+                    masked.*maskvor.*reshape(0.5 * double(u.^2 + v.^2), sz), dVsp)));
 
             % integrated PV, RV
             if dopv
                 disp('Reading pv, rv');
-                pv = single(ncread(pvname, 'pv',[1 1 1 tt],[Inf Inf Inf tend-tt+1])); %#ok<*PROP>
-                rv = single(avg1(avg1(ncread(pvname, 'rv',[1 1 1 tt], ...
+                pv = double(ncread(pvname, 'pv',[1 1 1 tt],[Inf Inf Inf tend-tt+1])); %#ok<*PROP>
+                rv = double(avg1(avg1(ncread(pvname, 'rv',[1 1 1 tt], ...
                             [Inf Inf Inf tend-tt+1]),1),2));
                 % pv,rv are at N-1 levels in vertical, so we need
                 % to calculate masks again
                 masked  = sparse(reshape(avg1(eddye,3) > thresh, szpv));
                 maskvor = sparse(reshape( repmat( ...
-                            permute(vormask(:,:,tt:tend), [1 2 4 3]), ...
+                            permute(logical(vormask(:,:,tt:tend)), [1 2 4 3]), ...
                             [1 1 N-1 1]), szpv));
 
                 intpv{mm} = full(nansum( bsxfun(@times, ....
@@ -2668,7 +2714,7 @@ methods
         eddy.PE = cell2mat(intpe);
 
         eddy.hash = githash;
-        
+
         save([runs.dir '/eddytrack.mat'],'eddy');
     end
 
@@ -3596,7 +3642,7 @@ methods
 %             end
     end
 
-   %% animation functions
+    %% animation functions
     function [] = animate_zeta(runs, t0)
         runs.video_init('zeta');
 
@@ -4150,7 +4196,30 @@ methods
 
     end
 
-    function [] = animate_vorbudget(runs,tind)
+    function [] = plot_shelfvorbudget(runs)
+        figure;
+        subplot(2,1,1)
+        plot(runs.csflux.time/86400, runs.csflux.west.shelf/1e6);
+        limx = xlim;
+
+        subplot(2,1,2)
+        time = runs.vorbudget.time/86400;
+        hold all
+        plot(time, runs.vorbudget.shelf.str, ...
+             time, runs.vorbudget.shelf.hadv + runs.vorbudget.shelf.vadv, ...
+             time, runs.vorbudget.shelf.tilt, ...
+             time, runs.vorbudget.shelf.bfric, ...
+             time, runs.vorbudget.shelf.beta);
+        plot(time, runs.vorbudget.shelf.hadv, 'Color',[1 1 1]*0.7);
+        plot(time, runs.vorbudget.shelf.vadv, 'Color',[1 1 1]*0.7);
+        xlim(limx);
+        legend('str', 'adv', 'tilt', 'bfric', 'beta', 'hadv', 'vadv');
+    end
+
+    function [] = animate_vorbudget(runs,tind, plotflag)
+
+        vorbudgetstart = tic;
+
         if ~exist('tind','var')
             tind = 1;
         end
@@ -4160,6 +4229,10 @@ methods
 
         runs.video_init('vor');
 
+        if ~exist('plotflag', 'var')
+            plotflag = 1;
+        end
+
         debug = 0;
 
         %%
@@ -4168,6 +4241,8 @@ methods
         zwnew = unique([linspace(zmin, -1*runs.bathy.hsb, 70) ...
                         linspace(-1*runs.bathy.hsb, zmax-0.01, 36)]');
         zrnew = avg1(zwnew);
+        % for integrating quantities later
+        zint = avg1(zrnew);
 
         % prepare grids for differentiation
         xvor = avg1(avg1(runs.rgrid.xr,1),2);
@@ -4217,60 +4292,109 @@ methods
         gridrv.zw = avg1(avg1(avg1(permute(runs.rgrid.z_w,[3 2 1]),1),2),3);
         gridrv.s_w = avg1(runs.rgrid.s_w);
 
-        % for depth integration
+        % for depth integration - banas code
         h = runs.bathy.h(2:end-1,2:end-1);
         csr = runs.rgrid.Cs_r(2:end-1);
         csw = runs.rgrid.Cs_w(2:end-1);
+
+        % for depth-averaging
+        hmax = max(abs(zint)); % max. depth of integration
+        hmat = h .* (h <= hmax) + hmax .* (h > hmax);
+        % add in sponge mask
+        hmat = hmat .* fillnan(~runs.sponge(2:end-1, 2:end-1), 0);
+
+        % for bottom friction I need to mask out the area that
+        % doesn't touch the bottom
+        hbfric = fillnan(hmat .* (hmat == runs.bathy.h(2:end-1,2:end-1)), ...
+                         0);
 
         xavg = avg1(avg1(xvor,1),2)/1000; yavg = avg1(avg1(yvor,1),2)/1000;
 
         depthRange = [100 -max(runs.bathy.h(:))];
         timehis = dc_roms_read_data(runs.dir, 'ocean_time', [], {}, ...
                                     [], runs.rgrid, 'his');
-        trange = tind:4:length(timehis);
+        trange = tind:1:length(timehis);
 
+        % 2D array - water column volume for each (x,y) - masked
+        dVxy = 1./runs.rgrid.pm(2:end-1,2:end-1)' .* 1./runs.rgrid.pn(2:end-1, 2:end-1)' ...
+               .* hmat;
+
+        % 3D array - cell volumes for each (x,y,z)
+        % nansum(dV(:))  ~= nansum(dVxy(:)) since,
+        % i'm integrating to a level just
+        % above the bottom.
+        zmat = repmat(permute(zrnew, [3 2 1]), [size(hmat,1) ...
+                            size(hmat,2)]);
+        zmat(bsxfun(@lt, zmat, -1 * hmat)) = NaN;
+        dV = bsxfun(@times, ...
+                    bsxfun(@times, 1./runs.rgrid.pm(2:end-1, 2:end-1)' .* 1./ ...
+                           runs.rgrid.pn(2:end-1, 2:end-1)', ...
+                           diff(zmat, 1, 3)), ...
+                    ~isnan(hmat));
+        vol = sum(dV(:));
+        %disp(['error in volumes = ' num2str((vol - nansum(dVxy(:)))./vol ...
+        %                                    * 100) ' percent']);
         disp(['starting from t instant = ' num2str(trange(1))]);
-        runs.vorbudget.hadv = nan(length(trange)-1);
+
+        % save vorticity budget for whole domain
+        runs.vorbudget.hadv = nan([length(trange)-1 1]);
         runs.vorbudget.vadv = runs.vorbudget.hadv;
         runs.vorbudget.tilt = runs.vorbudget.hadv;
         runs.vorbudget.str  = runs.vorbudget.hadv;
         runs.vorbudget.beta = runs.vorbudget.hadv;
+        runs.vorbudget.bfric = runs.vorbudget.hadv;
         %runs.vorbudget.sol = runs.vorbudget.hadv;
         runs.vorbudget.budget = runs.vorbudget.hadv;
+
+        % vorticity budget for shelf water
+        runs.vorbudget.shelf.hadv = runs.vorbudget.hadv;
+        runs.vorbudget.shelf.vadv = runs.vorbudget.hadv;
+        runs.vorbudget.shelf.str = runs.vorbudget.hadv;
+        runs.vorbudget.shelf.tilt = runs.vorbudget.hadv;
+        runs.vorbudget.shelf.beta = runs.vorbudget.hadv;
+        runs.vorbudget.shelf.bfric = runs.vorbudget.hadv;
+
+        runs.vorbudget.comment = ['hadv + vadv + beta = str + tilt  ' ...
+                            '+ bfric'];
         %runs.vorbudget.conthis = runs.vorbudget.hadv;
         %%
         for kk=1:length(trange)-1
             tt = trange(kk);
+            disp(['kk = ' num2str(kk) '/' num2str(length(trange)-1) ...
+                  ' | tt = ' num2str(tt/2) ' days | plotflag = ' num2str(plotflag)]);
             %zeta = runs.zeta(2:end-1,2:end-1,tt);
             zeta = dc_roms_read_data(runs.dir, 'zeta', tt, {}, [], ...
                                      runs.rgrid, 'his');
             % read data
             %fname = [runs.dir '/ocean_his.nc.new2'];
             %fname = runs.out_file;
-            %u1 = double(ncread(fname,'u',[1 1 1 tt],[Inf Inf Inf 2]));
-            %v1 = double(ncread(fname,'v',[1 1 1 tt],[Inf Inf Inf 2]));
-            %w  = double(ncread(fname,'w',[1 1 1 tt],[Inf Inf Inf 1]));
+                        %w  = double(ncread(fname,'w',[1 1 1 tt],[Inf Inf Inf 1]));
             %zeta = double(ncread(fname,'zeta',[1 1 tt],[Inf Inf 1]));
 
+            % read in history file data
             uh = dc_roms_read_data(runs.dir,'u',tt,{},[],runs.rgrid, ...
                                   'his');
             vh = dc_roms_read_data(runs.dir,'v',tt,{},[],runs.rgrid, ...
                                   'his');
             wh = dc_roms_read_data(runs.dir,'w',tt,{},[],runs.rgrid, ...
-                                  'his');
+                                   'his');
+            csdye = dc_roms_read_data(runs.dir, runs.csdname, tt, ...
+                                      {}, [], runs.rgrid, 'his');
+
             %rhoh = dc_roms_read_data(runs.dir,'rho',tt,{},[],runs.rgrid, ...
             %                         'his');
 
-            ubar = dc_roms_read_data(runs.dir, 'ubar', tt, {}, [], ...
-                                     runs.rgrid, 'his');
-            vbar = dc_roms_read_data(runs.dir, 'vbar', tt, {}, [], ...
-                                     runs.rgrid, 'his');
+            %ubar = dc_roms_read_data(runs.dir, 'ubar', tt, {}, [], ...
+            %                         runs.rgrid, 'his');
+            %vbar = dc_roms_read_data(runs.dir, 'vbar', tt, {}, [], ...
+            %                         runs.rgrid, 'his');
 
             % interpolate to znew depths
             disp('interpolating variables');
             u = interpolate(uh, gridu.zmat, zrnew);
             v = interpolate(vh, gridv.zmat, zrnew);
             w = interpolate(wh, gridw.zmat, zwnew);
+            csd = interpolate(csdye, gridr.zmat, zrnew);
             % rho = interpolate(rhoh, gridr.zmat, zrnew);
 
             ux = diff(u,1,1)./diff(gridu.xmat,1,1);
@@ -4289,8 +4413,8 @@ methods
             %ry = diff(rho,1,2)./diff(gridr.ymat,1,2);
             %rz = diff(rho,1,3)./diff(gridr.znew,1,3);
 
-            cont = ux(:, 2:end-1, :) + vy(2:end-1, :, :) + ...
-                   wz(2:end-1, 2:end-1, :);
+            %cont = ux(:, 2:end-1, :) + vy(2:end-1, :, :) + ...
+            %       wz(2:end-1, 2:end-1, :);
 
             % check cont
             %ix = 150; iy = 164;
@@ -4316,9 +4440,34 @@ methods
             rvy = diff(rv,1,2)./diff(gridrv.ymat,1,2);
             rvz = diff(rv,1,3)./diff(gridrv.znew,1,3);
 
-            str = avg1(-1 * avg1(avg1(bsxfun(@plus, rv, ...
+            rvavg = avg1(avg1(avg1(rv, 1), 2), 3);
+
+            if debug
+                u1h = double(ncread(runs.dir,'u',[1 1 1 tt+1],[Inf Inf Inf 1]));
+                v1h = double(ncread(runs.dir,'v',[1 1 1 tt+1],[Inf Inf ...
+                                    Inf 1]));
+                t1 = double(ncread(runs.dir, 'ocean_time'));
+
+                u1 = interpolate(u1h, gridu.zmat, zrnew);
+                v1 = interpolate(v1h, gridv.zmat, zrnew);
+
+                u1y = diff(u1,1,2)./diff(gridu.ymat,1,2);
+                v1x = diff(v1,1,1)./diff(gridv.xmat,1,1);
+
+                rv1 = v1x-u1y;
+
+                % calculate term and average to agree with 'budget' size
+                drvdt = avg1(avg1(avg1( ...
+                    (rv1-rv)./(t1(tt+1)-t1(tt)), 1), 2), 3);
+
+                DRVDT = trapz(zint, repnan(drvdt, 0), 3)./hmat;
+            end
+
+            str = avg1(avg1(avg1(bsxfun(@plus, rv, ...
                                              avg1(avg1(runs.rgrid.f',1),2)),1) ...
-                                 ,2) .* (ux(:,2:end-1,:,:) + vy(2:end-1,:,:)),3);
+                                 ,2) .* ... %-1 *(ux(:,2:end-1,:,:) +
+                                            wz(2:end-1,2:end-1,:), 3);%vy(2:end-1,:,:)),3);
+
             tilt = -1 * avg1(avg1( avg1(wx(:,:,2:end-1),2) .* avg1(vz,1) + ...
                     avg1(wy(:,:,2:end-1),1) .* avg1(uz,2) ,1),2);
             beta = avg1(avg1(runs.params.phys.beta * v(2:end-1,:,:),2),3);
@@ -4329,122 +4478,222 @@ methods
 
             budget = str + tilt - hadv - vadv - beta;
 
-          %  sol = -runs.params.phys.g/runs.params.phys.rho0 .* ...
-          %          ( avg1(rx,2) .* avg1(zy,1) - avg1(ry,1) .* avg1(zx,2));
+            % shelf water budget
+            % shelf water mask defined with csdye + I remove sponge
+            % region based on filtering already done in hmat
+            shelfmask = bsxfun(@times, (avg1(csd(2:end-1, 2:end-1, :),3) < ...
+                         runs.bathy.xsb), ~isnan(hmat));
+            %shelfmaskrv = bsxfun(@times, avg1(avg1(csd,1),2) < ...
+            %                            runs.bathy.xsb, ~isnan(hmat));
+            %  sol = -runs.params.phys.g/runs.params.phys.rho0 .* ...
+            %          ( avg1(rx,2) .* avg1(zy,1) - avg1(ry,1) .* avg1(zx,2));
 
-            zint = avg1(zrnew);
-            RV   = trapz(zrnew, repnan(rv,0), 3);
-            STR  = trapz(zint, repnan(str,0), 3);
-            TILT = trapz(zint, repnan(tilt,0), 3);
-            BETA = trapz(zint, repnan(beta,0), 3);
-            HADV = trapz(zint, repnan(hadv,0), 3);
-            VADV = trapz(zint, repnan(vadv,0), 3);
+            % need bottom vorticity for bfric calculation
+            rvbot = nan(size(rvavg(:,:,1)));
+            shelfmaskbot = rvbot;
+            tic;
+            for ii = 1:size(rvbot,1)
+                for jj = 1:size(rvbot,2)
+                    % locate first 0  since z=1 is bottom
+                    zind = find(isnan(squeeze(rvavg(ii,jj,:))) ...
+                                == 0, 1, 'first');
+                    rvbot(ii,jj) = rvavg(ii, jj, zind);
+                    shelfmaskbot(ii,jj) = shelfmask(ii, jj, zind);
+                end
+            end
+            toc;
+
+            % depth INTEGRATED QUANTITIES
+            RV   = avg1(avg1(trapz(zrnew, repnan(rv,0), 3),1), 2);
+            %RVSHELF = trapz(zrnew, repnan(rvavg,0) .* ...
+            %                shelfmask, 3);
+
+            % depth - AVERAGED quantities for plotting
+            STR  = trapz(zint, repnan(str,0), 3) ./ hmat;
+            TILT = trapz(zint, repnan(tilt,0), 3) ./ hmat;
+            BETA = trapz(zint, repnan(beta,0), 3) ./ hmat;
+            HADV = trapz(zint, repnan(hadv,0), 3) ./ hmat;
+            VADV = trapz(zint, repnan(vadv,0), 3) ./ hmat;
             ADV = HADV + VADV;
 
-            BUD = trapz(zint, repnan( str+tilt - beta - hadv -vadv,0), 3);
+            % FRICTION only when integrating to bottom surface
+            BFRIC = -runs.params.misc.rdrg .* rvbot ./ hmat .* (hmat ...
+                                                              == ...
+                                                              h);
+            BFRICSHELF = BFRIC .* shelfmaskbot;
 
-            limy = [0 150];
-            titlestr = 'Depth integrated rvor';
-            % plot
-            if kk == 1
-                figure; maximize();
-                ax(1) = subplot(2,4,[1:2]);
-                hvor = pcolor(xvor/1000,yvor/1000,RV); hold on; shading flat;
-                axis image;
-                ht = runs.set_title('Depth int rvor', floor(tt/2));
-                he(1) = runs.plot_eddy_contour('contour',floor(tt/2));
-                hbathy = runs.plot_bathy('contour','k');
-                shading flat
-                caxis([-1 1] * max(abs(RV(:)))); colorbar;
-                ylim(limy);
+            bfric = repmat(BFRIC, [1 1 size(str,3)]);
+            bfricshelf = repmat(BFRICSHELF, [1 1 size(str,3)]);
 
-                ax(2) = subplot(2,4,3);
-                hbet = pcolor(xavg,yavg,-BETA); colorbar; shading flat;
-                he(2) = runs.plot_eddy_contour('contour', floor(tt/2));
-                hbathy = runs.plot_bathy('contour','k');
-                caxis([-1 1] * max(abs(BETA(:))));
-                title('- \beta V');
+            % BUDGET = TEND = d(RV)/dt
+            BUD = STR + BFRIC + TILT - BETA - ADV;
 
-                ax(3) = subplot(2,4,4); cla
-                xran = 1:6:size(xavg,1); yran = 1:4:size(yavg,2);
-                hquiv = quiver(xavg(xran,yran),yavg(xran,yran), ...
-                        ubar(xran,yran), vbar(xran,yran),1.5);
-                title('(ubar,vbar)');
-                he(3) = runs.plot_eddy_contour('contour', floor(tt/2));
-                hbathy = runs.plot_bathy('contour','k');
-                ylim(limy);
+            % ubar, vbar calculated for depth averaged interval
+            % only
+            ubar = trapz(zrnew, repnan(avg1(u(:,2:end-1,:),1),0), 3) ...
+                         ./ hmat;
+            vbar = trapz(zrnew, repnan(avg1(v(2:end-1,:,:),2),0), ...
+                         3) ./ hmat;
+            ubar(logical(repnan(runs.eddy.vormask(:,:,ceil(tt/2)),0))) = 0;
+            vbar(logical(repnan(runs.eddy.vormask(:,:,ceil(tt/2)),0))) = 0;
 
-%                 ax(4) = subplot(2,4,5);
-%                 htend = pcolor(xavg,yavg,TEND); colorbar; shading flat;
-%                 he(4) = runs.plot_eddy_contour('contour', floor(tt/2));
-%                 hbathy = runs.plot_bathy('contour','k');
-%                 caxis([-1 1] * max(abs(TEND(:))));
-%                 title('d\xi/dt');
+            if debug
+                BUD = BUD - DRVDT;
+                imagesc(BUD');
+            end
+            %BUD = trapz(zint, repnan( str+tilt - beta - hadv -vadv,0), 3);
 
-                ax(5) = subplot(2,4,7);
-                hgadv = pcolor(xavg,yavg,-ADV); colorbar; shading flat;
-                he(5) = runs.plot_eddy_contour('contour', floor(tt/2));
-                hbathy = runs.plot_bathy('contour','k');
-                caxis([-1 1] * max(abs(ADV(:))));
-                title('-Advection');
+            % calculate vorticity eqn terms - with shelfmask -
+            % volume averaged
+            runs.vorbudget.shelf.rv(kk) = nansum(rvavg(:) .* shelfmask(:) ...
+                                                 .* dV(:)) ./ vol;
+            runs.vorbudget.shelf.str(kk) = nansum(str(:) .* shelfmask(:) .*...
+                                                  dV(:))./vol;
+            runs.vorbudget.shelf.tilt(kk) = nansum(tilt(:) .* shelfmask(:) .* ...
+                                                  dV(:))./vol;
+            runs.vorbudget.shelf.hadv(kk) = nansum(hadv(:) .* shelfmask(:) .* ...
+                                                  dV(:))./vol;
+            runs.vorbudget.shelf.vadv(kk) = nansum(vadv(:) .* shelfmask(:) .* ...
+                                                  dV(:))./vol;
+            runs.vorbudget.shelf.beta(kk) = nansum(beta(:) .* shelfmask(:) .* ...
+                                                  dV(:))./vol;
+            runs.vorbudget.shelf.bfric(kk) = nansum(bfricshelf(:) ...
+                                                    .* dV(:))./vol;
 
-                ax(6) = subplot(2,4,8);
-                htilt = pcolor(xavg,yavg,TILT); colorbar; shading flat;
-                he(6) = runs.plot_eddy_contour('contour', floor(tt/2));
-                hbathy = runs.plot_bathy('contour','k');
-                caxis([-1 1] * max(abs(TILT(:))));
-                title('Tilting');
+            % save volume averaged quantities for whole domain
+            runs.vorbudget.rv(kk) = nansum(rvavg(:) .* dV(:)) ./ vol;
+            runs.vorbudget.str(kk) = nansum(str(:) .* dV(:)) ./ vol;
+            runs.vorbudget.tilt(kk) = nansum(tilt(:) .* dV(:)) ./ vol;
+            runs.vorbudget.hadv(kk) = nansum(hadv(:) .* dV(:)) ./ vol;
+            runs.vorbudget.vadv(kk) = nansum(vadv(:) .* dV(:)) ./ vol;
+            runs.vorbudget.beta(kk) = nansum(beta(:) .* dV(:)) ./ vol;
+            runs.vorbudget.bfric(kk) = nansum(bfric(:) .* dV(:))./vol;
 
-                ax(7) = subplot(2,4,[5 6]);
-                hstr = pcolor(xavg,yavg,STR); colorbar; hold on; shading flat;
-                %hquiv = quiverclr(xavg(xran,yran),yavg(xran,yran), ...
-                %    ubar(xran,yran),vbar(xran,yran),0.3,STR(xran,yran), ...
-                %    [-1 1]*1e-11);
-                %set(gca,'color',[0 0 0]);
-                he(7) = runs.plot_eddy_contour('contour',floor(tt/2));
-                hbathy = runs.plot_bathy('contour','k');
-                caxis([-1 1] * max(abs(STR(:))));
-                title('Stretching = (f+\xi)w_z')
-                spaceplots(0.06*ones([1 4]),0.05*ones([1 2]))
-                linkaxes(ax,'xy');
-                runs.video_update();
-                pause();
-            else
-                set(hvor ,'cdata',RV);
-                set(hgadv ,'cdata',-ADV);
-                set(hbet ,'cdata',-BETA);
-                set(hstr ,'cdata',STR);
-                set(htilt,'cdata',TILT);
-                %set(htend,'cdata',TEND);
-                try
-                    set(hquiv,'udata',ubar(xran,yran),'vdata',vbar(xran,yran));
-                catch ME
+            if plotflag
+                limc = [-1 1] * nanmax(abs(ADV(:)));
+                limy = [0 150];
+                limx = [xvor(find(~runs.sponge(:,1) == 1, 1, 'first'),1) ...
+                        xvor(find(~runs.sponge(:,1) == 1, 1, 'last'),1)]/1000;
+                titlestr = 'Depth integrated rvor';
+                % plot
+                if kk == 1
+                    figure; maximize();
+                    ax(1) = subplot(2,4,[1:2]);
+                    hvor = pcolor(xavg, yavg, RV); hold on; shading flat;
+                    axis image;
+                    ht = runs.set_title('Depth int rvor', ceil(tt/2));
+                    he(1) = runs.plot_eddy_contour('contour',ceil(tt/2));
+                    hbathy = runs.plot_bathy('contour','k');
+                    shading flat
+                    caxis([-1 1] * nanmax(abs(RV(:))));
+                    colorbar;
+                    ylim(limy); xlim(limx);
+
+                    ax(2) = subplot(2,4,3);
+
+                    if runs.params.misc.rdrg == 0
+                        hbet = pcolor(xavg,yavg,-BETA);
+                        title('- \beta V');
+                    else
+                        hbet = pcolor(xavg, yavg, BFRIC);
+                        title('Bottom Friction');
+                    end
+                    colorbar; shading flat;
+                    he(2) = runs.plot_eddy_contour('contour', ceil(tt/2));
+                    hbathy = runs.plot_bathy('contour','k');
+                    caxis(limc); %caxis([-1 1] * nanmax(abs(BETA(:))));
+
+                    ylim(limy); xlim(limx);
+
+                    ax(3) = subplot(2,4,4); cla
+                    xran = 1:6:size(xavg,1); yran = 1:4:size(yavg,2);
+                    hquiv = quiver(xavg(xran,yran),yavg(xran,yran), ...
+                                   ubar(xran,yran), vbar(xran,yran),1.5);
+                    title('(ubar,vbar)');
+                    he(3) = runs.plot_eddy_contour('contour', ceil(tt/2));
+                    hbathy = runs.plot_bathy('contour','k');
+                    ylim(limy); xlim(limx);
+
+                    %                 ax(4) = subplot(2,4,5);
+                    %                 htend = pcolor(xavg,yavg,TEND); colorbar; shading flat;
+                    %                 he(4) = runs.plot_eddy_contour('contour', ceil(tt/2));
+                    %                 hbathy = runs.plot_bathy('contour','k');
+                    %                 caxis([-1 1] * max(abs(TEND(:))));
+                    %                 title('d\xi/dt');
+
+                    ax(5) = subplot(2,4,7);
+                    hgadv = pcolor(xavg,yavg,-ADV); colorbar; shading flat;
+                    he(5) = runs.plot_eddy_contour('contour', ceil(tt/2));
+                    hbathy = runs.plot_bathy('contour','k');
+                    caxis(limc); %caxis([-1 1] * max(abs(ADV(:))));
+                    title('-Advection');
+
+                    ax(6) = subplot(2,4,8);
+                    htilt = pcolor(xavg,yavg,TILT); colorbar; shading flat;
+                    he(6) = runs.plot_eddy_contour('contour', ceil(tt/2));
+                    hbathy = runs.plot_bathy('contour','k');
+                    caxis(limc/10); %caxis([-1 1] * max(abs(TILT(:))));
+                    title('Tilting');
+
+                    ax(7) = subplot(2,4,[5 6]);
+                    hstr = pcolor(xavg,yavg,STR); colorbar; hold on; shading flat;
+                    %hquiv = quiverclr(xavg(xran,yran),yavg(xran,yran), ...
+                    %    ubar(xran,yran),vbar(xran,yran),0.3,STR(xran,yran), ...
+                    %    [-1 1]*1e-11);
+                    %set(gca,'color',[0 0 0]);
+                    he(7) = runs.plot_eddy_contour('contour',ceil(tt/2));
+                    hbathy = runs.plot_bathy('contour','k');
+                    caxis(limc); %caxis([-1 1] * max(abs(STR(:))));
+                    title('Stretching = (f+\xi)w_z')
+                    spaceplots(0.06*ones([1 4]),0.05*ones([1 2]))
+                    linkaxes(ax,'xy');
+                    runs.video_update();
+                    pause();
+                else
+                    set(hvor ,'cdata',RV);
+                    set(hgadv ,'cdata',-ADV);
+                    if runs.params.misc.rdrg == 0
+                        set(hbet ,'cdata',-BETA);
+                    else
+                        set(hbet, 'cdata', BFRIC);
+                    end
+                    set(hstr ,'cdata',STR);
+                    set(htilt,'cdata',TILT);
+                    %set(htend,'cdata',TEND);
+                    try
+                        set(hquiv,'udata',ubar(xran,yran),'vdata',vbar(xran,yran));
+                    catch ME
+                    end
+
+                    runs.update_eddy_contour(he,ceil(tt/2));
+                    runs.update_title(ht,titlestr,ceil(tt/2));
+                    runs.video_update();
+                    pause(0.01);
                 end
-
-                runs.update_eddy_contour(he,floor(tt/2));
-                runs.update_title(ht,titlestr,floor(tt/2));
-                runs.video_update();
-                pause(0.01);
             end
         end
-        runs.video_write();
 
-        runs.vorbudget.time = runs.time(trange(1:end-1));
+        if plotflag
+            runs.video_write();
+        end
+        runs.vorbudget.time = timehis(trange(1:end-1));
+
+        figure;
         plot(runs.vorbudget.time,-runs.vorbudget.hadv,'r'); hold on
         plot(runs.vorbudget.time,-runs.vorbudget.vadv,'g');
         plot(runs.vorbudget.time,runs.vorbudget.tilt,'b');
         plot(runs.vorbudget.time,runs.vorbudget.str,'c');
-        plot(runs.vorbudget.time,runs.vorbudget.sol,'m');
+        %plot(runs.vorbudget.time,runs.vorbudget.sol,'m');
         plot(runs.vorbudget.time,-runs.vorbudget.beta,'y');
         plot(runs.vorbudget.time,runs.vorbudget.budget,'k');
         title('signs so that all terms are on RHS and tendency is LHS');
-        legend('hadv','vadv','tilt','str','sol','beta','budget');
-
+        legend('hadv','vadv','tilt','str','beta','budget');
 
         vorbudget = runs.vorbudget;
         vorbudget.hash = githash;
         save([runs.dir '/vorbudget.mat'],'vorbudget');
 
+        toc(vorbudgetstart);
     end
 
     function [] = animate_vorbudget_deprecated(runs,tind)
