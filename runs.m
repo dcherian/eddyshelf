@@ -242,6 +242,9 @@ methods
             % velocities
             A = runs.eddy.amp(1);
             Vr = runs.params.phys.beta * runs.rrdeep^2;
+            if ~isfield(runs.params.eddy, 'Ldef')
+                runs.params.eddy.Ldef = runs.rrdeep;
+            end
             Nqg = runs.params.phys.f0 * runs.params.eddy.Ldef / ...
                   runs.params.phys.g * Vr;
             runs.eddy.Vest_zonal = Vr * (Nqg/A - 1);
