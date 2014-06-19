@@ -4205,7 +4205,7 @@ methods
         plot(time, runs.vorbudget.shelf.str, ...
              time, runs.vorbudget.shelf.hadv + runs.vorbudget.shelf.vadv, ...
              time, runs.vorbudget.shelf.tilt, ...
-             time, runs.vorbudget.shelf.bfric, ...
+             ... %time, runs.vorbudget.shelf.bfric, ...
              time, runs.vorbudget.shelf.beta);
         plot(time, runs.vorbudget.shelf.hadv, 'Color',[1 1 1]*0.7);
         plot(time, runs.vorbudget.shelf.vadv, 'Color',[1 1 1]*0.7);
@@ -4291,8 +4291,8 @@ methods
 
         % for depth integration - banas code
         h = runs.bathy.h(2:end-1,2:end-1);
-        csr = runs.rgrid.Cs_r(2:end-1);
-        csw = runs.rgrid.Cs_w(2:end-1);
+        %        csr = runs.rgrid.Cs_r(2:end-1);
+        %csw = runs.rgrid.Cs_w(2:end-1);
 
         % for depth-averaging
         hmax = max(abs(zint)); % max. depth of integration
@@ -4306,12 +4306,7 @@ methods
                          0);
 
         xavg = avg1(avg1(xvor,1),2)/1000; yavg = avg1(avg1(yvor,1),2)/1000;
-
-        depthRange = [100 -max(runs.bathy.h(:))];
-        timehis = dc_roms_read_data(runs.dir, 'ocean_time', [], {}, ...
-                                    [], runs.rgrid, 'his');
-        trange = tind:1:length(timehis);
-
+        
         % AREA AVERAGING - for bottom friction terms
         dA = 1./runs.rgrid.pm(2:end-1,2:end-1)' .* 1./runs.rgrid.pn(2:end-1, ...
                                                           2:end-1)';
@@ -4336,6 +4331,14 @@ methods
         vol = nansum(dV(:));
         %disp(['error in volumes = ' num2str((vol - nansum(dVxy(:)))./vol ...
         %                                    * 100) ' percent']);
+
+        % time range and file reading parameters
+        slab = 5;
+        stride = 1;
+
+        timehis = dc_roms_read_data(runs.dir, 'ocean_time', [], {}, ...
+                                    [], runs.rgrid, 'his');
+        trange = tind:stride:length(timehis);
         disp(['starting from t instant = ' num2str(trange(1))]);
 
         % save vorticity budget for whole domain
@@ -4360,13 +4363,13 @@ methods
                             '+ bfric'];
         %runs.vorbudget.conthis = runs.vorbudget.hadv;
         %%
-        for kk=1:length(trange)-1
+
+        for kk=1:slab:length(trange)
             tt = trange(kk);
-            disp(['kk = ' num2str(kk) '/' num2str(length(trange)-1) ...
-                  ' | tt = ' num2str(tt/2) ' days | plotflag = ' num2str(plotflag)]);
+            disp(['kk = ' num2str(kk) '/' num2str(length(trange)/slab) ...
+                  ' | tt = ' num2str(tt/2) ' days | plotflag = ' ...
+                  num2str(plotflag) ' | run = ' runs.name]);
             %zeta = runs.zeta(2:end-1,2:end-1,tt);
-            zeta = dc_roms_read_data(runs.dir, 'zeta', tt, {}, [], ...
-                                     runs.rgrid, 'his');
             % read data
             %fname = [runs.dir '/ocean_his.nc.new2'];
             %fname = runs.out_file;
@@ -4374,14 +4377,17 @@ methods
             %zeta = double(ncread(fname,'zeta',[1 1 tt],[Inf Inf 1]));
 
             % read in history file data
-            uh = dc_roms_read_data(runs.dir,'u',tt,{},[],runs.rgrid, ...
-                                  'his');
-            vh = dc_roms_read_data(runs.dir,'v',tt,{},[],runs.rgrid, ...
-                                  'his');
-            wh = dc_roms_read_data(runs.dir,'w',tt,{},[],runs.rgrid, ...
-                                   'his');
-            csdye = dc_roms_read_data(runs.dir, runs.csdname, tt, ...
-                                      {}, [], runs.rgrid, 'his');
+            tindices = [tt stride tt+stride*slab-1];
+            uh = dc_roms_read_data(runs.dir,'u',tindices,{},[],runs.rgrid, ...
+                                  'his', 'single');
+            vh = dc_roms_read_data(runs.dir,'v',tindices,{},[],runs.rgrid, ...
+                                  'his', 'single');
+            wh = dc_roms_read_data(runs.dir,'w',tindices,{},[],runs.rgrid, ...
+                                   'his', 'single');
+            csdye = dc_roms_read_data(runs.dir, runs.csdname, tindices, ...
+                                      {}, [], runs.rgrid, 'his', 'single');
+            zeta = dc_roms_read_data(runs.dir, 'zeta', tt, {}, [], ...
+                                     runs.rgrid, 'his', 'single');
 
             %rhoh = dc_roms_read_data(runs.dir,'rho',tt,{},[],runs.rgrid, ...
             %                         'his');
@@ -4393,23 +4399,23 @@ methods
 
             % interpolate to znew depths
             disp('interpolating variables');
-            u = interpolate(uh, gridu.zmat, zrnew);
-            v = interpolate(vh, gridv.zmat, zrnew);
-            w = interpolate(wh, gridw.zmat, zwnew);
-            csd = interpolate(csdye, gridr.zmat, zrnew);
+            u = (interpolate(uh, gridu.zmat, zrnew));
+            v = (interpolate(vh, gridv.zmat, zrnew));
+            w = (interpolate(wh, gridw.zmat, zwnew));
+            csd = (interpolate(csdye, gridr.zmat, zrnew));
             % rho = interpolate(rhoh, gridr.zmat, zrnew);
 
-            ux = diff(u,1,1)./diff(gridu.xmat,1,1);
-            uy = diff(u,1,2)./diff(gridu.ymat,1,2);
-            uz = diff(u,1,3)./diff(gridu.znew,1,3);
+            ux = bsxfun(@rdivide, diff(u,1,1), diff(gridu.xmat,1,1));
+            uy = bsxfun(@rdivide, diff(u,1,2), diff(gridu.ymat,1,2));
+            uz = bsxfun(@rdivide, diff(u,1,3), diff(gridu.znew,1,3));
 
-            vx = diff(v,1,1)./diff(gridv.xmat,1,1);
-            vy = diff(v,1,2)./diff(gridv.ymat,1,2);
-            vz = diff(v,1,3)./diff(gridv.znew,1,3);
+            vx = bsxfun(@rdivide, diff(v,1,1), diff(gridv.xmat,1,1));
+            vy = bsxfun(@rdivide, diff(v,1,2), diff(gridv.ymat,1,2));
+            vz = bsxfun(@rdivide, diff(v,1,3), diff(gridv.znew,1,3));
 
-            wx = diff(w,1,1)./diff(gridw.xmat,1,1);
-            wy = diff(w,1,2)./diff(gridw.ymat,1,2);
-            wz = diff(w,1,3)./diff(gridw.znew,1,3);
+            wx = bsxfun(@rdivide, diff(w,1,1), diff(gridw.xmat,1,1));
+            wy = bsxfun(@rdivide, diff(w,1,2), diff(gridw.ymat,1,2));
+            wz = bsxfun(@rdivide, diff(w,1,3), diff(gridw.znew,1,3));
 
             %rx = diff(rho,1,1)./diff(gridr.xmat,1,1);
             %ry = diff(rho,1,2)./diff(gridr.ymat,1,2);
@@ -4438,9 +4444,9 @@ methods
 %                 rv1 = v1x-u1y;
 %             end
             rv = vx-uy;
-            rvx = diff(rv,1,1)./diff(gridrv.xmat,1,1);
-            rvy = diff(rv,1,2)./diff(gridrv.ymat,1,2);
-            rvz = diff(rv,1,3)./diff(gridrv.znew,1,3);
+            rvx = bsxfun(@rdivide, diff(rv,1,1), diff(gridrv.xmat,1,1));
+            rvy = bsxfun(@rdivide, diff(rv,1,2), diff(gridrv.ymat,1,2));
+            rvz = bsxfun(@rdivide, diff(rv,1,3), diff(gridrv.znew,1,3));
 
             rvavg = avg1(avg1(avg1(rv, 1), 2), 3);
 
@@ -4467,15 +4473,15 @@ methods
 
             str = avg1(avg1(avg1(bsxfun(@plus, rv, ...
                                              avg1(avg1(runs.rgrid.f',1),2)),1) ...
-                                 ,2) .* ... %-1 *(ux(:,2:end-1,:,:) +
-                                            wz(2:end-1,2:end-1,:), 3);%vy(2:end-1,:,:)),3);
+                                 ,2) .* -1 .* (ux(:,2:end-1,:,:) + vy(2:end-1,:,:,:)),3);
+            %wz(2:end-1,2:end-1,:), 3);%
 
-            tilt = -1 * avg1(avg1( avg1(wx(:,:,2:end-1),2) .* avg1(vz,1) + ...
-                    avg1(wy(:,:,2:end-1),1) .* avg1(uz,2) ,1),2);
-            beta = avg1(avg1(runs.params.phys.beta * v(2:end-1,:,:),2),3);
-            hadv = avg1( avg1(u(:,2:end-1,:),1) .* avg1(rvx,2) + ...
-                    avg1(v(2:end-1,:,:),2) .* avg1(rvy,1),3);
-            vadv = avg1(avg1( avg1(avg1(w(:,:,2:end-1),1),2) .* rvz ...
+            tilt = -1 * avg1(avg1( avg1(wx(:,:,2:end-1,:),2) .* avg1(vz,1) + ...
+                    avg1(wy(:,:,2:end-1,:),1) .* avg1(uz,2) ,1),2);
+            beta = avg1(avg1(runs.params.phys.beta * v(2:end-1,:,:,:),2),3);
+            hadv = avg1( avg1(u(:,2:end-1,:,:),1) .* avg1(rvx,2) + ...
+                    avg1(v(2:end-1,:,:,:),2) .* avg1(rvy,1),3);
+            vadv = avg1(avg1( avg1(avg1(w(:,:,2:end-1,:),1),2) .* rvz ...
                               ,1),2);
 
             budget = str + tilt - hadv - vadv - beta;
@@ -4483,7 +4489,7 @@ methods
             % shelf water budget
             % shelf water mask defined with csdye + I remove sponge
             % region based on filtering already done in hmat
-            shelfmask = bsxfun(@times, (avg1(csd(2:end-1, 2:end-1, :),3) < ...
+            shelfmask = bsxfun(@times, (avg1(csd(2:end-1, 2:end-1, :, :),3) < ...
                          runs.bathy.xsb), ~isnan(hmat));
             %shelfmaskrv = bsxfun(@times, avg1(avg1(csd,1),2) < ...
             %                            runs.bathy.xsb, ~isnan(hmat));
@@ -4491,16 +4497,19 @@ methods
             %          ( avg1(rx,2) .* avg1(zy,1) - avg1(ry,1) .* avg1(zx,2));
 
             % need bottom vorticity for bfric calculation
-            rvbot = nan(size(rvavg(:,:,1)));
+            rvbot = nan(size(squeeze(rvavg(:,:,1,:))));
             shelfmaskbot = rvbot;
             tic;
-            for ii = 1:size(rvbot,1)
-                for jj = 1:size(rvbot,2)
-                    % locate first 0  since z=1 is bottom
-                    zind = find(isnan(squeeze(rvavg(ii,jj,:))) ...
-                                == 0, 1, 'first');
-                    rvbot(ii,jj) = rvavg(ii, jj, zind);
-                    shelfmaskbot(ii,jj) = shelfmask(ii, jj, zind);
+            for kkk = 1:size(rvbot, 3)
+                for iii = 1:size(rvbot,1)
+                    for jjj = 1:size(rvbot,2)
+                        % locate first 0  since z=1 is bottom
+                        zind = find(isnan(squeeze(rvavg(iii,jjj,:,kkk))) ...
+                                    == 0, 1, 'first');
+                        rvbot(iii, jjj, kkk) = rvavg(iii, jjj, zind, kkk);
+                        shelfmaskbot(iii, jjj, kkk) = shelfmask(iii, jjj, ...
+                                                           zind, kkk);
+                    end
                 end
             end
             toc;
@@ -4511,16 +4520,16 @@ methods
             %                shelfmask, 3);
 
             % depth - AVERAGED quantities for plotting
-            STR  = trapz(zint, repnan(str,0), 3) ./ hmat;
-            TILT = trapz(zint, repnan(tilt,0), 3) ./ hmat;
-            BETA = trapz(zint, repnan(beta,0), 3) ./ hmat;
-            HADV = trapz(zint, repnan(hadv,0), 3) ./ hmat;
-            VADV = trapz(zint, repnan(vadv,0), 3) ./ hmat;
+            STR  = squeeze(bsxfun(@rdivide, trapz(zint, repnan(str,0),  3), hmat));
+            TILT = squeeze(bsxfun(@rdivide, trapz(zint, repnan(tilt,0), 3), hmat));
+            BETA = squeeze(bsxfun(@rdivide, trapz(zint, repnan(beta,0), 3), hmat));
+            HADV = squeeze(bsxfun(@rdivide, trapz(zint, repnan(hadv,0), 3), hmat));
+            VADV = squeeze(bsxfun(@rdivide, trapz(zint, repnan(vadv,0), 3), hmat));
             ADV = HADV + VADV;
 
             % FRICTION only when integrating to bottom surface
-            BFRIC = -runs.params.misc.rdrg .* rvbot ./ hmat .* ...
-                    (hmat == h);
+            BFRIC = bsxfun(@times, bsxfun(@rdivide, -runs.params.misc.rdrg .* rvbot, ...
+                           hmat), hmat == h);
             BFRICSHELF = BFRIC .* shelfmaskbot;
 
             % BUDGET = TEND = d(RV)/dt
@@ -4528,45 +4537,67 @@ methods
 
             % ubar, vbar calculated for depth averaged interval
             % only
-            ubar = trapz(zrnew, repnan(avg1(u(:,2:end-1,:),1),0), 3) ...
-                         ./ hmat;
-            vbar = trapz(zrnew, repnan(avg1(v(2:end-1,:,:),2),0), ...
-                         3) ./ hmat;
-            ubar(logical(repnan(runs.eddy.vormask(:,:,ceil(tt/2)),0))) = 0;
-            vbar(logical(repnan(runs.eddy.vormask(:,:,ceil(tt/2)),0))) = 0;
-
+            % ubar = bsxfun(@rdivide, trapz(zrnew, repnan(avg1(u(:,2:end-1,:,:),1),0), 3) ...
+            %            ,hmat);
+            % vbar = bsxfun(@rdivide, trapz(zrnew, repnan(avg1(v(2:end-1,:,:,:),2),0), ...
+            %              3), hmat);
             if debug
                 BUD = BUD - DRVDT;
                 imagesc(BUD');
             end
-            %BUD = trapz(zint, repnan( str+tilt - beta - hadv -vadv,0), 3);
+            %BUD = trapz(zint, repnan( str+tilt - beta - hadv
+            %-vadv,0), 3);
 
+            % volume of shelfwater - shelfmask has sponge taken out
+            shelfvol = bsxfun(@times, shelfmask, dV);
+            shelfvol = squeeze(nansum(nansum(nansum(shelfvol, 1), ...
+                                             2), 3));
+
+            % area of shelfwater in contact with bottom
+            shelfarea = bsxfun(@times, shelfmaskbot, dA);
+            shelfarea = squeeze(nansum(nansum(shelfarea, 1), 2));
+
+            % reshape for volume averaging
+            sz4d = size(rvavg);
+            sz2d = [sz4d(1)*sz4d(2)*sz4d(3) sz4d(4)];
+                       
             % calculate vorticity eqn terms - with shelfmask -
             % volume averaged
-            runs.vorbudget.shelf.rv(kk) = nansum(rvavg(:) .* shelfmask(:) ...
-                                                 .* dV(:)) ./ vol;
-            runs.vorbudget.shelf.str(kk) = nansum(str(:) .* shelfmask(:) .*...
-                                                  dV(:))./vol;
-            runs.vorbudget.shelf.tilt(kk) = nansum(tilt(:) .* shelfmask(:) .* ...
-                                                  dV(:))./vol;
-            runs.vorbudget.shelf.hadv(kk) = nansum(hadv(:) .* shelfmask(:) .* ...
-                                                  dV(:))./vol;
-            runs.vorbudget.shelf.vadv(kk) = nansum(vadv(:) .* shelfmask(:) .* ...
-                                                  dV(:))./vol;
-            runs.vorbudget.shelf.beta(kk) = nansum(beta(:) .* shelfmask(:) .* ...
-                                                  dV(:))./vol;
-            runs.vorbudget.shelf.bfric(kk) = nansum(BFRICSHELF(:) ...
-                                                    .* dA(:)) ./ area;
+            indices = kk:(kk + slab - 1);
+            runs.vorbudget.shelf.vol(indices) = shelfvol;
+            runs.vorbudget.shelf.area(indices) = shelfarea;
+            runs.vorbudget.shelf.rv(indices) = squeeze(nansum(nansum(nansum( ...
+                bsxfun(@times, rvavg .* shelfmask, dV),1), 2), 3)) ...
+                ./ shelfvol;
+            runs.vorbudget.shelf.str(indices) = squeeze(nansum(nansum(nansum( ...
+                bsxfun(@times, str .* shelfmask, dV),1), 2), 3)) ./ shelfvol;
+            runs.vorbudget.shelf.tilt(indices) = squeeze(nansum(nansum(nansum( ...
+                bsxfun(@times, tilt .* shelfmask, dV),1), 2), 3)) ./ shelfvol;
+            runs.vorbudget.shelf.hadv(indices) = squeeze(nansum(nansum(nansum( ...
+                bsxfun(@times, hadv .* shelfmask, dV),1), 2), 3)) ./ shelfvol;
+            runs.vorbudget.shelf.vadv(indices) = squeeze(nansum(nansum(nansum( ...
+                bsxfun(@times, vadv .* shelfmask, dV),1), 2), 3)) ./ shelfvol;
+            runs.vorbudget.shelf.beta(indices) = squeeze(nansum(nansum(nansum( ...
+                bsxfun(@times, beta .* shelfmask, dV),1), 2), 3)) ./ shelfvol;
+            runs.vorbudget.shelf.bfric(indices) = squeeze(nansum(nansum( ...
+                bsxfun(@times, BFRICSHELF, dA), 1), 2)) ./ shelfarea;
 
             % save volume averaged quantities for whole domain
-            runs.vorbudget.rv(kk) = nansum(rvavg(:) .* dV(:)) ./ vol;
-            runs.vorbudget.str(kk) = nansum(str(:) .* dV(:)) ./ vol;
-            runs.vorbudget.tilt(kk) = nansum(tilt(:) .* dV(:)) ./ vol;
-            runs.vorbudget.hadv(kk) = nansum(hadv(:) .* dV(:)) ./ vol;
-            runs.vorbudget.vadv(kk) = nansum(vadv(:) .* dV(:)) ./ vol;
-            runs.vorbudget.beta(kk) = nansum(beta(:) .* dV(:)) ./ vol;
-            runs.vorbudget.bfric(kk) = nansum(BFRIC(:) .* dA(:)) ./ ...
-                area;
+            runs.vorbudget.rv(indices) = squeeze(nansum(nansum(nansum( ...
+                bsxfun(@times, rvavg, dV),1), 2), 3)) ...
+                ./ vol;
+            runs.vorbudget.str(indices) = squeeze(nansum(nansum(nansum( ...
+                bsxfun(@times, str, dV),1), 2), 3)) ./ vol;
+            runs.vorbudget.tilt(indices) = squeeze(nansum(nansum(nansum( ...
+                bsxfun(@times, tilt, dV),1), 2), 3)) ./ vol;
+            runs.vorbudget.hadv(indices) = squeeze(nansum(nansum(nansum( ...
+                bsxfun(@times, hadv, dV),1), 2), 3)) ./ vol;
+            runs.vorbudget.vadv(indices) = squeeze(nansum(nansum(nansum( ...
+                bsxfun(@times, vadv, dV),1), 2), 3)) ./ vol;
+            runs.vorbudget.beta(indices) = squeeze(nansum(nansum(nansum( ...
+                bsxfun(@times, beta, dV),1), 2), 3)) ./ vol;
+            runs.vorbudget.bfric(indices) = squeeze(nansum(nansum( ...
+                bsxfun(@times, BFRIC, dA), 1), 2)) ./ area;
 
             if plotflag
                 limc = [-1 1] * nanmax(abs(ADV(:)));
@@ -4675,7 +4706,7 @@ methods
         if plotflag
             runs.video_write();
         end
-        runs.vorbudget.time = timehis(trange(1:end-1));
+        runs.vorbudget.time = timehis(trange);
 
         figure;
         plot(runs.vorbudget.time,-runs.vorbudget.hadv,'r'); hold on
