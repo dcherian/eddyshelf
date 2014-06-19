@@ -457,7 +457,7 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
 
             % Criterion 7 - solidity must be good - helps get rid of some
             % thin 'isthumuses'
-            if props.Solidity  < 0.75, continue; end
+            %if props.Solidity  < 0.75, continue; end
 
             % Criterion 8 - low 'rectangularity' - gets rid of rectangles
             % that are sometime picked up
@@ -565,7 +565,7 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
 
                 % Criterion 7 - solidity must be good - helps get rid of some
                 % thin 'isthumuses'
-                if vorprops.Solidity  < 0.75, continue; end
+                %if vorprops.Solidity  < 0.75, continue; end
 
                 % Criterion 8 - low 'rectangularity' - gets rid of rectangles
                 % that are sometime picked up
