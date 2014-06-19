@@ -4,21 +4,39 @@ function [out] = interpolate(var, z_in, z_out)
     if length(sz) == 3
         sz(4) = 1;
     end
-    
-    var = reshape(var,[sz(1)*sz(2) sz(3) sz(4)]);
-    z_in = reshape(z_in, [sz(1)*sz(2) sz(3)]);
+
+    if sz(4) == 1
+        var = reshape(var,[sz(1)*sz(2) sz(3)]);
+        z_in = reshape(z_in, [sz(1)*sz(2) sz(3)]);
+    else
+        var = permute(var, [1 2 4 3]);
+        var = reshape(var, [sz(1)*sz(2)*sz(4) sz(3)]);
+        if size(z_in, 4) == 1
+            z_in = repmat(z_in, [1 1 1 sz(4)]);
+            z_in = reshape(z_in, [sz(1)*sz(2)*sz(4) sz(3)]);
+        end
+    end
+
+    %var = single(var);
+    %z_in = single(z_in);
+    %z_out = single(z_out);
     
     len_new = length(z_out);
     
-    out = nan([size(var,1) len_new]);
+    out = nan([len_new size(var,1)])';
     
     tic;
-    parfor ii=1:sz(1)*sz(2)
-        out(ii,:) = interp1(z_in(ii,:), var(ii,:), z_out, 'linear');
+    parfor ii=1:sz(1)*sz(2)*sz(4)
+        out(ii,:) = interp1q(z_in(ii,:)', var(ii,:)', z_out);
     end
     toc;
-    
-    out = reshape(out, [sz(1) sz(2) len_new 1]);
+
+    if sz(4) == 1
+        out = reshape(out, [sz(1) sz(2) len_new 1]);
+    else
+        out = reshape(out, [sz(1) sz(2) sz(4) len_new]);
+        out = permute(out, [1 2 4 3]);
+    end
 end
 
 
