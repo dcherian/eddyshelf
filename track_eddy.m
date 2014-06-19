@@ -655,14 +655,30 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
                     threshmax = thresh_loop(iii);
                 end
             catch ME
-                disp(ME)
+                %disp(ME)
             end
         end
 
         % reuse zmask
         zmask = (zeta .* eddy.mask) > threshmax;
-        props = regionprops(zmask, 'EquivDiameter');
-        eddy.Ls = props.EquivDiameter/2 * sqrt(dx*dy);
+        props = regionprops(zmask, 'EquivDiameter', 'Centroid');
+        min_index = 1;
+        if length(props) ~= 1
+            warning(['multiple regions found while calculating Ls. ' ...
+                     'choosing southernmost one']);
+
+            % assume first region is southernmost and compare that
+            % to rest in a loop
+            % min_index is assigned earlier to allow for case when
+            % length(props) == 1
+            for zzz=2:length(props)
+                if props(zzz).Centroid < props(min_index).Centroid
+                    min_index = zzz;
+                end
+            end
+        end
+
+        eddy.Ls = props(min_index).EquivDiameter/2 * sqrt(dx*dy);
     end
 
     if ~exist('eddy','var')
