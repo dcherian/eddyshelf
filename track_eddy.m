@@ -581,8 +581,28 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
                 % check displacement of center
                 % should be less than 10 grid cells
                 if ~isnan(eddy.vor.cx) && ~isnan(eddy.vor.cy)
-                    if hypot(eddy.vor.cx-cxn1, eddy.vor.cy-cyn1) > 10*hypot(dx,dy)
-                        continue;
+                    if hypot(eddy.vor.cx-cxn1, eddy.vor.cy-cyn1) > ...
+                            10*hypot(dx,dy)
+                        disp(['eddy center > 10 dx from last time ' ...
+                              'instant.']);
+
+                        clf;
+                        pcolorcen(zeta');
+                        clim = caxis;
+                        hold on;
+                        contour(vormaskreg', 1, 'k', 'LineWidth', 2);
+                        caxis(clim);
+                        plot(cxn1/1000, cyn1/1000, '*');
+                        plot(eddy.vor.cx/1000, eddy.vor.cy/1000, ...
+                             'k*');
+                        legend('zeta','current contour', 'earlier center', ['present ' ...
+                                            'center']);
+                        answer = input([' enter 0 to skip this region, 1 to ' ...
+                                        'accept: ']);
+                        if ~answer
+                            disp('region skipped');
+                            continue;
+                        end
                     end
                 end
 
