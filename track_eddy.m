@@ -24,9 +24,10 @@ function [eddy] = track_eddy(dir1)
             tic;
             N = size(zr,3);
 
-            zeta  = dc_roms_read_data(dir1,'zeta',[],{},[],grd);
-            u     = dc_roms_read_data(dir1,'u',[],{'z' N N},[],grd);
-            v     = dc_roms_read_data(dir1,'v',[],{'z' N N},[],grd);
+            trange = [];
+            zeta  = dc_roms_read_data(dir1,'zeta',trange,{},[],grd);
+            u     = dc_roms_read_data(dir1,'u',trange,{'z' N N},[],grd);
+            v     = dc_roms_read_data(dir1,'v',trange,{'z' N N},[],grd);
         else
             fname = dir1;
             index = strfind(dir1,'/');
@@ -67,7 +68,7 @@ function [eddy] = track_eddy(dir1)
                     bsxfun(@rdivide, diff(v,1,1), diff(avg1(xr(:,:,1),2),1,1)) ...
                   - bsxfun(@rdivide, diff(u,1,2), diff(avg1(yr(:,:,1),1),1,2)) ...
                   ,1),2);
-    
+
     xr   = xr(2:end-1,2:end-1,end);
     yr   = yr(2:end-1,2:end-1,end);
 
@@ -133,7 +134,7 @@ function [eddy] = track_eddy(dir1)
             cx0 = nan;
             cy0 = nan;
         else
-            if tt == 172,
+            if tt == 54,
                 disp('debug time!');
             end
             mask = nan(sz);
@@ -311,7 +312,7 @@ function [eddy] = track_eddy(dir1)
     if exist('runobj', 'var')
         runobj.eddy = eddy;
     end
-    
+
     disp('Done.');
 
 % Gaussian fit for vertical scale - called by fminsearch
