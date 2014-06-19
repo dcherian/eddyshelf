@@ -4333,7 +4333,7 @@ methods
         %                                    * 100) ' percent']);
 
         % time range and file reading parameters
-        slab = 5;
+        slab = 12;
         stride = 1;
 
         timehis = dc_roms_read_data(runs.dir, 'ocean_time', [], {}, ...
@@ -4386,8 +4386,8 @@ methods
                                    'his', 'single');
             csdye = dc_roms_read_data(runs.dir, runs.csdname, tindices, ...
                                       {}, [], runs.rgrid, 'his', 'single');
-            zeta = dc_roms_read_data(runs.dir, 'zeta', tt, {}, [], ...
-                                     runs.rgrid, 'his', 'single');
+            %zeta = dc_roms_read_data(runs.dir, 'zeta', tt, {}, [], ...
+            %                         runs.rgrid, 'his', 'single');
 
             %rhoh = dc_roms_read_data(runs.dir,'rho',tt,{},[],runs.rgrid, ...
             %                         'his');
@@ -4399,10 +4399,10 @@ methods
 
             % interpolate to znew depths
             disp('interpolating variables');
-            u = (interpolate(uh, gridu.zmat, zrnew));
-            v = (interpolate(vh, gridv.zmat, zrnew));
-            w = (interpolate(wh, gridw.zmat, zwnew));
-            csd = (interpolate(csdye, gridr.zmat, zrnew));
+            u = single(interpolate(uh, gridu.zmat, zrnew));
+            v = single(interpolate(vh, gridv.zmat, zrnew));
+            w = single(interpolate(wh, gridw.zmat, zwnew));
+            csd = single(interpolate(csdye, gridr.zmat, zrnew));
             % rho = interpolate(rhoh, gridr.zmat, zrnew);
 
             ux = bsxfun(@rdivide, diff(u,1,1), diff(gridu.xmat,1,1));
@@ -4506,9 +4506,14 @@ methods
                         % locate first 0  since z=1 is bottom
                         zind = find(isnan(squeeze(rvavg(iii,jjj,:,kkk))) ...
                                     == 0, 1, 'first');
-                        rvbot(iii, jjj, kkk) = rvavg(iii, jjj, zind, kkk);
-                        shelfmaskbot(iii, jjj, kkk) = shelfmask(iii, jjj, ...
-                                                           zind, kkk);
+                        if ~isempty(zind)
+                            rvbot(iii, jjj, kkk) = squeeze(rvavg(iii, jjj, zind, kkk));
+                            shelfmaskbot(iii, jjj, kkk) = squeeze(shelfmask(iii, jjj, ...
+                                                                            zind, kkk));
+                        else
+                            rvbot(iii, jjj, kkk) = NaN;
+                            shelfmaskbot(iii, jjj, kkk) = 0;
+                        end
                     end
                 end
             end
