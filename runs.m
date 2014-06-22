@@ -4195,18 +4195,24 @@ methods
     end
 
     function [] = plot_shelfvorbudget(runs)
+
+        if ~isfield(runs.vorbudget, 'time')
+            error('Vorbudget terms haven''t been calculated');
+        end
+
+        time = runs.vorbudget.time/86400;
+
         figure;
         subplot(2,1,1)
-        plot(runs.csflux.time/86400, runs.csflux.west.shelf/1e6);
+        plot(time, runs.vorbudget.shelf.rv);
         limx = xlim;
 
         subplot(2,1,2)
-        time = runs.vorbudget.time/86400;
         hold all
         plot(time, runs.vorbudget.shelf.str, ...
              time, runs.vorbudget.shelf.hadv + runs.vorbudget.shelf.vadv, ...
              time, runs.vorbudget.shelf.tilt, ...
-             ... %time, runs.vorbudget.shelf.bfric, ...
+             time, runs.vorbudget.shelf.bfric, ...
              time, runs.vorbudget.shelf.beta);
         plot(time, runs.vorbudget.shelf.hadv, 'Color',[1 1 1]*0.7);
         plot(time, runs.vorbudget.shelf.vadv, 'Color',[1 1 1]*0.7);
@@ -4307,7 +4313,7 @@ methods
                          0);
 
         xavg = avg1(avg1(xvor,1),2)/1000; yavg = avg1(avg1(yvor,1),2)/1000;
-        
+
         % AREA AVERAGING - for bottom friction terms
         dA = 1./runs.rgrid.pm(2:end-1,2:end-1)' .* 1./runs.rgrid.pn(2:end-1, ...
                                                           2:end-1)';
@@ -4343,14 +4349,14 @@ methods
         disp(['starting from t instant = ' num2str(trange(1))]);
 
         % save vorticity budget for whole domain
-        runs.vorbudget.hadv = nan([length(trange)-1 1]);
+        runs.vorbudget.hadv = nan([length(trange) 1]);
         runs.vorbudget.vadv = runs.vorbudget.hadv;
         runs.vorbudget.tilt = runs.vorbudget.hadv;
         runs.vorbudget.str  = runs.vorbudget.hadv;
         runs.vorbudget.beta = runs.vorbudget.hadv;
         runs.vorbudget.bfric = runs.vorbudget.hadv;
         %runs.vorbudget.sol = runs.vorbudget.hadv;
-        runs.vorbudget.budget = runs.vorbudget.hadv;
+        %runs.vorbudget.budget = runs.vorbudget.hadv;
 
         % vorticity budget for shelf water
         runs.vorbudget.shelf.hadv = runs.vorbudget.hadv;
@@ -4367,7 +4373,7 @@ methods
 
         for kk=1:slab:length(trange)
             tt = trange(kk);
-            disp(['kk = ' num2str(kk) '/' num2str(length(trange)/slab) ...
+            disp(['kk = ' num2str(kk/slab) '/' num2str(length(trange)/slab) ...
                   ' | tt = ' num2str(tt/2) ' days | plotflag = ' ...
                   num2str(plotflag) ' | run = ' runs.name]);
             %zeta = runs.zeta(2:end-1,2:end-1,tt);
@@ -4379,6 +4385,9 @@ methods
 
             % read in history file data
             tindices = [tt stride tt+stride*slab-1];
+            if tt+stride*slab-1 > trange(end)
+                tindices(end) = trange(end)
+            end
             uh = dc_roms_read_data(runs.dir,'u',tindices,{},[],runs.rgrid, ...
                                   'his', 'single');
             vh = dc_roms_read_data(runs.dir,'v',tindices,{},[],runs.rgrid, ...
@@ -4500,25 +4509,27 @@ methods
             % need bottom vorticity for bfric calculation
             rvbot = nan(size(squeeze(rvavg(:,:,1,:))));
             shelfmaskbot = rvbot;
-            tic;
-            for kkk = 1:size(rvbot, 3)
-                for iii = 1:size(rvbot,1)
-                    for jjj = 1:size(rvbot,2)
-                        % locate first 0  since z=1 is bottom
-                        zind = find(isnan(squeeze(rvavg(iii,jjj,:,kkk))) ...
-                                    == 0, 1, 'first');
-                        if ~isempty(zind)
-                            rvbot(iii, jjj, kkk) = squeeze(rvavg(iii, jjj, zind, kkk));
-                            shelfmaskbot(iii, jjj, kkk) = squeeze(shelfmask(iii, jjj, ...
-                                                                            zind, kkk));
-                        else
-                            rvbot(iii, jjj, kkk) = NaN;
-                            shelfmaskbot(iii, jjj, kkk) = 0;
+            if runs.params.misc.rdrg ~= 0
+                tic;
+                for kkk = 1:size(rvbot, 3)
+                    for iii = 1:size(rvbot,1)
+                        for jjj = 1:size(rvbot,2)
+                            % locate first 0  since z=1 is bottom
+                            zind = find(isnan(squeeze(rvavg(iii,jjj,:,kkk))) ...
+                                        == 0, 1, 'first');
+                            if ~isempty(zind)
+                                rvbot(iii, jjj, kkk) = squeeze(rvavg(iii, jjj, zind, kkk));
+                                shelfmaskbot(iii, jjj, kkk) = squeeze(shelfmask(iii, jjj, ...
+                                                                                zind, kkk));
+                            else
+                                rvbot(iii, jjj, kkk) = NaN;
+                                shelfmaskbot(iii, jjj, kkk) = 0;
+                            end
                         end
                     end
                 end
+                toc;
             end
-            toc;
 
             % depth INTEGRATED QUANTITIES
             RV   = avg1(avg1(trapz(zrnew, repnan(rv,0), 3),1), 2);
@@ -4566,10 +4577,10 @@ methods
             % reshape for volume averaging
             sz4d = size(rvavg);
             sz2d = [sz4d(1)*sz4d(2)*sz4d(3) sz4d(4)];
-                       
+
             % calculate vorticity eqn terms - with shelfmask -
             % volume averaged
-            indices = kk:(kk + slab - 1);
+            indices = [tindices(1):tindices(3)] - trange(1) + 1;
             runs.vorbudget.shelf.vol(indices) = shelfvol;
             runs.vorbudget.shelf.area(indices) = shelfarea;
             runs.vorbudget.shelf.rv(indices) = squeeze(nansum(nansum(nansum( ...
@@ -4721,9 +4732,9 @@ methods
         plot(runs.vorbudget.time,runs.vorbudget.str,'c');
         %plot(runs.vorbudget.time,runs.vorbudget.sol,'m');
         plot(runs.vorbudget.time,-runs.vorbudget.beta,'y');
-        plot(runs.vorbudget.time,runs.vorbudget.budget,'k');
+        %       plot(runs.vorbudget.time,runs.vorbudget.budget,'k');
         title('signs so that all terms are on RHS and tendency is LHS');
-        legend('hadv','vadv','tilt','str','beta','budget');
+        legend('hadv','vadv','tilt','str','beta');
 
         vorbudget = runs.vorbudget;
         vorbudget.hash = githash;
