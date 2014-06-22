@@ -1068,7 +1068,7 @@ methods
         runs.csflux.west.eddy = nan([tinf length(loc)]);
 
         rr = runs.rrshelf;
-        maxrr = floor(runs.bathy.xsb/rr);
+        maxrr = ceil(runs.bathy.xsb/rr);
         runs.csflux.west.shelfwater.bins = (1:maxrr) * rr;
         runs.csflux.west.shelfwater.trans = nan([tinf length(loc) ...
                             maxrr]);
@@ -1152,7 +1152,7 @@ methods
                 % calculate transport for each shelf water mass
                 % bin - extra shelfmask multiplication is just a
                 % check. adds 2 seconds.
-                binmask = (csdye <= runs.csflux.west.shelfwater.bins(mmm + 1)) ...
+                binmask = (csdye < runs.csflux.west.shelfwater.bins(mmm + 1)) ...
                           & (csdye >= ...
                              runs.csflux.west.shelfwater.bins(mmm));
                 bintrans = squeeze(csvel .* binmask);
@@ -1237,13 +1237,14 @@ methods
         toc(ticstart);
 
         % save fluxes
+        runs.csflux.time = time;
+        runs.asflux.time = time;
+
+        runs.csflux.hash = githash;
+        runs.asflux.hash = githash;
+
         csflux = runs.csflux;
         asflux = runs.asflux;
-        csflux.time = time;
-        asflux.time = time;
-
-        csflux.hash = githash;
-        asflux.hash = githash;
 
         save([runs.dir '/fluxes.mat'], 'csflux', 'asflux');
     end
