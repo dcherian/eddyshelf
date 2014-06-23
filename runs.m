@@ -4251,6 +4251,8 @@ methods
 
         vorbudgetstart = tic;
 
+        runs.vorbudget = [];
+
         if ~exist('tind','var')
             tind = 1;
         end
@@ -4410,8 +4412,12 @@ methods
                         %w  = double(ncread(fname,'w',[1 1 1 tt],[Inf Inf Inf 1]));
             %zeta = double(ncread(fname,'zeta',[1 1 tt],[Inf Inf 1]));
 
+            if stride ~= 1
+                error('stride does not work');
+            end
+            
             % read in history file data
-            tindices = [tt stride tt+stride*slab-1];
+            tindices = [tt tt+stride*slab-1]
             if tt+stride*slab-1 > trange(end)
                 tindices(end) = trange(end)
             end
@@ -4536,24 +4542,30 @@ methods
             % need bottom vorticity for bfric calculation
             rvbot = nan(size(squeeze(rvavg(:,:,1,:))));
             shelfmaskbot = rvbot;
+
+            botmask  = nan(size(rvavg(:,:,:,1)));;
             if runs.params.misc.rdrg ~= 0
                 tic;
-                for kkk = 1:size(rvbot, 3)
-                    for iii = 1:size(rvbot,1)
-                        for jjj = 1:size(rvbot,2)
-                            % locate first 0  since z=1 is bottom
-                            zind = find(isnan(squeeze(rvavg(iii,jjj,:,kkk))) ...
-                                        == 0, 1, 'first');
-                            if ~isempty(zind)
-                                rvbot(iii, jjj, kkk) = squeeze(rvavg(iii, jjj, zind, kkk));
-                                shelfmaskbot(iii, jjj, kkk) = squeeze(shelfmask(iii, jjj, ...
-                                                                                zind, kkk));
-                            else
-                                rvbot(iii, jjj, kkk) = NaN;
-                                shelfmaskbot(iii, jjj, kkk) = 0;
+                disp('calculating bottom vorticity');
+                if kk == 1
+                    % valid cells never change, so save mask
+                    % (botmask) that when multiplied with field
+                    % gives me the bottom values.
+                    for kkk = 1:size(rvbot, 3)
+                        for iii = 1:size(rvbot,1)
+                            for jjj = 1:size(rvbot,2)
+                                % locate first 0  since z=1 is bottom
+                                zind = find(isnan(squeeze(rvavg(iii,jjj,:,kkk))) ...
+                                            == 0, 1, 'first');
+                                if ~isempty(zind)
+                                    botmask(iii,jjj,zind) = 1;
+                                end
                             end
                         end
                     end
+                else
+                    rvbot = squeeze(nansum(bsxfun(@times, rvavg, botmask),3));
+                    shelfmaskbot = squeeze(nansum(bsxfun(@times, shelfmask, botmask),3));
                 end
                 toc;
             end
@@ -4603,11 +4615,14 @@ methods
 
             % reshape for volume averaging
             sz4d = size(rvavg);
+            if length(sz4d) == 3
+                sz4d(4) = 1;
+            end
             sz2d = [sz4d(1)*sz4d(2)*sz4d(3) sz4d(4)];
 
             % calculate vorticity eqn terms - with shelfmask -
             % volume averaged
-            indices = [tindices(1):tindices(3)] - trange(1) + 1;
+            indices = [tindices(1):tindices(end)] - trange(1) + 1;
             runs.vorbudget.shelf.vol(indices) = shelfvol;
             runs.vorbudget.shelf.area(indices) = shelfarea;
             runs.vorbudget.shelf.rv(indices) = squeeze(nansum(nansum(nansum( ...
