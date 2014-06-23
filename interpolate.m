@@ -5,6 +5,8 @@ function [out] = interpolate(var, z_in, z_out)
         sz(4) = 1;
     end
 
+    zin = z_in;
+
     if sz(4) == 1
         var = reshape(var,[sz(1)*sz(2) sz(3)]);
         z_in = reshape(z_in, [sz(1)*sz(2) sz(3)]);
@@ -13,7 +15,8 @@ function [out] = interpolate(var, z_in, z_out)
         var = reshape(var, [sz(1)*sz(2)*sz(4) sz(3)]);
         if size(z_in, 4) == 1
             z_in = repmat(z_in, [1 1 1 sz(4)]);
-            z_in = reshape(z_in, [sz(1)*sz(2)*sz(4) sz(3)]);
+            z_in = reshape(permute(z_in, [1 2 4 3]), ...
+                           [sz(1)*sz(2)*sz(4) sz(3)]);
         end
     end
 
