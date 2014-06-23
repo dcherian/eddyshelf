@@ -5579,7 +5579,8 @@ methods
         if ~exist('color','var'), color = 'w'; end
         if strcmpi(plottype,'contour')
             [cc,hplot] = contour(runs.rgrid.xr/1000,runs.rgrid.yr/1000, ...
-                            runs.rgrid.h',[200 500 1000 1500 2000],color);
+                            runs.rgrid.h',[200 500 1000 1500 ...
+                                2000], 'Color', color);
             clabel(cc,hplot,'LabelSpacing',108*3);
             if runs.bathy.axis == 'y'
                 liney(runs.bathy.xsb/1000,'shelfbreak',color);
