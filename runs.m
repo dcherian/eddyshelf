@@ -3,7 +3,7 @@ properties
     % dir & file names
     name; dir; out_file; ltrans_file; flt_file; givenFile
     % data
-    zeta; temp; usurf; vsurf;vorsurf;
+    zeta; temp; usurf; vsurf; vorsurf; csdsurf;
     % dimensional and non-dimensional time
     time; ndtime;
     % barotropic vel (geostrophic)
@@ -362,14 +362,16 @@ methods
                 'u',start,count,stride)));
         else
             runs.usurf = dc_roms_read_data(runs.dir,'u', ...
-                [],{'z' runs.rgrid.N runs.rgrid.N},[],runs.rgrid);
+                [],{'z' runs.rgrid.N runs.rgrid.N},[],runs.rgrid, ...
+                                           'his', 'single');
         end
         if runs.givenFile
             runs.vsurf = double(squeeze(ncread(runs.out_file, ....
                 'v',start,count,stride)));
         else
             runs.vsurf = dc_roms_read_data(runs.dir,'v', ...
-                [],{'z' runs.rgrid.N runs.rgrid.N},[],runs.rgrid);
+                [],{'z' runs.rgrid.N runs.rgrid.N},[],runs.rgrid, ...
+                                           'his', 'single');
         end
     end
 
@@ -1631,13 +1633,16 @@ methods
         end
 
         if isempty(runs.vorsurf)
-            runs.vorsurf = avg1(bsxfun(@rdivide,diff(runs.vsurf,1,1), ...
-                                    diff(runs.rgrid.xr(2:end-1,2:end-1),1,1)),2) ...
-                            - avg1(bsxfun(@rdivide,diff(runs.usurf,1,2), ...
-                                    diff(runs.rgrid.yr(2:end-1,2:end-1),1,2)),1);
+            vx =  bsxfun(@rdivide,diff(runs.vsurf,1,1), ...
+                                    diff(runs.rgrid.x_v',1,1));
 
-            runs.rgrid.xvor = avg1(avg1(runs.rgrid.xr(2:end-1,2:end-1),1),2);
-            runs.rgrid.yvor = avg1(avg1(runs.rgrid.yr(2:end-1,2:end-1),1),2);
+            uy = bsxfun(@rdivide,diff(runs.usurf,1,2), ...
+                             diff(runs.rgrid.y_u',1,2));
+
+            runs.vorsurf = vx - uy;
+
+            runs.rgrid.xvor = avg1(avg1(runs.rgrid.xr,1),2);
+            runs.rgrid.yvor = avg1(avg1(runs.rgrid.yr,1),2);
         end
     end
 
@@ -4128,21 +4133,43 @@ methods
             runs.calc_vorsurf();
         end
 
+        runs.video_init('surfvorcsd');
+
+        % read in dye values
+        if isempty(runs.csdsurf)
+            runs.csdsurf = dc_roms_read_data(runs.dir, runs.csdname, [], {'z' ...
+                                runs.rgrid.N runs.rgrid.N}, [], runs.rgrid, ...
+                                             'his');
+        end
+
+        csdlevels = runs.bathy.xsb + [-10 0 10 20] * 1000;
+        
         tt = 1;
+        figure();
+        maximize();
         vormax = max(abs(runs.vorsurf(:)))/4;
         levels = linspace(-vormax,vormax,20);
         [~,hh] = contourf(runs.rgrid.xvor/1000,runs.rgrid.yvor/1000, ...
             runs.vorsurf(:,:,tt),levels);
-        caxis([-1 1] * vormax); colorbar;
+        caxis([-1 1] * vormax); colorbar; shading flat;
+        hold on
+        runs.plot_bathy('contour', [1 1 1]*0.7);
+        [~,hcsd] = contour(runs.rgrid.x_rho'/1000, runs.rgrid.y_rho'/1000, ...
+                           runs.csdsurf(:,:,tt), csdlevels, 'Color', [0 0 0], ...
+                           'LineWidth', 2);
         xlabel('X (km)'); ylabel('Y (km)');
         axis image;
-        ht = title(['Surface vorticity @ t = ' num2str(tt) ' days']);
-        for tt = 2:size(runs.vorsurf,3)
-            set(hh,'ZData',runs.vorsurf(:,:,tt));
-            set(ht,'String',['Surface vorticity @ t = ' num2str(tt) ' days']);
-            pause(0.02);
+        ht = title(['Surface vorticity @ t = ' num2str(tt/2) ' days']);
+        for tt = 2:1:size(runs.vorsurf,3)
+            set(hh,'ZData', double(runs.vorsurf(:,:,tt)));
+            set(hcsd, 'ZData', double(runs.csdsurf(:,:,tt)));
+            shading flat;
+            set(ht,'String',['Surface vorticity @ t = ' num2str(tt/2) ' days']);
+            runs.video_update();
+            pause(0.05);
         end
 
+        runs.video_write();
     end
 
     function [] = animate_vor(runs,tind)
