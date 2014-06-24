@@ -4543,7 +4543,6 @@ methods
             rvbot = nan(size(squeeze(rvavg(:,:,1,:))));
             shelfmaskbot = rvbot;
 
-            botmask  = nan(size(rvavg(:,:,:,1)));;
             if runs.params.misc.rdrg ~= 0
                 tic;
                 disp('calculating bottom vorticity');
@@ -4551,6 +4550,7 @@ methods
                     % valid cells never change, so save mask
                     % (botmask) that when multiplied with field
                     % gives me the bottom values.
+                    botmask  = nan(size(rvavg(:,:,:,1)));
                     for kkk = 1:size(rvbot, 3)
                         for iii = 1:size(rvbot,1)
                             for jjj = 1:size(rvbot,2)
@@ -4562,11 +4562,10 @@ methods
                                 end
                             end
                         end
-                    end
-                else
-                    rvbot = squeeze(nansum(bsxfun(@times, rvavg, botmask),3));
-                    shelfmaskbot = squeeze(nansum(bsxfun(@times, shelfmask, botmask),3));
+                    end 
                 end
+                rvbot = squeeze(nansum(bsxfun(@times, rvavg, botmask),3));
+                shelfmaskbot = squeeze(nansum(bsxfun(@times, shelfmask, botmask),3));
                 toc;
             end
 
