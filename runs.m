@@ -4143,7 +4143,7 @@ methods
         end
 
         csdlevels = runs.bathy.xsb + [-10 0 10 20] * 1000;
-        
+
         tt = 1;
         figure();
         maximize();
@@ -4232,7 +4232,13 @@ methods
         figure;
         subplot(2,1,1)
         plot(time, runs.vorbudget.shelf.rv);
+
+        beautify;
         limx = xlim;
+
+        xlabel('Time (days)');
+        ylabel('Volume averaged relative vorticity (shelf water)');
+        liney(0, [], [1 1 1]*0.5);
 
         subplot(2,1,2)
         hold all
@@ -4241,10 +4247,15 @@ methods
              time, runs.vorbudget.shelf.tilt, ...
              time, runs.vorbudget.shelf.bfric, ...
              time, runs.vorbudget.shelf.beta);
-        plot(time, runs.vorbudget.shelf.hadv, 'Color',[1 1 1]*0.7);
-        plot(time, runs.vorbudget.shelf.vadv, 'Color',[1 1 1]*0.7);
+        plot(time, runs.vorbudget.shelf.hadv, 'Color',[1 1 1]*0.6);
+        plot(time, runs.vorbudget.shelf.vadv, 'Color',[1 1 1]*0.6);
         xlim(limx);
-        legend('str', 'adv', 'tilt', 'bfric', 'beta', 'hadv', 'vadv');
+        liney(0, [], [1 1 1]*0.5);
+        xlabel('Time (days)');
+        ylabel('sec^{-2}');
+        legend('str', 'adv', 'tilt', 'bfric', 'beta', 'hadv', ...
+               'vadv');
+        beautify
     end
 
     function [] = animate_vorbudget(runs,tind, plotflag)
@@ -4415,7 +4426,7 @@ methods
             if stride ~= 1
                 error('stride does not work');
             end
-            
+
             % read in history file data
             tindices = [tt tt+stride*slab-1]
             if tt+stride*slab-1 > trange(end)
@@ -4562,7 +4573,7 @@ methods
                                 end
                             end
                         end
-                    end 
+                    end
                 end
                 rvbot = squeeze(nansum(bsxfun(@times, rvavg, botmask),3));
                 shelfmaskbot = squeeze(nansum(bsxfun(@times, shelfmask, botmask),3));
