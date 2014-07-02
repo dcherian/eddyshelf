@@ -3,7 +3,7 @@ function [eddy] = track_eddy(dir1)
     if isobject(dir1)
         runobj = dir1;
         dir1 = runobj.dir;
-        fnames = roms_find_file(dir1,'avg');
+        fnames = roms_find_file(dir1,'his');
         file = char([dir1 '/' char(fnames(1))]);
         N = runobj.rgrid.N;
         [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
@@ -14,6 +14,11 @@ function [eddy] = track_eddy(dir1)
         end
         u = runobj.usurf;
         v = runobj.vsurf;
+
+        eddy = runobj.eddy;
+
+        eddy.h = runobj.bathy.h;
+        eddy.t = runobj.time/86400;
 
         params = runobj.params;
     else
@@ -42,6 +47,8 @@ function [eddy] = track_eddy(dir1)
             toc;
         end
         params = read_params_from_ini(dir1);
+        eddy.h = ncread(file,'h');
+        eddy.t = dc_roms_read_data(dir1,'ocean_time')/86400; % required only for dt
     end
 
     if strfind(file, 'his')
@@ -56,9 +63,7 @@ function [eddy] = track_eddy(dir1)
     % search region for tracking eddies (in addition to detected diameter)
     limit_x = 40*1000;
     limit_y = 40*1000;
-
-    eddy.h = ncread(file,'h');
-    eddy.t = dc_roms_read_data(dir1,'ocean_time')/86400; % required only for dt
+    
 
     %dx = xr(2,1,1) - xr(1,1,1);
     %dy = yr(1,2,1) - yr(1,1,1);
@@ -134,7 +139,7 @@ function [eddy] = track_eddy(dir1)
             cx0 = nan;
             cy0 = nan;
         else
-            if tt == 54,
+            if tt == 66,
                 disp('debug time!');
             end
             mask = nan(sz);
@@ -251,10 +256,14 @@ function [eddy] = track_eddy(dir1)
         if ~isfield(params.flags,'vprof_gaussian') || params.flags.vprof_gaussian
             [x2,~,exitflag] = fminsearch(@(x) gaussfit2(x,eddy.T(tt,:)',ze), ...
                 initGuess2,opts);
-            if ~exitflag, x2(2) = NaN; end
+            if ~exitflag
+                x2(2) = NaN;
+                warning('Vertical scale = nan');
+            end
             %[x3,~,exitflag] = fminsearch(@(x) gaussfit3(x,eddy.T(tt,:)',ze),initGuess3,opts);
             %if ~exitflag, x3(2) = NaN; end
             eddy.Lz2(tt)  = abs(x2(2));
+            eddy.Lgauss(tt)  = abs(x2(2));
             %eddy.Lz3(tt)  = NaN;%abs(x3(2));
         else
             %fit sinusoid
@@ -308,10 +317,11 @@ function [eddy] = track_eddy(dir1)
                     '| tmat = time vector in t x z array form | zT ' ...
                     '= zvector at eddy center.'];
 
-    save([dir1 '/eddytrack.mat'],'eddy');
     if exist('runobj', 'var')
         runobj.eddy = eddy;
     end
+
+    save([dir1 '/eddytrack.mat'],'eddy');
 
     disp('Done.');
 
