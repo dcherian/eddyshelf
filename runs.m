@@ -4621,7 +4621,15 @@ methods
                     end
                 end
                 rvbot = squeeze(nansum(bsxfun(@times, rvavg, botmask),3));
-                shelfmaskbot = squeeze(nansum(bsxfun(@times, shelfmask, botmask),3));
+                shelfmaskbot = squeeze(nansum(bsxfun(@times, shelfmask, ...
+                                                     botmask),3));
+                ubot = squeeze(nansum(bsxfun(@times, avg1(avg1(u(:, ...
+                                                                 2: ...
+                                                                 end-1,:,:),3),1), botmask), 3)) .* shelfmaskbot;
+                ;
+                vbot = squeeze(nansum(bsxfun(@times, avg1(avg1(v(2: ...
+                                                                 end-1,:,:,:),3),2), botmask), 3)) .* shelfmaskbot;;
+                
                 toc;
             end
 
@@ -4640,11 +4648,14 @@ methods
 
             % FRICTION only when integrating to bottom surface
             BFRIC = bsxfun(@times, bsxfun(@rdivide, -runs.params.misc.rdrg .* rvbot, ...
-                           hmat), hmat == h);
+            hmat), hmat == h);
             BFRICSHELF = BFRIC .* shelfmaskbot;
+            bfric = bsxfun(@times, -runs.params.misc.rdrg .* rvbot, ...
+                           hmat == h);
+            bfricshelf = bfric .* shelfmaskbot;
 
             % BUDGET = TEND = d(RV)/dt
-            BUD = STR + BFRIC + TILT - BETA - ADV;
+            %BUD = STR + BFRIC + TILT - BETA - ADV;
 
             % ubar, vbar calculated for depth averaged interval
             % only
@@ -4679,7 +4690,7 @@ methods
             % volume averaged
             indices = [tindices(1):tindices(end)] - trange(1) + 1;
             runs.vorbudget.shelf.vol(indices) = shelfvol;
-            runs.vorbudget.shelf.area(indices) = shelfarea;
+            %            runs.vorbudget.shelf.area(indices) = shelfarea;
             runs.vorbudget.shelf.rv(indices) = squeeze(nansum(nansum(nansum( ...
                 bsxfun(@times, rvavg .* shelfmask, dV),1), 2), 3)) ...
                 ./ shelfvol;
@@ -4694,7 +4705,12 @@ methods
             runs.vorbudget.shelf.beta(indices) = squeeze(nansum(nansum(nansum( ...
                 bsxfun(@times, beta .* shelfmask, dV),1), 2), 3)) ./ shelfvol;
             runs.vorbudget.shelf.bfric(indices) = squeeze(nansum(nansum( ...
+                bsxfun(@times, bfricshelf, dA), 1), 2)) ./ ...
+                shelfvol;
+
+            bfricold = squeeze(nansum(nansum( ...
                 bsxfun(@times, BFRICSHELF, dA), 1), 2)) ./ shelfarea;
+
 
             % save volume averaged quantities for whole domain
             runs.vorbudget.rv(indices) = squeeze(nansum(nansum(nansum( ...
@@ -4711,7 +4727,7 @@ methods
             runs.vorbudget.beta(indices) = squeeze(nansum(nansum(nansum( ...
                 bsxfun(@times, beta, dV),1), 2), 3)) ./ vol;
             runs.vorbudget.bfric(indices) = squeeze(nansum(nansum( ...
-                bsxfun(@times, BFRIC, dA), 1), 2)) ./ area;
+                bsxfun(@times, bfric, dA), 1), 2)) ./ vol;
 
             if plotflag
                 limc = [-1 1] * nanmax(abs(ADV(:)));
