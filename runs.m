@@ -117,6 +117,21 @@ methods
         runs.bathy = runs.params.bathy;
         runs.params.misc = roms_load_misc(runs.out_file);
 
+        if isnan(runs.params.bg.ubt)
+            runs.params.bg.ubt = 0;
+        end
+        if isnan(runs.params.bg.vbt)
+            runs.params.bg.vbt = 0;
+        end
+
+
+        % sometimes I forget to change T0 in *.in file
+        % but they aren't stored in the history file output, only
+        % R0 is
+        % runs.params.phys.T0 = ncread(runs.out_file, 'T0');
+        % runs.params.phys.R0 = ncread(runs.out_file, 'R0');
+        % runs.params.phys.S0 = ncread(runs.out_file, 'S0');
+
         % fill bathy
         [runs.bathy.xsb,runs.bathy.isb,runs.bathy.hsb] = ...
                         find_shelfbreak(runs.out_file);
@@ -2618,16 +2633,24 @@ methods
 
         pvname = [runs.dir '/ocean_vor.nc'];
         if exist(pvname,'file')
-            dopv = 1;
+            dopv = 0;
         else
             dopv = 0;
         end
 
         % background density field
         if runs.bathy.axis == 'y'
-            tback = permute( dc_roms_read_data(dirname, 'temp', [1 1], ...
-                    {'x' 1 1; 'y' 2 sz4dfull(2)+1}, ...
-                    [], rgrid, [], 'single'), [3 1 2]);
+            try
+                tback = permute( dc_roms_read_data(dirname, 'temp', [1 1], ...
+                                                   {'x' 1 1; 'y' 2 sz4dfull(2)+1}, ...
+                                                   [], rgrid, [], ...
+                                                   'single'), [3 1 2]);
+            catch ME
+                rback = permute( dc_roms_read_data(dirname, 'rho', [1 1], ...
+                                                   {'x' 1 1; 'y' 2 sz4dfull(2)+1}, ...
+                                                   [], rgrid, [], ...
+                                                   'single'), [3 1 2]);
+            end
         else
             error('Not implemented for N-S isobaths');
         end
@@ -2662,6 +2685,13 @@ methods
             % integrated energies
             % yes, using sz4dfull(1)+1 IS correct. sz4dfull has interior
             % RHO point counts
+            if isnan(runs.params.bg.ubt)
+                runs.params.bg.ubt = 0;
+            end
+            if isnan(runs.params.bg.vbt)
+                runs.params.bg.vbt = 0;
+            end
+            
             u = avg1(dc_roms_read_data(dirname, 'u', ...
                     [tt tend],{'y' 2 sz4dfull(2)+1}, ...
                     [],rgrid, [], 'single'),1) - runs.params.bg.ubt; %#ok<*PROP>
@@ -2669,13 +2699,22 @@ methods
                     [tt tend],{'x' 2 sz4dfull(1)+1}, ...
                     [],rgrid, [], 'single'),2) - runs.params.bg.vbt; %#ok<*PROP>
 
-            temp = dc_roms_read_data(dirname, 'temp', ...
-                    [tt tend],{'x' 2 sz4dfull(1)+1; 'y' 2 sz4dfull(2)+1}, ...
-                    [], rgrid, [], 'single');
+            try
+                temp = dc_roms_read_data(dirname, 'temp', ...
+                                         [tt tend],{'x' 2 sz4dfull(1)+1; 'y' 2 sz4dfull(2)+1}, ...
+                                         [], rgrid, [], 'single');
 
-            pe = double(- runs.params.phys.TCOEF* bsxfun(@times, ...
-                        bsxfun(@minus, temp, tback), zr)  ...
-                    .* runs.params.phys.g);
+                pe = double(- runs.params.phys.TCOEF* bsxfun(@times, ...
+                                                             bsxfun(@minus, temp, tback), zr)  ...
+                            .* runs.params.phys.g);
+            catch ME
+                rho  = dc_roms_read_data(dirname, 'rho', ...
+                                         [tt tend],{'x' 2 sz4dfull(1)+1; 'y' 2 sz4dfull(2)+1}, ...
+                                         [], rgrid, [], 'single');
+
+                pe = double(bsxfun(@times, bsxfun(@minus, rho, rback), zr)  ...
+                            .* runs.params.phys.g);
+            end
 
             intpe{mm} = full(nansum( bsxfun(@times, ...
                         masked.*maskvor.*reshape(pe, sz), dVsp)));
@@ -2707,17 +2746,18 @@ methods
         toc(ticstart);
 
         % save data to structure
-        eddy = runs.eddy;
-        eddy.vol = cell2mat(volcell);
+        
+        runs.eddy.vol = cell2mat(volcell);
         if dopv
-            eddy.PV = cell2mat(intpv);
-            eddy.RV = cell2mat(intrv);
+            runs.eddy.PV = cell2mat(intpv);
+            runs.eddy.RV = cell2mat(intrv);
         end
-        eddy.KE = cell2mat(intke);
-        eddy.PE = cell2mat(intpe);
+        runs.eddy.KE = cell2mat(intke);
+        runs.eddy.PE = cell2mat(intpe);
 
-        eddy.hash = githash;
+        runs.eddy.hash = githash;
 
+        eddy = runs.eddy;
         save([runs.dir '/eddytrack.mat'],'eddy');
     end
 
