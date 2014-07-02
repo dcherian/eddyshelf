@@ -3370,6 +3370,26 @@ methods
 
     end
 
+    function [] = slope_parameter(runs)
+        u = dc_roms_read_data(runs.dir, 'u', [], {'z' 1 2}, [], ...
+                              runs.rgrid, 'his', 'single');
+        v = dc_roms_read_data(runs.dir, 'v', [], {'z' 1 2}, [], ...
+                              runs.rgrid, 'his', 'single');
+
+        zu = permute(runs.rgrid.z_u, [3 2 1]);
+        zv = permute(runs.rgrid.z_v, [3 2 1]);
+
+        uz = bsxfun(@times, diff(u,1,3), diff(zu,1,3));
+        vz = bsxtun(@times, diff(v,1,3), diff(zv,1,3));
+
+        alpha = runs.params.bathy.sl_slope;
+
+        stat u
+        stat uz
+        stat v
+        stat vz
+    end
+
     function [] = deprecated_distrib_csz(runs)
         % lets subtract out mean at each z-level to account for near
         % surface and near bottom upwelling.
