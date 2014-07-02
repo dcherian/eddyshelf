@@ -62,7 +62,7 @@ methods
 
         if isdir(dir)
             runs.dir = dir;
-            files = roms_find_file(dir,'avg');
+            files = roms_find_file(dir,'his');
             runs.out_file = [runs.dir '/' files{1}];
             runs.givenFile = 0;
         else
@@ -91,8 +91,10 @@ methods
 
         % read zeta
         if ~runs.givenFile
-            runs.zeta = dc_roms_read_data(dir,'zeta',[],{},[],runs.rgrid);
-            runs.time = dc_roms_read_data(dir,'ocean_time');%,[],{},[],runs.rgrid);
+            runs.zeta = dc_roms_read_data(dir,'zeta',[],{},[],runs.rgrid, ...
+                                          'his', 'single');
+            runs.time = dc_roms_read_data(dir,'ocean_time',[],{}, ...
+                                          [],runs.rgrid, 'his', 'single');
             %try
             %    runs.csdye  = roms_read_data(dir,runs.csdname, ...
             %        [1 1 runs.rgrid.N 1],[Inf Inf 1 Inf]);
@@ -2606,8 +2608,9 @@ methods
     % eddy bulk properties - integrated PV, RV, volume, energy
     function [] = eddy_bulkproperties(runs)
         %%
-        slab = 10; % read 10 at a time
-        nt = size(runs.zeta, 3);
+        slab = 15; % read 10 at a time
+        ftype = 'his';
+        nt = size(runs.zeta, 3)
 
         sz4dfull = [fliplr(size(runs.rgrid.z_r))-[2 2 0] slab];
         sz4dsp = [prod(sz4dfull(1:3)) slab];
@@ -2643,12 +2646,12 @@ methods
             try
                 tback = permute( dc_roms_read_data(dirname, 'temp', [1 1], ...
                                                    {'x' 1 1; 'y' 2 sz4dfull(2)+1}, ...
-                                                   [], rgrid, [], ...
+                                                   [], rgrid, ftype, ...
                                                    'single'), [3 1 2]);
             catch ME
                 rback = permute( dc_roms_read_data(dirname, 'rho', [1 1], ...
                                                    {'x' 1 1; 'y' 2 sz4dfull(2)+1}, ...
-                                                   [], rgrid, [], ...
+                                                   [], rgrid, ftype, ...
                                                    'single'), [3 1 2]);
             end
         else
@@ -2669,9 +2672,10 @@ methods
                 sz = sz4dsp;
                 szpv = szpvsp;
             end
+            disp([tt tend]);
             eddye = dc_roms_read_data(dirname, eddname, ...
                     [tt tend],{'x' 2 sz4dfull(1)+1; 'y' 2 sz4dfull(2)+1}, ...
-                    [],rgrid, [], 'single'); %#ok<*PROP>
+                    [],rgrid, ftype, 'single'); %#ok<*PROP>
 
             masked  = sparse(reshape(eddye > thresh, sz));
             maskvor = sparse(reshape( repmat( ...
@@ -2694,23 +2698,23 @@ methods
             
             u = avg1(dc_roms_read_data(dirname, 'u', ...
                     [tt tend],{'y' 2 sz4dfull(2)+1}, ...
-                    [],rgrid, [], 'single'),1) - runs.params.bg.ubt; %#ok<*PROP>
+                    [],rgrid, ftype, 'single'),1) - runs.params.bg.ubt; %#ok<*PROP>
             v = avg1(dc_roms_read_data(dirname, 'v', ...
                     [tt tend],{'x' 2 sz4dfull(1)+1}, ...
-                    [],rgrid, [], 'single'),2) - runs.params.bg.vbt; %#ok<*PROP>
+                    [],rgrid, ftype, 'single'),2) - runs.params.bg.vbt; %#ok<*PROP>
 
             try
                 temp = dc_roms_read_data(dirname, 'temp', ...
                                          [tt tend],{'x' 2 sz4dfull(1)+1; 'y' 2 sz4dfull(2)+1}, ...
-                                         [], rgrid, [], 'single');
+                                         [], rgrid, ftype, 'single');
 
                 pe = double(- runs.params.phys.TCOEF* bsxfun(@times, ...
                                                              bsxfun(@minus, temp, tback), zr)  ...
-                            .* runs.params.phys.g);
+                            .* runs.params.phys.g .* runs.params.phys.R0);
             catch ME
                 rho  = dc_roms_read_data(dirname, 'rho', ...
                                          [tt tend],{'x' 2 sz4dfull(1)+1; 'y' 2 sz4dfull(2)+1}, ...
-                                         [], rgrid, [], 'single');
+                                         [], rgrid, ftype, 'single');
 
                 pe = double(bsxfun(@times, bsxfun(@minus, rho, rback), zr)  ...
                             .* runs.params.phys.g);
