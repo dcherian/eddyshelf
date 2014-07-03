@@ -23,16 +23,19 @@ function [eddy] = track_eddy(dir1)
         params = runobj.params;
     else
         if isdir(dir1)
-            fnames = roms_find_file(dir1,'avg');
+            fnames = roms_find_file(dir1,'his');
             file = char([dir1 '/' char(fnames(1))]);
             [xr,yr,zr,~,~,~,grd] = dc_roms_var_grid(file,'temp');
             tic;
             N = size(zr,3);
 
             trange = [];
-            zeta  = dc_roms_read_data(dir1,'zeta',trange,{},[],grd);
-            u     = dc_roms_read_data(dir1,'u',trange,{'z' N N},[],grd);
-            v     = dc_roms_read_data(dir1,'v',trange,{'z' N N},[],grd);
+            zeta  = dc_roms_read_data(dir1,'zeta',trange,{},[],grd, ...
+                                      'his');
+            u     = dc_roms_read_data(dir1,'u',trange,{'z' N N},[],grd, ...
+                                      'his');
+            v     = dc_roms_read_data(dir1,'v',trange,{'z' N N},[],grd, ...
+                                      'his');
         else
             fname = dir1;
             index = strfind(dir1,'/');
@@ -48,7 +51,8 @@ function [eddy] = track_eddy(dir1)
         end
         params = read_params_from_ini(dir1);
         eddy.h = ncread(file,'h');
-        eddy.t = dc_roms_read_data(dir1,'ocean_time')/86400; % required only for dt
+        eddy.t = dc_roms_read_data(dir1,'ocean_time', [], {}, [], ...
+                                   grd, 'his')/86400; % required only for dt
     end
 
     if strfind(file, 'his')
@@ -515,7 +519,7 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
             indy = iy(imax);
 
             % I have an eddy!!!
-            %imagesc(zreg');
+            imagesc(zreg');
 
             xmax = fillnan(maskreg(:).*ix(:),0);
             ymax = fillnan(maskreg(:).*iy(:),0);
