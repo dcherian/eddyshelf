@@ -42,13 +42,49 @@ folders = { ...
     ...%   'runew-544-nobg/', ...
           };
 
-%folders = { ...
-%    '../topoeddy/runew-04-nobg-2/', ...
-%    '~/scratch/topoeddy/runew-741-nobg/', ...
-%    '~/scratch/topoeddy/runew-742-nobg/', ...
-%    '~/scratch/topoeddy/runew-743-nobg/', ...
-%          };
+%% VERTICAL SCALES
+folders = { ...
+    '../topoeddy/runew-04-nobg-2/', ...
+    '../topoeddy/runew-741-nobg/', ...
+    '../topoeddy/runew-742-nobg/', ...
+    '../topoeddy/runew-743-nobg/', ...
+    '../topoeddy/runew-745-nobg/', ...
+          };
+vscales = runArray(folders);
 
+for ii=1:vscales.len
+    run = vscales.array(ii);
+    tind = find_approx(run.eddy.t/run.eddy.tscale*86400, 1);
+    vscales.name{ii} = num2str(run.eddy.Lgauss(3));
+    %vscales.name{ii} = ...
+    %    num2str(run.eddy.V(tind)/run.eddy.Lgauss(tind)/sqrt(1e-5))
+end
+vscales.plot_fluxes;
+
+%% BOTTOM FRICTION
+folders = { ...
+    '../topoeddy/runew-04-nobg-2/', ...
+    '../topoeddy/runew-540/', ...
+    '../topoeddy/runew-541-nobstress/', ...
+    '../topoeddy/runew-542/', ...
+    '../topoeddy/runew-543-nobg/', ...
+    '../topoeddy/runew-544-nobg/', ...
+    '../topoeddy/runew-546-nobstress/', ...
+          };
+bfrics = runArray(folders);
+for ii=1:bfrics.len
+    bfrics.name{ii} = num2str(bfrics.array(ii).params.misc.rdrg);
+end
+
+%% MISC
+for ii=2:vscales.len
+    try
+        roms_pv(vscales.array(ii).dir, [], 'his');        
+    catch ME
+        disp(ME);
+        disp(vscales.array(ii).name)
+    end
+end
 %folders = { ...
 %    'runew-630-nobg/', ...
 %    'runew-631-nobg/', ...
@@ -67,84 +103,26 @@ for ii = 1:length(folders)
         array(kk).name
         kk = kk + 1
     catch ME
+        disp(ME)
         continue;
     end
 end
 
 %% flat v/s topo
+ew05 = runs('../topoeddy/runew-05-nobg-2/');
+ew05flat = runs('../topoeddy/runew-05-flat/');
+
+topo = ew05;
+flat = ew05flat;
+
+topo = ew744;
+flat = ew744flat;
+
 figure; hold all
-plot(ew05flat.eddy.t/ew05flat.eddy.tscale * 86400, ew05flat.eddy.Lgauss);
-plot(ew05.eddy.t/ew05flat.eddy.tscale * 86400, ew05.eddy.Lgauss);
+plot(flat.eddy.t/topo.eddy.tscale * 86400, flat.eddy.Lgauss);
+plot(topo.eddy.t/topo.eddy.tscale * 86400, topo.eddy.Lgauss); 
 legend('flat', 'topo');
 
-%%
-figure(1)
-clf; hold all
-figure(2)
-clf; hold all
-for ii=1:length(array)
-    %    hgplt = plot(array(ii).eddy.t/array(ii).eddy.tscale*86400, ...
-    %             array(ii).eddy.prox);    
-    eddy_ndtime = array(ii).eddy.t/array(ii).eddy.tscale*86400;
-    csflx_ndtime = array(ii).csflux.time/array(ii).eddy.tscale * 86400;
-    etind = find_approx(eddy_ndtime, 1.5, 1)
-    cstind = find_approx(csflx_ndtime, 1.5, 1);
-
-    meanprox(ii) = nanmean(array(ii).eddy.hcen(etind:end));
-    meanflux(ii) = nanmean(array(ii).csflux.west.shelf(cstind:end));
-
-    param(ii) = array(ii).params.nondim.eddy.Ro/ ...
-        array(ii).params.nondim.S_sl .* ...
-        array(ii).params.nondim.eddy.Bu;
-
-    figure(1);
-    hgplt = plot(param(ii), meanprox(ii), '.');
-    addlegend(hgplt, array(ii).name);
-    disp(['run = ', array(ii).name , ' | mean prox. = ', ...
-          num2str(meanprox(ii))]);
-    %    pause;
-
-    figure(2);
-    hgplt = plot(param(ii), meanflux(ii), '.');
-    addlegend(hgplt, array(ii).name);
-    disp(['run = ', array(ii).name , ' | mean prox. = ', ...
-          num2str(meanflux(ii))]); 
-end
-
-g
-% look at frictional runs
-figure(5);
-hold all
-figure(6);
-hold all;
-for ii=1:length(array)
-    if ii == 2 || ...
-           array(ii).params.misc.rdrg ~= 0
-
-        ndtime = array(ii).eddy.t/array(ii).eddy.tscale * 86400;
-        figure(5);
-        subplot(2,1,1)
-        hold all
-        hgplt = plot(ndtime, array(ii).eddy.V);
-        addlegend(hgplt, array(ii).name);
-
-        subplot(2,1,2)
-        hold all
-        plot(ndtime, array(ii).eddy.Ls);
-
-        figure(6);
-        hgplt = plot(array(ii).csflux.time/array(ii).eddy.tscale * ...
-                     86400, smooth(array(ii).csflux.west.shelf/1e6, 3));
-        addlegend(hgplt, array(ii).name);
-    end
-end
-subplot(2,1,1)
-title('Eddy velocity scale (m/s)');
-subplot(2,1,2)
-title('Eddy Length scale');
-xlabel('Non-dim. time');
-figure(6);
-title('Fluxes');
 
 figure(7);
 hold all
@@ -154,23 +132,25 @@ for ii=1:length(array)
     addlegend(hgplt, array(ii).name);
 end
 
-figure;
-hold all
+
 for ii=1:length(array)
-    ndtime = array(ii).eddy.t; %/array(ii).eddy.tscale * 86400;
-    hgplt = plot(ndtime, array(ii).eddy.hcen);
-    addlegend(hgplt, array(ii).name);
+    disp(array(ii).params.eddy.dia);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% COMMITTEE MEETING II
 
 %% ew-04 runs
 fontSizes = [];
-figure;
-subplot(2,1,1); hold all
-subplot(2,1,2); hold all
 run03 = [1 5 7 8];
 run04 = [2 6 9 10 13];
+colors = distinguishable_colors(15);
+
+indices = [1 2 3 4];
+names = { ...
+    'Ro = 0.06', ...
+    'Ro = 0.10', ...
+    'Ro = 0.20', ...
+    'Ro = 0.40'};
 
 indices = run04;
 names = { ...
@@ -178,8 +158,17 @@ names = { ...
     'H_{sb} = 75m', ...
     'S = 1.25', ...
     'S = 0.96', ...
-    'linear drag = 5e-4'};
+    'linear drag = 5e-4 m/s'};
 
+
+indices=  [1 2]
+names = { ...
+    'rdrg = 5e-4 m/s', ...
+    'rdrg = 5e-3 m/s', ...
+    };
+figure;
+subplot(2,1,1); hold all
+subplot(2,1,2); hold all
 for jj=1:length(indices)
     %if jj == 1
     %    alphaval = 1
@@ -189,23 +178,25 @@ for jj=1:length(indices)
     ii = indices(jj);
     ndtime = array(ii).csflux.time(1:end-2) / array(ii).eddy.tscale;
     subplot(2,1,1)
-    hgplt = plot(ndtime, array(ii).csflux.west.shelf(1:end-2)/1e6);
+    hgplt = plot(ndtime, array(ii).csflux.west.shelf(1:end-2)/1e6, ...
+                 'Color', colors(jj,:));
     addlegend(hgplt, names{jj}, 'NorthWest');
-    
+    plot(ndtime, array(ii).csflux.east.eddy(1:end-2)/1e6, 'LineStyle', ...
+         '--', 'Color', colors(jj,:));
+
     subplot(2,1,2)
-    plot(array(ii).csflux.west.shelfwater.bins/1000 - ...
-         array(ii).bathy.xsb/1000, ...
-         array(ii).csflux.west.shelfwater.itrans);
+    plot((array(ii).csflux.west.shelfwater.bins/1000 - ...
+         array(ii).bathy.xsb/1000) / (array(ii).rrshelf/1000), ...
+         array(ii).csflux.west.shelfwater.itrans, 'Color', colors(jj,:));
 end
 subplot(2,1,1)
 liney(0, [], [1 1 1]*0.7);
-title(['Preserve Ro = 0.05, \alpha = 0.02,  Eddy diameter/L_{slope} = 2 | Base case = ' ...
-       'inviscid, H_{sb} = 50m, S = 1.5'], 'interpreter', 'tex');
 xlabel('Non-dimensional time');
 ylabel('Transport (Sv)');
 beautify(fontSizes);
 subplot(2,1,2)
-xlabel('Distance from shelfbreak');
+xlabel('Distance from shelfbreak / Shelfbreak Rossby Radius');
+xlim([-30 0]);
 ylabel('Volume (m^3)');
 beautify(fontSizes);
 
@@ -244,8 +235,8 @@ for jj=1:length(indices)
     %     array(ii).csflux.west.shelfwater.itrans);
 end
 
-%% eddy water on shelf
-indices = run03;
+%% vertical scales
+indices = run04;
 names = { ...
     'Base case', ...
     'H_{sb} = 75m', ...
@@ -253,13 +244,68 @@ names = { ...
     'S = 0.96', ...
     'linear drag = 5e-4'};
 
+indices = [1 2 3 4];
+names = { ...
+    'Ro = 0.06', ...
+    'Ro = 0.10', ...
+    'Ro = 0.20', ...
+    'Ro = 0.40'};
+
+figure;
+subplot(1,2,1); hold all
+subplot(1,2,2); hold all
+%subplot(2,1,3); hold all
+%for jj=1:length(indices)
+%    ii = indices(jj);
+for ii=1:length(array)
+    jj = ii
+    run = array(ii);
+    ndtime = run.eddy.t / run.eddy.tscale * 86400;
+
+    subplot(1,2,1)
+    hgplt = plot(ndtime, run.eddy.Lgauss, 'color', colors(jj,:));
+    addlegend(hgplt, run.name);
+    plot(ndtime, run.eddy.hcen, 'color', colors(jj,:), ...
+         'LineStyle', '--');
+
+    subplot(1,2,2)
+    hold all
+    plot(ndtime, run.eddy.prox/1000,'Color', colors(jj,:));
+    plot(ndtime, run.eddy.my/1000 - run.bathy.xsb/1000, 'Color', ...
+         colors(jj,:), 'LineStyle', '--');
+end
+subplot(1,2,1)
+ylabel('(m)');
+title(['Dashed = water depth at eddy center | Solid = vertical scale ' ...
+       'of eddy']);
+beautify(fontSizes);
+subplot(1,2,2)
+ylabel('(km) from shelfbreak');
+xlabel('non-dim time');
+liney(0, [], [1 1 1]*0.5);
+beautify(fontSizes);
+title('Dashed = center | solid = southern edge');
+
+%%
+
 figure;
 hold all
+plot(ew744.csflux.time/ew744.eddy.tscale, ew744.csflux.west.shelf);
+plot(ew745nobg.csflux.time/ew745nobg.eddy.tscale, ew745nobg.csflux.west.shelf);
+legend('744','745');
 
-for jj=1:length(indices)
-    ii = indices(jj);
-    run = array(ii);
-    ndtime = run.csflux.time ./ run.eddy.tscale;
-    hgplt = plot(ndtime, run.csflux.east.eddy/1e6);
-end
-ylabel('Transport (Sv)');
+%%
+
+ew543.plot_shelfvorbudget;
+subplot(2,1,1)
+hold all;
+plot(ew04.vorbudget.time/86400, ew04.vorbudget.shelf.rv, 'Color', [0.68, ...
+                    0.85, 0.90]);
+legend('linear drag = 5e-4 m/s', '', 'inviscid', 'Location', 'NorthWest');
+
+%%
+ew543.animate_vorbudget(120,0);
+ew04.animate_vorbudget(120,0);
+array(9).animate_vorbudget(120,0);
+array(10).animate_vorbudget(120,0);
+ew24.animate_vorbudget(120,0);
