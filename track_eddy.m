@@ -3,7 +3,7 @@ function [eddy] = track_eddy(dir1)
     if isobject(dir1)
         runobj = dir1;
         dir1 = runobj.dir;
-        fnames = roms_find_file(dir1,'avg');
+        fnames = roms_find_file(dir1,'his');
         file = char([dir1 '/' char(fnames(1))]);
         N = runobj.rgrid.N;
         [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
@@ -15,18 +15,27 @@ function [eddy] = track_eddy(dir1)
         u = runobj.usurf;
         v = runobj.vsurf;
 
+        eddy = runobj.eddy;
+
+        eddy.h = runobj.bathy.h;
+        eddy.t = runobj.time/86400;
+
         params = runobj.params;
     else
         if isdir(dir1)
-            fnames = roms_find_file(dir1,'avg');
+            fnames = roms_find_file(dir1,'his');
             file = char([dir1 '/' char(fnames(1))]);
             [xr,yr,zr,~,~,~,grd] = dc_roms_var_grid(file,'temp');
             tic;
             N = size(zr,3);
 
-            zeta  = dc_roms_read_data(dir1,'zeta',[],{},[],grd);
-            u     = dc_roms_read_data(dir1,'u',[],{'z' N N},[],grd);
-            v     = dc_roms_read_data(dir1,'v',[],{'z' N N},[],grd);
+            trange = [];
+            zeta  = dc_roms_read_data(dir1,'zeta',trange,{},[],grd, ...
+                                      'his');
+            u     = dc_roms_read_data(dir1,'u',trange,{'z' N N},[],grd, ...
+                                      'his');
+            v     = dc_roms_read_data(dir1,'v',trange,{'z' N N},[],grd, ...
+                                      'his');
         else
             fname = dir1;
             index = strfind(dir1,'/');
@@ -41,6 +50,9 @@ function [eddy] = track_eddy(dir1)
             toc;
         end
         params = read_params_from_ini(dir1);
+        eddy.h = ncread(file,'h');
+        eddy.t = dc_roms_read_data(dir1,'ocean_time', [], {}, [], ...
+                                   grd, 'his')/86400; % required only for dt
     end
 
     if strfind(file, 'his')
@@ -55,9 +67,7 @@ function [eddy] = track_eddy(dir1)
     % search region for tracking eddies (in addition to detected diameter)
     limit_x = 40*1000;
     limit_y = 40*1000;
-
-    eddy.h = ncread(file,'h');
-    eddy.t = dc_roms_read_data(dir1,'ocean_time')/86400; % required only for dt
+    
 
     %dx = xr(2,1,1) - xr(1,1,1);
     %dy = yr(1,2,1) - yr(1,1,1);
@@ -67,7 +77,7 @@ function [eddy] = track_eddy(dir1)
                     bsxfun(@rdivide, diff(v,1,1), diff(avg1(xr(:,:,1),2),1,1)) ...
                   - bsxfun(@rdivide, diff(u,1,2), diff(avg1(yr(:,:,1),1),1,2)) ...
                   ,1),2);
-    
+
     xr   = xr(2:end-1,2:end-1,end);
     yr   = yr(2:end-1,2:end-1,end);
 
@@ -133,7 +143,7 @@ function [eddy] = track_eddy(dir1)
             cx0 = nan;
             cy0 = nan;
         else
-            if tt == 172,
+            if tt == 66,
                 disp('debug time!');
             end
             mask = nan(sz);
@@ -225,23 +235,23 @@ function [eddy] = track_eddy(dir1)
 
         try
             eddy.dyecen(tt,:) = double(squeeze(ncread(file, 'dye_03', [imx imy 1 tt-tt0], ...
-                                                      [1 1 Inf 1])));          
+                                                      [1 1 Inf 1])));
         catch ME
         end
-        
+
         eddy.zT(tt,:) = ze;
         if params.bathy.axis == 'x'
-            Ti = double(squeeze(ncread(file,tracer, ...
+            Ti = double(squeeze(ncread(file, tracer, ...
                                        [imx  size(xr,2)  1 tt-tt0],[1 1 Inf 1])));
         else
-            Ti = double(squeeze(ncread(file,tracer, ...
+            Ti = double(squeeze(ncread(file, tracer, ...
                                        [size(xr,1)  imy  1 tt-tt0],[1 1 Inf 1])));
         end
         if strcmpi(tracer, 'rho')
             eddy.T(tt,:) = params.phys.T0 - 1./params.phys.TCOEF * ...
-                    (eddy.T(tt,:) - params.phys.R0);
+                    (1000+eddy.T(tt,:) - params.phys.R0)/params.phys.R0;
             Ti = params.phys.T0 - 1./params.phys.TCOEF * ...
-                    (Ti - params.phys.R0);
+                 (1000 + Ti - params.phys.R0)/params.phys.R0;
         end
 
         % let's save anomaly instead
@@ -250,10 +260,14 @@ function [eddy] = track_eddy(dir1)
         if ~isfield(params.flags,'vprof_gaussian') || params.flags.vprof_gaussian
             [x2,~,exitflag] = fminsearch(@(x) gaussfit2(x,eddy.T(tt,:)',ze), ...
                 initGuess2,opts);
-            if ~exitflag, x2(2) = NaN; end
+            if ~exitflag
+                x2(2) = NaN;
+                warning('Vertical scale = nan');
+            end
             %[x3,~,exitflag] = fminsearch(@(x) gaussfit3(x,eddy.T(tt,:)',ze),initGuess3,opts);
             %if ~exitflag, x3(2) = NaN; end
             eddy.Lz2(tt)  = abs(x2(2));
+            eddy.Lgauss(tt)  = abs(x2(2));
             %eddy.Lz3(tt)  = NaN;%abs(x3(2));
         else
             %fit sinusoid
@@ -307,11 +321,12 @@ function [eddy] = track_eddy(dir1)
                     '| tmat = time vector in t x z array form | zT ' ...
                     '= zvector at eddy center.'];
 
-    save([dir1 '/eddytrack.mat'],'eddy');
     if exist('runobj', 'var')
         runobj.eddy = eddy;
     end
-    
+
+    save([dir1 '/eddytrack.mat'],'eddy');
+
     disp('Done.');
 
 % Gaussian fit for vertical scale - called by fminsearch
@@ -456,7 +471,7 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
 
             % Criterion 7 - solidity must be good - helps get rid of some
             % thin 'isthumuses'
-            if props.Solidity  < 0.75, continue; end
+            %if props.Solidity  < 0.75, continue; end
 
             % Criterion 8 - low 'rectangularity' - gets rid of rectangles
             % that are sometime picked up
@@ -504,7 +519,7 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
             indy = iy(imax);
 
             % I have an eddy!!!
-            %imagesc(zreg');
+            imagesc(zreg');
 
             xmax = fillnan(maskreg(:).*ix(:),0);
             ymax = fillnan(maskreg(:).*iy(:),0);
@@ -564,7 +579,7 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
 
                 % Criterion 7 - solidity must be good - helps get rid of some
                 % thin 'isthumuses'
-                if vorprops.Solidity  < 0.75, continue; end
+                %if vorprops.Solidity  < 0.75, continue; end
 
                 % Criterion 8 - low 'rectangularity' - gets rid of rectangles
                 % that are sometime picked up
@@ -580,8 +595,28 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
                 % check displacement of center
                 % should be less than 10 grid cells
                 if ~isnan(eddy.vor.cx) && ~isnan(eddy.vor.cy)
-                    if hypot(eddy.vor.cx-cxn1, eddy.vor.cy-cyn1) > 10*hypot(dx,dy)
-                        continue;
+                    if hypot(eddy.vor.cx-cxn1, eddy.vor.cy-cyn1) > ...
+                            10*hypot(dx,dy)
+                        disp(['eddy center > 10 dx from last time ' ...
+                              'instant.']);
+
+                        clf;
+                        pcolorcen(zeta');
+                        clim = caxis;
+                        hold on;
+                        contour(vormaskreg', 1, 'k', 'LineWidth', 2);
+                        caxis(clim);
+                        plot(cxn1/1000, cyn1/1000, '*');
+                        plot(eddy.vor.cx/1000, eddy.vor.cy/1000, ...
+                             'k*');
+                        legend('zeta','current contour', 'earlier center', ['present ' ...
+                                            'center']);
+                        answer = input([' enter 0 to skip this region, 1 to ' ...
+                                        'accept: ']);
+                        if ~answer
+                            disp('region skipped');
+                            continue;
+                        end
                     end
                 end
 
@@ -634,14 +669,30 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
                     threshmax = thresh_loop(iii);
                 end
             catch ME
-                disp(ME)
+                %disp(ME)
             end
         end
 
         % reuse zmask
         zmask = (zeta .* eddy.mask) > threshmax;
-        props = regionprops(zmask, 'EquivDiameter');
-        eddy.Ls = props.EquivDiameter/2 * sqrt(dx*dy);
+        props = regionprops(zmask, 'EquivDiameter', 'Centroid');
+        min_index = 1;
+        if length(props) ~= 1
+            warning(['multiple regions found while calculating Ls. ' ...
+                     'choosing southernmost one']);
+
+            % assume first region is southernmost and compare that
+            % to rest in a loop
+            % min_index is assigned earlier to allow for case when
+            % length(props) == 1
+            for zzz=2:length(props)
+                if props(zzz).Centroid < props(min_index).Centroid
+                    min_index = zzz;
+                end
+            end
+        end
+
+        eddy.Ls = props(min_index).EquivDiameter/2 * sqrt(dx*dy);
     end
 
     if ~exist('eddy','var')
