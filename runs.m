@@ -3735,7 +3735,7 @@ methods
         maximize(gcf); pause(0.2);
         beautify([16 16 18]);
         runs.video_update();
-        for ii = t0+1:size(runs.zeta,3)
+        for ii = t0+1:4:size(runs.zeta,3)
             runs.update_zeta(hz,ii);
             runs.update_eddy_contour(he,ii);
             runs.update_title(ht,titlestr,ii);
@@ -4224,7 +4224,7 @@ methods
         xlabel('X (km)'); ylabel('Y (km)');
         axis image;
         ht = title(['Surface vorticity @ t = ' num2str(tt/2) ' days']);
-        for tt = 2:1:size(runs.vorsurf,3)
+        for tt = 2:3:size(runs.vorsurf,3)
             set(hh,'ZData', double(runs.vorsurf(:,:,tt)));
             set(hcsd, 'ZData', double(runs.csdsurf(:,:,tt)));
             shading flat;
@@ -5368,6 +5368,10 @@ methods
         end
 
         runs.video_write();
+    end
+
+    function [] = animate_csd_rvor(runs, t0)
+
     end
 
     function [] = animate_pt(runs,depth,t0)
