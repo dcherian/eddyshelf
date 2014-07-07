@@ -1095,6 +1095,8 @@ methods
         runs.csflux.west.shelfwater.trans = nan([tinf length(loc) ...
                             maxrr]);
         binmat = repmat(runs.csflux.west.shelfwater.bins, [tinf 1]);
+        
+        runs.csflux.west.shelfwater.vertitrans = nan([runs.rgrid.N length(loc)]);
 
         runs.csflux.east.shelf = nan([tinf length(loc)]);
         runs.csflux.east.slope = nan([tinf length(loc)]);
@@ -1121,11 +1123,15 @@ methods
 
         % east and west (w.r.t eddy center) masks
         % use center because export occurs west of the eastern edge
+        % dimensions - (along-shore) x time
         westmask = bsxfun(@times, ...
                           bsxfun(@lt, runs.eddy.xr(:,1), cxi), ...
                           spongemask);
         eastmask = bsxfun(@times, 1 - westmask, ...
                           spongemask);
+                      
+        % for integrated transport diagnostics
+        dt = [time(2)-time(1) diff(time)];                      
 
         % loop over all isobaths
         for kk=1:length(loc)
@@ -1167,6 +1173,16 @@ methods
             runs.csflux.eddy(:,:,kk) = squeeze(trapz( ...
                 runs.rgrid.z_r(:,runs.csflux.ix(kk)+1,1), ...
                 eddymask .* csvel,3));
+            
+            % calculate transport as fn of vertical depth - west of eddy only
+            transver = squeeze(nansum(bsxfun(@times, ...
+                    bsxfun(@times, squeeze(shelfmask .* csvel), ...
+                            permute(westmask, [1 3 2])), ...
+                    1./runs.rgrid.pm(1,2:end-1)'),1));
+            runs.csflux.west.shelfwater.vertitrans(:,kk) = nansum(bsxfun(@times, ...
+                                        transver, dt), 2);
+            runs.csflux.west.shelfwater.vertbins(:,kk) = ...
+                            runs.rgrid.z_r(:, runs.csflux.ix(kk)+1, 1);
 
             % water mass analysis of fluxes
             tic;
@@ -1192,7 +1208,7 @@ methods
                                                               runs.csflux.west.shelfwater.trans(:,1,:)) ...
                                                                   > ...
                                                                   0, 0), [], 2);
-                dt = [time(2)-time(1) diff(time)];
+                
                 runs.csflux.west.shelfwater.itrans = squeeze(nansum( ...
                     bsxfun(@times, runs.csflux.west.shelfwater.trans(:,1,:), ...
                            dt'), 1));
