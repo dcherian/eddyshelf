@@ -3730,6 +3730,38 @@ methods
     end
 
     %% animation functions
+
+    function [] = animate_sbvel(runs, t0)
+
+        if ~exist('t0', 'var'), t0 = 1; end
+
+        ftype = 'his';
+        
+        usb = dc_roms_read_data(runs.dir, 'u', ...
+                                [t0 Inf], {runs.bathy.axis runs.bathy.isb runs.bathy.isb; ...
+                            'z' runs.rgrid.N runs.rgrid.N}, ...
+                                [], runs.rgrid, ftype, 'single');
+
+        vsb = squeeze(avg1(dc_roms_read_data(runs.dir, 'v', ...
+                                             [t0 Inf], {runs.bathy.axis runs.bathy.isb-1 runs.bathy.isb; ...
+                            'z' runs.rgrid.N runs.rgrid.N}, ...
+                                             [], runs.rgrid, ftype, ...
+                                             'single'), 2));
+
+        csd = dc_roms_read_data(runs.dir, runs.csdname, ...
+                                [t0 Inf], {runs.bathy.axis runs.bathy.isb runs.bathy.isb; ...
+                            'z' runs.rgrid.N runs.rgrid.N}, ...
+                                [], runs.rgrid, ftype, 'single');
+
+
+        usb = avg1(usb,1);
+        vsb = vsb(2:end-1, :);
+        shelfmask = csd(2:end-1, :) < runs.bathy.xsb;
+        ii=1;
+
+        figure;
+        %quiver(runs.rgrid.x_r(1,2:end-1), 
+    end
     function [] = animate_zeta(runs, t0)
         runs.video_init('zeta');
 
@@ -5651,10 +5683,10 @@ methods
     function update_zeta(runs,handle,tt)
         try
             %handle.CData = runs.zeta(:,:,tt);
-            set(handle,'CData',runs.zeta(:,:,tt));
+            set(handle,'CData',double(runs.zeta(:,:,tt)));
         catch ME
             %handle.ZData = runs.zeta(:,:,tt);
-            set(handle,'ZData',runs.zeta(:,:,tt));
+            set(handle,'ZData',double(runs.zeta(:,:,tt)));
         end
     end
 
