@@ -246,9 +246,9 @@ methods
            end
 
             if runs.bathy.axis == 'y'
-                edge = runs.eddy.se;
+                edge = runs.eddy.vor.se;
             else
-                edge = runs.eddy.we;
+                edge = runs.eddy.vor.we;
             end
             % proximity to shelfbreak
             runs.eddy.prox = (edge-runs.bathy.xsb);
