@@ -1073,13 +1073,13 @@ methods
             time = dc_roms_read_data(runs.dir, 'ocean_time', [], {}, [], ...
                                  [], 'his');
             t0 = find_approx(time, runs.time(tstart), 1);
-            cxi = interp1(runs.eddy.t(tstart:end)*86400, runs.eddy.vor.cx(tstart:end), ...
+            cxi = interp1(runs.eddy.t(tstart:end)*86400, runs.eddy.vor.ee(tstart:end), ...
                       time(t0:end));
         else
             if strcmpi(ftype, 'avg')
                 t0 = tstart;
                 time = runs.time;
-                cxi = runs.eddy.vor.cx(t0:end);
+                cxi = runs.eddy.vor.ee(t0:end);
             end
         end
         tinf = length(time);
