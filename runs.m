@@ -3730,6 +3730,38 @@ methods
 %             end
     end
 
+    function [] = csvel_hov(runs, loc)
+        if ~exist('loc', 'var')
+            loc = [-30 -20 -10 0] * 1000 + runs.bathy.xsb;
+        end
+
+        if isempty(runs.vsurf)
+            runs.read_velsurf;
+        end
+
+        figure;
+        for ii=1:length(loc)
+            ax(ii) = subplot(2,2,ii);
+
+            ind = find_approx(runs.rgrid.y_v(:,1), loc(ii), 1);
+
+            xmat = repmat(runs.rgrid.x_v(1,:)', [1 size(runs.vsurf, 3)]);
+            tmat = repmat(runs.time, [size(runs.vsurf, 1) 1]);
+            pcolorcen(xmat/1000, tmat/runs.eddy.tscale, squeeze(runs.vsurf(:,ind,:)));
+            colorbar;
+            xlabel('X (km)');
+            ylabel('Time (non-dimensional)');
+            title(['At y = ' num2str(loc(ii))]);
+
+            hold on
+            plot(runs.eddy.vor.cx/1000, runs.eddy.t*86400 / runs.eddy.tscale);
+            plot(runs.eddy.vor.ee/1000, runs.eddy.t*86400 / runs.eddy.tscale);
+            plot(runs.eddy.vor.we/1000, runs.eddy.t*86400 / runs.eddy.tscale);
+        end
+
+        linkaxes(ax, 'xy');
+    end
+
     %% animation functions
 
     function [] = animate_sbvel(runs, t0)
