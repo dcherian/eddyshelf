@@ -1095,7 +1095,7 @@ methods
         runs.csflux.west.shelfwater.trans = nan([tinf length(loc) ...
                             maxrr]);
         binmat = repmat(runs.csflux.west.shelfwater.bins, [tinf 1]);
-        
+
         runs.csflux.west.shelfwater.vertitrans = nan([runs.rgrid.N length(loc)]);
 
         runs.csflux.east.shelf = nan([tinf length(loc)]);
@@ -1129,9 +1129,9 @@ methods
                           spongemask);
         eastmask = bsxfun(@times, 1 - westmask, ...
                           spongemask);
-                      
+
         % for integrated transport diagnostics
-        dt = [time(2)-time(1) diff(time)];                      
+        dt = [time(2)-time(1) diff(time)];
 
         % loop over all isobaths
         for kk=1:length(loc)
@@ -1173,7 +1173,7 @@ methods
             runs.csflux.eddyxt(:,:,kk) = squeeze(trapz( ...
                 runs.rgrid.z_r(:,runs.csflux.ix(kk)+1,1), ...
                 eddymask .* csvel,3));
-            
+
             % calculate transport as fn of vertical depth - west of eddy only
             runs.csflux.shelfzt = squeeze(nansum(bsxfun(@times, ...
                     bsxfun(@times, squeeze(shelfmask .* csvel), ...
@@ -1209,7 +1209,7 @@ methods
                                                               runs.csflux.west.shelfwater.trans(:,1,:)) ...
                                                                   > ...
                                                                   0, 0), [], 2);
-                
+
                 runs.csflux.west.shelfwater.itrans = squeeze(nansum( ...
                     bsxfun(@times, runs.csflux.west.shelfwater.trans(:,1,:), ...
                            dt'), 1));
@@ -1242,6 +1242,7 @@ methods
                         bsxfun(@times, runs.csflux.eddyxt(:,:,kk) .* eastmask, ...
                                1./runs.rgrid.pm(1,2:end-1)'),1))';
 
+            dopv = 0;
             % process pv
             if dopv
                 % both at interior RHO points
@@ -2715,7 +2716,7 @@ methods
             if isnan(runs.params.bg.vbt)
                 runs.params.bg.vbt = 0;
             end
-            
+
             u = avg1(dc_roms_read_data(dirname, 'u', ...
                     [tt tend],{'y' 2 sz4dfull(2)+1}, ...
                     [],rgrid, ftype, 'single'),1) - runs.params.bg.ubt; %#ok<*PROP>
@@ -2770,7 +2771,7 @@ methods
         toc(ticstart);
 
         % save data to structure
-        
+
         runs.eddy.vol = cell2mat(volcell);
         if dopv
             runs.eddy.PV = cell2mat(intpv);
@@ -3736,7 +3737,7 @@ methods
         if ~exist('t0', 'var'), t0 = 1; end
 
         ftype = 'his';
-        
+
         usb = dc_roms_read_data(runs.dir, 'u', ...
                                 [t0 Inf], {runs.bathy.axis runs.bathy.isb runs.bathy.isb; ...
                             'z' runs.rgrid.N runs.rgrid.N}, ...
@@ -3760,7 +3761,7 @@ methods
         ii=1;
 
         figure;
-        %quiver(runs.rgrid.x_r(1,2:end-1), 
+        %quiver(runs.rgrid.x_r(1,2:end-1),
     end
     function [] = animate_zeta(runs, t0)
         runs.video_init('zeta');
@@ -4705,7 +4706,7 @@ methods
                 ;
                 vbot = squeeze(nansum(bsxfun(@times, avg1(avg1(v(2: ...
                                                                  end-1,:,:,:),3),2), botmask), 3)) .* shelfmaskbot;;
-                
+
                 toc;
             end
 
