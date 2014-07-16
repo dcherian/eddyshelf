@@ -3748,20 +3748,49 @@ methods
             xmat = repmat(runs.rgrid.x_v(1,:)', [1 size(runs.vsurf, 3)]);
             tmat = repmat(runs.time, [size(runs.vsurf, 1) 1]);
             pcolorcen(xmat/1000, tmat/runs.eddy.tscale, squeeze(runs.vsurf(:,ind,:)));
-            colorbar;
+            colorbar; center_colorbar;
             xlabel('X (km)');
             ylabel('Time (non-dimensional)');
-            title(['At y = ' num2str(loc(ii))]);
+            title(['surface v (m/s) at y = ' num2str(loc(ii)) ' km']);
 
             hold on
             plot(runs.eddy.vor.cx/1000, runs.eddy.t*86400 / runs.eddy.tscale);
             plot(runs.eddy.vor.ee/1000, runs.eddy.t*86400 / runs.eddy.tscale);
-            plot(runs.eddy.vor.we/1000, runs.eddy.t*86400 / runs.eddy.tscale);
+            plot(runs.eddy.vor.we/1000, runs.eddy.t*86400 / ...
+                 runs.eddy.tscale);
+
+            beautify;
         end
 
+        suplabel(runs.name, 't');
+        linkaxes(ax, 'xy');
+
+        % along-shelfbreak pressure gradient at shelfbreak
+        %zx = bsxfun(@rdivide, squeeze(diff(runs.zeta(:, runs.bathy.isb, :), ...
+        %                          1, 1)), diff(runs.rgrid.x_rho(1,:)', ...
+        %1, 1));
+        loc2 = [-20 0 10 20] + runs.bathy.isb;
+        figure;
+        for ii=1:length(loc2)
+            ax(ii) = subplot(2,2,ii);
+            pcolorcen(xmat/1000, tmat/runs.eddy.tscale, ...
+                      squeeze(runs.zeta(:, loc2(ii), :)));
+            colorbar; center_colorbar;
+            hold on
+            plot(runs.eddy.vor.cx/1000, runs.eddy.t*86400 / runs.eddy.tscale);
+            plot(runs.eddy.vor.ee/1000, runs.eddy.t*86400 / runs.eddy.tscale);
+            plot(runs.eddy.vor.we/1000, runs.eddy.t*86400 / ...
+                 runs.eddy.tscale);
+            xlabel('X (km)');
+            ylabel('Time (non-dimensional)');
+            title(['zeta (m) at y = ' ...
+                   num2str(runs.rgrid.y_rho(loc2(ii),1))]);
+            beautify;
+        end
+
+        suplabel(runs.name, 't');
         linkaxes(ax, 'xy');
     end
-
     %% animation functions
 
     function [] = animate_sbvel(runs, t0)
