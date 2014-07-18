@@ -8,12 +8,16 @@ function [eddy] = track_eddy(dir1)
         N = runobj.rgrid.N;
         [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
 
+        grd = runobj.rgrid;
+
         zeta = runobj.zeta;
         if isempty(runobj.usurf)
             runobj.read_velsurf;
         end
         u = runobj.usurf;
         v = runobj.vsurf;
+
+        f = runobj.rgrid.f(2:end-1,2:end-1)';
 
         eddy = runobj.eddy;
 
@@ -42,13 +46,14 @@ function [eddy] = track_eddy(dir1)
             dir1 = dir1(1:index(end));
             fnames = [];
             file = fname;
-            [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
+            [xr,yr,zr,~,~,~,grd] = dc_roms_var_grid(file,'temp');
             tic;
             zeta = double(ncread(fname,'zeta'));
             u     = squeeze(double(ncread(fname,'u',[1 1 size(zr,3) 1],[Inf Inf 1 Inf])));
             v     = squeeze(double(ncread(fname,'v',[1 1 size(zr,3) 1],[Inf Inf 1 Inf])));
             toc;
         end
+        f = grd.f(2:end-1,2:end-1)';
         params = read_params_from_ini(dir1);
         eddy.h = ncread(file,'h');
         eddy.t = dc_roms_read_data(dir1,'ocean_time', [], {}, [], ...
@@ -174,8 +179,21 @@ function [eddy] = track_eddy(dir1)
                          cx0, cy0); %w(:,:,tt));
         % let's interpolate the masks back to the coarser grid
         imask = interp2(xri,yri,temp.mask',xrgrd,yrgrd,'nearest')';
-        ivormask = interp2(xri,yri,temp.vor.mask',xrgrd,yrgrd,'nearest')';
+        ivormask = interp2(xri,yri,temp.vor.mask',xrgrd,yrgrd, ...
+                           'nearest')';
 
+        % different length estimates
+        Roeddy = ivormask .* vor(:,:,tt) ./ f;
+        dA = 1./grd.pm(2:end-1,2:end-1)' .* 1./grd.pn(2:end-1,2:end-1)' ...
+             .* ivormask;
+        eddy.vor.area(tt) = nansum(dA(:));
+        eddy.Ro(tt) = abs(nansum(nansum(Roeddy .* dA, 1),2) / ...
+                          eddy.vor.area(tt));
+
+        KE = (avg1(u(:,2:end-1,tt),1).^2 + avg1(v(2:end-1,:, ...
+                                                        tt),2).^2);
+        eddy.Vke(tt) = sqrt(nansum(nansum(KE .* dA, 1), 2) / eddy.vor.area(tt));
+        
         % do more diagnostics
         % [cx,cy] = location of weighted center (first moment)
         eddy.cx(tt)  = temp.cx;
@@ -212,6 +230,7 @@ function [eddy] = track_eddy(dir1)
         %eddy.L(tt)  = temp.L;
         eddy.vor.lmin(tt) = temp.vor.lmin;
         eddy.vor.lmaj(tt) = temp.vor.lmaj;
+        eddy.vor.angle(tt) = temp.vor.angle;
         eddy.vor.dia(tt)  = temp.vor.dia;
 
         eddy.vor.amp(tt) = temp.vor.amp;
@@ -568,12 +587,13 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
                 % extract information
                 vorprops  = regionprops(vormaskreg,zeta,'EquivDiameter', ...
                         'MinorAxisLength','MajorAxisLength','WeightedCentroid', ...
-                        'Area', 'Solidity');
+                        'Area', 'Solidity', 'Orientation');
                 % now eddy.vor.dia
                 %eddy.L    = vorprops.EquivDiameter * sqrt(dx*dy);
                 eddy.vor.lmaj = vorprops.MajorAxisLength * sqrt(dx*dy);
                 eddy.vor.lmin = vorprops.MinorAxisLength * sqrt(dx*dy);
 
+                eddy.vor.angle = vorprops.Orientation;
                 xmax = fillnan(vormaskreg(:).*ix(:),0);
                 ymax = fillnan(vormaskreg(:).*iy(:),0);
 
@@ -627,6 +647,7 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
                 eddy.vor.amp  = amp;
                 eddy.vor.dia  = vorprops.EquivDiameter * sqrt(dx*dy);
                 eddy.vor.mask = vormaskreg;
+
                 flag_found = 1;
                 fprintf('Eddy found with threshold %.3f \n', threshold);
 
