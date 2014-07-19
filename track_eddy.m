@@ -55,7 +55,7 @@ function [eddy] = track_eddy(dir1)
         end
         f = grd.f(2:end-1,2:end-1)';
         params = read_params_from_ini(dir1);
-        eddy.h = ncread(file,'h');
+        eddy.h = grd.h';
         eddy.t = dc_roms_read_data(dir1,'ocean_time', [], {}, [], ...
                                    grd, 'his')/86400; % required only for dt
     end
@@ -632,7 +632,9 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
                         legend('zeta','current contour', 'earlier center', ['present ' ...
                                             'center']);
                         answer = input([' enter 0 to skip this region, 1 to ' ...
-                                        'accept: ']);
+                                        'accept (' ...
+                                        num2str(vorregions.NumObjects ...
+                                                - mm) ' regions left): ']);
                         if ~answer
                             disp('region skipped');
                             continue;
