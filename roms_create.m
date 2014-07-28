@@ -687,6 +687,11 @@ if flags.eddy
     % eddy.dia = 2*bathy.L_slope;
     eddy.dia = 2 * sqrt(eddy.Bu) * eddy.Ldef;
 
+    % set depth according to fL/N
+    if flags.vprof_gaussian & isnan(eddy.depth)
+        eddy.depth = f0 * eddy.dia/2 / sqrt(N2);
+    end
+
     % check for consistency, just in case
     if ~flags.flat_bottom
         factor = 1/sqrt(eddy.Bu) * eddy.dia/2 / bathy.L_slope * pi/ ...
@@ -705,7 +710,11 @@ if flags.eddy
     if flags.eddy_zhang
         xtra = (4.3)*eddy.dia/2;
     else
-        xtra = (2.3)*eddy.dia/2;
+        if eddy.a == 3
+            xtra = (2.3)*eddy.dia/2;
+        else
+            xtra = 2.8 * eddy.dia/2;
+        end
     end
 
     if isnan(eddy.buffer)
