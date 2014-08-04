@@ -684,12 +684,13 @@ if flags.eddy
 
     % Set eddy parameters that depend on something else
     eddy.Ldef = sqrt(phys.N2)*Z/pi/f0; % deformation radius NH/pi/f
-    % eddy.dia = 2*bathy.L_slope;
-    eddy.dia = 2 * sqrt(eddy.Bu) * eddy.Ldef;
+                                       % eddy.dia = 2*bathy.L_slope;
+    % eddy.Bu is (Ldef / eddy_radius)^2
+    eddy.dia = 2 * 1./sqrt(eddy.Bu) * eddy.Ldef;
 
     % set depth according to fL/N
     if flags.vprof_gaussian & isnan(eddy.depth)
-        eddy.depth = f0 * eddy.dia/2 / sqrt(N2);
+        eddy.depth = eddy.depth_factor * f0 * eddy.dia/2 / sqrt(N2);
     end
 
     % check for consistency, just in case
@@ -887,7 +888,30 @@ if flags.eddy
         S.u = S.u + avg1(eddy.u,1);
         S.v = S.v + avg1(eddy.v,2);
 
-        % save max. azimuthal velocity for future
+        % calculate surface vorticity
+        vor = avg1(diff(eddy.v(:,:,end),1,1)./diff(xrmat(:,:,end),1,1), 2) - ...
+              avg1(diff(eddy.u(:,:,end),1,2)./diff(yrmat(:,:,end),1,2), 1);
+
+        % get vorticity mask
+        vormask = vor < 0;
+        % extract biggest region
+        regions = bwconncomp(vormask, 8);
+        for ll=1:regions.NumObjects
+            nn(ll) = length(regions.PixelIdxList{ll});
+        end
+        [~,ind] = sort(nn, 'descend');
+        newmask = zeros(size(vormask));
+        newmask(regions.PixelIdxList{ind(1)}) = 1;
+        imagesc(newmask')
+        vormask = newmask;
+
+        % area-averaged vor/f
+        dA = avg1(avg1( 1./S.pm .* 1./S.pn, 1), 2) .* vormask;
+
+        nondim.eddy.Rovor = abs(sum(sum(vor./avg1(avg1(f,1),2) .* ...
+                            vormask .* dA,1),2)) ./ nansum(dA(:));
+
+        % max. azimuthal velocity for future
         [eddy.U,iU] = max(abs(rut(:,eddy.iy,end)));
         eddy.R = r(iU,eddy.iy);
 
@@ -902,8 +926,8 @@ if flags.eddy
         nondim.eddy.Ri = N2./(TCOEF*g*eddy.tamp/f0/eddy.R).^2;
         nondim.eddy.Bu_temp = TCOEF *g * Z * eddy.tamp / f0^2 / eddy.R^2;
         nondim.eddy.gamma = bathy.hsb/eddy.depth;
-        fprintf('\n max. Ro = %.2f | Bu = %.2f | Bu_temp = %.2f | Ri = %.2f | Rh = %.2f | Lsl/R = %.2f | H_sb/H_eddy = %.2f\n\n', ....
-                nondim.eddy.Ro,nondim.eddy.Bu,nondim.eddy.Bu_temp, ...
+        fprintf('\n Ro (vor/f) = %.2f | Bu = %.2f | Bu_temp = %.2f | Ri = %.2f | Rh = %.2f | Lsl/R = %.2f | H_sb/H_eddy = %.2f\n\n', ....
+                nondim.eddy.Rovor,nondim.eddy.Bu,nondim.eddy.Bu_temp, ...
                 nondim.eddy.Ri,nondim.eddy.Rh, bathy.L_slope/eddy.R, ...
                 nondim.eddy.gamma);
 
@@ -1801,11 +1825,11 @@ end
 if flags.wind, cprintf('Red',sprintf('Wind tau0 = %.2e \n\n',wind.tau0)); end
 if flags.eddy,
     fprintf('\n Eddy Parameters: ');
-    fprintf('\n Ro = %.2f | max. Ro (vor/f)= %.2f | Bu = %.2f | Bu_temp = %.2f | Ri = %.2f | Rh = %.2f | Lsl/R = %.2f | H_sb/H_eddy = %.2f\n\n', ....
-            nondim.eddy.Ro, Ro1,nondim.eddy.Bu,nondim.eddy.Bu_temp, ...
+    fprintf('\n Ro (vor/f) = %.2f | max. Ro (vor/f)= %.2f | Bu = %.2f | Bu_temp = %.2f | Ri = %.2f | Rh = %.2f | Lsl/R = %.2f | H_sb/H_eddy = %.2f\n\n', ....
+            nondim.eddy.Rovor, Ro1,nondim.eddy.Bu,nondim.eddy.Bu_temp, ...
             nondim.eddy.Ri,nondim.eddy.Rh, bathy.L_slope/eddy.R, ...
             nondim.eddy.gamma);
-    
+
     fprintf('\n Deploy float in center of eddy = (%d,%d) \n\n',eddy.ix,eddy.iy);
 end
 if flags.floats
