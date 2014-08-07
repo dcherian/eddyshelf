@@ -3483,6 +3483,44 @@ methods
 
     end
 
+    function [] = energy_flux(runs)
+
+        % locations - grid indices
+        locs = [runs.params.grid.ixn runs.params.grid.ixp]
+
+        % (y,z,t, location)
+        for ii=1:length(locs)
+            u(:,:,:,ii) = squeeze(avg1(dc_roms_read_data(runs.dir, ...
+                                                         'u', [], ...
+                                                         {'x' locs(ii)-1 locs(ii)+1}, ...
+                                                         [], runs.rgrid, ...
+                                                         'his', 'single'),1));
+            v(:,:,:,ii) = dc_roms_read_data(runs.dir, 'v', [], {'x' ...
+                                locs(ii)-1 locs(ii)}, [], runs.rgrid, ...
+                                            'his', 'single');
+            rho(:,:,:,ii) = dc_roms_read_data(runs.dir, 'rho', [], {'x' ...
+                                locs(ii)-1 locs(ii)}, [], runs.rgrid, ...
+                                              'his', 'single');
+            rback(:,:,1,ii) = dc_roms_read_data(runs.dir, 'rho', [1 1], {'x' ...
+                                locs(ii)-1 locs(ii)}, [], runs.rgrid, ...
+                                      'his', 'single');
+        end
+
+        ke = 1/2 * (avg1(u(:,2:end-1,:,:,:),1).^2 + avg1(v,2).^2);
+        pe = - runs.params.phys.g * ...
+             bsxfun(@times, bsxfun(@minus, rho, rback), ...
+                    runs.rgrid.z_r(:,:,1)');
+
+        % total energy
+        te = pe(2:end-1,:,:,:) + ke;
+
+        % calculate derivatives
+        tex = diff_cgrid(te, 1);
+
+        % calculate flux
+        flux = u.*tex;
+    end
+
     function [] = slope_parameter(runs)
         u = dc_roms_read_data(runs.dir, 'u', [], {'z' 1 2}, [], ...
                               runs.rgrid, 'his', 'single');
@@ -3817,6 +3855,26 @@ methods
 %                         cut_nan(squeeze(nanmean(ys2(cxind+1:end,cyind+1:end,tt),2)))'];
 %             end
     end
+
+    function [] = disprel(runs)
+
+        beta = runs.params.phys.beta;
+        Ldef = sqrt(runs.params.phys.N2) * runs.bathy.hsb / ...
+               runs.params.phys.f0;
+
+        k = 2*pi./[0:0.05:50]/1000;
+        figure;
+        hold all
+        for n = 0:10
+            c = - beta ./ (k.^2 + (n*pi/Ldef)^2);
+            hgplt = plot(k, c);
+            addlegend(hgplt, num2str(n));
+        end
+        tind = find_approx(runs.eddy.t*86400 / runs.eddy.tscale, ...
+                           1.5, 1);
+        liney(mean(runs.eddy.mvx(tind:end)) * 1000/86400);
+    end
+
 
     function [] = csvel_hov(runs, loc)
         if ~exist('loc', 'var')
