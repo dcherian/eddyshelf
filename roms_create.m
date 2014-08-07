@@ -311,7 +311,7 @@ else
         S.h = repmat(hvec, [1 size(S.h, 2)]);
     end
     plot(hvec,'r*');
-    
+
     % Calculate Burger numbers
     S_sh = bathy.sl_shelf * sqrt(N2)./f0; % shelf
     S_sl = bathy.sl_slope * sqrt(N2)./f0; % slope
@@ -700,7 +700,7 @@ if flags.eddy
     else
         factor = 1;
     end
-    
+
     if factor > 1.05 || factor < 0.95
         error([' pi/S_sl * Le/Lsl * 1/sqrt(Bu) = ' ...
                 num2str(factor)]);
