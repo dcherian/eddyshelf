@@ -34,12 +34,25 @@ classdef runArray < handle
 
         function [] = test_hashes(runArray)
             for ii=1:runArray.len
-                if ~strmpi(runArray.array(ii).csflux.hash, ...
-                           'ee34764138b91a2d150b58c7791bc60d480847e1')
-                    warning([runArray.array(ii).name ' does not ' ...
-                                        'have most recent flux ' ...
-                                        'calculated']);
+                if ~strcmpi(runArray.array(ii).csflux.hash, ...
+                    'ee34764138b91a2d150b58c7791bc60d480847e1')
+                    if ~strcmpi(runArray.array(ii).csflux.hash, ...
+                                '2a76dc848f7ca33a4d6953ce79451e72293c72ee')
+                        warning([runArray.array(ii).name ' does not ' ...
+                                 'have most recent flux ' ...
+                                 'calculated']);
+                    end
                 end
+            end
+        end
+
+        function [] = print_params(runArray, command)
+            for ii=1:runArray.len
+                out = eval(['runArray.array(ii).' command]);
+                if ~ischar(out)
+                    out = num2str(out);
+                end
+                disp([runArray.array(ii).name ' | ' out]);
             end
         end
 
