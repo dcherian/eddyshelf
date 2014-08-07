@@ -3908,7 +3908,7 @@ methods
             beautify;
         end
 
-        suplabel(runs.name, 't');
+        %suplabel(runs.name, 't');
         linkaxes(ax, 'xy');
 
         % along-shelfbreak pressure gradient at shelfbreak
@@ -3934,7 +3934,7 @@ methods
             beautify;
         end
 
-        suplabel(runs.name, 't');
+        %suplabel(runs.name, 't');
         linkaxes(ax, 'xy');
     end
     %% animation functions
@@ -4466,7 +4466,7 @@ methods
                                              'his');
         end
 
-        csdlevels = runs.bathy.xsb + [-10 0 10 20] * 1000;
+        csdlevels = runs.bathy.xsb + [-30 -20 -10 0 10 20] * 1000;
 
         tt = 1;
         figure();
@@ -4474,13 +4474,16 @@ methods
         vormax = max(abs(runs.vorsurf(:)))/4;
         levels = linspace(-vormax,vormax,20);
         [~,hh] = contourf(runs.rgrid.xvor/1000,runs.rgrid.yvor/1000, ...
-            runs.vorsurf(:,:,tt),levels);
+                          runs.vorsurf(:,:,tt),levels);
         caxis([-1 1] * vormax); colorbar; shading flat;
         hold on
         runs.plot_bathy('contour', [1 1 1]*0.7);
         [~,hcsd] = contour(runs.rgrid.x_rho'/1000, runs.rgrid.y_rho'/1000, ...
                            runs.csdsurf(:,:,tt), csdlevels, 'Color', [0 0 0], ...
                            'LineWidth', 2);
+        contour(runs.rgrid.x_rho'/1000, runs.rgrid.y_rho'/1000, ...
+                runs.csdsurf(:,:,tt), csdlevels(1), 'Color', [1 1 1]*0.9, ...
+                'LineWidth', 2)
         xlabel('X (km)'); ylabel('Y (km)');
         axis image;
         ht = title(['Surface vorticity @ t = ' num2str(tt/2) ' days']);
