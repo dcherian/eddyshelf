@@ -66,8 +66,16 @@ classdef runArray < handle
             subplot(2,2,2); hold all
             subplot(2,2,3); hold all
             subplot(2,2,4); hold all
+
+            hfig3 = figure;
+            hold all;
             for ii=1:runArray.len
                 run = runArray.array(ii);
+
+                if run.params.flags.flat_bottom
+                    continue;
+                end
+
                 if isempty(runArray.name)
                     %                    name = ...
                     %    num2str(run.eddy.Lgauss(run.eddy ...
@@ -80,12 +88,12 @@ classdef runArray < handle
                 tind = find_approx(run.eddy.t*86400 / run.eddy.tscale, ...
                                    1.5, 1);
                 Ue = run.eddy.V(tind);
-                He = run.eddy.Lgauss(tind);
+                He = run.bathy.hsb; %run.eddy.Lgauss(tind);
                 Le = run.eddy.vor.dia(tind)/2;
 
-                fluxscl = Ue * Le * He;
-                transscl = fluxscl * (2*Le/Ue);
-                
+                fluxscl = 1;Ue * Le * He;
+                transscl = 1;fluxscl * (2*Le/Ue);
+
                 figure(hfig1)
                 subplot(2,1,1)
                 hgplt = plot(run.csflux.time(1:end-2)/run.eddy.tscale, ...
@@ -106,7 +114,8 @@ classdef runArray < handle
                 try
                     % find location of center at t=1.5 (arbitrary
                     % choice)
-                    xnd = (run.eddy.my(tind) - run.csflux.west.shelfwater.bins)./run.rrdeep;
+                    xnd = (run.eddy.vor.se(tind) - ...
+                           run.csflux.west.shelfwater.bins)./(run.eddy.vor.dia(tind)/2);
                     subplot(2,2,1)
                     hgplt = plot(xnd .* run.rrshelf/1000, run.csflux.west.shelfwater.itrans);
                     addlegend(hgplt, name, 'NorthEast');
@@ -120,7 +129,7 @@ classdef runArray < handle
                     subplot(2,2,3)
                     plot(run.csflux.west.shelfwater.vertitrans, ...
                          run.csflux.west.shelfwater.vertbins);
-                    
+
                     subplot(2,2,4)
                     plot(run.csflux.west.shelfwater.vertitrans./ttrans, ...
                          run.csflux.west.shelfwater.vertbins ./ ...
@@ -128,6 +137,11 @@ classdef runArray < handle
                 catch ME
                     disp(ME)
                 end
+
+                figure(hfig3)
+                hgplt = plot(run.csflux.time/run.eddy.tscale, ...
+                             run.csflux.west.shelfwater.envelope);
+                addlegend(hgplt, name);
             end
             figure(hfig1)
             subplot(2,1,1)
@@ -160,6 +174,10 @@ classdef runArray < handle
             xlabel('Normalized volume transported');
             ylabel('Vertical bin / Shelfbreak depth');
 
+            figure(hfig3)
+            xlabel('Non-dimensional time');
+            ylabel('most on-shore source of water');
+
         end
 
         function [] = plot_eddydiag(runArray)
@@ -170,51 +188,52 @@ classdef runArray < handle
             hfig2 = figure;
             hold all;
 
-            hfig3 = [];%figure;
-                       %subplot(2,1,1); hold all;
-                       %subplot(2,1,2); hold all;
+            hfig3 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all;
 
-            hfig4 = [];%figure;
-                       %subplot(2,1,1); hold all;
-                       %subplot(2,1,2); hold all;
+            hfig4 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all;
 
             hfig5 = figure;
-            hold all;
+            subplot(3,1,1); hold all;
+            subplot(3,1,2); hold all;
+            subplot(3,1,3); hold all;
 
-            hfig6 = figure;
-            hold all
+            hfig6 = []; %figure; hold all
+
+            hfig7 = figure;
+            subplot(2,1,1); hold all;
+            subplot(2,1,2); hold all;
 
             for ii=1:runArray.len
                 run = runArray.array(ii);
                 ndtime = run.eddy.t/run.eddy.tscale * 86400;
                 if isempty(runArray.name)
-                    name = num2str(run.params.eddy.depth);
+                    name = run.name;
                 else
                     name = runArray.name{ii};
                 end
                 figure(hfig1)
+                asp = run.eddy.Lgauss./(run.eddy.vor.dia/2);
                 subplot(2,1,1)
-                hgplt = plot(ndtime, run.eddy.V./run.eddy.Lgauss./ ...
-                             sqrt(1e-5) ./ run.params.nondim.S_sl);
+                hgplt = plot(ndtime, asp./run.bathy.sl_slope);
                 addlegend(hgplt, name);
                 subplot(2,1,2)
-                hgplt = plot(ndtime, run.eddy.Lgauss);
-
-                Ro = run.eddy.V ./ run.eddy.Ls / run.params.phys.f0;
+                hgplt = plot(ndtime, asp);
+                addlegend(hgplt, num2str(asp(1)));
 
                 if hfig2
                     figure(hfig2)
-                    hgplt = plot(ndtime, (run.eddy.my - run.bathy.xsb)/run.rrdeep);
+                    hgplt = plot(ndtime, (run.eddy.my - run.bathy.xsb ...
+                                          - run.eddy.vor.dia/2)/run.rrdeep);
                     addlegend(hgplt, name)
                 end
                 if hfig3
                     try
                         figure(hfig3)
                         subplot(2,1,1)
-                        hgplt = plot(ndtime, run.eddy.KE./run.eddy.vol);
+                        hgplt = plot(ndtime, run.eddy.KE./run.eddy.KE(1));
                         addlegend(hgplt, name);
                         subplot(2,1,2)
-                        hgplt = plot(ndtime, run.eddy.PE./run.eddy.vol);
+                        hgplt = plot(ndtime, run.eddy.PE./run.eddy.PE(1));
                         addlegend(hgplt, name);
                         figure(hfig4)
                         subplot(2,1,1)
@@ -227,8 +246,23 @@ classdef runArray < handle
                     end
                 end
                 figure(hfig5)
-                hgplt = plot(ndtime, run.eddy.vor.dia/2);
+                Bu = (sqrt(run.params.phys.N2) * run.eddy.Lgauss ./ run.eddy.Ls / ...
+                     run.params.phys.f0).^2;
+                subplot(3,1,1)
+                try
+                    hgplt = plot(ndtime, run.eddy.Ro);
+                    addlegend(hgplt, name);
+                catch ME
+                end
+                subplot(3,1,2)
+                hgplt = plot(ndtime, sqrt(Bu));
                 addlegend(hgplt, name);
+                subplot(3,1,3)
+                if ~isfield(run.params.nondim, 'S_sl')
+                    run.params.nondim.S_sl = 0;
+                end
+                plot(ndtime, run.params.nondim.S_sl * ...
+                     sqrt(run.params.phys.N2) * run.eddy.Lgauss ./ run.eddy.V);
 
                 %{figure(hfig6)
                 %try
@@ -269,13 +303,23 @@ classdef runArray < handle
                 %    disp(run.name);
                 %    end
                 %    %}
+
+                if hfig7
+                    figure(hfig7)
+                    subplot(2,1,1)
+                    hgplt = plot(ndtime, run.eddy.Ls);
+                    addlegend(hgplt, name);
+                    subplot(2,1,2)
+                    plot(ndtime, run.eddy.Lgauss);
+                end
             end
             if hfig1
                 figure(hfig1);
                 subplot(2,1,1)
-                ylabel('U/NH * 1/S_\alpha');
+                ylabel(['aspect ratio / Bottom slope = \alpha_{iso} ' ...
+                        '/ \alpha_{bot}']);
                 subplot(2,1,2)
-                ylabel('Eddy vertical scale (m)');
+                ylabel('Aspect ratio = \alpha_{iso}');
                 xlabel('Non dimensional time');
             end
 
@@ -287,8 +331,8 @@ classdef runArray < handle
 
             if hfig3
                 figure(hfig3);
-                subplot(2,1,1); ylabel('KE/vol');
-                subplot(2,1,2); ylabel('PE/vol');
+                subplot(2,1,1); ylabel('KE/KE(1)');
+                subplot(2,1,2); ylabel('PE/PE(1)');
             end
             if hfig4
                 figure(hfig4);
@@ -296,10 +340,22 @@ classdef runArray < handle
                 subplot(2,1,2); ylabel('KE/PE');
             end
             if hfig5
-                figure(hfig5);ylabel('Radius (m)');
+                figure(hfig5);
+                subplot(3,1,1); ylabel('Ro');
+                subplot(3,1,2); ylabel('ND/fL'); liney(0.5); 
+                subplot(3,1,3); ylabel(['\alpha_{bot}/\alpha_{iso} ' ...
+                                    '* Bu/Ro']);
             end
             if hfig6
                 figure(hfig6); ylabel('max surf RV');
+            end
+            if hfig7
+                figure(hfig7)
+                subplot(2,1,1);
+                ylabel('Radius');
+                subplot(2,1,2);
+                ylabel('Vertical scale (m)');
+                xlabel('Non-dim time');
             end
         end
 
@@ -368,7 +424,8 @@ classdef runArray < handle
                 N = sqrt(run.params.phys.N2);
                 f0 = run.params.phys.f0;
                 Le = N/f0 * run.bathy.hsb;
-                xnd = (run.bathy.xsb - ...
+                Le = run.eddy.vor.dia(tind)/2;
+                xnd = (run.eddy.vor.se(tind) - ...
                        run.csflux.west.shelfwater.bins)./Le;
                 ttrans = sum(run.csflux.west.shelfwater.itrans);
                 subplot(2,1,1)
@@ -387,15 +444,41 @@ classdef runArray < handle
             for ii=1:runArray.len
                 run = runArray.array(ii);
 
+                ii
+
+                if isempty(run.ubot) || isempty(run.vbot)
+                    run.read_velbot;
+                end
+
+                % get bottom velocity scale
+                if size(run.ubot,3) > length(run.eddy.V)
+                    Ub = squeeze(max(max(bsxfun(@times, avg1(run.ubot(:,2: ...
+                                                              end-1, 2:2: ...
+                                                              end),1), ...
+                                            run.eddy.vormask),[], ...
+                                         1), [], 2));
+                else
+                    Ub = squeeze(max(max(bsxfun(@times, avg1(run.ubot(: ...
+ ...
+                    ,2:end-1,:)), run.eddy.vormask), [], 1), [], 2));
+                end
+
                 ndtime = run.eddy.t * 86400 / run.eddy.tscale;
-                hgplt = plot(ndtime, run.eddy.V .* run.eddy.Lgauss .* ...
-                             run.eddy.vor.dia/2);
+                hgplt = plot(ndtime, Ub ./ run.eddy.V');
                 addlegend(hgplt, run.name);
             end
         end
 
         function [] = plot_test3(runArray)
+            figure;
+            hold all
+            for ii=1:runArray.len
+                run = runArray.array(ii);
 
+                ndtime = run.csflux.time / run.eddy.tscale;
+                hgplt = plot(ndtime, run.csflux.west.shelfwater.envelope);
+                addlegend(hgplt, run.name);
+            end
         end
 
         function [] = plot_fluxhov(runArray)
@@ -418,9 +501,6 @@ classdef runArray < handle
                 plot(run.eddy.vor.cx/1000, run.eddy.t);
                 plot(run.eddy.vor.ee/1000, run.eddy.t);
                 plot(run.eddy.vor.we/1000, run.eddy.t);
-                plot(run.eddy.mx/1000, run.eddy.t, 'k');
-                plot(run.eddy.ee/1000, run.eddy.t, 'k');
-                plot(run.eddy.we/1000, run.eddy.t, 'k');
                 ylabel('Time (days)');
                 xlabel('X (km)');
                 %hgplt = plot(run.eddy.t * 86400 ./ run.eddy.tscale, ...
