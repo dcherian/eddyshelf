@@ -3,7 +3,7 @@ properties
     % dir & file names
     name; dir; out_file; ltrans_file; flt_file; givenFile
     % data
-    zeta; temp; usurf; vsurf; vorsurf; csdsurf;
+    zeta; temp; usurf; vsurf; vorsurf; csdsurf; ubot; vbot;
     % dimensional and non-dimensional time
     time; ndtime;
     % barotropic vel (geostrophic)
@@ -391,6 +391,31 @@ methods
         else
             runs.vsurf = dc_roms_read_data(runs.dir,'v', ...
                 [],{'z' runs.rgrid.N runs.rgrid.N},[],runs.rgrid, ...
+                                           'his', 'single');
+        end
+    end
+
+    % read surface velocities for animate_pt & surf vorticity plot
+    function [] = read_velbot(runs)
+        disp('Reading bottom velocity fields...');
+        start = [1 1 1 1];
+        count = [Inf Inf 1 Inf];
+        stride = [1 1 1 1];
+
+        if runs.givenFile
+            runs.ubot = double(squeeze(ncread(runs.out_file, ....
+                'u',start,count,stride)));
+        else
+            runs.ubot = dc_roms_read_data(runs.dir,'u', ...
+                [],{'z' 1 1},[],runs.rgrid, ...
+                                           'his', 'single');
+        end
+        if runs.givenFile
+            runs.vbot = double(squeeze(ncread(runs.out_file, ....
+                'v',start,count,stride)));
+        else
+            runs.vbot = dc_roms_read_data(runs.dir,'v', ...
+                [],{'z' 1 1},[],runs.rgrid, ...
                                            'his', 'single');
         end
     end
