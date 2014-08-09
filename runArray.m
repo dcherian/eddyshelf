@@ -342,7 +342,7 @@ classdef runArray < handle
             if hfig5
                 figure(hfig5);
                 subplot(3,1,1); ylabel('Ro');
-                subplot(3,1,2); ylabel('ND/fL'); liney(0.5); 
+                subplot(3,1,2); ylabel('ND/fL'); liney(0.5);
                 subplot(3,1,3); ylabel(['\alpha_{bot}/\alpha_{iso} ' ...
                                     '* Bu/Ro']);
             end
