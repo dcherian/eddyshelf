@@ -1101,10 +1101,16 @@ methods
         % interpolate center locations
         if strcmpi(ftype, 'his')
             time = dc_roms_read_data(runs.dir, 'ocean_time', [], {}, [], ...
-                                 [], 'his');
-            t0 = find_approx(time, runs.time(tstart), 1);
-            cxi = interp1(runs.eddy.t(tstart:end)*86400, runs.eddy.vor.ee(tstart:end), ...
-                      time(t0:end));
+                                     [], 'his');
+            if length(time) ~= length(runs.time)
+                t0 = find_approx(time, runs.time(tstart), 1);
+                cxi = interp1(runs.eddy.t(tstart:end)*86400, runs.eddy.vor.ee(tstart:end), ...
+                              time(t0:end));
+            else
+                t0 = tstart;
+                time = runs.time;
+                cxi = runs.eddy.vor.ee(tstart:end);
+            end
         else
             if strcmpi(ftype, 'avg')
                 t0 = tstart;
