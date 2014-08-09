@@ -1102,7 +1102,7 @@ methods
         if strcmpi(ftype, 'his')
             time = dc_roms_read_data(runs.dir, 'ocean_time', [], {}, [], ...
                                      [], 'his');
-            if length(time) ~= length(runs.time)
+            if length(time) ~= length(runs.eddy.t)
                 t0 = find_approx(time, runs.time(tstart), 1);
                 cxi = interp1(runs.eddy.t(tstart:end)*86400, runs.eddy.vor.ee(tstart:end), ...
                               time(t0:end));
