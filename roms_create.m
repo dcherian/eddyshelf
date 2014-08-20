@@ -896,6 +896,7 @@ if flags.eddy
         vormask = vor < 0;
         % extract biggest region
         regions = bwconncomp(vormask, 8);
+        nn = [];
         for ll=1:regions.NumObjects
             nn(ll) = length(regions.PixelIdxList{ll});
         end
@@ -951,7 +952,10 @@ if flags.eddy
         fprintf(['\n Southward vel = %.3f km/day | ' ...
             'center reaches slope at t = %d days @ x=%4d km,' ...
             'shelfbreak at %d days, x=%4d km\n'], ...
-            vs1,tsl,ceil(eddy.cx/1000+vx*tsl),tsb,ceil(eddy.cx/1000+vx*tsb));
+            vs1,tsl,ceil(eddy.cx/1000+vx*tsl),tsb,ceil(eddy.cx/ ...
+                                                       1000+vx*tsb));
+
+        input('Continue?');
     end
 
     %% check plots
