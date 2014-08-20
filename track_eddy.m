@@ -139,7 +139,7 @@ function [eddy] = track_eddy(dir1)
     % for interp2 later
     [xrgrd,yrgrd] = meshgrid(xr(:,1),yr(1,:));
     sz = size(xri');
-
+     %%
     for tt=1:size(zeta,3)
         if tt == 1,
             mask = ones(sz);
@@ -148,7 +148,7 @@ function [eddy] = track_eddy(dir1)
             cx0 = nan;
             cy0 = nan;
         else
-            if tt == 66,
+            if tt == 546,
                 disp('debug time!');
             end
             mask = nan(sz);
@@ -326,7 +326,7 @@ function [eddy] = track_eddy(dir1)
             eddy.cvy(tt) = (eddy.vor.cy(tt) - eddy.vor.cy(tt-1))./dt/1000;
         end
     end
-
+    %%
     eddy.Lz2(abs(eddy.Lz2) > max(abs(zr(:)))) = NaN;
     %eddy.Lz3(abs(eddy.Lz3) > max(abs(zr(:)))) = NaN;
     toc;
@@ -617,7 +617,7 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
                 eddy.vor.cx = dx/2 + vorprops.WeightedCentroid(2) * dx;
                 eddy.vor.cy = dy/2 + vorprops.WeightedCentroid(1) * dy;
 
-                if eddy.vor.cy < sbreak; continue; end
+                %                if eddy.vor.cy < sbreak; continue; end
 
                 % check displacement of center
                 % should be less than 10 grid cells
