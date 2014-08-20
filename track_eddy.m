@@ -177,6 +177,13 @@ function [eddy] = track_eddy(dir1)
         temp = eddy_diag(izeta .* mask, ...
                          ivor.*mask,dxi,dyi,sbreak,thresh, [], ...
                          cx0, cy0); %w(:,:,tt));
+
+        if isnan(temp.cx)
+            warning('Eddy not found. Terminating!');
+            eddy.tend = tt - 1;
+            break;
+        end
+
         % let's interpolate the masks back to the coarser grid
         imask = interp2(xri,yri,temp.mask',xrgrd,yrgrd,'nearest')';
         ivormask = interp2(xri,yri,temp.vor.mask',xrgrd,yrgrd, ...
