@@ -2517,6 +2517,11 @@ methods
         toc;
     end
 
+    % calculate ctw dispersion relation
+    function [] = ctwdisprel(runs)
+
+    end
+
     % plot streamer profiles
     function [] = plot_streamerstats(runs)
         bins = runs.streamer.bins;
