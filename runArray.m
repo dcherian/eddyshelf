@@ -200,8 +200,9 @@ classdef runArray < handle
             hfig6 = []; %figure; hold all
 
             hfig7 = figure;
-            subplot(2,1,1); hold all;
-            subplot(2,1,2); hold all;
+            subplot(3,1,1); hold all;
+            subplot(3,1,2); hold all;
+            subplot(3,1,3); hold all;
 
             for ii=1:runArray.len
                 run = runArray.array(ii);
@@ -222,8 +223,7 @@ classdef runArray < handle
 
                 if hfig2
                     figure(hfig2)
-                    hgplt = plot(ndtime, (run.eddy.my - run.bathy.xsb ...
-                                          - run.eddy.vor.dia/2)/run.rrdeep);
+                    hgplt = plot(ndtime, (run.eddy.my - run.bathy.xsb)/run.rrdeep);
                     addlegend(hgplt, name)
                 end
                 if hfig3
@@ -306,11 +306,13 @@ classdef runArray < handle
 
                 if hfig7
                     figure(hfig7)
-                    subplot(2,1,1)
+                    subplot(3,1,1)
                     hgplt = plot(ndtime, run.eddy.Ls);
                     addlegend(hgplt, name);
-                    subplot(2,1,2)
+                    subplot(3,1,2)
                     plot(ndtime, run.eddy.Lgauss);
+                    subplot(3,1,3)
+                    plot(ndtime, run.eddy.hcen);
                 end
             end
             if hfig1
@@ -351,10 +353,13 @@ classdef runArray < handle
             end
             if hfig7
                 figure(hfig7)
-                subplot(2,1,1);
+                subplot(3,1,1);
                 ylabel('Radius');
-                subplot(2,1,2);
+                subplot(3,1,2);
                 ylabel('Vertical scale (m)');
+                xlabel('Non-dim time');
+                subplot(3,1,3);
+                ylabel('Water depth at center');
                 xlabel('Non-dim time');
             end
         end
@@ -475,8 +480,8 @@ classdef runArray < handle
             for ii=1:runArray.len
                 run = runArray.array(ii);
 
-                ndtime = run.csflux.time / run.eddy.tscale;
-                hgplt = plot(ndtime, run.csflux.west.shelfwater.envelope);
+                ndtime = run.eddy.t * 86400 / run.eddy.tscale;
+                hgplt = plot(ndtime, run.eddy.dia/1000);
                 addlegend(hgplt, run.name);
             end
         end
