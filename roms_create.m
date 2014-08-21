@@ -753,7 +753,9 @@ if flags.eddy
                 if flags.flat_bottom
                     eddy.cy = Y/5 + xtra;
                 else
-                    eddy.cy = bathy.xsl+eddy.buffer+xtra; %597000;
+                    base = S.y_rho(1, find_approx(bathy.h(1,:), ...
+                                                  2*eddy.depth, 1));
+                    eddy.cy = base + eddy.buffer+xtra; %597000;
                 end
             end
             fprintf('Distance from northern edge = %.2f km \n', ...
