@@ -178,9 +178,10 @@ function [eddy] = track_eddy(dir1)
                          ivor.*mask,dxi,dyi,sbreak,thresh, [], ...
                          cx0, cy0); %w(:,:,tt));
 
-        if isnan(temp.cx)
+        if ~isfield(temp, 'mask')
             warning('Eddy not found. Terminating!');
             eddy.tend = tt - 1;
+            eddy.t = eddy.t(1:eddy.tend);
             break;
         end
 
