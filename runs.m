@@ -3897,7 +3897,6 @@ methods
         liney(mean(runs.eddy.mvx(tind:end)) * 1000/86400);
     end
 
-
     function [] = csvel_hov(runs, loc)
         if ~exist('loc', 'var')
             loc = [-30 -20 -10 0] * 1000 + runs.bathy.xsb;
@@ -3907,6 +3906,10 @@ methods
             runs.read_velsurf;
         end
 
+        % step topography phase speed estimate
+        cp = runs.params.phys.f0 * runs.bathy.xsb * (runs.bathy.hsl ...
+                                                     - runs.bathy.hsb)./runs.bathy.hsl;
+
         figure;
         for ii=1:length(loc)
             ax(ii) = subplot(2,2,ii);
@@ -3915,7 +3918,7 @@ methods
 
             xmat = repmat(runs.rgrid.x_v(1,:)', [1 size(runs.vsurf, 3)]);
             tmat = repmat(runs.time, [size(runs.vsurf, 1) 1]);
-            pcolorcen(xmat/1000, tmat/runs.eddy.tscale, squeeze(runs.vsurf(:,ind,:)));
+            pcolorcen(xmat/1000, tmat./runs.eddy.tscale, squeeze(runs.vsurf(:,ind,:)));
             colorbar; center_colorbar;
             xlabel('X (km)');
             ylabel('Time (non-dimensional)');
@@ -3926,6 +3929,12 @@ methods
             plot(runs.eddy.vor.ee/1000, runs.eddy.t*86400 / runs.eddy.tscale);
             plot(runs.eddy.vor.we/1000, runs.eddy.t*86400 / ...
                  runs.eddy.tscale);
+
+            limx = xlim;
+            xvec = limx(1):10:limx(2);
+            tvec = 0.5 + 1./0.02 .* (xvec * 1000)./runs.eddy.tscale;
+            plot(xvec, tvec);
+
 
             beautify;
         end
