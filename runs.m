@@ -218,31 +218,41 @@ methods
             runs.noeddy = 0;
         end
 
-        % if gaussian profile then track_eddy fits Lz2. copy to
-        % Lgauss for backwards compatibility
-        if runs.params.flags.vprof_gaussian
-            runs.eddy.Lgauss = runs.eddy.Lz2;
-            runs.eddy.Lz2 = nan(size(runs.eddy.Lz2));
-        end
-
-        runs.params.nondim.eddy.Bu = (runs.params.phys.f0 * ...
-                                      runs.params.eddy.dia/2 / ...
-                                      runs.params.eddy.depth).^2 / ...
-                                      runs.params.phys.N2;
-
-        % scale time by eddy translation
-        runs.eddy.tscaleind = find_approx(runs.eddy.my, runs.bathy.xsl, 1);
-        runs.eddy.tscale = runs.eddy.t(runs.eddy.tscaleind) .* 86400;
-
-        runs.ndtime = (runs.time - runs.eddy.tscale);
-
-        % rerun track_eddy if not new enough
-        if ~isfield(runs.eddy,'vor')
-            runs.eddy = track_eddy(dir);
-        end
-
         % extra processing of eddy track
         if ~runs.noeddy
+            % rerun track_eddy if not new enough
+            if ~isfield(runs.eddy,'vor')
+                runs.eddy = track_eddy(dir);
+            end
+
+            % if gaussian profile then track_eddy fits Lz2. copy to
+            % Lgauss for backwards compatibility
+            if runs.params.flags.vprof_gaussian && ~runs.noeddy
+                runs.eddy.Lgauss = runs.eddy.Lz2;
+                runs.eddy.Lz2 = nan(size(runs.eddy.Lz2));
+            end
+
+            runs.params.nondim.eddy.Bu = (runs.params.phys.f0 * ...
+                                          runs.params.eddy.dia/2 / ...
+                                          runs.params.eddy.depth).^2 / ...
+                runs.params.phys.N2;
+
+            % scale time by eddy translation
+            runs.eddy.tscaleind = find_approx(runs.eddy.my, runs.bathy.xsl, 1);
+            runs.eddy.tscale = runs.eddy.t(runs.eddy.tscaleind) .* ...
+                86400;
+
+            if ~isfield(runs.eddy, 'tend')
+                runs.eddy.tend = length(runs.eddy.dia);
+                % truncate time vector just in case
+                runs.eddy.t = runs.eddy.t(runs.eddy.tend);
+            end
+
+            runs.eddy.Bu = runs.params.phys.N2 .* runs.eddy.Lgauss.^2 ./ runs.params.phys.f0^2 ...
+                ./ (runs.eddy.vor.dia/2).^2;
+
+            runs.ndtime = (runs.time - runs.eddy.tscale);
+
            if isfield(runs.eddy,'cvx')
                if runs.eddy.cvx(1) == 0 || runs.eddy.cvy(1) == 0
                 runs.eddy.cvx(1) = NaN;
@@ -1118,7 +1128,13 @@ methods
                 cxi = runs.eddy.vor.ee(t0:end);
             end
         end
-        tinf = length(time);
+        if isfield(runs.eddy, 'tend')
+            tinf = runs.eddy.tend;
+        else
+            tinf = length(time);
+        end
+
+        time = time(1:tinf);
 
         % initialize
         runs.csflux.west.shelf = nan([tinf length(loc)]);
@@ -1178,18 +1194,18 @@ methods
             % dimensions = (x/y , z , t )
             % average carefully to get values at RHO point
             csvel = avg1(dc_roms_read_data(runs.dir, csvelid, ...
-                [t0 Inf], {runs.bathy.axis runs.csflux.ix(kk)-1 runs.csflux.ix(kk)}, ...
+                [t0 tinf], {runs.bathy.axis runs.csflux.ix(kk)-1 runs.csflux.ix(kk)}, ...
                 [], runs.rgrid, ftype, 'single'),bathyax);
             csvel = csvel(2:end-1,:,:,:);
             % process cross-shelf dye
             csdye = dc_roms_read_data(runs.dir, runs.csdname, ...
-                [t0 Inf], {runs.bathy.axis runs.csflux.ix(kk)+1 runs.csflux.ix(kk)+1}, ...
+                [t0 tinf], {runs.bathy.axis runs.csflux.ix(kk)+1 runs.csflux.ix(kk)+1}, ...
                 [], runs.rgrid, ftype, 'single');
             csdye = permute(csdye(2:end-1,:,:), [1 4 2 3]);
 
             % read eddye
             eddye = dc_roms_read_data(runs.dir, runs.eddname, ...
-                [t0 Inf], {runs.bathy.axis runs.csflux.ix(kk)+1 runs.csflux.ix(kk)+1}, ...
+                [t0 tinf], {runs.bathy.axis runs.csflux.ix(kk)+1 runs.csflux.ix(kk)+1}, ...
                 [], runs.rgrid, ftype, 'single');
             eddye = permute(eddye(2:end-1,:,:), [1 4 2 3]);
 
