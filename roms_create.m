@@ -695,7 +695,7 @@ if flags.eddy
 
     % check for consistency, just in case
     if ~flags.flat_bottom
-        factor = 1/sqrt(eddy.Bu) * eddy.dia/2 / bathy.L_slope * pi/ ...
+        factor = 1;1/sqrt(eddy.Bu) * eddy.dia/2 / bathy.L_slope * pi/ ...
                  bathy.S_sl - sqrt(N2)*bathy.hsb/pi/f0/eddy.Ldef;
     else
         factor = 1;
