@@ -4015,7 +4015,12 @@ methods
         hold on
         colorbar; freezeColors;
         hbathy = runs.plot_bathy('contour','k');
+        % plot track
+        plot(runs.eddy.mx/1000, runs.eddy.my/1000);
+        plot(runs.eddy.mx/1000, runs.eddy.vor.ne/1000);
+        plot(runs.eddy.mx/1000, runs.eddy.vor.se/1000);
         he = runs.plot_eddy_contour('contour',ii);
+        he2 = runs.plot_eddy_sshcontour('contour',ii);
         ht = runs.set_title(titlestr,ii);
         if runs.params.flags.telescoping
             linex([runs.params.grid.ixn runs.params.grid.ixp], 'telescope','w');
@@ -4029,6 +4034,7 @@ methods
         for ii = t0+1:4:size(runs.zeta,3)
             runs.update_zeta(hz,ii);
             runs.update_eddy_contour(he,ii);
+            runs.update_eddy_sshcontour(he2,ii);
             runs.update_title(ht,titlestr,ii);
             runs.video_update();
             pause(0.03);
@@ -5946,6 +5952,31 @@ methods
     function update_eddy_contour(runs,handle,tt)
         try
             mask = runs.eddy.vormask(:,:,tt);
+        catch
+            mask = runs.eddy.mask(:,:,tt);
+        end
+        for ii=1:length(handle)
+            try
+                set(handle(ii),'ZData',mask);
+            catch ME
+            end
+        end
+    end
+
+    function [hplot] = plot_eddy_sshcontour(runs,plottype,tt)
+        try
+            mask = runs.eddy.mask(:,:,tt);
+        catch
+            mask = runs.eddy.mask(:,:,tt);
+        end
+        hold on;
+        [~,hplot] = contour(runs.eddy.xr/1000,runs.eddy.yr/1000, ...
+                    mask,'Color','k','LineWidth',1);
+    end
+
+    function update_eddy_sshcontour(runs,handle,tt)
+        try
+            mask = runs.eddy.mask(:,:,tt);
         catch
             mask = runs.eddy.mask(:,:,tt);
         end
