@@ -244,8 +244,9 @@ methods
 
             if ~isfield(runs.eddy, 'tend')
                 runs.eddy.tend = length(runs.eddy.dia);
+            else
                 % truncate time vector just in case
-                runs.eddy.t = runs.eddy.t(runs.eddy.tend);
+                runs.eddy.t = runs.eddy.t(1:runs.eddy.tend);
             end
 
             runs.eddy.Bu = runs.params.phys.N2 .* runs.eddy.Lgauss.^2 ./ runs.params.phys.f0^2 ...
