@@ -1142,6 +1142,18 @@ methods
         runs.csflux.west.slope = nan([tinf length(loc)]);
         runs.csflux.west.eddy = nan([tinf length(loc)]);
 
+        runs.csflux.west.itrans.shelf = nan([tinf length(loc)]);
+        runs.csflux.west.itrans.slope = nan([tinf length(loc)]);
+        runs.csflux.west.itrans.eddy = nan([tinf length(loc)]);
+
+        runs.csflux.east.shelf = nan([tinf length(loc)]);
+        runs.csflux.east.slope = nan([tinf length(loc)]);
+        runs.csflux.east.eddy = nan([tinf length(loc)]);
+
+        runs.csflux.east.itrans.shelf = nan([tinf length(loc)]);
+        runs.csflux.east.itrans.slope = nan([tinf length(loc)]);
+        runs.csflux.east.itrans.eddy = nan([tinf length(loc)]);
+
         rr = runs.rrshelf;
         maxrr = ceil(runs.bathy.xsb/rr);
         runs.csflux.west.shelfwater.bins = (1:maxrr) * rr;
@@ -1151,9 +1163,6 @@ methods
 
         runs.csflux.west.shelfwater.vertitrans = nan([runs.rgrid.N length(loc)]);
 
-        runs.csflux.east.shelf = nan([tinf length(loc)]);
-        runs.csflux.east.slope = nan([tinf length(loc)]);
-        runs.csflux.east.eddy = nan([tinf length(loc)]);
         dopv = 0;
 
         if exist(vorname, 'file')
@@ -1175,7 +1184,7 @@ methods
         end
 
         % east and west (w.r.t eddy center) masks
-        % use center because export occurs west of the eastern edge
+        % cxi here = eastern edge because export occurs west of the eastern edge
         % dimensions - (along-shore) x time
         westmask = bsxfun(@times, ...
                           bsxfun(@lt, runs.eddy.xr(:,1), cxi), ...
@@ -1282,6 +1291,19 @@ methods
                         bsxfun(@times, runs.csflux.eddyxt(:,:,kk) .* westmask, ...
                                1./runs.rgrid.pm(1,2:end-1)'),1))';
 
+            % save average flux and itrans
+            [runs.csflux.west.itrans.shelf(:,kk), ...
+             runs.csflux.west.avgflux.shelf(kk)] = ...
+                runs.integrate_flux(time, runs.csflux.west.shelf(:,kk));
+
+            [runs.csflux.west.itrans.slope(:,kk), ...
+             runs.csflux.west.avgflux.slope(kk)] = ...
+                runs.integrate_flux(time, runs.csflux.west.slope(:,kk));
+
+            [runs.csflux.west.itrans.eddy(:,kk), ...
+             runs.csflux.west.avgflux.eddy(kk)] = ...
+                runs.integrate_flux(time, runs.csflux.west.eddy(:,kk));
+
             % east of center
             runs.csflux.east.shelf(t0:tinf,kk) = squeeze(nansum( ...
                         bsxfun(@times, runs.csflux.shelfxt(:,:,kk) .* eastmask, ...
@@ -1294,6 +1316,19 @@ methods
             runs.csflux.east.eddy(t0:tinf,kk) = squeeze(nansum( ...
                         bsxfun(@times, runs.csflux.eddyxt(:,:,kk) .* eastmask, ...
                                1./runs.rgrid.pm(1,2:end-1)'),1))';
+
+            % save average flux and itrans
+            [runs.csflux.east.itrans.shelf(:,kk), ...
+             runs.csflux.east.avgflux.shelf(kk)] = ...
+                runs.integrate_flux(time, runs.csflux.east.shelf(:,kk));
+
+            [runs.csflux.east.itrans.slope(:,kk), ...
+             runs.csflux.east.avgflux.slope(kk)] = ...
+                runs.integrate_flux(time, runs.csflux.east.slope(:,kk));
+
+            [runs.csflux.east.itrans.eddy(:,kk), ...
+             runs.csflux.east.avgflux.eddy(kk)] = ...
+                runs.integrate_flux(time, runs.csflux.east.eddy(:,kk));
 
             dopv = 0;
             % process pv
@@ -1340,6 +1375,28 @@ methods
         asflux = runs.asflux;
 
         save([runs.dir '/fluxes.mat'], 'csflux', 'asflux');
+    end
+
+    % calculate integrated transport and avg flux given a flux
+    % vector and time vector - used by fluxes().
+    function [itrans, avgflux] = integrate_flux(runs, time, flux)
+
+        if any(isnan(flux))
+            error('FLUX IS NAN!');
+        end
+
+        ind = runs.eddy.tscaleind;
+        itrans = cumtrapz(time, flux);
+
+        % start where flux is 5% of max. and stop where
+        % integrated transport is 95% of max.
+        start = ind + find(abs(flux(ind:end)) > 0.05 * max(abs(flux(ind:end))), ...
+                           1, 'first');
+        stop = find_approx(abs(itrans), 0.95 * max(abs(itrans)), 1);
+
+        % calc average flux
+       avgflux = (itrans(stop)-itrans(start)) ./ ...
+            (time(stop)-time(start));
     end
 
     % track where on the shelf the water exported across
