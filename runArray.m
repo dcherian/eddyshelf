@@ -101,19 +101,16 @@ classdef runArray < handle
                 figure(hfig1)
                 subplot(2,1,1)
                 hgplt = plot(run.csflux.time(1:end-2)/run.eddy.tscale, ...
-                             smooth((run.csflux.west.shelf(1:end-2))/fluxscl, 3));
+                             smooth((run.csflux.west.shelf(1:end-2, ...
+                                                           1))/fluxscl, 3));
                 addlegend(hgplt, name, 'NorthWest');
 
-                indices = ~isnan(run.csflux.west.shelf);
-                itrans = cumtrapz(run.csflux.time(indices), ...
-                                  run.csflux.west.shelf(indices));
-                index = find_approx(itrans, 0.05 * max(itrans));
-                [~,mind] = max(itrans);
-                ttrans = nansum(itrans);
                 subplot(2,1,2)
-                plot(run.csflux.time(indices)/run.eddy.tscale, ...
-                     itrans/transscl);
+                plot(run.csflux.time/run.eddy.tscale, ...
+                     run.csflux.west.itrans.shelf(:,1)/transscl);
 
+                % total transport
+                ttrans = max(abs(run.csflux.west.itrans.shelf(:,1)));
                 figure(hfig2)
                 try
                     % find location of center at t=1.5 (arbitrary
