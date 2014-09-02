@@ -487,7 +487,7 @@ classdef runArray < handle
             end
         end
 
-        function [] = plot_fluxhov(runArray)
+        function [] = plot_fluxhov(runArray, axis)
         %figure;
         %    hold all
 
@@ -495,9 +495,17 @@ classdef runArray < handle
             for ii=1:runArray.len
                 run = runArray.array(ii);
 
-                tmat = repmat(run.time/86400, [size(run.csflux.shelfxt, ...
-                                                    1) 1]);
-                xmat = repmat(run.rgrid.x_rho(1,2:end-1)'/1000, [1 length(run.time)]);
+                if axis == 'x'
+                    tmat = repmat(run.time/86400, [size(run.csflux.shelfxt, ...
+                                                        1) 1]);
+                    xmat = repmat(run.rgrid.x_rho(1,2:end-1)'/1000, ...
+                                  [1 length(run.time)]);
+                else
+                    tmat = repmat(run.time/86400, [size(run.csflux.shelfxt, ...
+                                                        1) 1]);
+                    xmat = repmat(run.rgrid.z_r(:,run.bathy.isb,1)', ...
+                                  [1 length(run.time)]);
+                end
                 figure;
                 hold on
                 pcolorcen(xmat, tmat, run.csflux.shelfxt);
