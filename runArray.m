@@ -12,7 +12,6 @@ classdef runArray < handle
     methods
         % constructor
         function [runArray] = runArray(folders, name)
-            if ~exist('name', 'var'), runArray.name = []; end
 
             runArray.array = runs.empty([length(folders) 0]);
             kk = 1;
@@ -21,8 +20,8 @@ classdef runArray < handle
                 try
                     runArray.folders{kk} = folders{ii};
                     runArray.array(kk) = runs(runArray.folders{kk});
-                    disp(runArray.array(kk).name)
-                    kk = kk + 1
+                    disp([runArray.array(kk).name ' completed'])
+                    kk = kk + 1;
                 catch ME
                     disp([folders{ii} ' did not work'])
                     disp(ME.message)
@@ -30,6 +29,11 @@ classdef runArray < handle
                 end
             end
             runArray.len = kk-1;
+            if ~exist('name', 'var')
+                runArray.name{ii} = runArray.array(ii).name;
+            else
+                runArray.name = name;
+            end
         end
 
         function [] = test_hashes(runArray)
