@@ -115,26 +115,28 @@ classdef runArray < handle
                 try
                     % find location of center at t=1.5 (arbitrary
                     % choice)
-                    xnd = (run.eddy.vor.se(tind) - ...
-                           run.csflux.west.shelfwater.bins)./(run.eddy.vor.dia(tind)/2);
+                    xnd = (run.csflux.west.shelfwater.bins)./run.rrshelf;
                     subplot(2,2,1)
-                    hgplt = plot(xnd .* run.rrshelf/1000, run.csflux.west.shelfwater.itrans);
+                    hgplt = plot(xnd, run.csflux.west.shelfwater.itrans);
                     addlegend(hgplt, name, 'NorthEast');
 
                     subplot(2,2,2)
-                    hgplt = plot(xnd, run.csflux.west.shelfwater.itrans ...
+                    plot(xnd, run.csflux.west.shelfwater.itrans ...
                                  ./ttrans);
-
-                    addlegend(hgplt, name, 'NorthEast');
 
                     subplot(2,2,3)
                     plot(run.csflux.west.shelfwater.vertitrans, ...
                          run.csflux.west.shelfwater.vertbins);
 
                     subplot(2,2,4)
-                    plot(run.csflux.west.shelfwater.vertitrans./ttrans, ...
-                         run.csflux.west.shelfwater.vertbins ./ ...
-                         run.bathy.hsb);
+                    profile = ...
+                        run.csflux.west.shelfwater.vertitrans./ ...
+                        ttrans;
+                    zvec = run.csflux.west.shelfwater.vertbins ./ ...
+                         run.bathy.hsb;
+                    bc = baroclinicity(zvec, profile);
+                    hgplt = plot(profile, zvec);
+                    addlegend(hgplt, [name ' | bc = ' num2str(bc,'%.3f')], 'SouthWest');
                 catch ME
                     disp(ME)
                 end
