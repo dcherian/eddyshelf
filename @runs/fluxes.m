@@ -51,9 +51,16 @@
                             ' targeting? |\n (x,ix,h) = (location, index, depth) ' ...
                             'at which I''m calculating transport |\n '];
 
+        % how much of the time vector should I read?
+        if isfield(runs.eddy, 'tend')
+            tinf = runs.eddy.tend;
+        else
+            tinf = Inf;
+        end
+
         % interpolate center locations
         if strcmpi(ftype, 'his')
-            time = dc_roms_read_data(runs.dir, 'ocean_time', [], {}, [], ...
+            time = dc_roms_read_data(runs.dir, 'ocean_time', [1 tinf], {}, [], ...
                                      [], 'his');
             if length(time) ~= length(runs.eddy.t)
                 t0 = find_approx(time, runs.time(tstart), 1);
@@ -61,7 +68,6 @@
                               time(t0:end));
             else
                 t0 = tstart;
-                time = runs.time;
                 cxi = runs.eddy.vor.ee(tstart:end);
             end
         else
@@ -71,13 +77,10 @@
                 cxi = runs.eddy.vor.ee(t0:end);
             end
         end
-        if isfield(runs.eddy, 'tend')
-            tinf = runs.eddy.tend;
-        else
+
+        if isinf(tinf)
             tinf = length(time);
         end
-
-        time = time(1:tinf);
 
         % initialize
         runs.csflux.west.shelf = nan([tinf length(loc)]);
