@@ -352,6 +352,9 @@ function [eddy] = track_eddy(dir1)
         runobj.eddy = eddy;
     end
 
+    % save git hash
+    eddy.hash = githash;
+
     save([dir1 '/eddytrack.mat'],'eddy');
 
     disp('Done.');
