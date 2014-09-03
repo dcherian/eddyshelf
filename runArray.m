@@ -27,13 +27,13 @@ classdef runArray < handle
                     disp(ME.message)
                     continue;
                 end
+                if ~exist('name', 'var') || isempty(name)
+                    runArray.name{ii} = runArray.array(ii).name;
+                else
+                    runArray.name = name;
+                end
             end
             runArray.len = kk-1;
-            if ~exist('name', 'var')
-                runArray.name{ii} = runArray.array(ii).name;
-            else
-                runArray.name = name;
-            end
         end
 
         function [] = test_hashes(runArray)
