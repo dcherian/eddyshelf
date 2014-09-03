@@ -493,32 +493,45 @@ classdef runArray < handle
         %figure;
         %    hold all
 
+            if ~exist('axis', 'var') || isempty(axis)
+                axis = 'z';
+            end
+
             cmap = flipud(cbrewer('div','RdBu',24));
             for ii=1:runArray.len
                 run = runArray.array(ii);
 
+                figure;
+                hold on
+
                 if axis == 'x'
-                    tmat = repmat(run.time/86400, [size(run.csflux.shelfxt, ...
-                                                        1) 1]);
+                    matrix = run.csflux.shelfxt;
+                    tmat = repmat(run.time/86400, [size(matrix, 1) 1]);
                     xmat = repmat(run.rgrid.x_rho(1,2:end-1)'/1000, ...
                                   [1 length(run.time)]);
                 else
-                    tmat = repmat(run.time/86400, [size(run.csflux.shelfxt, ...
-                                                        1) 1]);
-                    xmat = repmat(run.rgrid.z_r(:,run.bathy.isb,1)', ...
+                    matrix = run.csflux.shelfzt;
+                    tmat = repmat(run.time/run.eddy.tscale, [size(matrix, 1) 1]);
+                    xmat = repmat(run.rgrid.z_r(:,run.bathy.isb,1), ...
                                   [1 length(run.time)]);
                 end
-                figure;
-                hold on
-                pcolorcen(xmat, tmat, run.csflux.shelfxt);
+
+                pcolorcen(tmat, xmat, matrix./max(abs(matrix(:))));
                 colormap(cmap);
                 colorbar; center_colorbar;
                 title(run.name);
-                plot(run.eddy.vor.cx/1000, run.eddy.t);
-                plot(run.eddy.vor.ee/1000, run.eddy.t);
-                plot(run.eddy.vor.we/1000, run.eddy.t);
-                ylabel('Time (days)');
-                xlabel('X (km)');
+
+                if axis == 'x'
+                    plot(run.eddy.vor.cx/1000, run.eddy.t);
+                    plot(run.eddy.vor.ee/1000, run.eddy.t);
+                    plot(run.eddy.vor.we/1000, run.eddy.t);
+                    ylabel('Time (days)');
+                    xlabel('X (km)');
+                else
+                    xlim([0 3]);
+                    ylabel('Z (m)');
+                    xlabel('Time (days)');
+                end
                 %hgplt = plot(run.eddy.t * 86400 ./ run.eddy.tscale, ...
                 %             run.eddy.prox);
                 %addlegend(hgplt, run.name);
