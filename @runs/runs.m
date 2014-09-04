@@ -5,7 +5,7 @@ properties
     % data
     zeta; temp; usurf; vsurf; vorsurf; csdsurf; ubot; vbot;
     % dimensional and non-dimensional time
-    time; ndtime;
+    time; ndtime; tscale; tscaleind;
     % barotropic vel (geostrophic)
     ubar; vbar;
     % dyes
@@ -351,6 +351,17 @@ methods
             runs.asflux = data.asflux;
             clear data
 
+            % find time when flux is increasing up
+            try
+                trans  = runs.csflux.west.itrans.shelf(:,1);
+                mtrans = max(abs(trans));
+                runs.csflux.tscaleind = find_approx(trans, 0.05*mtrans, 1);
+                runs.csflux.tscale = runs.csflux.time(runs.csflux.tscaleind);
+            catch ME
+                warning(['Couldn''t calculate flux based ' ...
+                         'timescale']);
+            end
+
             if ~isfield(runs.csflux.west.shelfwater, 'envelope')
                 disp('Calculating shelfwater envelope');
                 bins = runs.csflux.west.shelfwater.bins;
@@ -380,6 +391,18 @@ methods
         if exist(runs.ltrans_file,'file')
             runs.ltrans = floats('ltrans',runs.ltrans_file,runs.rgrid);
         end
+
+        % set time-scale for normalization
+        if isfield(runs.csflux, 'tscale')
+            runs.tscale = runs.csflux.tscale;
+            runs.tscaleind = runs.csflux.tscaleind;
+        else
+            warning(['Using eddy center based time-scale instead ' ...
+                     'of flux in ' runs.name]);
+            runs.tscale = runs.eddy.tscale;
+            runs.tscaleind = runs.csflux.tscaleind;
+        end
+
     end
 
     function [] = info(runs)
