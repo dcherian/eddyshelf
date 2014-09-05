@@ -18,7 +18,7 @@ classdef runArray < handle
             for ii = 1:length(folders)
                 warning off;
                 try
-                    runArray.folders{kk} = folders{ii};
+                    runArray.folders{kk} = ['../topoeddy/' folders{ii}];
                     runArray.array(kk) = runs(runArray.folders{kk});
                     disp([runArray.array(kk).name ' completed'])
                     kk = kk + 1;
