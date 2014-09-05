@@ -400,7 +400,7 @@ methods
             warning(['Using eddy center based time-scale instead ' ...
                      'of flux in ' runs.name]);
             runs.tscale = runs.eddy.tscale;
-            runs.tscaleind = runs.csflux.tscaleind;
+            runs.tscaleind = runs.eddy.tscaleind;
         end
 
     end
