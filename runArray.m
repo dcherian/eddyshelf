@@ -265,7 +265,7 @@ classdef runArray < handle
 
             for ii=1:runArray.len
                 run = runArray.array(ii);
-                ndtime = run.eddy.t/run.eddy.tscale * 86400;
+                ndtime = run.eddy.t/run.tscale * 86400;
                 if isempty(runArray.name)
                     name = run.name;
                 else
@@ -388,6 +388,7 @@ classdef runArray < handle
                 figure(hfig2)
                 ylabel(['Center - X_{sb} / Deep water rossby ' ...
                         'radius']);
+                xlabel('Non dimensional time');
             end
 
             if hfig3
@@ -435,8 +436,8 @@ classdef runArray < handle
                 else
                     name = runArray.name{ii}
                 end
-                eddy_ndtime = run.eddy.t/run.eddy.tscale*86400;
-                csflx_ndtime = run.csflux.time/run.eddy.tscale * 86400;
+                eddy_ndtime = run.eddy.t/run.tscale*86400;
+                csflx_ndtime = run.csflux.time/run.tscale * 86400;
                 etind = find_approx(eddy_ndtime, 1.5, 1)
                 cstind = find_approx(csflx_ndtime, 1.5, 1);
 
@@ -477,13 +478,13 @@ classdef runArray < handle
             for ii=1:runArray.len
                 run = runArray.array(ii);
                 %figure
-                %ndtime = run.eddy.t ./ run.eddy.tscale * 86400;
+                %ndtime = run.eddy.t ./ run.tscale * 86400;
                 %tind = find_approx(ndtime, 1.2, 1)
                 %pcolorcen(run.vorsurf(:,:,tind)'./5e-5);
                 %colorbar;
                 %caxis([-0.5 0.5]);
                 %title([run.name ' | ' runArray.name{ii}]);
-                tind = find_approx(run.eddy.t*86400 / run.eddy.tscale, ...
+                tind = find_approx(run.eddy.t*86400 / run.tscale, ...
                                    1.5, 1);
                 N = sqrt(run.params.phys.N2);
                 f0 = run.params.phys.f0;
@@ -498,7 +499,7 @@ classdef runArray < handle
                 addlegend(hgplt, run.name, 'NorthEast');
 
                 subplot(2,1,2)
-                plot(run.eddy.t * 86400/run.eddy.tscale, (run.eddy.prox)./run.rrdeep);
+                plot(run.eddy.t * 86400/run.tscale, (run.eddy.prox)./run.rrdeep);
             end
         end
 
@@ -527,7 +528,7 @@ classdef runArray < handle
                     ,2:end-1,:)), run.eddy.vormask), [], 1), [], 2));
                 end
 
-                ndtime = run.eddy.t * 86400 / run.eddy.tscale;
+                ndtime = run.eddy.t * 86400 / run.tscale;
                 hgplt = plot(ndtime, Ub ./ run.eddy.V');
                 addlegend(hgplt, run.name);
             end
@@ -562,14 +563,15 @@ classdef runArray < handle
 
                 if axis == 'x'
                     matrix = run.csflux.shelfxt;
-                    tmat = repmat(run.time/86400, [size(matrix, 1) 1]);
+                    tmat = repmat(run.csflux.time/86400, [size(matrix, 1) 1]);
                     xmat = repmat(run.rgrid.x_rho(1,2:end-1)'/1000, ...
-                                  [1 length(run.time)]);
+                                  [1 size(tmat, 2)]);
                 else
                     matrix = run.csflux.shelfzt;
-                    tmat = repmat(run.time/run.eddy.tscale, [size(matrix, 1) 1]);
+                    tmat = repmat(run.csflux.time/run.tscale, [size(matrix, 1) 1]);
                     xmat = repmat(run.rgrid.z_r(:,run.bathy.isb,1), ...
-                                  [1 length(run.time)]);
+                                  [1 size(tmat, 2)]);
+                    xmat = xmat./max(abs(xmat(:)));
                 end
 
                 pcolorcen(tmat, xmat, matrix./max(abs(matrix(:))));
