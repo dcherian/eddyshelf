@@ -587,13 +587,52 @@ classdef runArray < handle
                     xlabel('X (km)');
                 else
                     xlim([0 3]);
-                    ylabel('Z (m)');
+                    ylim([-1 0]);
+                    ylabel('z/H_sb');
                     xlabel('Time (days)');
                 end
-                %hgplt = plot(run.eddy.t * 86400 ./ run.eddy.tscale, ...
-                %             run.eddy.prox);
-                %addlegend(hgplt, run.name);
+                cblabel('Normalized transport');
             end
+        end
+
+        function [] = plot_penetration(runArray)
+            hfig1 = figure;
+            subplot(2,1,1); hold all;
+            subplot(2,1,2); hold all;
+
+            hfig2 = figure;
+            hold all;
+
+            for ii=1:runArray.len
+                run  = runArray.array(ii);
+                name = getname(runArray, ii);
+
+                ndtime = run.eddy.t * 86400 / run.tscale;
+
+                figure(hfig1);
+                subplot(2,1,1);
+                hgplt = plot(ndtime, run.eddy.ne/1000 - run.bathy.xsb/1000);
+                addlegend(hgplt, name);
+
+                subplot(2,1,2);
+                plot(ndtime, run.eddy.se/1000 - run.bathy.xsb/1000);
+
+                figure(hfig2)
+                hgplt = plot(run.eddy.mx/1000, run.eddy.my/1000);
+                addlegend(hgplt, name);
+            end
+
+            figure(hfig1);
+            subplot(2,1,1)
+            ylabel('Northern edge - Y_{sb}');
+            subplot(2,1,2)
+            ylabel('Southern edge - Y_{sb}');
+            liney(0);
+
+            figure(hfig2)
+            ylabel('Y (km)');
+            xlabel('X (km)');
+
         end
     end
 end
