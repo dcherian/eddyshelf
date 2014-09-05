@@ -636,3 +636,11 @@ classdef runArray < handle
         end
     end
 end
+
+function [name] = getname(runArray, ii)
+    if isempty(runArray.name)
+        name = runArray.array(ii).name;
+    else
+        name = runArray.name{ii};
+    end
+end
