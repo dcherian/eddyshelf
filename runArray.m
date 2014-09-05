@@ -105,23 +105,20 @@ classdef runArray < handle
 
             hfig3 = figure;
             hold all;
+
+            hfig4 = figure;
+            subplot(2,1,1); hold all
+            subplot(2,1,2); hold all
+
             for ii=1:runArray.len
                 run = runArray.array(ii);
+                name = getname(runArray, ii);
 
                 if run.params.flags.flat_bottom
                     continue;
                 end
 
-                if isempty(runArray.name)
-                    %                    name = ...
-                    %    num2str(run.eddy.Lgauss(run.eddy ...
-                    %                            .tscaleind));
-                    name = run.name;
-                else
-                    name = runArray.name{ii};
-                end
-
-                tind = find_approx(run.eddy.t*86400 / run.eddy.tscale, ...
+                tind = find_approx(run.eddy.t*86400 / run.tscale, ...
                                    1.5, 1);
                 Ue = run.eddy.V(tind);
                 He = run.bathy.hsb; %run.eddy.Lgauss(tind);
@@ -130,15 +127,16 @@ classdef runArray < handle
                 fluxscl = 1;Ue * Le * He;
                 transscl = 1;fluxscl * (2*Le/Ue);
 
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SHELF WATER
                 figure(hfig1)
                 subplot(2,1,1)
-                hgplt = plot(run.csflux.time(1:end-2)/run.eddy.tscale, ...
+                hgplt = plot(run.csflux.time(1:end-2)/run.tscale, ...
                              smooth((run.csflux.west.shelf(1:end-2, ...
                                                            1))/fluxscl, 3));
                 addlegend(hgplt, name, 'NorthWest');
 
                 subplot(2,1,2)
-                plot(run.csflux.time/run.eddy.tscale, ...
+                plot(run.csflux.time/run.tscale, ...
                      run.csflux.west.itrans.shelf(:,1)/transscl);
 
                 % total transport
@@ -174,13 +172,26 @@ classdef runArray < handle
                 end
 
                 figure(hfig3)
-                hgplt = plot(run.csflux.time/run.eddy.tscale, ...
+                hgplt = plot(run.csflux.time/run.tscale, ...
                              run.csflux.west.shelfwater.envelope);
                 addlegend(hgplt, name);
+
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EDDY WATER
+                figure(hfig4)
+                subplot(2,1,1)
+                hgplt = plot(run.csflux.time(1:end-2)/run.tscale, ...
+                             smooth((run.csflux.east.eddy(1:end-2, ...
+                                                           1))/fluxscl, 3));
+                addlegend(hgplt, name, 'NorthWest');
+
+                subplot(2,1,2)
+                plot(run.csflux.time/run.tscale, ...
+                     run.csflux.east.itrans.eddy(:,1)/transscl);
             end
+
             figure(hfig1)
             subplot(2,1,1)
-            ylabel('Flux (Sv)');
+            ylabel('Flux of shelf water (Sv)');
             liney(0, [], [1 1 1]*0.75);
             subplot(2,1,2)
             ylabel('Total volume transported');
@@ -206,12 +217,25 @@ classdef runArray < handle
             ylabel('Vertical bin (m)');
 
             subplot(2,2,4)
+            ylim([-1 0]);
+            limx = xlim;
+            xlim([0 limx(2)]);
             xlabel('Normalized volume transported');
             ylabel('Vertical bin / Shelfbreak depth');
 
             figure(hfig3)
             xlabel('Non-dimensional time');
             ylabel('most on-shore source of water');
+
+            figure(hfig4)
+            subplot(2,1,1);
+            ylabel('Flux of eddy water (Sv)');
+            subplot(2,1,2);
+            ylabel('Total volume transported (m^3)');
+            xlabel('Non-dimensional time');
+
+            figure(hfig5)
+            ylabel('Normalized shelf water flux');
 
         end
 
