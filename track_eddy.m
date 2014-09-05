@@ -178,7 +178,9 @@ function [eddy] = track_eddy(dir1)
                          ivor.*mask,dxi,dyi,sbreak,thresh, [], ...
                          cx0, cy0); %w(:,:,tt));
 
-        if ~isfield(temp, 'mask')
+        % if eddy detection terminates for whatever reason before
+        % the entire simulation has been processed.
+        if isempty(temp) || ~isfield(temp.vor, 'mask')
             warning('Eddy not found. Terminating!');
             eddy.tend = tt - 1;
             eddy.t = eddy.t(1:eddy.tend);
@@ -626,6 +628,7 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
                 % check displacement of center
                 % should be less than 10 grid cells
                 if ~isnan(eddy.vor.cx) && ~isnan(eddy.vor.cy)
+                    answer = 1;
                     if hypot(eddy.vor.cx-cxn1, eddy.vor.cy-cyn1) > ...
                             10*hypot(dx,dy)
                         disp(['eddy center > 10 dx from last time ' ...
@@ -648,6 +651,7 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
                                                 - mm) ' regions left): ']);
                         if ~answer
                             disp('region skipped');
+                            flag_found == 0;
                             continue;
                         end
                     end
@@ -676,7 +680,10 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
             % stop when eddy is found
             break;
         end
-        if exist('flag_found','var') && flag_found == 1, break; end
+
+        if exist('flag_found','var') && flag_found == 1
+            break;
+        end
     end
 
     % eddy was found but i'm testing what Chelton's Ls would look like
@@ -727,6 +734,9 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
         end
 
         eddy.Ls = props(min_index).EquivDiameter/2 * sqrt(dx*dy);
+    else
+        % eddy was not found
+        eddy = [];
     end
 
     if ~exist('eddy','var')
@@ -761,9 +771,3 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
         rmfield(eddy,'jj');
     catch ME
     end
-
-
-%             % first find convex hull vertices
-%             chull = regionprops(maskreg,'ConvexHull');
-%             chull = chull.ConvexHull;
-%             chull = bsxfun(@times,chull,[dx dy]);
