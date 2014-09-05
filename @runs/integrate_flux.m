@@ -16,6 +16,11 @@ function [itrans, avgflux] = integrate_flux(runs, time, flux)
                        1, 'first');
     stop = find_approx(abs(itrans), 0.95 * max(abs(itrans)), 1);
 
+    if isempty(start)
+        start = 1;
+        warning('Fluxes are zero?');
+    end
+
     % calc average flux
     avgflux = (itrans(stop)-itrans(start)) ./ ...
               (time(stop)-time(start));
