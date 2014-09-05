@@ -170,6 +170,30 @@
                         (csdye <= runs.bathy.xsl);
             eddymask = eddye > runs.eddy_thresh;
 
+            % check velocity plots
+            debug = 0;
+            if debug
+                figure;
+                indices = [60 100 140 170];
+                for zzz = 1:length(indices)
+                    subplot(2,2,zzz);
+                    pind = indices(zzz);
+                    %pcolorcen( bsxfun(@times, squeeze(csvel(:,:,:,pind)), ...
+                    %                  westmask(:,pind))');
+                    pcolorcen(squeeze(csvel(:,:,:,pind))');
+                    center_colorbar; limc = caxis;
+                    hold on;
+                    contour(squeeze(shelfmask(:,:,:,pind))', [1 1], 'k', ...
+                            'LineWidth', 2);
+                    %contour(squeeze(slopemask(:,:,:,pind))', [1 1], 'r', ...
+                    %        'LineWidth', 2);
+                    contour(squeeze(eddymask(:,:,:,pind))', [1 1], 'b', ...
+                            'LineWidth', 2);
+                    caxis(limc);
+                    title(['Day ' num2str(time(pind)/86400)]);
+                end
+            end
+
             % transports
             runs.csflux.shelfxt(:,:,kk) = squeeze(trapz( ...
                 runs.rgrid.z_r(:,runs.csflux.ix(kk)+1,1), ...
