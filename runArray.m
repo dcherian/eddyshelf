@@ -60,6 +60,38 @@ classdef runArray < handle
             end
         end
 
+        function [] = print_diag(runArray, name)
+            hfig1 = figure; hold all; hax1 = gca;
+
+            for ii=1:runArray.len
+                run = runArray.array(ii);
+                if strcmpi(name, 'shelf flux')
+                    diag = run.csflux.west.avgflux.shelf(1)/1000;
+
+                    ind = run.tscaleind;
+                    transscl = 1; %run.eddy.V(ind) .* run.eddy.vor.dia(ind)/2 ...
+                                  %.* run.eddy.Lgauss(ind)/1000;
+
+                    sdev = sqrt(mean((run.csflux.west.shelf(run.tscaleind:end,1) ...
+                           - run.csflux.west.avgflux.shelf(1)).^2)) ...
+                           / 1000;
+                    diagstr = [num2str(diag,'%.2f') '±' num2str(sdev,'%.2f') ' mSv'];
+                end
+
+                disp([run.name ' | ' name ' = ' diagstr]);
+
+                figure(hfig1)
+                errorbar(ii, diag/transscl, sdev/transscl, 'x');
+                set(hax1, 'Xtick', [1:runArray.len]);
+                lab = cellstr(get(hax1,'xticklabel'));
+                lab{ii} = getname(runArray, ii);
+                set(hax1,'xticklabel', lab);
+            end
+
+            figure(hfig1)
+            ylabel('Flux (mSv)');
+        end
+
         function [] = plot_fluxes(runArray)
             hfig1 = figure;
             subplot(2,1,1); hold all
