@@ -21,16 +21,18 @@ classdef runArray < handle
                     runArray.folders{kk} = ['../topoeddy/' folders{ii}];
                     runArray.array(kk) = runs(runArray.folders{kk});
                     disp([runArray.array(kk).name ' completed'])
+
+                    if ~exist('name', 'var') || isempty(name)
+                        runArray.name{kk} = runArray.array(kk).name;
+                    else
+                        runArray.name = name;
+                    end
+
                     kk = kk + 1;
                 catch ME
                     disp([folders{ii} ' did not work'])
                     disp(ME.message)
                     continue;
-                end
-                if ~exist('name', 'var') || isempty(name)
-                    runArray.name{ii} = runArray.array(ii).name;
-                else
-                    runArray.name = name;
                 end
             end
             runArray.len = kk-1;
