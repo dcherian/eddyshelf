@@ -560,20 +560,14 @@ classdef runArray < handle
 
         function [] = plot_test3(runArray)
             figure;
+            subplot(2,1,1)
             hold all
             for ii=1:runArray.len
                 run = runArray.array(ii);
-
-                ndtime = run.eddy.t * 86400 / run.eddy.tscale;
-                hgplt = plot(ndtime, run.eddy.dia/1000);
-                addlegend(hgplt, run.name);
             end
         end
 
         function [] = plot_fluxhov(runArray, axis)
-        %figure;
-        %    hold all
-
             if ~exist('axis', 'var') || isempty(axis)
                 axis = 'z';
             end
@@ -635,11 +629,11 @@ classdef runArray < handle
 
                 figure(hfig1);
                 subplot(2,1,1);
-                hgplt = plot(ndtime, run.eddy.ne/1000 - run.bathy.xsb/1000);
+                hgplt = plot(ndtime, run.eddy.vor.ne/1000 - run.bathy.xsb/1000);
                 addlegend(hgplt, name);
 
                 subplot(2,1,2);
-                plot(ndtime, run.eddy.se/1000 - run.bathy.xsb/1000);
+                plot(ndtime, run.eddy.vor.se/1000 - run.bathy.xsb/1000);
 
                 figure(hfig2)
                 hgplt = plot(run.eddy.mx/1000, run.eddy.my/1000);
