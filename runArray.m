@@ -74,9 +74,29 @@ classdef runArray < handle
                     transscl = 1; %run.eddy.V(ind) .* run.eddy.vor.dia(ind)/2 ...
                                   %.* run.eddy.Lgauss(ind)/1000;
 
-                    sdev = sqrt(mean((run.csflux.west.shelf(run.tscaleind:end,1) ...
-                           - run.csflux.west.avgflux.shelf(1)).^2)) ...
-                           / 1000;
+                    % flux vector for applicable time
+                    fluxvec = smooth(run.csflux.west.shelf(run.tscaleind: ...
+                                                    end,1), 12);
+                    % find number of peaks
+                    mpd = 10;
+                    [~,pl] = findpeaks(fluxvec, 'MinPeakDistance', mpd); % crests
+                    [~,nl] = findpeaks(-1*fluxvec, 'MinPeakDistance', mpd); ...
+                    % troughs
+                    % make sure peak to trough distance is not
+                    % smaller than mpd
+                    indices = sort([pl; nl]);
+                    mask = [0; diff(indices) < mpd];
+                    filtered = indices(~isnan(fillnan(indices .* ~mask,0)));
+                    dof = length(filtered) % (crude) degrees of freedom;
+
+                    %figure; plot(fluxvec); linex(filtered);
+                    %title(num2str(dof));pause;
+
+                    % standard deviation
+                    sdev = sqrt(mean((fluxvec/1000 - diag).^2));
+                    % error bounds
+                    err = conft(0.05, dof-1) * sdev / sqrt(dof);
+
                     diagstr = [num2str(diag,'%.2f') '±' num2str(sdev,'%.2f') ' mSv'];
                 end
 
@@ -91,6 +111,8 @@ classdef runArray < handle
             end
 
             figure(hfig1)
+            limy = ylim;
+            ylim([0 limy(2)]);
             ylabel('Flux (mSv)');
         end
 
