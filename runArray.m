@@ -611,11 +611,34 @@ classdef runArray < handle
         end
 
         function [] = plot_test3(runArray)
-            figure;
-            subplot(2,1,1)
-            hold all
             for ii=1:runArray.len
                 run = runArray.array(ii);
+                name = getname(runArray, ii);
+
+                %vec1 = run.eddy.vor.lmaj(run.tscaleind:end)./ ...
+                %       run.eddy.vor.lmin(run.tscaleind:end);
+                vec1 = run.eddy.vor.lmaj(run.tscaleind:end);
+                vec2 = run.csflux.west.shelf(run.tscaleind:end);
+
+                vec1 = vec1 - mean(vec1);
+                vec2 = vec2 - mean(vec2);
+
+                [c,lags] = xcorr(vec1, vec2, 'coef');
+                corrcoef(vec1, vec2)
+                dt = (run.csflux.time(2)-run.csflux.time(1))/86400;
+
+                figure;
+                subplot(2,1,1)
+                plot(run.eddy.t(run.tscaleind:end)*86400./run.tscale, ...
+                     smooth(vec1,4)./max(vec1));
+                hold on
+                plot(run.csflux.time(run.tscaleind:end)/run.tscale, ...
+                     vec2./max(vec2), 'Color', [1 1 1]*0.75);
+                subplot(2,1,2)
+                plot(lags * dt,c);
+                xlabel('Lag (days)');
+                linex(0); liney(0);
+
             end
         end
 
