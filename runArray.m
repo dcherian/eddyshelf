@@ -76,7 +76,29 @@ classdef runArray < handle
 
                     % flux vector for applicable time
                     fluxvec = smooth(run.csflux.west.shelf(run.tscaleind: ...
-                                                    end,1), 12);
+                                                           end,1), 6);
+                    ifluxvec = smooth(run.csflux.west.itrans.shelf(run.tscaleind: ...
+                                                           end,1), ...
+                                      6);
+                    tvec = run.csflux.time(run.tscaleind:end);
+                    tvec = tvec-tvec(1);
+
+                    E = [ones(size(tvec))' tvec'];
+                    x = E\ifluxvec;
+                    intercept = x(1);
+                    avgflux = x(2);
+
+                    true = ifluxvec; est = intercept + avgflux .* ...
+                           (tvec-tvec(1))';
+                    res = true-est;
+
+                    %figure; hold all;
+                    %plot(true); plot(est); plot(res); liney(0);
+                    %figure;plot(xcorr(res, res, 'coef'));
+
+                    %[c,lags] = xcorr(fluxvec - mean(fluxvec(:)), 'coef');
+                    %plot(lags, c); linex(0); liney(0);
+
                     % find number of peaks
                     mpd = 10;
                     [~,pl] = findpeaks(fluxvec, 'MinPeakDistance', mpd); % crests
