@@ -100,19 +100,21 @@ classdef runArray < handle
                     %plot(lags, c); linex(0); liney(0);
 
                     % find number of peaks
-                    mpd = 10;
-                    [~,pl] = findpeaks(fluxvec, 'MinPeakDistance', mpd); % crests
-                    [~,nl] = findpeaks(-1*fluxvec, 'MinPeakDistance', mpd); ...
+                    mpd = 6;
+                    % crests
+                    [~,pl] = findpeaks(fluxvec, 'MinPeakDistance', mpd);
                     % troughs
+                    [~,nl] = findpeaks(-1*fluxvec, 'MinPeakDistance', mpd); ...
+
                     % make sure peak to trough distance is not
                     % smaller than mpd
                     indices = sort([pl; nl]);
                     mask = [0; diff(indices) < mpd];
                     filtered = indices(~isnan(fillnan(indices .* ~mask,0)));
-                    dof = length(filtered) % (crude) degrees of freedom;
+                    dof = length(filtered) + 1; % (crude) degrees of freedom;
 
-                    %figure; plot(fluxvec); linex(filtered);
-                    %title(num2str(dof));pause;
+                    % check dof calculation
+                    %figure; plot(fluxvec); linex(filtered); title(num2str(dof));pause;
 
                     % standard deviation
                     sdev = sqrt(mean((fluxvec/1000 - diag).^2));
