@@ -116,18 +116,46 @@ classdef runArray < handle
                     % check dof calculation
                     %figure; plot(fluxvec); linex(filtered); title(num2str(dof));pause;
 
+                    diag = mean(fluxvec/1000);
                     % standard deviation
-                    sdev = sqrt(mean((fluxvec/1000 - diag).^2));
+                    sdev = sqrt(1./(length(fluxvec)-1) .* sum((fluxvec - diag*1000).^2))/1000;
                     % error bounds
-                    err = conft(0.05, dof-1) * sdev / sqrt(dof);
-
-                    diagstr = [num2str(diag,'%.2f') '±' num2str(sdev,'%.2f') ' mSv'];
-                end
+                    err = abs(conft(0.05, dof-1) * sdev / sqrt(dof));
+% $$$ % $$$
+% $$$                     % check error bounds with itrans
+% $$$                     hfig2 = figure;
+% $$$                     set(gcf, 'renderer', 'opengl');
+% $$$                     subplot(2,1,1);
+% $$$                     plot(run.csflux.time/run.tscale, ...
+% $$$                          run.csflux.west.shelf(:,1)/1000);
+% $$$                     liney([diag-err diag diag+err]);
+% $$$                     subplot(2,1,2);
+% $$$                     plot(run.csflux.time/run.tscale, ...
+% $$$                          run.csflux.west.itrans.shelf(:,1));
+% $$$                     Ln = createLine(1, ...
+% $$$                                    run.csflux.west.itrans.shelf(run.tscaleind,1), ...
+% $$$                                    1, (diag-err)*1000*run.tscale);
+% $$$                     L = createLine(1, ...
+% $$$                                    run.csflux.west.itrans.shelf(run.tscaleind,1), ...
+% $$$                                    1, diag*1000*run.tscale);
+% $$$                     Lp = createLine(1, ...
+% $$$                                    run.csflux.west.itrans.shelf(run.tscaleind,1), ...
+% $$$                                    1, (diag+err)*1000*run.tscale);
+% $$$                     hold on; drawLine(L);drawLine(Ln,'Color','g'); ...
+% $$$                         drawLine(Lp,'Color','r');
+% $$$                     limy = ylim; ylim([0 limy(2)]);
+% $$$                     %pause;
+% $$$                     try
+% $$$                         close(hfig2);
+% $$$                     catch ME; end
+% $$$ % $$$
+                    diagstr = [num2str(diag,'%.2f') '±' num2str(err,'%.2f') ' mSv'];
+                 end
 
                 disp([run.name ' | ' name ' = ' diagstr]);
 
                 figure(hfig1)
-                errorbar(ii, diag/transscl, sdev/transscl, 'x');
+                errorbar(ii, diag/transscl, err/transscl, 'x');
                 set(hax1, 'Xtick', [1:runArray.len]);
                 lab = cellstr(get(hax1,'xticklabel'));
                 lab{ii} = getname(runArray, ii);
