@@ -355,7 +355,7 @@ function [eddy] = track_eddy(dir1)
     end
 
     % save git hash
-    eddy.hash = githash;
+    eddy.hash = githash([mfilename('fullpath') '.m']);
 
     save([dir1 '/eddytrack.mat'],'eddy');
 
@@ -607,8 +607,6 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
                 eddy.vor.lmin = vorprops.MinorAxisLength * sqrt(dx*dy);
 
                 eddy.vor.angle = vorprops.Orientation;
-                xmax = fillnan(vormaskreg(:).*ix(:),0);
-                ymax = fillnan(vormaskreg(:).*iy(:),0);
 
                 % Criterion 7 - solidity must be good - helps get rid of some
                 % thin 'isthumuses'
@@ -656,6 +654,9 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
                         end
                     end
                 end
+
+                xmax = fillnan(vormaskreg(:).*ix(:),0);
+                ymax = fillnan(vormaskreg(:).*iy(:),0);
 
                 eddy.vor.we   = dx/2 + nanmin(xmax) * dx; % west edge
                 eddy.vor.ee   = dx/2 + nanmax(xmax) * dx; % east edge
