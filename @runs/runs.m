@@ -355,7 +355,7 @@ methods
             try
                 trans  = runs.csflux.west.itrans.shelf(:,1);
                 mtrans = max(abs(trans));
-                runs.csflux.tscaleind = find_approx(trans, 0.05*mtrans, 1);
+                runs.csflux.tscaleind = find_approx(trans, 0.1*mtrans, 1);
                 runs.csflux.tscale = runs.csflux.time(runs.csflux.tscaleind);
             catch ME
                 warning(['Couldn''t calculate flux based ' ...
