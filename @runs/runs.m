@@ -1314,7 +1314,7 @@ methods
 
     end
 
-    % plot eddye - cross-sections to compare against diagnosed vertical
+    % plot eddye - y-z cross-sections to compare against diagnosed vertical
     % scale
     function [] = plot_eddye(runs, days)
         tindices = vecfind(runs.time/86400, days)
@@ -1418,7 +1418,6 @@ methods
             colorbar;
             caxis( [-1 1] * max(abs(v(:))));
             title(['day' num2str(days(ii))]);
-
         end
 
         figure(hf1)
@@ -2548,13 +2547,30 @@ methods
         liney(mean(runs.eddy.mvx(tind:end)) * 1000/86400);
     end
 
-    function [] = csvel_hov(runs, loc)
-        if ~exist('loc', 'var')
+    function [] = csvel_hov(runs, iz, loc)
+        if ~exist('loc', 'var') || isempty(loc)
             loc = [-30 -20 -10 0] * 1000 + runs.bathy.xsb;
         end
 
-        if isempty(runs.vsurf)
-            runs.read_velsurf;
+        if ~exist('iz', 'var') || isempty(iz)
+            iz = runs.rgrid.N;
+        end
+
+
+        if iz == runs.rgrid.N
+            if isempty(runs.vsurf)
+                runs.read_velsurf;
+            end
+            u = runs.usurf;
+            v = runs.vsurf;
+            titlestr = 'surface';
+        else
+            if isempty(runs.vbot)
+                runs.read_velbot;
+            end
+            u = runs.ubot;
+            v = runs.vbot;
+            titlestr = 'bottom';
         end
 
         % step topography phase speed estimate
@@ -2573,7 +2589,7 @@ methods
             colorbar; center_colorbar;
             xlabel('X (km)');
             ylabel('Time (non-dimensional)');
-            title(['surface v (m/s) at y = ' num2str(loc(ii)) ' km']);
+            title([titlestr ' v (m/s) at y = ' num2str(loc(ii)) ' km']);
 
             hold on
             plot(runs.eddy.vor.cx/1000, runs.eddy.t*86400 / runs.eddy.tscale);
@@ -2585,7 +2601,6 @@ methods
             xvec = limx(1):10:limx(2);
             tvec = 0.5 + 1./0.02 .* (xvec * 1000)./runs.eddy.tscale;
             plot(xvec, tvec);
-
 
             beautify;
         end
@@ -2619,6 +2634,7 @@ methods
         %suplabel(runs.name, 't');
         linkaxes(ax, 'xy');
     end
+
     %% animation functions
 
     function [] = animate_sbvel(runs, t0)
