@@ -337,8 +337,9 @@
         runs.csflux.time = time;
         runs.asflux.time = time;
 
-        runs.csflux.hash = githash;
-        runs.asflux.hash = githash;
+        hash = githash([mfilename('fullpath') '.m']);
+        runs.csflux.hash = hash;
+        runs.asflux.hash = hash;
 
         csflux = runs.csflux;
         asflux = runs.asflux;

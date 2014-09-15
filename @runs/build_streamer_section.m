@@ -235,7 +235,7 @@ function [] = build_streamer_section(runs)
     % save to file
     disp('Writing to file');tic;
     streamer = runs.streamer;
-    streamer.hash = githash;
+    streamer.hash = githash([mfilename('fullpath') '.m']);
     save([runs.dir '/streamer.mat'],'streamer');
     toc;
 end

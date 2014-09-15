@@ -152,7 +152,7 @@ function [] = eddy_bulkproperties(runs)
     runs.eddy.KE = cell2mat(intke);
     runs.eddy.PE = cell2mat(intpe);
 
-    runs.eddy.hash = githash;
+    runs.eddy.hash = githash([mfilename('fullpath') '.m']);
 
     eddy = runs.eddy;
     save([runs.dir '/eddytrack.mat'],'eddy');

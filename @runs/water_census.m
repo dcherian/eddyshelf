@@ -166,7 +166,7 @@ function [] = water_census(runs)
     water.slvol = sum(dV(:) .* full(regsl));
     water.dpvol = sum(dV(:) .* full(regdp));
 
-    water.hash = githash;
+    water.hash = githash([mfilename('fullpath') '.m']);
 
     save([runs.dir '/watermass.mat'], 'water');
 
