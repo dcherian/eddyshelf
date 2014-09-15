@@ -2676,9 +2676,11 @@ methods
         if ~exist('t0', 'var'), t0 = 1; end
 
         figure;
+        if ~isempty(runs.csflux)
+            ax = subplot(3,1,[1 2]);
+        end
         ii=t0;
         hz = runs.plot_zeta('pcolor',ii);
-        ax = gca;
         hold on
         colorbar; freezeColors;
         hbathy = runs.plot_bathy('contour','k');
@@ -2693,16 +2695,42 @@ methods
             linex([runs.params.grid.ixn runs.params.grid.ixp], 'telescope','w');
             liney([runs.params.grid.iyp],'telescope','w');
         end
+
+        % draw angle
+        L = createLine(runs.eddy.vor.cx(ii)/1000, runs.eddy.vor.cy(ii)/1000, ...
+                       1, -1*runs.eddy.vor.angle(ii)*pi/180);
+        hline = drawLine(L);
         xlabel('X (km)');ylabel('Y (km)');
         axis image;
         maximize(gcf); pause(0.2);
         beautify([16 16 18]);
+
+        if ~isempty(runs.csflux)
+            subplot(3,1,3);
+            plot(runs.csflux.time / runs.tscale, ...
+                 runs.eddy.vor.lmaj/1000);
+            htime = linex(runs.csflux.time(ii) / runs.tscale);
+        end
+
         runs.video_update();
         for ii = t0+1:4:size(runs.zeta,3)
+            L = createLine(runs.eddy.vor.cx(ii)/1000, runs.eddy.vor.cy(ii)/1000, ...
+                       1, -1*runs.eddy.vor.angle(ii)*pi/180);
+            delete(hline);
+            if ~isempty(runs.csflux)
+                axes(ax);
+                hline = drawLine(L);
+            end
+
             runs.update_zeta(hz,ii);
             runs.update_eddy_contour(he,ii);
             runs.update_eddy_sshcontour(he2,ii);
             runs.update_title(ht,titlestr,ii);
+
+            if ~isempty(runs.csflux)
+                subplot(3,1,3)
+                set(htime, 'XData', [1 1]*runs.csflux.time(ii)/runs.tscale);
+            end
             runs.video_update();
             pause(0.03);
         end
