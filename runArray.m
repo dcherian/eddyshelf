@@ -547,36 +547,48 @@ classdef runArray < handle
             xlabel('Slope parameter, Ro/S');
         end
 
-        function [] = plot_test1(runArray)
-            figure;
-            subplot(2,1,1); hold all;
-            subplot(2,1,2); hold all;
+        function [] = streamerstats(runArray)
             for ii=1:runArray.len
                 run = runArray.array(ii);
-                %figure
-                %ndtime = run.eddy.t ./ run.tscale * 86400;
-                %tind = find_approx(ndtime, 1.2, 1)
-                %pcolorcen(run.vorsurf(:,:,tind)'./5e-5);
-                %colorbar;
-                %caxis([-0.5 0.5]);
-                %title([run.name ' | ' runArray.name{ii}]);
-                tind = find_approx(run.eddy.t*86400 / run.tscale, ...
-                                   1.5, 1);
-                N = sqrt(run.params.phys.N2);
-                f0 = run.params.phys.f0;
-                Le = N/f0 * run.bathy.hsb;
-                Le = run.eddy.vor.dia(tind)/2;
-                xnd = (run.eddy.vor.se(tind) - ...
-                       run.csflux.west.shelfwater.bins)./Le;
-                ttrans = sum(run.csflux.west.shelfwater.itrans);
-                subplot(2,1,1)
-                hgplt = plot(xnd .* run.rrshelf/1000, ...
-                             run.csflux.west.shelfwater.itrans./ttrans);
-                addlegend(hgplt, run.name, 'NorthEast');
 
-                subplot(2,1,2)
-                plot(run.eddy.t * 86400/run.tscale, (run.eddy.prox)./run.rrdeep);
+
             end
+        end
+
+        function [] = plot_test1(runArray)
+        %figure;
+        %    subplot(2,1,1); hold all;
+        %    subplot(2,1,2); hold all;
+            figure;
+            ax(1) = subplot(1,2,1); hold on; title('Flux tscale');
+            ax(2) = subplot(1,2,2); hold on; title('Eddy tscale');
+
+            for ii=1:runArray.len
+                run = runArray.array(ii);
+
+                % test parameterizing max. flux
+                mflux = max(run.csflux.west.shelf(:,1));
+
+                indices = [run.csflux.tscaleind; run.eddy.tscaleind];
+
+                for tt=1:length(indices)
+                    axes(ax(tt));
+                    ind = indices(tt);
+                    mflux_param = run.eddy.V(ind)/10 * run.bathy.hsb * ...
+                        run.eddy.vor.dia(ind);
+                    plot(mflux, mflux_param, '*');
+                    text(mflux, mflux_param*1.1, run.name);
+                    xlabel('Max flux (m^3/s)');
+                    ylabel('Parameterization (m^3/s)');
+                end
+            end
+            limx = get(ax(1), 'xlim');
+            limx(1) = 0;
+            set(ax(1), 'ylim', limx);
+            linkaxes(ax, 'xy');
+
+            % draw 45 deg lines
+            line45(ax);
         end
 
         function [] = plot_test2(runArray)
