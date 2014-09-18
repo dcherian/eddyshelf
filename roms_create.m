@@ -335,6 +335,8 @@ else
     bathy.xsl = ax_cs(bathy.isl);
 end
 
+if any(S.h(:) < 0), error('h < 0!'); end
+
 % Land - Sea Mask
 S.mask_u = ones(size(S.x_u));
 S.mask_v = ones(size(S.x_v));
