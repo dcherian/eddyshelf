@@ -574,7 +574,7 @@ classdef runArray < handle
                 for tt=1:length(indices)
                     axes(ax(tt));
                     ind = indices(tt);
-                    mflux_param = run.eddy.V(ind)/10 * run.bathy.hsb * ...
+                    mflux_param = run.eddy.V(ind)/4 * run.bathy.hsb * ...
                         run.eddy.vor.dia(ind);
                     plot(mflux, mflux_param, '*');
                     text(mflux, mflux_param*1.1, run.name);
@@ -582,13 +582,12 @@ classdef runArray < handle
                     ylabel('Parameterization (m^3/s)');
                 end
             end
-            limx = get(ax(1), 'xlim');
-            limx(1) = 0;
-            set(ax(1), 'ylim', limx);
-            linkaxes(ax, 'xy');
 
             % draw 45 deg lines
             line45(ax);
+            linkaxes(ax, 'xy');
+            axes(ax(1)); beautify;
+            axes(ax(2)); beautify;
         end
 
         function [] = plot_test2(runArray)
