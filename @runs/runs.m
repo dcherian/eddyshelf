@@ -409,6 +409,47 @@ methods
         roms_info(runs.dir);
     end
 
+    function [] = plot_test1(runs)
+
+    end
+
+    % plot velocity sections through the eddy center
+    function [] = plot_velsec(runs, times)
+
+
+        figure;
+        cmap = brighten(cbrewer('seq','Greys',length(times)+3),0);
+        cmap = cmap(3:end,:,:); % chuck out lightest colors
+        hold all;
+
+        for ii=1:length(times)
+            tind = find_approx(runs.time/86400, times(ii), 1);
+            vel = dc_roms_read_data(runs, 'u', tind, {'x' ...
+                                num2str(runs.eddy.mx(tind)) ...
+                                num2str(runs.eddy.mx(tind)); 'z' runs.rgrid.N ...
+                                runs.rgrid.N});
+            [vmax,indmax] = min(vel(:));
+            yscale = abs(runs.rgrid.y_u(indmax, 1) - ...
+                         runs.eddy.my(tind));
+            yvec = (runs.rgrid.y_u(:,1) - runs.eddy.my(tind))/ ...
+                   yscale;
+            vvec = vel ./abs(vmax);
+
+            hplt = plot(yvec, vvec, '-', 'Color', cmap(ii,:));
+            addlegend(hplt, num2str(times(ii)));
+            plot(yvec(runs.bathy.isb), vvec(runs.bathy.isb), 'b*');
+        end
+        linex([-1 0 1]); liney([0 -0.25]);
+        xlim([-3 3]);
+
+        limx = xlim;
+        xvec = linspace(limx(1), limx(2), 60);
+        vel = -1*diff(exp(-abs(xvec).^(6)))./diff(xvec);
+        plot(avg1(xvec), vel./max(abs(vel)), 'r');
+
+        xlabel('Distance from center / (radius)');
+    end
+
     % read surface velocities for animate_pt & surf vorticity plot
     function [] = read_velsurf(runs)
         disp('Reading surface velocity fields...');
