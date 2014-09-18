@@ -3273,6 +3273,10 @@ methods
         caxis([-1 1] * vormax); colorbar; shading flat;
         hold on
         runs.plot_bathy('contour', [1 1 1]*0.7);
+        [~,h0vor] = contour(runs.rgrid.xvor/1000, runs.rgrid.yvor/1000, ...
+                            runs.vorsurf(:,:,tt), [0 0], 'r', ...
+                            'LineWidth', 2);
+        hedd = runs.plot_eddy_contour('contour', tt);
         [~,hcsd] = contour(runs.rgrid.x_rho'/1000, runs.rgrid.y_rho'/1000, ...
                            runs.csdsurf(:,:,tt), csdlevels, 'Color', [0 0 0], ...
                            'LineWidth', 2);
@@ -3285,7 +3289,9 @@ methods
         for tt = 2:3:size(runs.vorsurf,3)
             set(hh,'ZData', double(runs.vorsurf(:,:,tt)));
             set(hcsd, 'ZData', double(runs.csdsurf(:,:,tt)));
+            set(h0vor, 'ZData', double(runs.vorsurf(:,:,tt)));
             shading flat;
+            runs.update_eddy_contour(hedd, tt);
             set(ht,'String',['Surface vorticity @ t = ' num2str(tt/2) ' days']);
             runs.video_update();
             pause(0.05);
@@ -3341,6 +3347,31 @@ methods
             pause(0.1);
         end
 
+    end
+
+    function [] = plot_streamerwidth(runs)
+        cxi = runs.eddy.vor.ee;
+        westmask = bsxfun(@times, ...
+                          bsxfun(@lt, runs.eddy.xr(:,1), cxi), ...
+                          ~runs.sponge(2:end-1,1));
+        eastmask = bsxfun(@times, 1 - westmask, ...
+                          ~runs.sponge(2:end-1,1));
+
+        shelfxt = runs.csflux.shelfxt;
+
+        for tt=runs.eddy.tscaleind:size(shelfxt,2)
+            clf;
+            plot((runs.eddy.xr(:,1) - runs.eddy.vor.ee(tt))/1000, shelfxt(: ...
+                                                              ,tt));
+            ylim([min(shelfxt(:)) max(shelfxt(:))]);
+            xlim([-1 1]*200);
+            lmin = runs.eddy.vor.lmin(tt)/1000;
+            lmaj = runs.eddy.vor.lmaj(tt)/1000;
+            linex([0 -lmin -lmaj], {'east edge'; 'minor axis'; ...
+                                'major axis'}, []);
+            title([runs.name ' | ' num2str(tt)]);
+            pause(0.05);
+        end
     end
 
     function [] = plot_shelfvorbudget(runs)
