@@ -70,9 +70,9 @@ classdef runArray < handle
                 if strcmpi(name, 'shelf flux')
                     diag = run.csflux.west.avgflux.shelf(1)/1000;
 
-                    ind = run.tscaleind;
-                    transscl = 1; %run.eddy.V(ind) .* run.eddy.vor.dia(ind)/2 ...
-                                  %.* run.eddy.Lgauss(ind)/1000;
+                    ind = run.eddy.tscaleind;
+                    transscl = run.eddy.V(ind) .* run.eddy.vor.lmaj(ind) ...
+                                  .* run.bathy.hsb/1000;
 
                     % flux vector for applicable time
                     fluxvec = smooth(run.csflux.west.shelf(run.tscaleind: ...
@@ -116,7 +116,7 @@ classdef runArray < handle
                     % check dof calculation
                     %figure; plot(fluxvec); linex(filtered); title(num2str(dof));pause;
 
-                    diag = mean(fluxvec/1000);
+                    diag = mean(max(fluxvec/1000));
                     % standard deviation
                     sdev = sqrt(1./(length(fluxvec)-1) .* sum((fluxvec - diag*1000).^2))/1000;
                     % error bounds
@@ -152,14 +152,17 @@ classdef runArray < handle
                     diagstr = [num2str(diag,'%.2f') '±' num2str(err,'%.2f') ' mSv'];
                  end
 
-                disp([run.name ' | ' name ' = ' diagstr]);
+                 disp([run.name ' | ' name ' = ' diagstr ' | scale ' ...
+                   '= ' num2str(transscl)])
 
                 figure(hfig1)
-                errorbar(ii, diag/transscl, err/transscl, 'x');
-                set(hax1, 'Xtick', [1:runArray.len]);
-                lab = cellstr(get(hax1,'xticklabel'));
-                lab{ii} = getname(runArray, ii);
-                set(hax1,'xticklabel', lab);
+                %errorbar(transscl, diag, err, 'x');
+                plot(transscl, diag, 'x'); hold on;
+                text(transscl, diag, run.name, 'Rotation', 90);
+                %set(hax1, 'Xtick', [1:runArray.len]);
+                %lab = cellstr(get(hax1,'xticklabel'));
+                %lab{ii} = getname(runArray, ii);
+                %set(hax1,'xticklabel', lab);
             end
 
             figure(hfig1)
