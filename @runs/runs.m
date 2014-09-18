@@ -2742,15 +2742,29 @@ methods
                        1, -1*runs.eddy.vor.angle(ii)*pi/180);
         hline = drawLine(L);
         xlabel('X (km)');ylabel('Y (km)');
-        axis image;
+        %axis equal;
+        hee_zeta = linex(runs.eddy.vor.ee(ii)/1000);
         maximize(gcf); pause(0.2);
         beautify([16 16 18]);
+        ax = gca;
 
         if ~isempty(runs.csflux)
-            subplot(3,1,3);
-            plot(runs.csflux.time / runs.tscale, ...
-                 runs.eddy.vor.lmaj/1000);
-            htime = linex(runs.csflux.time(ii) / runs.tscale);
+            ax2 = subplot(3,1,3);
+            %plot(runs.csflux.time / runs.tscale, ...
+            %     runs.eddy.vor.lmaj/1000);
+            %htime = linex(runs.csflux.time(ii) / runs.tscale);
+            hflux = plot(runs.rgrid.xr(2:end-1,1)/1000, ...
+                         runs.csflux.shelfxt(:, ii));
+            ylim([min(runs.csflux.shelfxt(:)) ...
+                  max(runs.csflux.shelfxt(:))]);
+            hee = linex(runs.eddy.vor.ee(ii)/1000);
+            oldpos = get(ax, 'Position');
+            newpos = get(ax2, 'Position');
+            newpos(3) = oldpos(3);
+            set(ax2, 'Position', newpos);
+            linkaxes([ax ax2], 'x');
+            liney(0);
+            beautify;
         end
 
         runs.video_update();
@@ -2763,17 +2777,25 @@ methods
                 hline = drawLine(L);
             end
 
+            set(hee_zeta, 'XData', [1 1]* runs.eddy.vor.ee(ii)/1000);
+
             runs.update_zeta(hz,ii);
             runs.update_eddy_contour(he,ii);
             runs.update_eddy_sshcontour(he2,ii);
             runs.update_title(ht,titlestr,ii);
 
             if ~isempty(runs.csflux)
-                subplot(3,1,3)
-                set(htime, 'XData', [1 1]*runs.csflux.time(ii)/runs.tscale);
+                axis(ax2);
+                if exist('htime', 'var')
+                    set(htime, 'XData', [1 1]*runs.csflux.time(ii)/ ...
+                               runs.tscale);
+                else
+                    set(hflux, 'YData', runs.csflux.shelfxt(:,ii));
+                    set(hee, 'XData', [1 1]*runs.eddy.vor.ee(ii)/1000);
+                end
             end
             runs.video_update();
-            pause(0.03);
+            pause(1);
         end
         runs.video_write();
     end
