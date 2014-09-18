@@ -337,6 +337,11 @@
         runs.csflux.time = time;
         runs.asflux.time = time;
 
+        runs.csflux.westmask = westmask;
+        runs.csflux.eastmask = eastmask;
+        runs.asflux.westmask = westmask;
+        runs.asflux.eastmask = eastmask;
+
         hash = githash([mfilename('fullpath') '.m']);
         runs.csflux.hash = hash;
         runs.asflux.hash = hash;
