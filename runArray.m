@@ -40,6 +40,12 @@ classdef runArray < handle
             runArray.len = kk-1;
         end
 
+        function [] = print_names(runArray)
+            for ii=1:runArray.len
+                disp([num2str(ii) ' | ' runArray.array(ii).name]);
+            end
+        end
+
         function [] = test_hashes(runArray)
             for ii=1:runArray.len
                 if ~strcmpi(runArray.array(ii).csflux.hash, ...
