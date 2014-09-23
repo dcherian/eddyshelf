@@ -621,6 +621,7 @@ classdef runArray < handle
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
 
+                run.plot_velsec([run.tscale/86400:50:run.time(end)/86400]);
 
             end
         end
@@ -630,22 +631,41 @@ classdef runArray < handle
         %    subplot(2,1,1); hold all;
         %    subplot(2,1,2); hold all;
             figure;
-            ax(1) = subplot(1,2,1); hold on; title('Flux tscale');
-            ax(2) = subplot(1,2,2); hold on; title('Eddy tscale');
+            %ax(1) = subplot(1,2,1); hold on; title('Flux tscale');
+            % ax(2) = subplot(1,2,2); hold on; title('Eddy tscale');
 
-            for ii=1:runArray.len
+            ax = gca; hold all;
+
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
                 run = runArray.array(ii);
 
                 % test parameterizing max. flux
                 mflux = max(run.csflux.west.shelf(:,1));
 
-                indices = [run.csflux.tscaleind; run.eddy.tscaleind];
+                indices = [run.eddy.tscaleind];
 
                 for tt=1:length(indices)
                     axes(ax(tt));
                     ind = indices(tt);
-                    mflux_param = run.eddy.V(ind)/4 * run.bathy.hsb * ...
-                        run.eddy.vor.dia(ind);
+
+                    meanprox = mean(run.eddy.vor.cy(ind:end) - ...
+                                    run.eddy.vor.dia(ind:end)/2 ...
+                                    - run.bathy.xsb);
+                    vscale = run.eddy.V(ind) * ...
+                             exp(-2/3 * (1 + meanprox/ ...
+                                         (run.eddy.vor.dia(ind)/2))^3);
+
+                    disp([run.name ' | scale = ' num2str(vscale) ' m/s | actual d.a = ' ...
+                          num2str(max(run.csflux.shelfxt(:)/run.bathy.hsb)) ...
+                         ' m/s']);
+
+                    mflux_param = vscale * run.bathy.hsb * ...
+                        run.eddy.vor.dia(ind)/2;
                     plot(mflux, mflux_param, '*');
                     text(mflux, mflux_param*1.1, run.name);
                     xlabel('Max flux (m^3/s)');
