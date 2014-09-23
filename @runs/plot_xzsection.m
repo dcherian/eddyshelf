@@ -1,15 +1,15 @@
 function [] = plot_xzsection(runs, days)
 
     tind = vecfind(runs.time, days*86400);
-    yind = runs.bathy.isb + [0 5 10 15];
+    yind = runs.bathy.isb + [0 10 20 30];
 
-    xr = runs.rgrid.x_rho(1,:)/1000;
+    xr = runs.rgrid.x_v(1,:)/1000;
 
-    zmin = min(runs.rgrid.z_r(:,max(yind),1));
+    zmin = min(runs.rgrid.z_v(:,max(yind),1));
     for ii=1:4
-        figure;
+        figure; maximize;
         for jj=1:4
-            eddye = dc_roms_read_data(runs.dir, runs.eddname, tind(ii), ...
+            eddye = dc_roms_read_data(runs.dir, 'v', tind(ii), ...
                                       {runs.bathy.axis yind(jj) ...
                                 yind(jj)}, [], runs.rgrid, 'his', ...
                                       'single');
@@ -25,6 +25,7 @@ function [] = plot_xzsection(runs, days)
                    num2str(runs.rgrid.y_rho(yind(jj),1)/1000) ' ' ...
                    'km']);
             ylim([zmin 0]);
+            caxis([-1 1]*0.05);
             liney(-1*runs.bathy.hsb);
         end
     end
