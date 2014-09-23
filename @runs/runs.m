@@ -416,38 +416,77 @@ methods
     % plot velocity sections through the eddy center
     function [] = plot_velsec(runs, times)
 
+        if ~exist('times', 'var') || isempty(times)
+            times = linspace(runs.tscale/86400, runs.time(end)/86400, ...
+                             6);
+        end
+
+        opt = 'vy';
+        velname = opt(1);
+        axname = opt(2); % name of axis for plot;
 
         figure;
+        subplot(2,1,1);
         cmap = brighten(cbrewer('seq','Greys',length(times)+3),0);
         cmap = cmap(3:end,:,:); % chuck out lightest colors
         hold all;
 
         for ii=1:length(times)
             tind = find_approx(runs.time/86400, times(ii), 1);
-            vel = dc_roms_read_data(runs, 'u', tind, {'x' ...
-                                num2str(runs.eddy.mx(tind)) ...
-                                num2str(runs.eddy.mx(tind)); 'z' runs.rgrid.N ...
-                                runs.rgrid.N});
-            [vmax,indmax] = min(vel(:));
-            yscale = abs(runs.rgrid.y_u(indmax, 1) - ...
-                         runs.eddy.my(tind));
-            yvec = (runs.rgrid.y_u(:,1) - runs.eddy.my(tind))/ ...
-                   yscale;
-            vvec = vel ./abs(vmax);
 
-            hplt = plot(yvec, vvec, '-', 'Color', cmap(ii,:));
-            addlegend(hplt, num2str(times(ii)));
-            plot(yvec(runs.bathy.isb), vvec(runs.bathy.isb), 'b*');
+            if axname == 'y'
+                ref = runs.eddy.cy(tind); % 0 for x-axis
+                loc = runs.eddy.cx(tind);
+                locax = 'x';
+                eval(['axvec = runs.rgrid.' axname '_' velname '(:,1);']);
+            else
+                ref = runs.eddy.cx(tind);
+                loc = runs.eddy.cy(tind);
+                locax = 'y';
+                eval(['axvec = runs.rgrid.' axname '_' velname '(1,:)'';']);
+            end
+
+            vel = (dc_roms_read_data(runs, velname, tind, {locax ...
+                                num2str(loc) num2str(loc); ...
+                                'z' runs.rgrid.N runs.rgrid.N}));
+            if velname == 'u'
+                [vmax, indmax] = min(vel(:));
+            else
+                [vmax, indmax] = max(vel(:));
+            end
+
+            axscale = abs(axvec(indmax) - ref);
+            xvec = (axvec - ref)/axscale;
+            vvec = abs(vel) ./abs(vmax);
+
+            hplt = plot(xvec, vvec, '-', 'Color', cmap(ii,:));
+            addlegend(hplt, [num2str(times(ii)) ' | ' ...
+                             num2str(vvec(runs.bathy.isb)) ' m/s']);
+            if axname == 'y'
+                plot(xvec(runs.bathy.isb), vvec(runs.bathy.isb), ...
+                     'b*');
+            end
         end
-        linex([-1 0 1]); liney([0 -0.25]);
+
+        linex([-1 0 1]); liney([0], [], 'k');
         xlim([-3 3]);
 
         limx = xlim;
         xvec = linspace(limx(1), limx(2), 60);
-        vel = -1*diff(exp(-abs(xvec).^(6)))./diff(xvec);
-        plot(avg1(xvec), vel./max(abs(vel)), 'r');
 
-        xlabel('Distance from center / (radius)');
+        a = 6;
+        vel = -1*diff(exp(-abs(xvec).^(a))*(a-1)/a)./diff(xvec);
+        [vmax,indmax] = max(abs(vel));
+        plot(avg1(xvec)./xvec(indmax), abs(vel)./vmax, 'r');
+
+        ylabel([velname ' ./ max(' velname ')'])
+        xlabel([upper(axname) ' Distance from center / (radius)']);
+        title([velname ' | ' runs.name]);
+
+        subplot(2,1,2)
+        plot(runs.csflux.time/86400, runs.csflux.west.shelf(:,1));
+        limy = ylim; ylim([0 limy(2)]); linex(times);
+        ylabel('Flux'); xlabel('Time (days)');
     end
 
     % read surface velocities for animate_pt & surf vorticity plot
