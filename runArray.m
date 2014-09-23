@@ -8,6 +8,8 @@ classdef runArray < handle
         name;
         % length of array
         len;
+        % actual indices to plot
+        filter = [];
     end
     methods
         % constructor
@@ -63,9 +65,12 @@ classdef runArray < handle
         end
 
         function [] = print_diag(runArray, name)
-            hfig1 = figure; hold all; hax1 = gca;
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
 
-            for ii=1:runArray.len
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
                 run = runArray.array(ii);
                 if strcmpi(name, 'shelf flux')
                     diag = run.csflux.west.avgflux.shelf(1)/1000;
@@ -189,7 +194,13 @@ classdef runArray < handle
             subplot(2,1,1); hold all
             subplot(2,1,2); hold all
 
-            for ii=1:runArray.len
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
+                
                 run = runArray.array(ii);
                 name = getname(runArray, ii);
 
@@ -342,7 +353,13 @@ classdef runArray < handle
             subplot(3,1,2); hold all;
             subplot(3,1,3); hold all;
 
-            for ii=1:runArray.len
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
+                
                 run = runArray.array(ii);
                 ndtime = run.eddy.t/run.tscale * 86400;
                 if isempty(runArray.name)
@@ -508,7 +525,14 @@ classdef runArray < handle
             hold all
             hfig2 = figure;
             hold all
-            for ii=1:runArray.len
+ 
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
+
                 run = runArray.array(ii);
                 if isempty(runArray.name)
                     name = run.name
@@ -551,7 +575,13 @@ classdef runArray < handle
         end
 
         function [] = streamerstats(runArray)
-            for ii=1:runArray.len
+
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
                 run = runArray.array(ii);
 
 
@@ -596,10 +626,14 @@ classdef runArray < handle
         function [] = plot_test2(runArray)
             figure;
             hold all
-            for ii=1:runArray.len
-                run = runArray.array(ii);
+    
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
 
-                ii
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
+                run = runArray.array(ii);
 
                 if isempty(run.ubot) || isempty(run.vbot)
                     run.read_velbot;
@@ -662,7 +696,13 @@ classdef runArray < handle
             end
 
             cmap = flipud(cbrewer('div','RdBu',24));
-            for ii=1:runArray.len
+
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
                 run = runArray.array(ii);
 
                 figure;
@@ -710,7 +750,13 @@ classdef runArray < handle
             hfig2 = figure;
             hold all;
 
-            for ii=1:runArray.len
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
+                
                 run  = runArray.array(ii);
                 name = getname(runArray, ii);
 
