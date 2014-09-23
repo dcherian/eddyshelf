@@ -72,7 +72,42 @@ classdef runArray < handle
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
+
+                tind = run.tscaleind;
+
+                %%%%% slope parameter
+                if strcmpi(name, 'slope param')
+                    diagstr = num2str( ...
+                        run.bathy.S_sl .* ...
+                    sqrt(run.eddy.Bu(tind)) ./ run.eddy.Ro(tind) ...
+                        );
+                end
+
+                % penetration
+                if strcmpi(name, 'hcen')
+                    hfinal = mean(run.eddy.hcen(tind:end));
+                    hinit = run.eddy.hcen(1);
+
+                    diag_h = (hinit - hfinal)./run.eddy.Lgauss(tind);
+
+                    diag_l = (mean(run.eddy.my(tind:end) - ...
+                                   run.bathy.xsb))./(run.eddy.vor.dia(tind)/2);
+
+                    diagstr = ['h = ' num2str(diag_h) ...
+                               ' | L = ' num2str(diag_l)];
+                end
+
+                %%%%% beta v/s beta_t
+                if strcmpi(name, 'betas')
+                    diagstr = num2str( ...
+                        run.params.phys.beta * run.bathy.L_slope ...
+                        ./ run.params.phys.f0 ...
+                        );
+                end
+
+                %%%%% shelf flux
                 if strcmpi(name, 'shelf flux')
+                    hfig_flux = figure; hold all; hax1 = gca;
                     diag = run.csflux.west.avgflux.shelf(1)/1000;
 
                     ind = run.eddy.tscaleind;
@@ -154,26 +189,28 @@ classdef runArray < handle
 % $$$                         close(hfig2);
 % $$$                     catch ME; end
 % $$$ % $$$
-                    diagstr = [num2str(diag,'%.2f') '±' num2str(err,'%.2f') ' mSv'];
+                    diagstr = [num2str(diag,'%.2f') '±' ...
+                               num2str(err,'%.2f') ' mSv | scale = ' num2str(transscl)];
+
+                    figure(hfig1)
+                    %errorbar(transscl, diag, err, 'x');
+                    plot(transscl, diag, 'x'); hold on;
+                    text(transscl, diag, run.name, 'Rotation', 90);
+                    %set(hax1, 'Xtick', [1:runArray.len]);
+                    %lab = cellstr(get(hax1,'xticklabel'));
+                    %lab{ii} = getname(runArray, ii);
+                    %set(hax1,'xticklabel', lab);
                  end
 
-                 disp([run.name ' | ' name ' = ' diagstr ' | scale ' ...
-                   '= ' num2str(transscl)])
-
-                figure(hfig1)
-                %errorbar(transscl, diag, err, 'x');
-                plot(transscl, diag, 'x'); hold on;
-                text(transscl, diag, run.name, 'Rotation', 90);
-                %set(hax1, 'Xtick', [1:runArray.len]);
-                %lab = cellstr(get(hax1,'xticklabel'));
-                %lab{ii} = getname(runArray, ii);
-                %set(hax1,'xticklabel', lab);
+                 disp([run.name ' | ' name ' = ' diagstr])
             end
 
-            figure(hfig1)
-            limy = ylim;
-            ylim([0 limy(2)]);
-            ylabel('Flux (mSv)');
+            if exist('hfig_flux', 'var')
+                figure(hfig_flux);
+                limy = ylim;
+                ylim([0 limy(2)]);
+                ylabel('Flux (mSv)');
+            end
         end
 
         function [] = plot_fluxes(runArray)
