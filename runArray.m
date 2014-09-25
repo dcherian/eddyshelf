@@ -310,8 +310,12 @@ classdef runArray < handle
                 end
 
                 figure(hfig3)
+                % change from envelope to depth
+                env = run.csflux.west.shelfwater.envelope;
+                env(isnan(env)) = max(env);
+                ind = vecfind(run.rgrid.y_rho(:,1), env);
                 hgplt = plot(run.csflux.time/run.tscale, ...
-                             run.csflux.west.shelfwater.envelope);
+                             run.bathy.h(1,ind)./run.bathy.hsb);
                 addlegend(hgplt, name);
 
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EDDY WATER
@@ -363,7 +367,7 @@ classdef runArray < handle
 
             figure(hfig3)
             xlabel('Non-dimensional time');
-            ylabel('most on-shore source of water');
+            ylabel('isobath most on-shore source of water / h_{sb}');
 
             figure(hfig4)
             subplot(2,1,1);
