@@ -731,7 +731,30 @@ classdef runArray < handle
         end
 
         function [] = plot_test3(runArray)
-            for ii=1:runArray.len
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            figure; hold all
+
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
+                run = runArray.array(ii);
+                name = getname(runArray, ii);
+
+                hplt = plot(run.eddy.t, run.eddy.Lgauss*63*2./run.eddy.vor.dia);
+                addlegend(hplt, name);
+            end
+
+        end
+
+        function [] = plot_fluxcor(runArray)
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
                 run = runArray.array(ii);
                 name = getname(runArray, ii);
 
@@ -758,7 +781,6 @@ classdef runArray < handle
                 plot(lags * dt,c);
                 xlabel('Lag (days)');
                 linex(0); liney(0);
-
             end
         end
 
