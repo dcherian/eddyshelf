@@ -219,6 +219,14 @@ yumat = repmat(S.y_u,[1 1 S.N]);
 xvmat = repmat(S.x_v,[1 1 S.N]);
 yvmat = repmat(S.y_v,[1 1 S.N]);
 
+% set lat_* and lon_* just in case
+if ~S.spherical
+    S.lon_rho = S.x_rho; S.lat_rho = S.y_rho;
+    S.lon_u = S.x_u; S.lat_u = S.y_u;
+    S.lon_v = S.x_v; S.lat_v = S.y_v;
+    S.lon_psi = S.x_psi; S.lat_psi = S.y_psi;
+end
+
 % change axes to km if needed
 fx = 1; fy = 1; lx = '(m)'; ly = '(m)';
 if max(abs(S.x_u(:))) > 3500
