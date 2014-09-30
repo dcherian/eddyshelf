@@ -688,7 +688,9 @@ if flags.eddy
     eddy.Ldef = sqrt(phys.N2)*Z/pi/f0; % deformation radius NH/pi/f
                                        % eddy.dia = 2*bathy.L_slope;
     % eddy.Bu is (Ldef / eddy_radius)^2
-    eddy.dia = 2 * 1./sqrt(eddy.Bu) * eddy.Ldef;
+    if isnan(eddy.dia)
+        eddy.dia = 2 * 1./sqrt(eddy.Bu) * eddy.Ldef;
+    end
 
     % set depth according to fL/N
     if flags.vprof_gaussian & isnan(eddy.depth)
