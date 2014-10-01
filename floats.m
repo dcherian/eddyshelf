@@ -45,8 +45,12 @@ classdef floats < handle
                 floats.z = ncread(file,'depth')';
                 floats.age = ncread(file,'age')'; 
                 floats.time = ncread(file,'model_time');
-                floats.temp = ncread(file,'temperature')';
-                floats.salt = ncread(file,'salinity')';
+                try
+                    floats.temp = ncread(file,'temperature')';
+                    floats.salt = ncread(file,'salinity')';
+                catch ME
+                    warning('No temperature or salt saved');
+                end
                 floats.hitLand = ncread(file,'hitLand')';
                 floats.hitBottom = ncread(file,'hitBottom')';
                 disp('Read data. Now processing.');
