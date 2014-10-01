@@ -353,24 +353,25 @@ classdef floats < handle
             colormap(cmap); 
             caxis([min(zeta(:)) max(zeta(:))]);
             hold on
-            [C,hc] = contour(rgrid.x_rho./1000,rgrid.y_rho./1000,rgrid.h,[114 500 750 1100],'k');
+            [C,hc] = contour(rgrid.x_rho./1000,rgrid.y_rho./1000, ...
+                             rgrid.h,[114 500 750 1100],'k');
             clabel(C,hc);
             floats.fac = floor(floats.fac);
             nn = find_approx(floats.time,rgrid.ocean_time(i),1);
             hplot = plot(floats.x(nn,:)/1000,floats.y(nn,:)/1000,'k.','MarkerSize',10);
             if exist('eddy','var')
-               [~,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.mask(:,:,i),1);
+               [~,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.vormask(:,:,i),1);
                set(hh,'LineWidth',2);
             end
             ht = title(['t = ' num2str((rgrid.ocean_time(i)+1)/86400) ' days']);
 
             for i=ind0+1:size(zeta,3)
-                set(hz,'ZData',zeta(:,:,i)'); shading flat
+                set(hz,'ZData', double(zeta(:,:,i)')); shading flat
                 nn = find_approx(floats.time,rgrid.ocean_time(i),1);
                 set(hplot,'XData',floats.x(nn,:)/1000);
                 set(hplot,'YData',floats.y(nn,:)/1000);
                 if exist('eddy','var')
-                   set(hh,'ZData',eddy.mask(:,:,i));
+                   set(hh,'ZData',eddy.vormask(:,:,i));
                 end
                 set(ht,'String',['t = ' num2str((rgrid.ocean_time(i)+1)/86400) ' days'])
                 pause(0.03)
