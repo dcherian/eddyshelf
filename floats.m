@@ -19,20 +19,21 @@ classdef floats < handle
                 try
                     floats.x = ncread(file,'lon')';
                 catch ME
-                    floats.x = ncread(file,'x');
+                    floats.x = ncread(file,'x')';
                 end
                 try
                     floats.y = ncread(file,'lat')';
                 catch ME
-                    floats.y = ncread(file,'y');
+                    floats.y = ncread(file,'y')';
                 end
                 floats.z = ncread(file,'depth')';
                 floats.time = ncread(file,'ocean_time');
-                floats.temp = ncread(file,'temp')';
                 try
-                    floats.salt = ncread(file,'salt')';
+                    floats.temp = ncread(file,'temp');
+                    floats.salt = ncread(file,'salt');
                 catch
-                    floats.salt = nan(size(floats.temp));
+                    floats.rho = ncread(file, 'rho');
+                    floats.salt = nan(size(floats.x));
                 end
                 floats.type = 'roms';
                 disp('Read data. Now processing.');
