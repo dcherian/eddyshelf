@@ -105,6 +105,8 @@ methods
             runs.time = double(ncread(runs.out_file,'ocean_time'));
         end
 
+        runs.rgrid.ocean_time = runs.time;
+
         runs.makeVideo = 0; % no videos by default.
 
         % make run-name
@@ -186,7 +188,9 @@ methods
         end
         try
             runs.roms = floats('roms',runs.flt_file,runs.rgrid);
-        catch
+        catch ME
+            disp('Reading ROMS floats failed.');
+            disp(ME);
         end
 
         if runs.bathy.axis == 'y'
@@ -389,7 +393,12 @@ methods
         end
 
         if exist(runs.ltrans_file,'file')
-            runs.ltrans = floats('ltrans',runs.ltrans_file,runs.rgrid);
+            try
+                runs.ltrans = floats('ltrans',runs.ltrans_file, ...
+                                     runs.rgrid);
+            catch ME
+                warning('LTRANS data not read in');
+            end
         end
 
         % set time-scale for normalization
@@ -602,8 +611,10 @@ methods
     end
 
     % create initial seed file for ltrans
-    function [] = ltrans_create(runs)
-        ltrans_create(runs.rgrid,runs.zeta,runs.eddy);
+    function [] = create_ltrans(runs)
+    % call tools function
+        ltrans_create(runs.rgrid,runs.zeta,runs.eddy, [runs.dir ...
+                            '/ltrans_init.txt']);
     end
 
     % create ltrans init file from roms out
