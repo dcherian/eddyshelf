@@ -1,11 +1,16 @@
-function [] = ltrans_create(rgrid,zeta,eddy)
-    fname = 'runs/ltrans_init.txt';
-    % open file
-    fid = fopen(fname,'w');
+function [] = ltrans_create(rgrid,zeta,eddy,fname)
+% open file
+    append = input('Append to file? ');
+    if append
+        fid = fopen(fname, 'a');
+    else
+        fid = fopen(fname, 'w');
+    end
     if fid == -1
         error('Couldn''t open file to write.');
     end
-    
+
+    % plot SSH
     contourf(rgrid.x_rho/1000,rgrid.y_rho/1000,zeta(:,:,1)');
     shading flat; axis image
     caxis([min(zeta(:)) max(zeta(:))]);
@@ -13,9 +18,14 @@ function [] = ltrans_create(rgrid,zeta,eddy)
     [C,hc] = contour(rgrid.h,[114 500 750 1100],'k');
     clabel(C,hc);
     if exist('eddy','var') && ~isempty(eddy)
-       plot(eddy.mx/1000,eddy.my/1000,'k','LineWidth',2);
+        plot(eddy.mx/1000,eddy.my/1000,'k','LineWidth',2);
+        for ii=1:50:length(eddy.mx)
+            plot(eddy.mx(ii)/1000, eddy.my(ii)/1000, 'b*');
+            text(eddy.mx(ii)/1000, eddy.my(ii)/1000, ...
+                 num2str(rgrid.ocean_time(ii)/86400), 'Color', 'r');
+        end
     end
-    
+
     % create distribution
     xr = rgrid.x_rho';    yr = rgrid.y_rho'; zr = permute(rgrid.z_r,[3 2 1]);
     flag = input('From image? (0/1) : ');
@@ -43,7 +53,7 @@ function [] = ltrans_create(rgrid,zeta,eddy)
         fprintf('\n\n ( %d:%d, %d:%d, %d:%d ) | ( %.2f:%.2f, %.2f:%.2f )\n\n', ...
             xlo,xhi,ylo,yhi,zlo,zhi,xr(xlo,1)/1000,xr(xhi,1)/1000, ...
             yr(1,ylo)/1000,yr(1,yhi)/1000);
-        dd = input('enter [dx,dy,dz] in pts :');
+        dd = input('enter [dx,dy,dz] in (pts,pts,m) :');
         dx = dd(1); dy = dd(2); dz = dd(3); clear dd
 
         dd = input('enter [tlo,thi,dt] in days: ');
@@ -59,10 +69,10 @@ function [] = ltrans_create(rgrid,zeta,eddy)
     
     [p,q,r,s] = ndgrid(xvec,yvec,zvec,tvec);
     ind = [p(:) q(:) r(:)];
-    zz = zr(xvec,yvec,zvec);
-    zz = repmat(zz,[1 1 1 T]);
+    %zz = zr(xvec,yvec,zvec);
+    %zz = repmat(zz,[1 1 1 T]);
     
-    init = [xr(p(:),1) yr(1,q(:))' zz(:) s(:)*86400];
+    init = [xr(p(:),1) yr(1,q(:))' r(:) s(:)*86400];
     
     
     % write to file
@@ -70,6 +80,11 @@ function [] = ltrans_create(rgrid,zeta,eddy)
     fprintf('Added %d floats to %s \n\n\n',size(init,1),fname);
 
     fclose(fid);
+
+    if append
+        disp('Total number of floats = ');
+        system(['wc ' fname ' | awk ''{print $1}''']);
+    end
     
     disp('ROMS Parameters');
     fprintf(['\n Ft0 = %d | Fx0 = %d | Fy0 = %d | Fz0 = %d' ...

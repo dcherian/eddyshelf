@@ -105,6 +105,8 @@ methods
             runs.time = double(ncread(runs.out_file,'ocean_time'));
         end
 
+        runs.rgrid.ocean_time = runs.time;
+
         runs.makeVideo = 0; % no videos by default.
 
         % make run-name
@@ -186,7 +188,9 @@ methods
         end
         try
             runs.roms = floats('roms',runs.flt_file,runs.rgrid);
-        catch
+        catch ME
+            disp('Reading ROMS floats failed.');
+            disp(ME);
         end
 
         if runs.bathy.axis == 'y'
@@ -389,7 +393,12 @@ methods
         end
 
         if exist(runs.ltrans_file,'file')
-            runs.ltrans = floats('ltrans',runs.ltrans_file,runs.rgrid);
+            try
+                runs.ltrans = floats('ltrans',runs.ltrans_file, ...
+                                     runs.rgrid);
+            catch ME
+                warning('LTRANS data not read in');
+            end
         end
 
         % set time-scale for normalization
@@ -413,15 +422,15 @@ methods
 
     end
 
-    % plot velocity sections through the eddy center
-    function [] = plot_velsec(runs, times)
+    % plot velocity / ζ sections through the eddy center
+    function [] = plot_eddsec(runs, times)
 
         if ~exist('times', 'var') || isempty(times)
             times = linspace(runs.tscale/86400, runs.time(end)/86400, ...
                              6);
         end
 
-        opt = 'vy';
+        opt = 'zy';
         velname = opt(1);
         axname = opt(2); % name of axis for plot;
 
@@ -435,33 +444,69 @@ methods
             tind = find_approx(runs.time/86400, times(ii), 1);
 
             if axname == 'y'
-                ref = runs.eddy.cy(tind); % 0 for x-axis
-                loc = runs.eddy.cx(tind);
+                ref = runs.eddy.my(tind); % 0 for x-axis
+                loc = runs.eddy.mx(tind);
                 locax = 'x';
-                eval(['axvec = runs.rgrid.' axname '_' velname '(:,1);']);
             else
                 ref = runs.eddy.cx(tind);
-                loc = runs.eddy.cy(tind);
+                loc = runs.bathy.xsb; %runs.eddy.cy(tind);
                 locax = 'y';
-                eval(['axvec = runs.rgrid.' axname '_' velname '(1,:)'';']);
             end
 
-            vel = (dc_roms_read_data(runs, velname, tind, {locax ...
-                                num2str(loc) num2str(loc); ...
-                                'z' runs.rgrid.N runs.rgrid.N}));
+            % free-surface ζ
+            if velname == 'z'
+                units = 'm';
+                if axname == 'y'
+                    eval(['axvec = runs.rgrid.' axname '_rho(:,1);']);
+                else
+                    eval(['axvec = runs.rgrid.' axname '_rho(1,:);']);
+                end
+
+                vel = (dc_roms_read_data(runs, 'zeta', tind, {locax ...
+                                    num2str(loc) num2str(loc); ...
+                                    'z' 1 1}));
+            else  % velocities
+                units = 'm/s';
+                if axname == 'y'
+                    eval(['axvec = runs.rgrid.' axname '_' velname '(:,1);']);
+                else
+                    eval(['axvec = runs.rgrid.' axname '_' velname '(1,:)'';']);
+                end
+                vel = (dc_roms_read_data(runs, velname, tind, {locax ...
+                                    num2str(loc) num2str(loc); ...
+                                    'z' runs.rgrid.N ...
+                                    runs.rgrid.N}));
+
+
+            end
+
             if velname == 'u'
                 [vmax, indmax] = min(vel(:));
             else
                 [vmax, indmax] = max(vel(:));
             end
 
-            axscale = abs(axvec(indmax) - ref);
-            xvec = (axvec - ref)/axscale;
-            vvec = abs(vel) ./abs(vmax);
+            if velname == 'z'
+                % for ζ, the max. is the center so, this line in
+                % the else condition doesn't work
+                axscale = runs.eddy.vor.dia(tind)/2;
+            else
+                axscale = abs(axvec(indmax) - ref);
+            end
 
-            hplt = plot(xvec, vvec, '-', 'Color', cmap(ii,:));
+            % normalized vectors to plot
+            xvec = (axvec - ref)/axscale;
+            vvec = vel./vmax;
+            %vvec = vvec - vvec(1);
+            % plot
+            if velname == 'z'
+                hplt = plot(xvec, vvec, '-', 'Color', cmap(ii,:));
+            else
+                hplt = plot(xvec, abs(vvec), '-', 'Color', cmap(ii,:));
+            end
+
             addlegend(hplt, [num2str(times(ii)) ' | ' ...
-                             num2str(vvec(runs.bathy.isb)) ' m/s']);
+                             num2str(vvec(runs.bathy.isb)) ' ' units]);
             if axname == 'y'
                 plot(xvec(runs.bathy.isb), vvec(runs.bathy.isb), ...
                      'b*');
@@ -469,15 +514,16 @@ methods
         end
 
         linex([-1 0 1]); liney([0], [], 'k');
-        xlim([-3 3]);
+        xlim([-1 1]*6);
 
         limx = xlim;
         xvec = linspace(limx(1), limx(2), 60);
 
-        a = 6;
-        vel = -1*diff(exp(-abs(xvec).^(a))*(a-1)/a)./diff(xvec);
+% $$$         a = 6;
+% $$$         vel = -1*diff(exp(-abs(xvec).^(a))*(a-1)/a)./diff(xvec);
+        vel = avg1(exp(-(xvec-1).^2/2));
         [vmax,indmax] = max(abs(vel));
-        plot(avg1(xvec)./xvec(indmax), abs(vel)./vmax, 'r');
+        %plot(avg1(xvec)./xvec(indmax), vel./vmax, 'r');
 
         ylabel([velname ' ./ max(' velname ')'])
         xlabel([upper(axname) ' Distance from center / (radius)']);
@@ -565,8 +611,10 @@ methods
     end
 
     % create initial seed file for ltrans
-    function [] = ltrans_create(runs)
-        ltrans_create(runs.rgrid,runs.zeta,runs.eddy);
+    function [] = create_ltrans(runs)
+    % call tools function
+        ltrans_create(runs.rgrid,runs.zeta,runs.eddy, [runs.dir ...
+                            '/ltrans_init.txt']);
     end
 
     % create ltrans init file from roms out

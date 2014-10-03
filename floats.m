@@ -19,20 +19,21 @@ classdef floats < handle
                 try
                     floats.x = ncread(file,'lon')';
                 catch ME
-                    floats.x = ncread(file,'x');
+                    floats.x = ncread(file,'x')';
                 end
                 try
                     floats.y = ncread(file,'lat')';
                 catch ME
-                    floats.y = ncread(file,'y');
+                    floats.y = ncread(file,'y')';
                 end
                 floats.z = ncread(file,'depth')';
                 floats.time = ncread(file,'ocean_time');
-                floats.temp = ncread(file,'temp')';
                 try
-                    floats.salt = ncread(file,'salt')';
+                    floats.temp = ncread(file,'temp');
+                    floats.salt = ncread(file,'salt');
                 catch
-                    floats.salt = nan(size(floats.temp));
+                    floats.rho = ncread(file, 'rho');
+                    floats.salt = nan(size(floats.x));
                 end
                 floats.type = 'roms';
                 disp('Read data. Now processing.');
@@ -45,8 +46,12 @@ classdef floats < handle
                 floats.z = ncread(file,'depth')';
                 floats.age = ncread(file,'age')'; 
                 floats.time = ncread(file,'model_time');
-                floats.temp = ncread(file,'temperature')';
-                floats.salt = ncread(file,'salinity')';
+                try
+                    floats.temp = ncread(file,'temperature')';
+                    floats.salt = ncread(file,'salinity')';
+                catch ME
+                    warning('No temperature or salt saved');
+                end
                 floats.hitLand = ncread(file,'hitLand')';
                 floats.hitBottom = ncread(file,'hitBottom')';
                 disp('Read data. Now processing.');
@@ -349,24 +354,25 @@ classdef floats < handle
             colormap(cmap); 
             caxis([min(zeta(:)) max(zeta(:))]);
             hold on
-            [C,hc] = contour(rgrid.x_rho./1000,rgrid.y_rho./1000,rgrid.h,[114 500 750 1100],'k');
+            [C,hc] = contour(rgrid.x_rho./1000,rgrid.y_rho./1000, ...
+                             rgrid.h,[114 500 750 1100],'k');
             clabel(C,hc);
             floats.fac = floor(floats.fac);
             nn = find_approx(floats.time,rgrid.ocean_time(i),1);
             hplot = plot(floats.x(nn,:)/1000,floats.y(nn,:)/1000,'k.','MarkerSize',10);
             if exist('eddy','var')
-               [~,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.mask(:,:,i),1);
+               [~,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.vormask(:,:,i),1);
                set(hh,'LineWidth',2);
             end
             ht = title(['t = ' num2str((rgrid.ocean_time(i)+1)/86400) ' days']);
 
             for i=ind0+1:size(zeta,3)
-                set(hz,'ZData',zeta(:,:,i)'); shading flat
+                set(hz,'ZData', double(zeta(:,:,i)')); shading flat
                 nn = find_approx(floats.time,rgrid.ocean_time(i),1);
                 set(hplot,'XData',floats.x(nn,:)/1000);
                 set(hplot,'YData',floats.y(nn,:)/1000);
                 if exist('eddy','var')
-                   set(hh,'ZData',eddy.mask(:,:,i));
+                   set(hh,'ZData',eddy.vormask(:,:,i));
                 end
                 set(ht,'String',['t = ' num2str((rgrid.ocean_time(i)+1)/86400) ' days'])
                 pause(0.03)

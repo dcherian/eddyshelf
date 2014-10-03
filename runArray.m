@@ -40,6 +40,12 @@ classdef runArray < handle
             runArray.len = kk-1;
         end
 
+        function [] = print_names(runArray)
+            for ii=1:runArray.len
+                disp([num2str(ii) ' | ' runArray.array(ii).name]);
+            end
+        end
+
         function [] = test_hashes(runArray)
             for ii=1:runArray.len
                 if ~strcmpi(runArray.array(ii).csflux.hash, ...
@@ -107,30 +113,30 @@ classdef runArray < handle
 
                 %%%%% shelf flux
                 if strcmpi(name, 'shelf flux')
-                    hfig_flux = figure; hold all; hax1 = gca;
-                    diag = run.csflux.west.avgflux.shelf(1)/1000;
+                    if ff == 1
+                        hfig_flux = figure; hold on; hax1 = gca;
+                    end
 
                     ind = run.eddy.tscaleind;
-                    transscl = run.eddy.V(ind) .* run.eddy.vor.lmaj(ind) ...
-                                  .* run.bathy.hsb/1000;
+                    transscl = 0.075 * 9.81/run.params.phys.f0 .* ...
+                               run.eddy.amp(ind).* run.bathy.hsb/1000;
 
                     % flux vector for applicable time
                     fluxvec = smooth(run.csflux.west.shelf(run.tscaleind: ...
                                                            end,1), 6);
                     ifluxvec = smooth(run.csflux.west.itrans.shelf(run.tscaleind: ...
-                                                           end,1), ...
-                                      6);
+                                                           end,1), 6);
                     tvec = run.csflux.time(run.tscaleind:end);
                     tvec = tvec-tvec(1);
 
-                    E = [ones(size(tvec))' tvec'];
-                    x = E\ifluxvec;
-                    intercept = x(1);
-                    avgflux = x(2);
+                    %E = [ones(size(tvec))' tvec'];
+                    %x = E\ifluxvec;
+                    %intercept = x(1);
+                    %avgflux = x(2);
 
-                    true = ifluxvec; est = intercept + avgflux .* ...
-                           (tvec-tvec(1))';
-                    res = true-est;
+                    %true = ifluxvec; est = intercept + avgflux .* ...
+                    %       (tvec-tvec(1))';
+                    %res = true-est;
 
                     %figure; hold all;
                     %plot(true); plot(est); plot(res); liney(0);
@@ -156,9 +162,10 @@ classdef runArray < handle
                     % check dof calculation
                     %figure; plot(fluxvec); linex(filtered); title(num2str(dof));pause;
 
-                    diag = mean(max(fluxvec/1000));
+                    %flx = mean(max(fluxvec/1000));
+                    flx = run.csflux.west.avgflux.shelf(1)/1000;
                     % standard deviation
-                    sdev = sqrt(1./(length(fluxvec)-1) .* sum((fluxvec - diag*1000).^2))/1000;
+                    sdev = sqrt(1./(length(fluxvec)-1) .* sum((fluxvec - flx*1000).^2))/1000;
                     % error bounds
                     err = abs(conft(0.05, dof-1) * sdev / sqrt(dof));
 % $$$ % $$$
@@ -168,19 +175,19 @@ classdef runArray < handle
 % $$$                     subplot(2,1,1);
 % $$$                     plot(run.csflux.time/run.tscale, ...
 % $$$                          run.csflux.west.shelf(:,1)/1000);
-% $$$                     liney([diag-err diag diag+err]);
+% $$$                     liney([flx-err flx flx+err]);
 % $$$                     subplot(2,1,2);
 % $$$                     plot(run.csflux.time/run.tscale, ...
 % $$$                          run.csflux.west.itrans.shelf(:,1));
 % $$$                     Ln = createLine(1, ...
 % $$$                                    run.csflux.west.itrans.shelf(run.tscaleind,1), ...
-% $$$                                    1, (diag-err)*1000*run.tscale);
+% $$$                                    1, (flx-err)*1000*run.tscale);
 % $$$                     L = createLine(1, ...
 % $$$                                    run.csflux.west.itrans.shelf(run.tscaleind,1), ...
-% $$$                                    1, diag*1000*run.tscale);
+% $$$                                    1, flx*1000*run.tscale);
 % $$$                     Lp = createLine(1, ...
 % $$$                                    run.csflux.west.itrans.shelf(run.tscaleind,1), ...
-% $$$                                    1, (diag+err)*1000*run.tscale);
+% $$$                                    1, (flx+err)*1000*run.tscale);
 % $$$                     hold on; drawLine(L);drawLine(Ln,'Color','g'); ...
 % $$$                         drawLine(Lp,'Color','r');
 % $$$                     limy = ylim; ylim([0 limy(2)]);
@@ -189,13 +196,15 @@ classdef runArray < handle
 % $$$                         close(hfig2);
 % $$$                     catch ME; end
 % $$$ % $$$
-                    diagstr = [num2str(diag,'%.2f') '±' ...
-                               num2str(err,'%.2f') ' mSv | scale = ' num2str(transscl)];
+                    diagstr = [num2str(flx,'%.2f') '±' ...
+                               num2str(err,'%.2f') ' mSv | scale = ' ...
+                               num2str(transscl)];
 
-                    figure(hfig1)
-                    %errorbar(transscl, diag, err, 'x');
-                    plot(transscl, diag, 'x'); hold on;
-                    text(transscl, diag, run.name, 'Rotation', 90);
+                    figure(hfig_flux);
+                    errorbar(transscl, flx, err, 'x');
+                    %plot(transscl, flx, 'x');
+                    text(transscl, double(flx + err), run.name, ...
+                         'Rotation', 90, 'FontSize', 12);
                     %set(hax1, 'Xtick', [1:runArray.len]);
                     %lab = cellstr(get(hax1,'xticklabel'));
                     %lab{ii} = getname(runArray, ii);
@@ -209,7 +218,9 @@ classdef runArray < handle
                 figure(hfig_flux);
                 limy = ylim;
                 ylim([0 limy(2)]);
+                line45;
                 ylabel('Flux (mSv)');
+                xlabel('Parameterization (mSv)');
             end
         end
 
@@ -299,8 +310,12 @@ classdef runArray < handle
                 end
 
                 figure(hfig3)
+                % change from envelope to depth
+                env = run.csflux.west.shelfwater.envelope;
+                env(isnan(env)) = max(env);
+                ind = vecfind(run.rgrid.y_rho(:,1), env);
                 hgplt = plot(run.csflux.time/run.tscale, ...
-                             run.csflux.west.shelfwater.envelope);
+                             run.bathy.h(1,ind)./run.bathy.hsb);
                 addlegend(hgplt, name);
 
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EDDY WATER
@@ -352,7 +367,7 @@ classdef runArray < handle
 
             figure(hfig3)
             xlabel('Non-dimensional time');
-            ylabel('most on-shore source of water');
+            ylabel('isobath most on-shore source of water / h_{sb}');
 
             figure(hfig4)
             subplot(2,1,1);
@@ -716,7 +731,30 @@ classdef runArray < handle
         end
 
         function [] = plot_test3(runArray)
-            for ii=1:runArray.len
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            figure; hold all
+
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
+                run = runArray.array(ii);
+                name = getname(runArray, ii);
+
+                hplt = plot(run.eddy.t, run.eddy.Lgauss*63*2./run.eddy.vor.dia);
+                addlegend(hplt, name);
+            end
+
+        end
+
+        function [] = plot_fluxcor(runArray)
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
                 run = runArray.array(ii);
                 name = getname(runArray, ii);
 
@@ -743,7 +781,6 @@ classdef runArray < handle
                 plot(lags * dt,c);
                 xlabel('Lag (days)');
                 linex(0); liney(0);
-
             end
         end
 
