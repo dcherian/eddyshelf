@@ -52,6 +52,8 @@ end
 methods
     % constructor
     function [runs] = runs(dir, reset,  do_all)
+
+        read_zeta = 0;
         if ~exist('reset','var')
             reset = 0;
         end
@@ -91,8 +93,10 @@ methods
 
         % read zeta
         if ~runs.givenFile
-            runs.zeta = dc_roms_read_data(dir,'zeta',[],{},[],runs.rgrid, ...
+            if read_zeta
+                runs.zeta = dc_roms_read_data(dir,'zeta',[],{},[],runs.rgrid, ...
                                           'his', 'single');
+            end
             runs.time = dc_roms_read_data(dir,'ocean_time',[],{}, ...
                                           [],runs.rgrid, 'his', 'single');
             %try
@@ -101,8 +105,10 @@ methods
             %catch ME
             %end
         else
-            runs.zeta = double(ncread(runs.out_file,'zeta'));
-            runs.time = double(ncread(runs.out_file,'ocean_time'));
+            if read_zeta
+                runs.zeta = (ncread(runs.out_file,'zeta'));
+            end
+            runs.time = (ncread(runs.out_file,'ocean_time'));
         end
 
         runs.rgrid.ocean_time = runs.time;
@@ -144,12 +150,14 @@ methods
         runs.bathy.h = runs.rgrid.h';
 
         % remove background zeta
-        if runs.bathy.axis == 'x'
-            runs.zeta = bsxfun(@minus, runs.zeta, runs.zeta(:,1, ...
-                                                            1));
-        else
-            runs.zeta = bsxfun(@minus, runs.zeta, runs.zeta(1,:, ...
-                                                            1));
+        if read_zeta
+            if runs.bathy.axis == 'x'
+                runs.zeta = bsxfun(@minus, runs.zeta, runs.zeta(:,1, ...
+                                                                1));
+            else
+                runs.zeta = bsxfun(@minus, runs.zeta, runs.zeta(1,:, ...
+                                                                1));
+            end
         end
 
         % read in sponge
@@ -412,6 +420,9 @@ methods
             runs.tscaleind = runs.eddy.tscaleind;
         end
 
+        warning('setting eddy.mask = []');
+        runs.eddy.mask = [];
+        runs.eddy.vormask = logical(repnan(runs.eddy.vormask,0));
     end
 
     function [] = info(runs)
@@ -528,11 +539,13 @@ methods
         ylabel([velname ' ./ max(' velname ')'])
         xlabel([upper(axname) ' Distance from center / (radius)']);
         title([velname ' | ' runs.name]);
+        beautify;
 
         subplot(2,1,2)
         plot(runs.csflux.time/86400, runs.csflux.west.shelf(:,1));
         limy = ylim; ylim([0 limy(2)]); linex(times);
         ylabel('Flux'); xlabel('Time (days)');
+        beautify;
     end
 
     % read surface velocities for animate_pt & surf vorticity plot
