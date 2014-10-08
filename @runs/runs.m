@@ -432,6 +432,16 @@ methods
 
     end
 
+    function [] = read_zeta(runs)
+    % read zeta
+        if ~runs.givenFile
+            runs.zeta = dc_roms_read_data(runs.dir,'zeta',[],{},[],runs.rgrid, ...
+                                          'his', 'single');
+        else
+            runs.zeta = (ncread(runs.out_file,'zeta'));
+        end
+    end
+
     % plot velocity / ζ sections through the eddy center
     function [] = plot_eddsec(runs, times)
 
@@ -471,7 +481,7 @@ methods
                 else
                     eval(['axvec = runs.rgrid.' axname '_rho(1,:);']);
                 end
-
+                runs.read_zeta;
                 vel = (dc_roms_read_data(runs, 'zeta', tind, {locax ...
                                     num2str(loc) num2str(loc); ...
                                     'z' 1 1}));
@@ -2748,11 +2758,13 @@ methods
         %suplabel(runs.name, 't');
         linkaxes(ax, 'xy');
 
+        %%%%%%%%%%%%%% ζ
         % along-shelfbreak pressure gradient at shelfbreak
         %zx = bsxfun(@rdivide, squeeze(diff(runs.zeta(:, runs.bathy.isb, :), ...
         %                          1, 1)), diff(runs.rgrid.x_rho(1,:)', ...
         %1, 1));
         loc2 = [-20 0 10 20] + runs.bathy.isb;
+        runs.read_zeta;
         figure;
         for ii=1:length(loc2)
             ax(ii) = subplot(2,2,ii);
@@ -2815,6 +2827,10 @@ methods
 
         if ~exist('t0', 'var'), t0 = 1; end
 
+        if isempty(runs.zeta)
+            runs.read_zeta;
+        end
+        
         figure;
         if ~isempty(runs.csflux)
             ax = subplot(3,1,[1 2]);
@@ -2829,7 +2845,7 @@ methods
         plot(runs.eddy.mx/1000, runs.eddy.vor.ne/1000);
         plot(runs.eddy.mx/1000, runs.eddy.vor.se/1000);
         he = runs.plot_eddy_contour('contour',ii);
-        he2 = runs.plot_eddy_sshcontour('contour',ii);
+        %he2 = runs.plot_eddy_sshcontour('contour',ii);
         ht = runs.set_title(titlestr,ii);
         if runs.params.flags.telescoping
             linex([runs.params.grid.ixn runs.params.grid.ixp], 'telescope','w');
