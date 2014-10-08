@@ -235,10 +235,11 @@ classdef runArray < handle
             subplot(2,1,2); hold all
 
             hfig2 = figure;
-            subplot(2,2,1); hold all
-            subplot(2,2,2); hold all
-            subplot(2,2,3); hold all
-            subplot(2,2,4); hold all
+            hold all
+            %            subplot(2,2,1); hold all
+            %subplot(2,2,2); hold all
+            %subplot(2,2,3); hold all
+            %subplot(2,2,4); hold all
 
             hfig3 = figure;
             hold all;
@@ -253,7 +254,7 @@ classdef runArray < handle
 
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
-                
+
                 run = runArray.array(ii);
                 name = getname(runArray, ii);
 
@@ -267,7 +268,7 @@ classdef runArray < handle
                 He = run.bathy.hsb; %run.eddy.Lgauss(tind);
                 Le = run.eddy.vor.dia(tind)/2;
 
-                fluxscl = 1;Ue * Le * He;
+                fluxscl = 1e6;Ue * Le * He;
                 transscl = 1;fluxscl * (2*Le/Ue);
 
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SHELF WATER
@@ -288,20 +289,20 @@ classdef runArray < handle
                 try
                     % find location of center at t=1.5 (arbitrary
                     % choice)
-                    xnd = (run.csflux.west.shelfwater.bins)./run.rrshelf;
-                    subplot(2,2,1)
-                    hgplt = plot(xnd, run.csflux.west.shelfwater.itrans);
-                    addlegend(hgplt, name, 'NorthEast');
+                    %                    xnd = (run.csflux.west.shelfwater.bins)./run.rrshelf;
+                    %                    subplot(2,2,1)
+                    %hgplt = plot(xnd, run.csflux.west.shelfwater.itrans);
+                    %addlegend(hgplt, name, 'NorthEast');
 
-                    subplot(2,2,2)
-                    plot(xnd, run.csflux.west.shelfwater.itrans ...
-                                 ./ttrans);
+                    %subplot(2,2,2)
+                    %plot(xnd, run.csflux.west.shelfwater.itrans ...
+                    %             ./ttrans);
 
-                    subplot(2,2,3)
-                    plot(run.csflux.west.shelfwater.vertitrans, ...
-                         run.csflux.west.shelfwater.vertbins);
+                    %subplot(2,2,3)
+                    %plot(run.csflux.west.shelfwater.vertitrans, ...
+                    %     run.csflux.west.shelfwater.vertbins);
 
-                    subplot(2,2,4)
+                    %subplot(2,2,4)
                     profile = ...
                         run.csflux.west.shelfwater.vertitrans./ ...
                         ttrans;
@@ -348,25 +349,25 @@ classdef runArray < handle
             xlabel('Non-dimensional time');
 
             figure(hfig2)
-            subplot(2,2,1)
-            ylabel('Total volume transported (m^3)');
-            xlabel('cs location (km)');
+            %subplot(2,2,1)
+            %ylabel('Total volume transported (m^3)');
+            %xlabel('cs location (km)');
 
-            subplot(2,2,2)
-            limy = ylim;
-            ldefbt = sqrt(9.81 * run.bathy.hsb)/run.params.phys.f0;
-            xnd = xnd .* run.rrshelf ./ ldefbt;
-            plot(xnd(2:end-1), 1./xnd(2:end-1).^2, 'color', [1 1 ...
-                                1]*1);
-            ylim(limy)
-            ylabel('Normalized volume transported');
-            xlabel('cs location / shelfbreak rossby radius');
+            %subplot(2,2,2)
+            %limy = ylim;
+            %ldefbt = sqrt(9.81 * run.bathy.hsb)/run.params.phys.f0;
+            %xnd = xnd .* run.rrshelf ./ ldefbt;
+            %plot(xnd(2:end-1), 1./xnd(2:end-1).^2, 'color', [1 1 ...
+            %                    1]*1);
+            %ylim(limy)
+            %ylabel('Normalized volume transported');
+            %xlabel('cs location / shelfbreak rossby radius');
 
-            subplot(2,2,3)
-            xlabel('Total volume transported (m^3)');
-            ylabel('Vertical bin (m)');
+            %subplot(2,2,3)
+            %xlabel('Total volume transported (m^3)');
+            %ylabel('Vertical bin (m)');
 
-            subplot(2,2,4)
+            %subplot(2,2,4)
             ylim([-1 0]);
             limx = xlim;
             xlim([0 limx(2)]);
@@ -419,7 +420,7 @@ classdef runArray < handle
 
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
-                
+
                 run = runArray.array(ii);
 
                 asp = run.eddy.Lgauss./(run.eddy.vor.dia/2);
@@ -591,7 +592,7 @@ classdef runArray < handle
             hold all
             %hfig2 = figure;
             %hold all
- 
+
             if isempty(runArray.filter)
                 runArray.filter = 1:runArray.len;
             end
@@ -607,37 +608,44 @@ classdef runArray < handle
                 end
                 eddy_ndtime = run.eddy.t/run.tscale*86400;
                 csflx_ndtime = run.csflux.time/run.tscale * 86400;
-                etind = find_approx(eddy_ndtime, 1.5, 1)
-                cstind = find_approx(csflx_ndtime, 1.5, 1);
+                etind = find_approx(eddy_ndtime, 1.0, 1);
+                cstind = find_approx(csflx_ndtime, 1.0, 1);
+
+                etind = run.tscaleind;
 
                 meanprox(ii) = nanmean(run.eddy.hcen(etind:end));
                 meanflux(ii) = nanmean(run.csflux.west.shelf(cstind: ...
                                                              end));
-                meanLz(ii) = nanmean(run.eddy.Lgauss(etind:end));
+                meanLz(ii) = nanmean(run.eddy.Lgauss(1));
                 meancy(ii) = nanmean(run.eddy.cy(etind:end));
 
-                param(ii) = run.params.nondim.eddy.Ro/ ...
-                    run.params.nondim.S_sl;
+                param(ii) = log(run.params.nondim.S_sl/ ...
+                                run.eddy.Ro(etind));
+
+                y = (meanprox(ii)./meanLz(ii)).^2;
+                x = param(ii);
 
                 figure(hfig1);
-                hgplt = plot(param(ii), meanprox(ii), '.', 'MarkerSize', 16);
+                hgplt = plot(x, y, '.', 'MarkerSize', 16);
                 addlegend(hgplt, name);
                 disp(['run = ', run.name , ' | mean prox. = ', ...
                       num2str(meanprox(ii))]);
                 %    pause;
 
-                figure(hfig2);
-                hgplt = plot(param(ii), meanflux(ii), '.', 'MarkerSize', 16);
-                addlegend(hgplt, name);
-                disp(['run = ', run.name , ' | mean prox. = ', ...
-                      num2str(meanflux(ii))]);
+                %figure(hfig2);
+                %hgplt = plot(param(ii), meanflux(ii), '.', 'MarkerSize', 16);
+                %addlegend(hgplt, name);
+                %disp(['run = ', run.name , ' | mean prox. = ', ...
+                %      num2str(meanflux(ii))]);
             end
             figure(hfig1);
-            ylabel('Proximity to shelfbreak (m)');
-            xlabel('Slope parameter, Ro/S');
-            figure(hfig2);
-            ylabel('meandist flux');
-            xlabel('Slope parameter, Ro/S');
+            ylabel('(H/D)^2');
+            xlabel('ln(S_\alpha/Ro)');
+            axis square;
+            %figure(hfig2);
+            %ylabel('meandist flux');
+            %xlabel('Slope parameter, Ro/S');
+
         end
 
         function [] = streamerstats(runArray)
@@ -712,7 +720,7 @@ classdef runArray < handle
         function [] = plot_test2(runArray)
             figure;
             hold all
-    
+
             if isempty(runArray.filter)
                 runArray.filter = 1:runArray.len;
             end
@@ -879,7 +887,7 @@ classdef runArray < handle
 
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
-                
+
                 run  = runArray.array(ii);
                 name = getname(runArray, ii);
 
