@@ -319,8 +319,11 @@ classdef runArray < handle
                 env = run.csflux.west.shelfwater.envelope;
                 env(isnan(env)) = max(env);
                 ind = vecfind(run.rgrid.y_rho(:,1), env);
+                metric = run.bathy.h(1,ind)./run.bathy.hsb .* ...
+                         (1+run.rgrid.f(run.bathy.isb,1)./run.rgrid.f(ind,1))';
+
                 hgplt = plot(run.csflux.time/run.tscale, ...
-                             run.bathy.h(1,ind)./run.bathy.hsb);
+                             (run.bathy.xsb - env)./run.rrshelf);
                 addlegend(hgplt, name);
 
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EDDY WATER
@@ -418,14 +421,18 @@ classdef runArray < handle
                 ii = runArray.filter(ff);
                 
                 run = runArray.array(ii);
-                ndtime = run.eddy.t/run.tscale * 86400;
+
+                asp = run.eddy.Lgauss./(run.eddy.vor.dia/2);
+
+                tscale = run.tscale; find_approx(asp, 0.5, 1);
+                ndtime = run.eddy.t/tscale * 86400;
                 if isempty(runArray.name)
                     name = run.name;
                 else
                     name = runArray.name{ii};
                 end
                 figure(hfig1)
-                asp = run.eddy.Lgauss./(run.eddy.vor.dia/2);
+
                 subplot(2,1,1)
                 hgplt = plot(ndtime, asp./run.bathy.sl_slope);
                 addlegend(hgplt, name);
@@ -436,7 +443,7 @@ classdef runArray < handle
                 if hfig2
                     figure(hfig2)
                     hgplt = plot(ndtime, (run.eddy.my - run.bathy.xsb)/run.rrdeep);
-                    addlegend(hgplt, name)
+                    addlegend(hgplt, name);
                 end
                 if hfig3
                     try
@@ -467,14 +474,15 @@ classdef runArray < handle
                 catch ME
                 end
                 subplot(3,1,2)
-                hgplt = plot(ndtime, sqrt(Bu));
+                hgplt = plot(ndtime, run.eddy.Ls/1000);
                 addlegend(hgplt, name);
                 subplot(3,1,3)
                 if ~isfield(run.params.nondim, 'S_sl')
                     run.params.nondim.S_sl = 0;
                 end
-                plot(ndtime, run.params.nondim.S_sl * ...
-                     sqrt(run.params.phys.N2) * run.eddy.Lgauss ./ run.eddy.V);
+                plot(ndtime, run.eddy.V);
+                %plot(ndtime, run.params.nondim.S_sl * ...
+                %     sqrt(run.params.phys.N2) * run.eddy.Lgauss ./ run.eddy.V);
 
                 %{figure(hfig6)
                 %try
@@ -519,7 +527,7 @@ classdef runArray < handle
                 if hfig7
                     figure(hfig7)
                     subplot(3,1,1)
-                    hgplt = plot(ndtime, run.eddy.Ls);
+                    hgplt = plot(ndtime, run.eddy.Ls/1000);
                     addlegend(hgplt, name);
                     subplot(3,1,2)
                     plot(ndtime, run.eddy.Lgauss);
@@ -556,10 +564,11 @@ classdef runArray < handle
             end
             if hfig5
                 figure(hfig5);
-                subplot(3,1,1); ylabel('Ro');
-                subplot(3,1,2); ylabel('ND/fL'); liney(0.5);
-                subplot(3,1,3); ylabel(['\alpha_{bot}/\alpha_{iso} ' ...
-                                    '* Bu/Ro']);
+                subplot(3,1,1); ylabel('Surface Ro = <v_x>/f');
+                subplot(3,1,2); ylabel('Ls (km)');
+                subplot(3,1,3); ylabel('U (m/s)');
+                %ylabel(['\alpha_{bot}/\alpha_{iso} ' ...
+                %                    '* Bu/Ro']);
             end
             if hfig6
                 figure(hfig6); ylabel('max surf RV');
@@ -567,7 +576,7 @@ classdef runArray < handle
             if hfig7
                 figure(hfig7)
                 subplot(3,1,1);
-                ylabel('Radius');
+                ylabel('Radius (km)');
                 subplot(3,1,2);
                 ylabel('Vertical scale (m)');
                 xlabel('Non-dim time');
@@ -580,8 +589,8 @@ classdef runArray < handle
         function [] = plot_param(runArray)
             hfig1 = figure;
             hold all
-            hfig2 = figure;
-            hold all
+            %hfig2 = figure;
+            %hold all
  
             if isempty(runArray.filter)
                 runArray.filter = 1:runArray.len;
@@ -747,10 +756,25 @@ classdef runArray < handle
                 run = runArray.array(ii);
                 name = getname(runArray, ii);
 
-                hplt = plot(run.eddy.t, run.eddy.Lgauss*63*2./run.eddy.vor.dia);
-                addlegend(hplt, name);
-            end
+                env = run.csflux.west.shelfwater.envelope;
+                hgplt = plot(run.csflux.time/run.tscale, ...
+                             (run.bathy.xsb - env)./run.rrshelf);
+                addlegend(hgplt, name, 'NorthWest');
+           end
 
+           for ff=1:length(runArray.filter)
+               ii = runArray.filter(ff);
+               run = runArray.array(ii);
+               name = getname(runArray, ii);
+               if run.bathy.sl_shelf ~= 0
+                   beta = run.params.phys.f0 ./ max(run.bathy.h(:)) * ...
+                           run.bathy.sl_shelf;
+               else
+                   beta = run.params.phys.beta;
+               end
+               Ly = sqrt(0.075*run.eddy.V(1)./beta)./run.rrshelf;
+               liney(Ly, run.name);
+           end
         end
 
         function [] = plot_fluxcor(runArray)
