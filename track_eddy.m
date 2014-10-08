@@ -10,16 +10,22 @@ function [eddy] = track_eddy(dir1)
 
         grd = runobj.rgrid;
 
-        zeta = runobj.zeta;
+        if isempty(runobj.zeta)
+            runobj.read_zeta;
+        end
         if isempty(runobj.usurf)
             runobj.read_velsurf;
         end
+        zeta = runobj.zeta;
         u = runobj.usurf;
         v = runobj.vsurf;
 
         f = runobj.rgrid.f(2:end-1,2:end-1)';
 
         eddy = runobj.eddy;
+
+        eddy.mask = [];
+        eddy.vormask = [];
 
         eddy.h = runobj.bathy.h;
         eddy.t = runobj.time/86400;
