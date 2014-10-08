@@ -2700,6 +2700,7 @@ methods
     function [] = csvel_hov(runs, iz, loc)
         if ~exist('loc', 'var') || isempty(loc)
             loc = [-30 -20 -10 0] * 1000 + runs.bathy.xsb;
+            locu = [200 250 300 350]*1000;
         end
 
         if ~exist('iz', 'var') || isempty(iz)
@@ -2785,6 +2786,25 @@ methods
 
         %suplabel(runs.name, 't');
         linkaxes(ax, 'xy');
+
+        %%%%%%%%%%%%%% u
+        figure;
+        for ii=1:length(locu)
+            ax(ii) = subplot(2,2,ii);
+
+            ind = find_approx(runs.rgrid.x_v(1,:), locu(ii), 1);
+
+            ymat = repmat(runs.rgrid.y_u(:,1), [1 size(runs.usurf, 3)]);
+            tmat = repmat(runs.time, [size(runs.usurf, 2) 1]);
+            contourf(tmat./86400, ymat./1000, squeeze(runs.ubot(ind,:,:)));
+            colorbar; center_colorbar;
+            ylabel('Y (km)');
+            xlabel('Time (non-dimensional)');
+            ylim([0 runs.bathy.xsb/1000]);
+            title([titlestr ' u (m/s) at x = ' num2str(locu(ii)/1000) ' km']);
+
+            beautify;
+        end
     end
 
     %% animation functions
