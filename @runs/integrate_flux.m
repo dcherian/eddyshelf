@@ -4,7 +4,10 @@
 function [itrans, avgflux] = integrate_flux(runs, time, flux)
 
     if any(isnan(flux))
-        error('FLUX IS NAN!');
+        warning('FLUX IS NAN!');
+        itrans = zeros(size(flux));
+        flux = zeros(size(flux));
+        return;
     end
 
     ind = runs.eddy.tscaleind;
@@ -17,8 +20,11 @@ function [itrans, avgflux] = integrate_flux(runs, time, flux)
     stop = find_approx(abs(itrans), 0.95 * max(abs(itrans)), 1);
 
     if isempty(start)
-        start = 1;
+        start = 1
+        stop
         warning('Fluxes are zero?');
+        avgflux = zeros(size(flux));
+        return;
     end
 
     % calc average flux
