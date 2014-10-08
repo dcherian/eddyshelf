@@ -420,8 +420,7 @@ methods
             runs.tscaleind = runs.eddy.tscaleind;
         end
 
-        warning('setting eddy.mask = []');
-        runs.eddy.mask = [];
+        runs.eddy.mask = logical(repnan(runs.eddy.mask, 0));
         runs.eddy.vormask = logical(repnan(runs.eddy.vormask,0));
     end
 
