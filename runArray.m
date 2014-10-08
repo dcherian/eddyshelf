@@ -221,6 +221,8 @@ classdef runArray < handle
                 line45;
                 ylabel('Flux (mSv)');
                 xlabel('Parameterization (mSv)');
+                axis square;
+                beautify([18 18 20]);
             end
         end
 

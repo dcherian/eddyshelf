@@ -2875,7 +2875,7 @@ methods
         % draw angle
         L = createLine(runs.eddy.vor.cx(ii)/1000, runs.eddy.vor.cy(ii)/1000, ...
                        1, -1*runs.eddy.vor.angle(ii)*pi/180);
-        hline = drawLine(L);
+        %       hline = drawLine(L);
         xlabel('X (km)');ylabel('Y (km)');
         %axis equal;
         hee_zeta = linex(runs.eddy.vor.ee(ii)/1000);
@@ -2899,24 +2899,26 @@ methods
             set(ax2, 'Position', newpos);
             linkaxes([ax ax2], 'x');
             liney(0);
+            xlabel('X (km)');
+            title('\int v(x,z,t)dz (m^2/s)');
             beautify;
         end
 
         runs.video_update();
         for ii = t0+1:4:size(runs.zeta,3)
-            L = createLine(runs.eddy.vor.cx(ii)/1000, runs.eddy.vor.cy(ii)/1000, ...
-                       1, -1*runs.eddy.vor.angle(ii)*pi/180);
-            delete(hline);
+            %L = createLine(runs.eddy.vor.cx(ii)/1000, runs.eddy.vor.cy(ii)/1000, ...
+            %           1, -1*runs.eddy.vor.angle(ii)*pi/180);
+            %delete(hline);
             if ~isempty(runs.csflux)
                 axes(ax);
-                hline = drawLine(L);
+                %hline = drawLine(L);
             end
 
             set(hee_zeta, 'XData', [1 1]* runs.eddy.vor.ee(ii)/1000);
 
             runs.update_zeta(hz,ii);
             runs.update_eddy_contour(he,ii);
-            runs.update_eddy_sshcontour(he2,ii);
+            %   runs.update_eddy_sshcontour(he2,ii);
             runs.update_title(ht,titlestr,ii);
 
             if ~isempty(runs.csflux)
