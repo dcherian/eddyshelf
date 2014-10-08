@@ -69,3 +69,13 @@ xlabel('k\Delta x/\pi');
 colorbar;axis square
 maximize; pause(0.2);
 spaceplots(0.06*ones([1 4]),0.05*ones([1 2]))
+
+%% float code
+
+figure
+for ii=1:size(ltrans.x, 1)
+    clf;
+    plot(ltrans.x(ii,:)/1000, ltrans.y(ii,:)/1000, '*');
+    title(num2str(ii));
+    pause(0.05);
+end
