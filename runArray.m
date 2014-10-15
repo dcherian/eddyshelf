@@ -418,9 +418,11 @@ classdef runArray < handle
         end
 
         function [] = plot_eddydiag(runArray)
-            hfig1 = figure;
-            subplot(2,1,1); hold all
-            subplot(2,1,2); hold all
+        % mark crosses on eddy track at tcen
+            tcen = [0 100 200 300]; % in days
+            hfig1 = [];figure;
+            %subplot(2,1,1); hold all
+            %subplot(2,1,2); hold all
 
             hfig2 = figure;
             hold all;
@@ -449,7 +451,6 @@ classdef runArray < handle
                 ii = runArray.filter(ff);
 
                 run = runArray.array(ii);
-
                 asp = run.eddy.Lgauss./(run.eddy.vor.dia/2);
 
                 tscale = run.tscale; find_approx(asp, 0.5, 1);
@@ -459,6 +460,21 @@ classdef runArray < handle
                 else
                     name = runArray.name{ii};
                 end
+
+                if hfig2
+                    figure(hfig2)
+                    hgplt = plot(run.eddy.mx/1000, (run.eddy.my - run.bathy.xsb)/run.rrdeep);
+                    addlegend(hgplt, name);
+                    clr = get(hgplt, 'color');
+                    for ii=1:length(tcen)
+                        tind = find_approx(run.eddy.t, tcen(ii), 1);
+                        plot(run.eddy.mx(tind)/1000, ...
+                             (run.eddy.my(tind)-run.bathy.xsb)/run.rrdeep, ...
+                             'x', 'Color', clr, 'MarkerSize', 12);
+                    end
+                end
+                continue;
+
                 figure(hfig1)
 
                 subplot(2,1,1)
@@ -468,11 +484,6 @@ classdef runArray < handle
                 hgplt = plot(ndtime, asp);
                 addlegend(hgplt, num2str(asp(1)));
 
-                if hfig2
-                    figure(hfig2)
-                    hgplt = plot(ndtime, (run.eddy.my - run.bathy.xsb)/run.rrdeep);
-                    addlegend(hgplt, name);
-                end
                 if hfig3
                     try
                         figure(hfig3)
@@ -578,6 +589,10 @@ classdef runArray < handle
                 ylabel(['Center - X_{sb} / Deep water rossby ' ...
                         'radius']);
                 xlabel('Non dimensional time');
+                title(['Crosses at [' num2str(tcen) '] days']);
+                hleg = legend;
+                set(hleg, 'Location', 'Northwest');
+                beautify([18 18 20]);
             end
 
             if hfig3
