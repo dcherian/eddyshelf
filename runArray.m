@@ -661,11 +661,11 @@ classdef runArray < handle
                 meanLz(ii) = nanmean(run.eddy.Lgauss(1));
                 meancy(ii) = nanmean(run.eddy.cy(etind:end));
 
-                param(ii) = log(run.params.nondim.S_sl/ ...
-                                run.eddy.Ro(etind));
+                param(ii) = abs(log(run.eddy.Ro(1)/ ...
+                                run.params.nondim.S_sl));
 
-                y = (meanprox(ii)./meanLz(ii)).^2;
-                x = param(ii);
+                x = (meanprox(ii));
+                y = meanLz(ii) * sqrt(param(ii));
 
                 figure(hfig1);
                 hgplt = plot(x, y, '.', 'MarkerSize', 16);
@@ -681,9 +681,11 @@ classdef runArray < handle
                 %      num2str(meanflux(ii))]);
             end
             figure(hfig1);
-            ylabel('(H/D)^2');
-            xlabel('ln(S_\alpha/Ro)');
+            ylabel('Water depth at eddy center (m)');
+            xlabel('Parameterization (m) : H = D * sqrt(ln(Ro/S_\alpha))');
             axis square;
+            line45;
+            beautify([18 18 20]);
             %figure(hfig2);
             %ylabel('meandist flux');
             %xlabel('Slope parameter, Ro/S');
