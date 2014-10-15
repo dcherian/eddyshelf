@@ -634,7 +634,11 @@ methods
 
     % create initial seed file for ltrans
     function [] = create_ltrans(runs)
-    % call tools function
+        if isempty(runs.zeta)
+            runs.read_zeta;
+        end
+
+        % call tools function
         ltrans_create(runs.rgrid,runs.zeta,runs.eddy, [runs.dir ...
                             '/ltrans_init.txt']);
     end
@@ -2707,7 +2711,6 @@ methods
             iz = runs.rgrid.N;
         end
 
-
         if iz == runs.rgrid.N
             if isempty(runs.vsurf)
                 runs.read_velsurf;
@@ -2796,7 +2799,7 @@ methods
 
             ymat = repmat(runs.rgrid.y_u(:,1), [1 size(runs.usurf, 3)]);
             tmat = repmat(runs.time, [size(runs.usurf, 2) 1]);
-            contourf(tmat./86400, ymat./1000, squeeze(runs.ubot(ind,:,:)));
+            contourf(tmat./86400, ymat./1000, squeeze(runs.usurf(ind,:,:)));
             colorbar; center_colorbar;
             ylabel('Y (km)');
             xlabel('Time (non-dimensional)');
