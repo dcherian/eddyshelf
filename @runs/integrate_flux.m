@@ -20,10 +20,10 @@ function [itrans, avgflux] = integrate_flux(runs, time, flux)
     stop = find_approx(abs(itrans), 0.95 * max(abs(itrans)), 1);
 
     if isempty(start)
-        start = 1
-        stop
+        start = 1;
         warning('Fluxes are zero?');
-        avgflux = zeros(size(flux));
+        avgflux = 0;
+        size(itrans)
         return;
     end
 
