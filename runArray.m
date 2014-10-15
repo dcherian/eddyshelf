@@ -809,8 +809,20 @@ classdef runArray < handle
                 name = getname(runArray, ii);
 
                 env = run.csflux.west.shelfwater.envelope;
-                hgplt = plot(run.csflux.time/run.tscale, ...
-                             (run.bathy.xsb - env)./run.rrshelf);
+                tind = 1;
+                diagnostic = mean(run.bathy.xsb - env(tind:end));
+
+                if run.bathy.sl_shelf ~= 0
+                    beta = run.params.phys.f0 ./ max(run.bathy.h(:)) * ...
+                           run.bathy.sl_shelf;
+                else
+                    beta = Inf; run.params.phys.beta;
+                end
+                param = sqrt(0.075*run.eddy.V(1)./beta);
+
+                hgplt = plot(run.csflux.time(tind:end)/run.tscale, ...
+                             (run.bathy.xsb - env(tind:end))./run.rrshelf);
+                %hgplt = plot(param, diagnostic, '*');
                 addlegend(hgplt, name, 'NorthWest');
            end
 
@@ -822,11 +834,13 @@ classdef runArray < handle
                    beta = run.params.phys.f0 ./ max(run.bathy.h(:)) * ...
                            run.bathy.sl_shelf;
                else
-                   beta = run.params.phys.beta;
+                   beta = Inf; run.params.phys.beta;
                end
                Ly = sqrt(0.075*run.eddy.V(1)./beta)./run.rrshelf;
                liney(Ly, run.name);
            end
+           %axis square; line45;
+           beautify([18 18 20]);
         end
 
         function [] = plot_fluxcor(runArray)
