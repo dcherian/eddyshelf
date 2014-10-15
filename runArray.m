@@ -125,52 +125,78 @@ classdef runArray < handle
                                run.eddy.amp(ind).* run.bathy.hsb/1000;
 
                     % flux vector for applicable time
-                    fluxvec = smooth(run.csflux.west.shelf(run.tscaleind: ...
-                                                           end,1), 6);
-                    ifluxvec = smooth(run.csflux.west.itrans.shelf(run.tscaleind: ...
-                                                           end,1), 6);
-                    tvec = run.csflux.time(run.tscaleind:end);
-                    tvec = tvec-tvec(1);
+                    % convert everything to double since I'm
+                    % dealing with large numbers here (time in
+                    % seconds) and integrated flux (m^3)
+                    fluxvec = double(smooth(run.csflux.west.shelf(run.tscaleind: ...
+                                                           end,1), 6));
+                    ifluxvec = double(smooth(run.csflux.west.itrans.shelf(run.tscaleind: ...
+                                                           end,1), 6));
+                    tvec = double(run.csflux.time(run.tscaleind:end));
 
-                    %E = [ones(size(tvec))' tvec'];
-                    %x = E\ifluxvec;
-                    %intercept = x(1);
-                    %avgflux = x(2);
+                    % change origin
+                    ifluxvec = (ifluxvec - ifluxvec(1));
+                    tvec = (tvec - tvec(1));
 
-                    %true = ifluxvec; est = intercept + avgflux .* ...
-                    %       (tvec-tvec(1))';
-                    %res = true-est;
+                    E = [ones(size(tvec))' tvec'];
 
+                    %%%%%%%%%%% See Wunsch(1996) pg. 116
+                    % P matrix
+                    x = E\ifluxvec;
+                    intercept = x(1);
+                    avgflux = x(2);
+                    true = ifluxvec; est = intercept + avgflux .* ...
+                           (tvec-tvec(1))';
+                    res = true-est;
+                    % (E' * E) ^-1
+                    %ETEI = inv(E'*E);
+                    % from http://blogs.mathworks.com/loren/2007/05/16/purpose-of-inv/
+                    [Q,R] = qr(E,0);
+                    S = inv(R);
+                    ETEI = S*S';
+                    % assuming noise vector (res) is white
+                    P = ETEI * E' * var(res) * E * ETEI;
+                    err = sqrt(diag(P));
+                    err = err(2); % standard error
+
+                    %%%%%%%%%%% use MATLAB regress
+                    [b, bint, r, rint, stats] = ...
+                        regress(ifluxvec, E);
+                    avgflux = b(2);
+                    err = abs(bint(2) - b(2));
+
+                    % plot fit
                     %figure; hold all;
-                    %plot(true); plot(est); plot(res); liney(0);
-                    %figure;plot(xcorr(res, res, 'coef'));
+                    %plot(tvec/86400, true, '*');
+                    %plot(tvec/86400, est); plot(tvec/86400, res); liney(0);
 
                     %[c,lags] = xcorr(fluxvec - mean(fluxvec(:)), 'coef');
                     %plot(lags, c); linex(0); liney(0);
 
+                    %%%%%%%%%%% mean of instantaneous flux
                     % find number of peaks
-                    mpd = 6;
+                    %mpd = 6;
                     % crests
-                    [~,pl] = findpeaks(fluxvec, 'MinPeakDistance', mpd);
+                    %[~,pl] = findpeaks(fluxvec, 'MinPeakDistance', mpd);
                     % troughs
-                    [~,nl] = findpeaks(-1*fluxvec, 'MinPeakDistance', mpd); ...
+                    %[~,nl] = findpeaks(-1*fluxvec, 'MinPeakDistance', mpd); ...
 
                     % make sure peak to trough distance is not
                     % smaller than mpd
-                    indices = sort([pl; nl]);
-                    mask = [0; diff(indices) < mpd];
-                    filtered = indices(~isnan(fillnan(indices .* ~mask,0)));
-                    dof = length(filtered) + 1; % (crude) degrees of freedom;
+                    %indices = sort([pl; nl]);
+                    %mask = [0; diff(indices) < mpd];
+                    %filtered = indices(~isnan(fillnan(indices .* ~mask,0)));
+                    %dof = length(filtered) + 1; % (crude) degrees of freedom;
 
                     % check dof calculation
                     %figure; plot(fluxvec); linex(filtered); title(num2str(dof));pause;
 
                     %flx = mean(max(fluxvec/1000));
-                    flx = run.csflux.west.avgflux.shelf(1)/1000;
+                    %flx = run.csflux.west.avgflux.shelf(1)/1000;
                     % standard deviation
-                    sdev = sqrt(1./(length(fluxvec)-1) .* sum((fluxvec - flx*1000).^2))/1000;
+                    %sdev = sqrt(1./(length(fluxvec)-1) .* sum((fluxvec - flx*1000).^2))/1000;
                     % error bounds
-                    err = abs(conft(0.05, dof-1) * sdev / sqrt(dof));
+                    %errmean = abs(conft(0.05, dof-1) * sdev / sqrt(dof));
 % $$$ % $$$
 % $$$                     % check error bounds with itrans
 % $$$                     hfig2 = figure;
@@ -199,18 +225,20 @@ classdef runArray < handle
 % $$$                         close(hfig2);
 % $$$                     catch ME; end
 % $$$ % $$$
-                    diagstr = [num2str(flx,'%.2f') '±' ...
-                               num2str(err,'%.2f') ' mSv | scale = ' ...
+                    diagstr = [num2str(avgflux/1000,'%.2f') '±' ...
+                               num2str(err/1000,'%.2f') ' mSv | scale = ' ...
                                num2str(transscl)];
 
                     figure(hfig_flux);
-                    errorbar(transscl, flx, err, 'x');
+                    errorbar(transscl, avgflux/1000, err/1000, 'x');
                     %plot(transscl, flx, 'x');
-                    text(transscl, double(flx + err), run.name, ...
+                    text(transscl, double(avgflux + err)/1000, run.name, ...
                          'Rotation', 90, 'FontSize', 12);
+
+                    %errorbar(ff , avgflux/1000, err/1000, 'x');
                     %set(hax1, 'Xtick', [1:runArray.len]);
                     %lab = cellstr(get(hax1,'xticklabel'));
-                    %lab{ii} = getname(runArray, ii);
+                    %lab{ff} = getname(runArray, ff);
                     %set(hax1,'xticklabel', lab);
                  end
 
@@ -221,10 +249,9 @@ classdef runArray < handle
                 figure(hfig_flux);
                 limy = ylim;
                 ylim([0 limy(2)]);
-                line45;
+                line45; axis square;
                 ylabel('Flux (mSv)');
                 xlabel('Parameterization (mSv)');
-                axis square;
                 beautify([18 18 20]);
             end
         end
