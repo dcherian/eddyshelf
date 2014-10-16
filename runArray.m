@@ -118,6 +118,7 @@ classdef runArray < handle
                     end
                     if ff == 1
                         hfig_flux = figure; hold on; hax1 = gca;
+                        hfig_fluxerr = figure; hold on;
                     end
 
                     ind = run.eddy.tscaleind;
@@ -228,6 +229,10 @@ classdef runArray < handle
                     diagstr = [num2str(avgflux/1000,'%.2f') '±' ...
                                num2str(err/1000,'%.2f') ' mSv | scale = ' ...
                                num2str(transscl)];
+
+                    paramerr = avgflux/1000 - transscl;
+                    figure(hfig_fluxerr)
+                    plot(run.eddy.Ro(tind), paramerr, '*');
 
                     figure(hfig_flux);
                     errorbar(transscl, avgflux/1000, err/1000, 'x');
@@ -431,17 +436,17 @@ classdef runArray < handle
 
             hfig4 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all;
 
-            hfig5 = figure;
-            subplot(3,1,1); hold all;
-            subplot(3,1,2); hold all;
-            subplot(3,1,3); hold all;
+            hfig5 = []; %figure;
+            %subplot(3,1,1); hold all;
+            %subplot(3,1,2); hold all;
+            %subplot(3,1,3); hold all;
 
             hfig6 = []; %figure; hold all
 
-            hfig7 = figure;
-            subplot(3,1,1); hold all;
-            subplot(3,1,2); hold all;
-            subplot(3,1,3); hold all;
+            hfig7 = []; %figure;
+            %subplot(3,1,1); hold all;
+            %subplot(3,1,2); hold all;
+            %subplot(3,1,3); hold all;
 
             if isempty(runArray.filter)
                 runArray.filter = 1:runArray.len;
