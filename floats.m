@@ -40,6 +40,24 @@ classdef floats < handle
                 toc;tic;
             end
 
+            if strcmpi(type,'tracpy')
+                floats.x = ncread(file,'lonp');
+                floats.y = ncread(file,'latp');
+                try
+                    floats.z = ncread(file,'zp');
+                catch ME
+                    floats.z = nan(size(floats.x));
+                end
+                floats.time = ncread(file,'tp');
+                floats.temp = nan(size(floats.x));
+                floats.salt = nan(size(floats.x));
+                floats.rho = nan(size(floats.x));
+
+                floats.type = 'tracpy';
+                disp('Read data. Now processing.');
+                toc;tic;
+            end
+
             if strcmpi(type,'ltrans')
                 floats.y = ncread(file,'lat')';
                 floats.x = ncread(file,'lon')';
@@ -171,7 +189,11 @@ classdef floats < handle
             end
             
             % remove floats that are all NaN
-            tmat = repmat(floats.time,[1 size(floats.x,2)]);
+            if isvector(floats.time)
+                tmat = repmat(floats.time,[1 size(floats.x,2)]);
+            else
+                tmat = floats.time;
+            end
             nanmask = ~all(isnan(floats.x),1);
             floats.x = floats.x(:,nanmask);
             floats.y = floats.y(:,nanmask);
