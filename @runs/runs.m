@@ -1,7 +1,7 @@
 classdef runs < handle
 properties
     % dir & file names
-    name; dir; out_file; ltrans_file; flt_file; givenFile
+    name; dir; out_file; ltrans_file; flt_file; givenFile; tracpy_file;
     % data
     zeta; temp; usurf; vsurf; vorsurf; csdsurf; ubot; vbot;
     % dimensional and non-dimensional time
@@ -19,7 +19,7 @@ properties
     % grid & bathymetry
     rgrid; bathy
     % float data
-    roms; ltrans;
+    roms; ltrans; tracpy;
     % sponge details
     sponge;
     % eddy track data
@@ -77,6 +77,7 @@ methods
         end
         runs.flt_file = [dir '/ocean_flt.nc'];
         runs.ltrans_file = [dir '/ltrans.nc'];
+        runs.tracpy_file = [runs.dir '/tracks/tracpy.nc'];
 
         % get grid
         zeta0 = double(ncread(runs.out_file,'zeta',[1 1 1],[Inf Inf 1]));
@@ -133,7 +134,6 @@ methods
         if isnan(runs.params.bg.vbt)
             runs.params.bg.vbt = 0;
         end
-
 
         % sometimes I forget to change T0 in *.in file
         % but they aren't stored in the history file output, only
@@ -198,6 +198,12 @@ methods
             runs.roms = floats('roms',runs.flt_file,runs.rgrid);
         catch ME
             disp('Reading ROMS floats failed.');
+            disp(ME);
+        end
+        try
+            runs.tracpy = floats('tracpy',runs.tracpy_file,runs.rgrid);
+        catch ME
+            disp('Reading tracpy floats failed.');
             disp(ME);
         end
 
@@ -4758,6 +4764,7 @@ methods
     end
 
     function [] = animate_floats(runs,type)
+        runs.read_zeta;
         if strcmpi(type,'ltrans')
             runs.ltrans.animate(runs.rgrid,runs.zeta,runs.eddy);
         end
