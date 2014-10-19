@@ -2,7 +2,7 @@ classdef floats < handle
     properties
         x; y; z; time; age;
         fac; type
-        temp; salt
+        temp; salt; rho;
         hitLand; hitBottom
         init; N = 0;
         comment = ['init = (x,y,z,t) = initial location, release time in meters, seconds | ' ...
@@ -29,10 +29,10 @@ classdef floats < handle
                 floats.z = ncread(file,'depth')';
                 floats.time = ncread(file,'ocean_time');
                 try
-                    floats.temp = ncread(file,'temp');
-                    floats.salt = ncread(file,'salt');
+                    floats.temp = ncread(file,'temp')';
+                    floats.salt = ncread(file,'salt')';
                 catch
-                    floats.rho = ncread(file, 'rho');
+                    floats.rho = ncread(file, 'rho')';
                     floats.salt = nan(size(floats.x));
                 end
                 floats.type = 'roms';
