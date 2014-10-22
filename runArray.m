@@ -70,10 +70,12 @@ classdef runArray < handle
             end
         end
 
-        function [] = print_diag(runArray, name)
+        function [diags] = print_diag(runArray, name)
             if isempty(runArray.filter)
                 runArray.filter = 1:runArray.len;
             end
+
+            diags = nan(size(runArray.filter));
 
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
@@ -83,10 +85,28 @@ classdef runArray < handle
 
                 %%%%% slope parameter
                 if strcmpi(name, 'slope param')
-                    diagstr = num2str( ...
-                        run.bathy.S_sl ...
-                    ./ run.eddy.Ro(1) ...
-                        );
+                    diags(ff) = run.eddy.Ro(1) ./ run.bathy.S_sl;
+                    diagstr = num2str(diags(ff));
+                end
+
+                %%%%% test critical iflux hypothesis for eddy to
+                %%%%% start moving northward
+                if strcmpi(name, 'critical flux')
+                    iflux = run.csflux.west.itrans.shelf(:,1);
+                    dcy = diff(run.eddy.vor.cy);
+
+                    ind = find(dcy(run.csflux.tscaleind:end) > 0, ...
+                               1, 'first') - 1 + run.csflux.tscaleind;
+
+                    % check ind detection
+                    %figure; plot(run.eddy.vor.cy); linex(ind);
+
+                    % get flux at ind
+                    run.csflux.critrans = ...
+                        run.csflux.west.itrans.shelf(ind,1);
+
+                    diags(ff) = run.csflux.critrans;
+                    diagstr = num2str(diags(ff));
                 end
 
                 % penetration
@@ -226,6 +246,7 @@ classdef runArray < handle
 % $$$                         close(hfig2);
 % $$$                     catch ME; end
 % $$$ % $$$
+                    run.eddy.paramflux = avgflux;
                     diagstr = [num2str(avgflux/1000,'%.2f') '±' ...
                                num2str(err/1000,'%.2f') ' mSv | scale = ' ...
                                num2str(transscl)];
@@ -245,9 +266,9 @@ classdef runArray < handle
                     %lab = cellstr(get(hax1,'xticklabel'));
                     %lab{ff} = getname(runArray, ff);
                     %set(hax1,'xticklabel', lab);
-                 end
+                end
 
-                 disp([run.name ' | ' name ' = ' diagstr])
+                disp([run.name ' | ' name ' = ' diagstr])
             end
 
             if exist('hfig_flux', 'var')
