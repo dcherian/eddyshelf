@@ -658,8 +658,8 @@ classdef runArray < handle
         function [] = plot_param(runArray)
             hfig1 = figure;
             hold all
-            %hfig2 = figure;
-            %hold all
+            hfig2 = figure;
+            hold all
 
             if isempty(runArray.filter)
                 runArray.filter = 1:runArray.len;
@@ -670,9 +670,9 @@ classdef runArray < handle
 
                 run = runArray.array(ii);
                 if isempty(runArray.name)
-                    name = run.name
+                    name = run.name;
                 else
-                    name = runArray.name{ii}
+                    name = runArray.name{ii};
                 end
                 eddy_ndtime = run.eddy.t/run.tscale*86400;
                 csflx_ndtime = run.csflux.time/run.tscale * 86400;
@@ -687,11 +687,10 @@ classdef runArray < handle
                 meanLz(ii) = nanmean(run.eddy.Lgauss(1));
                 meancy(ii) = nanmean(run.eddy.cy(etind:end));
 
-                param(ii) = abs(log(run.eddy.Ro(1)/ ...
-                                run.params.nondim.S_sl));
+                param(ii) = (run.eddy.Ro(1)/ run.params.nondim.S_sl);
 
                 x = (meanprox(ii));
-                y = meanLz(ii) * sqrt(param(ii));
+                y = meanLz(ii) * sqrt(abs(log(param(ii))));
 
                 figure(hfig1);
                 hgplt = plot(x, y, '.', 'MarkerSize', 16);
@@ -700,11 +699,10 @@ classdef runArray < handle
                       num2str(meanprox(ii))]);
                 %    pause;
 
-                %figure(hfig2);
-                %hgplt = plot(param(ii), meanflux(ii), '.', 'MarkerSize', 16);
-                %addlegend(hgplt, name);
-                %disp(['run = ', run.name , ' | mean prox. = ', ...
-                %      num2str(meanflux(ii))]);
+                figure(hfig2);
+                hgplt = plot(param(ii), meanprox(ii), '.', 'MarkerSize', ...
+                             16);
+                text(param(ii), meanprox(ii), run.name)
             end
             figure(hfig1);
             ylabel('Water depth at eddy center (m)');
