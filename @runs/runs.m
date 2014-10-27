@@ -195,13 +195,15 @@ methods
             end
         end
         try
-            runs.roms = floats('roms',runs.flt_file,runs.rgrid);
+            runs.roms = floats('roms', runs.dir, runs.rgrid, ...
+                               runs.bathy.xsb);
         catch ME
             disp('Reading ROMS floats failed.');
             disp(ME);
         end
         try
-            runs.tracpy = floats('tracpy',runs.tracpy_file,runs.rgrid);
+            runs.tracpy = floats('tracpy',runs.tracpy_file,runs.rgrid, ...
+                                 runs.bathy.xsb);
         catch ME
             disp('Reading tracpy floats failed.');
             disp(ME);
@@ -409,7 +411,7 @@ methods
         if exist(runs.ltrans_file,'file')
             try
                 runs.ltrans = floats('ltrans',runs.ltrans_file, ...
-                                     runs.rgrid);
+                                     runs.rgrid, runs.bathy.xsb);
             catch ME
                 warning('LTRANS data not read in');
             end
