@@ -2,6 +2,12 @@ classdef floats < handle
     properties
         x; y; z; time; age;
         fac; type
+        xsb; % shelfbreak location
+        winds; % indices floats that crossed shelfbreak WEST of
+               % eddy.
+        einds; % indices of floats that crossed EAST of the eddy
+        reenter; % number of floats that re-enter shelf after
+                 % crossing shelfbreak
         temp; salt; rho;
         hitLand; hitBottom
         init; N = 0;
@@ -214,12 +220,14 @@ classdef floats < handle
                 floats.y(mask2) = NaN;
                 floats.z(mask2) = NaN;
             end
-            
+
             %
             floats.N = sum(repnan(floats.x,0)~=0,2);
             floats.comment = ['init = (x,y,z,t) = initial location, release time in meters, seconds | ' ...
                 'fac = number float timesteps per ROMS output timestep'];
-            
+
+            % assign shelfbreak depth
+            floats.xsb = xsb;
             % calculate fac
             try
                 dtroms = rgrid.ocean_time(2)-rgrid.ocean_time(1);
@@ -246,8 +254,40 @@ classdef floats < handle
     %             end
             disp(['Finished processing ' upper(type) ' floats.']);
             toc;
-        end % read_floats   
-        
+        end % read_floats
+
+        function [] = plot_xz(floats, rgrid, bathy)
+            hmin = min(rgrid.h(:));
+
+            figure;
+            % draw bathy cross-section
+            patch([rgrid.y_rho(:,1); min(rgrid.y_rho(:,1))]/1000, ...
+                  -1*[hmin; rgrid.h(:,1)], 'k');
+            limx = xlim;
+            xlim([0 limx(2)]); ylim([-1*max(rgrid.h(:)) 0]);
+            xlabel('Y (km)'); ylabel('Z (m)');
+
+            % add float tracks
+            hold on;
+
+            latp = floats.y(:, floats.winds)/1000;
+            zp = floats.z(:, floats.winds);
+
+            plot(latp, zp, '-', 'Color', [1 1 1]*0.75);
+
+            figure;
+            ax(1) = subplot(2,1,1);
+            hist(zp(end,:));
+            beautify;
+            title('Final z-locations of particles');
+            ax(2) = subplot(2,1,2);
+            hist(min(zp, [], 1));
+            beautify;
+            title(['Minimum z-location that a particle has ' ...
+                   'visited']);
+            linkaxes(ax, 'xy');
+        end
+
         % plots displacements
         function [] = plot_displacements(floats)
             fig; 
