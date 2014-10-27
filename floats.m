@@ -301,22 +301,22 @@ classdef floats < handle
 
         % plots displacements
         function [] = plot_displacements(floats)
-            fig; 
+            fig;
             subplot(131);
-            plot(floats.time/86400,floats.x/1000); 
+            plot(floats.time/86400,floats.x/1000);
             ylim([0 300]); xlim([0 200]);
             title('x')
             subplot(132);
-            plot(floats.time/86400,floats.y/1000); 
+            plot(floats.time/86400,floats.y/1000);
             ylim([0 300]); xlim([0 200]);
             title('y')
             subplot(133);
-            plot(floats.time/86400,floats.z); 
+            plot(floats.time/86400,floats.z);
             ylim([-300 0]); xlim([0 200]);
             title('z')
             suplabel(upper(floats.type),'t');
         end
-        
+
         % calculate lagrangian statistics
         function [] = stats(floats)
             T = size(floats.x,1);
@@ -326,9 +326,9 @@ classdef floats < handle
                           nansum(bsxfun(@minus,floats.y,floats.init(:,2)'),2) ...
                           nansum(bsxfun(@minus,floats.z,floats.init(:,3)'),2)] ...
                           ,1./floats.N);
-                      
+
              % cloud / relative dispersion
-%             tic;  
+%             tic;
 %             s = zeros(T,3);
 %             for i=1:size(floats.x,2)
 %                 for j=1:size(floats.x,2)
@@ -367,14 +367,14 @@ classdef floats < handle
             end
             toc;
             floats.disp = bsxfun(@times,s,1./(floats.N.*(floats.N-1)));
-            
+
             % kurtosis - this could be improved?
             floats.kur = nan(T,3);
             floats.kur = [kurtosis(floats.x,0,2) kurtosis(floats.y,0,2) kurtosis(floats.z,0,2)];
 %             dfx = bsxfun(@minus,floats.x,floats.mom1(:,1));
 %             dfy = bsxfun(@minus,floats.y,floats.mom1(:,2));
 %             dfz = bsxfun(@minus,floats.z,floats.mom1(:,3));
-%             
+%
 %             floats.kur(:,1) = nansum(dfx.^4,2)./ ...
 %                              (nansum(dfx.^2,2)).^2;
 %             floats.kur(:,2) = nansum(dfy.^4,2)./ ...
@@ -382,7 +382,7 @@ classdef floats < handle
 %             floats.kur(:,3) = nansum(dfz.^4,2)./ ...
 %                              (nansum(dfz.^2,2)).^2;
         end
-        
+
         % plot stats in subplots
         function [hfig] = plot_stats(floats,hfig)
             if isempty(floats.kur), floats.stats; end
@@ -411,7 +411,7 @@ classdef floats < handle
             legend('x','y','z','Location','NorthWest');
             beautify([14 14 16]);
         end
-        
+
         % animates with zeta plot
         function [] = animate(floats,rgrid,zeta,eddy)
 
@@ -420,11 +420,11 @@ classdef floats < handle
             figure;
             tfilt = cut_nan(fillnan(floats.init(:,4),0));
             ind0 = find_approx(rgrid.ocean_time, tfilt(1),1);
-            
+
             i = ind0;
             [~,hz] = contourf(rgrid.x_rho/1000,rgrid.y_rho/1000,zeta(:,:,i)',25);
             shading flat; axis image
-            colormap(cmap); 
+            colormap(cmap);
             caxis([min(zeta(:)) max(zeta(:))]);
             hold on
             [C,hc] = contour(rgrid.x_rho./1000,rgrid.y_rho./1000, ...
@@ -455,14 +455,14 @@ classdef floats < handle
 %% tracks at timestep movie
 % dir = 'E:\Work\eddyshelf\runs\topoeddy\runteb-04-hires-6\';
 % fname = [dir 'ocean_avg.nc'];
-% 
+%
 % rgrid = roms_get_grid(fname,fname,1,1);
 % redo = 1;
 % if ~exist('trac','var') || redo == 1
 %     trac = tracmass_read([dir '\eddytest_run.asc'],rgrid);
 % end
 % save([dir '/trac.mat'],'trac');
-% 
+%
 % %load trac_movie
 % load([dir '\eddytrack.mat']);
 % figure
