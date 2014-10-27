@@ -1474,6 +1474,58 @@ methods
 
     end
 
+    % filter floats that cross shelfbreak
+    function [] = filter_cross_sb(runs, name)
+
+        tic;
+        if ~exist('name', 'var') || isempty(name), name = 'tracpy'; end
+
+        winds = []; einds = [];
+
+        if strcmpi(name, 'tracpy')
+            flt = runs.tracpy;
+        end
+
+        xsb = runs.bathy.xsb;
+
+        % floats that start shoreward of shelfbreak and end
+        % offshore of shelfbreak
+        ind = find(flt.y(end,:) > xsb & flt.y(1,:) < xsb);
+        x1 = flt.x(:,ind); y1 = flt.y(:,ind);
+
+        % how many floats re-enter shelf
+        reenter = 0;
+
+        % loop through filtered floats
+        for ff=1:size(y1,2)
+            % now to check when they actually cross the shelfbreak
+            tind1 = find(y1(:,ff) < xsb, 1, 'last');
+            tind2 = find(y1(:,ff) > xsb, 1, 'first');
+
+            % make sure they never get back on shelf
+            if y1(tind2:end, ff) > xsb
+                % find appropriate time index in eddy time series
+                tfloat = flt.time(tind2, ff);
+                teddy = find_approx(runs.eddy.t * 86400, tfloat, 1);
+
+                if x1(tind2, ff) < runs.eddy.vor.ee(teddy)
+                    winds = [winds; ind(ff)];
+                else
+                    einds = [einds; ind(ff)];
+                end
+            else
+                reenter = reenter + 1;
+                %warning('Float re-enters shelf?');
+            end
+        end
+
+        eval(['runs.', name, '.winds = winds;']);
+        eval(['runs.', name, '.einds = einds;']);
+        eval(['runs.', name, '.reenter = reenter;']);
+        toc;
+
+    end
+
     % plot eddye - y-z cross-sections to compare against diagnosed vertical
     % scale
     function [] = plot_eddye(runs, days)

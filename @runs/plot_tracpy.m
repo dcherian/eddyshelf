@@ -4,7 +4,8 @@ function [] = plot_tracpy(runs)
     latp = runs.tracpy.y/1000;
 
     xsb = runs.bathy.xsb/1000;
-    inds = find(latp(end,:) > xsb & latp(1,:) < xsb);
+    %    inds = find(latp(end,:) > xsb & latp(1,:) < xsb);
+    inds = runs.tracpy.winds;
 
     figure;
     hold on;
@@ -48,7 +49,6 @@ function [] = plot_tracpy(runs)
            num2str(runs.tracpy.time(1)/86400) ' to ' ...
            num2str(runs.tracpy.time(end)/86400) ' | S_{sh} = ', ...
            num2str(runs.bathy.S_sh)]);
-
 
     beautify
 end
