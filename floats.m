@@ -18,27 +18,36 @@ classdef floats < handle
     end
     methods
         % reads data
-        function [floats] = floats(type,file,rgrid)
+        function [floats] = floats(type, file, rgrid, xsb)
             disp('Reading float data.');
             tic;
             if strcmpi(type,'roms')
                 try
-                    floats.x = ncread(file,'lon')';
+                    floats.x = dc_roms_read_data(file,'lon',[],{}, ...
+                                                 [],[],'flt',[])';
                 catch ME
-                    floats.x = ncread(file,'x')';
+                    floats.x = dc_roms_read_data(file,'x',[],{}, ...
+                                                 [],[],'flt',[])';
                 end
                 try
-                    floats.y = ncread(file,'lat')';
+                    floats.y = dc_roms_read_data(file,'lat',[],{}, ...
+                                                 [],[],'flt',[])';
                 catch ME
-                    floats.y = ncread(file,'y')';
+                    floats.y = dc_roms_read_data(file,'y',[],{}, ...
+                                                 [],[],'flt',[])';
                 end
-                floats.z = ncread(file,'depth')';
-                floats.time = ncread(file,'ocean_time');
+                    floats.z = dc_roms_read_data(file,'depth',[],{}, ...
+                                                 [],[],'flt',[])';
+                    floats.time = dc_roms_read_data(file,'ocean_time',[],{}, ...
+                                                 [],[],'flt',[])';
                 try
-                    floats.temp = ncread(file,'temp')';
-                    floats.salt = ncread(file,'salt')';
+                    floats.temp = dc_roms_read_data(file,'temp',[],{}, ...
+                                                 [],[],'flt',[])';
+                    floats.salt = dc_roms_read_data(file,'salt',[],{}, ...
+                                                 [],[],'flt',[])';
                 catch
-                    floats.rho = ncread(file, 'rho')';
+                    floats.rho = dc_roms_read_data(file,'rho',[],{}, ...
+                                                 [],[],'flt',[])';
                     floats.salt = nan(size(floats.x));
                 end
                 floats.type = 'roms';
@@ -68,7 +77,7 @@ classdef floats < handle
                 floats.y = ncread(file,'lat')';
                 floats.x = ncread(file,'lon')';
                 floats.z = ncread(file,'depth')';
-                floats.age = ncread(file,'age')'; 
+                floats.age = ncread(file,'age')';
                 floats.time = ncread(file,'model_time');
                 try
                     floats.temp = ncread(file,'temperature')';
@@ -97,7 +106,7 @@ classdef floats < handle
                     mask = (mask | maskbot);
                 end
                 floats.type = 'ltrans';
-                mask = (mask | bsxfun(@eq,floats.x,floats.x(1,:))); 
+                mask = (mask | bsxfun(@eq,floats.x,floats.x(1,:)));
                 floats.x(mask) = nan; floats.y(mask) = nan; floats.z(mask) = nan;
                 floats.temp(mask) = nan; floats.salt(mask) = nan;
             end
@@ -123,12 +132,12 @@ classdef floats < handle
                 % temp is the temperature of the trajectory particle
                 % salt is the salinity/specific humidity of the trajectory particle
                 % dens is the density of the trajectory particle
-                               tic 
+                               tic
                    [ntrac,~,ix,iy,iz,tt,t0,subvol,temp,salt,~] = ...
                                 textread(fname,'%d%d%f%f%f%f%f%f%f%f%s');
                    toc
                    disp('Finished opening file. Now processing for unique records');
-                   tic         
+                   tic
                 %   data = sortrows(data,1); % sort according to trac number
                    floats.time = unique(tt);
 
@@ -140,7 +149,7 @@ classdef floats < handle
                    for i = 1:length(unique(ntrac)) % ith drifter
                       %k = 1
                        j = find(ntrac == i);
-                      %for j=1:length(ntrac)    
+                      %for j=1:length(ntrac)
                         %if ntrac(j) == i
                             floats.t0(i) = t0(j(1));
                             fx = floor(ix(j)); fy = floor(iy(j)); fz = floor(iz(j));
@@ -185,7 +194,7 @@ classdef floats < handle
                    % fill with nans
                    names = fieldnames(floats);
                    for ii=1:length(names)
-                      floats.(names{ii}) = fillnan(floats.(names{ii}),0); 
+                      floats.(names{ii}) = fillnan(floats.(names{ii}),0);
                    end
 
                    floats.fac = 1; % outputs at model output
@@ -193,7 +202,7 @@ classdef floats < handle
                    toc
                    disp(' read float data ');
             end
-            
+
             % remove floats that are all NaN
             if isvector(floats.time)
                 tmat = repmat(floats.time,[1 size(floats.x,2)]);
@@ -211,7 +220,7 @@ classdef floats < handle
             end
             floats.temp = floats.temp(:,nanmask);
             floats.salt = floats.salt(:,nanmask);
-            
+
             % for ROMS floats remove those that have stuck to bottom / land
             % i.e., they go to (x,y,z) = (0,0,0);
             if strcmpi(type,'roms')
@@ -237,8 +246,10 @@ classdef floats < handle
                  warning('havent calculated fac');
             end
             % initial locations and seeding time
-            initmask = find([zeros([1 size(floats.x,2)]); abs(diff((cumsum(repnan(floats.x,0)) >= 1)))] == 1);
-            floats.init = [floats.x(initmask) floats.y(initmask) floats.z(initmask) tmat(initmask)];
+            initmask = find([zeros([1 size(floats.x,2)]); ...
+                             abs(diff((cumsum(repnan(floats.x,0)) >= 1)))] == 1);
+            floats.init = [floats.x(initmask) floats.y(initmask) ...
+                           floats.z(initmask) tmat(initmask)];
     %             tic;
     %             indices = max(bsxfun(@times,abs(diff(isnan(floats.x),1,1)),[1:size(floats.x,1)-1]'+1));
     %             for ii = 1:size(floats.x,2)
@@ -249,7 +260,7 @@ classdef floats < handle
     %                 else
     %                     ind = ind(1);
     %                 end
-    % 
+    %
     %                 floats.init(ii,:) = [floats.x(ind,ii) floats.y(ind,ii) floats.z(ind,ii) floats.time(ind)];
     %             end
             disp(['Finished processing ' upper(type) ' floats.']);
