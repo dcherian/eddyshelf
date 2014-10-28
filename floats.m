@@ -297,19 +297,7 @@ classdef floats < handle
                 floats.init = [floats.x(initmask) floats.y(initmask) ...
                                floats.z(initmask) tmat(initmask)];
             end
-    %             tic;
-    %             indices = max(bsxfun(@times,abs(diff(isnan(floats.x),1,1)),[1:size(floats.x,1)-1]'+1));
-    %             for ii = 1:size(floats.x,2)
-    %                 clear ind
-    %                 ind = find(floats.x(:,ii) > 0);
-    %                 if isempty(ind)
-    %                     ind = 1;
-    %                 else
-    %                     ind = ind(1);
-    %                 end
-    %
-    %                 floats.init(ii,:) = [floats.x(ind,ii) floats.y(ind,ii) floats.z(ind,ii) floats.time(ind)];
-    %             end
+
             disp(['Finished processing ' upper(type) ' floats.']);
             toc;
         end % read_floats
@@ -639,32 +627,4 @@ classdef floats < handle
             end
         end
     end
-%% tracks at timestep movie
-% dir = 'E:\Work\eddyshelf\runs\topoeddy\runteb-04-hires-6\';
-% fname = [dir 'ocean_avg.nc'];
-%
-% rgrid = roms_get_grid(fname,fname,1,1);
-% redo = 1;
-% if ~exist('trac','var') || redo == 1
-%     trac = tracmass_read([dir '\eddytest_run.asc'],rgrid);
-% end
-% save([dir '/trac.mat'],'trac');
-%
-% %load trac_movie
-% load([dir '\eddytrack.mat']);
-% figure
-% floats = roms;
-% for ii=1:length(floats.time)
-%     kk = find_approx(eddy.t,floats.time(ii));
-%     clf
-%     plot(floats.x(ii,:)/1000,floats.y(ii,:)/1000,'.','MarkerSize',12);
-%     hold on;
-%     plot(eddy.cx(kk)/1000,eddy.cy(kk)/1000,'r.','MarkerSize',16);
-%     plot(eddy.cx/1000,eddy.cy/1000,'k');
-%     [cc,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.mask(:,:,kk),1,'k');
-%     set(hh,'LineWidth',2);
-%     xlim([0 180]); ylim([0 300]);
-%     xlabel('X (km)'); ylabel('Y (km)');
-%     pause(0.01);
-% end
 end
