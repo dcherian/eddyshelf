@@ -1528,6 +1528,25 @@ methods
 
     end
 
+    % filter floats that start same time, place as ROMS deployment
+    function [] = filter_floats_start_roms(runs, type)
+
+        type = 'tracpy';
+
+        flt = runs.(type);
+        roms = runs.roms;
+
+        roms_inds = [];
+        for ii=1:size(roms.init,1)
+            ff = find(abs(flt.init(:,1) - roms.init(ii,1)) < 1e1 & ...
+                      abs(flt.init(:,2) - roms.init(ii,2)) < 1e1 & ...
+                      abs(flt.init(:,3) - roms.init(ii,3)) < 1e-3 & ...
+                      abs(flt.init(:,4) - roms.init(ii,4)) < 0.5*86400);
+            roms_inds = [roms_inds; ff];
+        end
+
+    end
+
     % plot eddye - y-z cross-sections to compare against diagnosed vertical
     % scale
     function [] = plot_eddye(runs, days)
@@ -3498,6 +3517,11 @@ methods
         end
 
         runs.video_write();
+    end
+
+    function [] = create_floats_init_file(runs, type)
+        eval(['init = runs.' type '.init;']);
+        save([runs.dir '/' type '_init.mat'], 'init');
     end
 
     function [] = animate_vor(runs,tind)
