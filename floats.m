@@ -8,6 +8,8 @@ classdef floats < handle
         einds; % indices of floats that crossed EAST of the eddy
         reenter; % number of floats that re-enter shelf after
                  % crossing shelfbreak
+        roms_inds; % indices of floats that started at same place,
+                   % time as ROMS deployment
         temp; salt; rho;
         hitLand; hitBottom
         init; N = 0;
@@ -36,10 +38,10 @@ classdef floats < handle
                     floats.y = dc_roms_read_data(file,'y',[],{}, ...
                                                  [],[],'flt',[])';
                 end
-                    floats.z = dc_roms_read_data(file,'depth',[],{}, ...
-                                                 [],[],'flt',[])';
-                    floats.time = dc_roms_read_data(file,'ocean_time',[],{}, ...
-                                                 [],[],'flt',[])';
+                floats.z = dc_roms_read_data(file,'depth',[],{}, ...
+                                             [],[],'flt',[])';
+                floats.time = dc_roms_read_data(file,'ocean_time',[],{}, ...
+                                                [],[],'flt',[])';
                 try
                     floats.temp = dc_roms_read_data(file,'temp',[],{}, ...
                                                  [],[],'flt',[])';
@@ -208,6 +210,7 @@ classdef floats < handle
                 tmat = repmat(floats.time,[1 size(floats.x,2)]);
             else
                 tmat = floats.time;
+                floats.time = floats.time(:,1);
             end
             nanmask = ~all(isnan(floats.x),1);
             floats.x = floats.x(:,nanmask);
@@ -245,11 +248,17 @@ classdef floats < handle
             catch ME
                  warning('havent calculated fac');
             end
+
             % initial locations and seeding time
-            initmask = find([zeros([1 size(floats.x,2)]); ...
-                             abs(diff((cumsum(repnan(floats.x,0)) >= 1)))] == 1);
-            floats.init = [floats.x(initmask) floats.y(initmask) ...
-                           floats.z(initmask) tmat(initmask)];
+            if strcmpi(type, 'tracpy')
+                floats.init = [floats.x(1,:)' floats.y(1,:)' floats.z(1,:)' ...
+                               tmat(1,:)'];
+            else
+                initmask = find([zeros([1 size(floats.x,2)]); ...
+                                 abs(diff((cumsum(repnan(floats.x,0)) >= 1)))] == 1);
+                floats.init = [floats.x(initmask) floats.y(initmask) ...
+                               floats.z(initmask) tmat(initmask)];
+            end
     %             tic;
     %             indices = max(bsxfun(@times,abs(diff(isnan(floats.x),1,1)),[1:size(floats.x,1)-1]'+1));
     %             for ii = 1:size(floats.x,2)
