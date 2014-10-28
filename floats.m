@@ -190,7 +190,9 @@ classdef floats < handle
                         ind = find(floats.x(:,ii) > 0);
                         ind = ind(1);
 
-                        floats.init(ii,:) = [floats.x(ind,ii) floats.y(ind,ii) floats.z(ind,ii) floats.time(ind)];
+                        floats.init(ii,:) = [floats.x(ind,ii) ...
+                                            floats.y(ind,ii) ...
+                                            floats.z(ind,ii) floats.time(ind)];
                    end
 
                    % fill with nans
@@ -235,8 +237,10 @@ classdef floats < handle
 
             %
             floats.N = sum(repnan(floats.x,0)~=0,2);
-            floats.comment = ['init = (x,y,z,t) = initial location, release time in meters, seconds | ' ...
-                'fac = number float timesteps per ROMS output timestep'];
+            floats.comment = ['init = (x,y,z,t) = initial location, ' ...
+                              'release time in meters, seconds | ', ...
+                              'fac = number float timesteps per ROMS output ' ...
+                              'timestep'];
 
             % assign shelfbreak depth
             floats.xsb = xsb;
