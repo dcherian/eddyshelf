@@ -444,9 +444,15 @@ classdef floats < handle
                 fmt = '-';
             end
 
+            ind = floats.roms_inds; %[];
+
+            if isempty(ind)
+                ind = 1:size(floats.mom1, 1);
+            end
+
             figure(hfigs(1));
             subplot(311)
-            plot(floats.time/86400,bsxfun(@times, floats.mom1(:,1:2), ...
+            plot(floats.time/86400,bsxfun(@times, floats.mom1(ind,1:2), ...
                                           [1/1000 1/1000]),fmt);
             hold on;
             xlabel('time (days)'); ylabel('first moment');
@@ -456,20 +462,20 @@ classdef floats < handle
 
             subplot(312)
             plot(floats.time/86400, ...
-                 bsxfun(@times,floats.disp(:,1:2), [1 1]),fmt); hold on;
+                 bsxfun(@times,floats.disp(ind,1:2), [1 1]),fmt); hold on;
             xlabel('time (days)'); ylabel('Relative Dispersion');
             legend('x (km^2)','y (km^2)','Location','NorthWest');
             beautify([14 14 16]);
 
             subplot(313)
-            plot(floats.time/86400, floats.kur(:,1:2),fmt); hold on;
+            plot(floats.time/86400, floats.kur(ind,1:2),fmt); hold on;
             xlabel('time (days)'); ylabel('Kurtosis');
-            legend('x','y','z','Location','NorthWest');
+            legend('x','y','Location','NorthWest');
             beautify([14 14 16]);
 
             figure(hfigs(2));
             subplot(311)
-            plot(floats.time/86400,bsxfun(@times, floats.mom1(:,3), ...
+            plot(floats.time/86400,bsxfun(@times, floats.mom1(ind,3), ...
                                           [1]),fmt);
             hold on;
             xlabel('time (days)'); ylabel('first moment');
@@ -479,13 +485,13 @@ classdef floats < handle
 
             subplot(312)
             plot(floats.time/86400, ...
-                 bsxfun(@times,floats.disp(:,3), [1]),fmt); hold on;
+                 bsxfun(@times,floats.disp(ind,3), [1]),fmt); hold on;
             xlabel('time (days)'); ylabel('Relative Dispersion');
             legend('x (km^2)','y (km^2)','Location','NorthWest');
             beautify([14 14 16]);
 
             subplot(313)
-            plot(floats.time/86400, floats.kur(:,3),fmt); hold on;
+            plot(floats.time/86400, floats.kur(ind,3),fmt); hold on;
             xlabel('time (days)'); ylabel('Kurtosis');
             legend('x','y','z','Location','NorthWest');
             beautify([14 14 16]);
