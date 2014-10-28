@@ -1,7 +1,8 @@
 classdef runs < handle
 properties
     % dir & file names
-    name; dir; out_file; ltrans_file; flt_file; givenFile; tracpy_file;
+    name; dir; out_file; ltrans_file; flt_file; givenFile; tracpy_file; ...
+        fpos_file;
     % data
     zeta; temp; usurf; vsurf; vorsurf; csdsurf; ubot; vbot;
     % dimensional and non-dimensional time
@@ -75,9 +76,10 @@ methods
             dir = dir(1:inds(end));
             runs.dir = dir;
         end
-        runs.flt_file = [dir '/ocean_flt.nc'];
-        runs.ltrans_file = [dir '/ltrans.nc'];
+        runs.flt_file = [runs.dir '/ocean_flt.nc'];
+        runs.ltrans_file = [runs.dir '/ltrans.nc'];
         runs.tracpy_file = [runs.dir '/tracks/tracpy.nc'];
+        runs.fpos_file = [runs.dir '/' roms_find_file(dir, 'fpos')];
 
         % get grid
         zeta0 = double(ncread(runs.out_file,'zeta',[1 1 1],[Inf Inf 1]));
@@ -196,7 +198,7 @@ methods
         end
         try
             runs.roms = floats('roms', runs.dir, runs.rgrid, ...
-                               runs.bathy.xsb);
+                               runs.bathy.xsb, runs.fpos_file);
         catch ME
             disp('Reading ROMS floats failed.');
             disp(ME);
