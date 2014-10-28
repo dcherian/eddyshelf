@@ -20,7 +20,7 @@ classdef floats < handle
     end
     methods
         % reads data
-        function [floats] = floats(type, file, rgrid, xsb)
+        function [floats] = floats(type, file, rgrid, xsb, fltname)
             disp('Reading float data.');
             tic;
             if strcmpi(type,'roms')
@@ -257,7 +257,41 @@ classdef floats < handle
             if strcmpi(type, 'tracpy')
                 floats.init = [floats.x(1,:)' floats.y(1,:)' floats.z(1,:)' ...
                                tmat(1,:)'];
-            else
+            end
+
+            if strcmpi(type, 'roms')
+                % The ROMS float output file does not store the
+                % location when the float is deployed, so
+                % parse the floats.in file to figure it out. This
+                % requires fltname to be provided to the
+                % constructor.
+
+                floats.parse_roms_fltname(rgrid, fltname);
+
+                % add this initial position back to the floats
+                % location array
+                initmask = find([zeros([1 size(floats.x,2)]); ...
+                                 abs(diff((cumsum(repnan(floats.x,0)) >= 1)))] == 1);
+
+                % assign init values to location arrays
+                floats.x(initmask-1) = floats.init(:,1);
+                floats.y(initmask-1) = floats.init(:,2);
+                floats.z(initmask-1) = floats.init(:,3);
+
+                % check that the above worked
+                initmask = find([zeros([1 size(floats.x,2)]); ...
+                                 abs(diff((cumsum(repnan(floats.x,0)) ...
+                                           >= 1)))] == 1);
+                assert(isequal(floats.x(initmask), floats.init(:, ...
+                                                               1)));
+                assert(isequal(floats.y(initmask), floats.init(:, ...
+                                                               2)));
+                assert(isequal(floats.z(initmask), floats.init(:, ...
+                                                               3)));
+                assert(isequal(tmat(initmask), floats.init(:,4)));
+            end
+
+            if strcmpi(type, 'ltrans')
                 initmask = find([zeros([1 size(floats.x,2)]); ...
                                  abs(diff((cumsum(repnan(floats.x,0)) >= 1)))] == 1);
                 floats.init = [floats.x(initmask) floats.y(initmask) ...
