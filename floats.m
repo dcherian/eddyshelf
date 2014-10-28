@@ -531,6 +531,107 @@ classdef floats < handle
                 pause(0.03)
             end
         end
+
+        function [] = parse_roms_fltname(floats, rgrid, fpos_file)
+
+            % find line just before float location specification
+            [~,p] = grep('POS = ', fpos_file);
+
+            % make sure there's only one match above
+            assert(length(p.line) == 1);
+
+            % Grid units  = (i,j)
+            % Initial floats locations for all grids:
+            %
+            %   1 G      Nested grid number
+            %   2 C      Initial horizontal coordinate type (0: grid units, 1: spherical)
+            %   3 T      Float trajectory type (1: Lagrangian, 2: isobaric, 3: Geopotential)
+            %   4 N       Number floats to be released at (Fx0,Fy0,Fz0)
+            %   5 Ft0    Float release time (days) after model initialization
+            %   6 Fx0    Initial float X-location (grid units or longitude)
+            %   7 Fy0    Initial float Y-location (grid units or latitude)
+            %   8 Fz0    Initial float Z-location (grid units or depth)
+            %   9 Fdt    Float cluster release time interval (days)
+            %  10 Fdx    Float cluster X-distribution parameter
+            %  11 Fdy    Float cluster Y-distribution parameter
+            %  12 Fdz    Float cluster Z-distribution parameter
+
+            fid = fopen(fpos_file);
+            readstr = textscan(fid, '%d%d%d%d%f%f%f%f%f%f%f%f', ...
+                               'HeaderLines', p.line+1, 'CommentStyle', ...
+                               '!');
+            fclose(fid);
+
+            % go through each line
+            for ii=1:length(readstr{1})
+                if readstr{2}(ii) == 0
+
+                    N = readstr{4}(ii);
+                    t0 = readstr{5}(ii);
+                    x0 = readstr{6}(ii);
+                    y0 = readstr{7}(ii);
+                    z0 = readstr{8}(ii) + 1; % +1 since ROMS has 0
+                                             % as the bottom level
+                                             % but MATLAB uses 1
+                    dt = readstr{9}(ii);
+                    dx = readstr{10}(ii);
+                    dy = readstr{11}(ii);
+                    dz = readstr{12}(ii);
+
+                    % figure out how many dimensions to distribute
+                    % across. ASSUMING DC_FLOATS_DEPLOYMENT IS ENABLED
+                    count = 0;
+                    if dt > 0, count = count + 1; end
+                    if dx > 0, count = count + 1; end
+                    if dy > 0, count = count + 1; end
+                    if dz > 0, count = count + 1; end
+
+                    nlimit = floor(double(N)^(1/count));
+                    % this is the actual number of floats deployed
+                    N = nlimit ^ (count);
+
+                    tlimit = 0; xlimit = 0; ylimit = 0; zlimit = 0;
+
+                    % limits for loops
+                    if dt > 0, tlimit = nlimit; end
+                    if dx > 0, xlimit = nlimit; end
+                    if dy > 0, ylimit = nlimit; end
+                    if dz > 0, zlimit = nlimit; end
+
+                    % lengths of grid vectors
+                    X = size(rgrid.x_rho, 2);
+                    Y = size(rgrid.x_rho, 1);
+                    Z = size(rgrid.z_r, 1);
+
+                    k=1;
+                    floats.init = nan(N,4);
+                    for xx=1:xlimit
+                        for yy=1:ylimit
+                            for zz=1:zlimit
+                                for tt=1:tlimit
+                                    floats.init(k,1) = interp1(1:X, ...
+                                                               rgrid.x_rho(1,:), ...
+                                                               x0 + (xx-1)*dx);
+                                    floats.init(k,2) = interp1(1:Y, ...
+                                                               rgrid.y_rho(:,1), ...
+                                                               y0 + (yy-1)*dy);
+                                    floats.init(k,3) = interp1(1:Z, ...
+                                                               rgrid.z_r(:, ...
+                                                                         y0+(yy-1)*dy, ...
+                                                                         x0+(xx-1)*dx), ...
+                                                               z0 + (zz-1)*dz);
+                                    floats.init(k,4) = (t0 + (tt-1)*dt)*86400;
+                                    k=k+1;
+                                end
+                            end
+                        end
+                    end
+                else
+                    warning(['Not ready to interpret non-grid-co-ordinate ' ...
+                             'floats.in file']);
+                end
+            end
+        end
     end
 %% tracks at timestep movie
 % dir = 'E:\Work\eddyshelf\runs\topoeddy\runteb-04-hires-6\';
@@ -560,5 +661,4 @@ classdef floats < handle
 %     xlabel('X (km)'); ylabel('Y (km)');
 %     pause(0.01);
 % end
-
 end
