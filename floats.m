@@ -393,32 +393,65 @@ classdef floats < handle
         end
 
         % plot stats in subplots
-        function [hfig] = plot_stats(floats,hfig)
+        function [hfigs] = plot_stats(floats, hfigs)
             if isempty(floats.kur), floats.stats; end
-            if ~exist('hfig','var'), hfig = gcf; end
-            if strcmp(floats.type,'ltrans')
+            if ~exist('hfigs','var')
+                hfigs(1) = figure;
+                hfigs(2) = figure;
+            end
+            if strcmp(floats.type,'ltrans') || strcmp(floats.type, 'tracpy')
                 fmt = '--';
                 %floats.time = floats.time + 4147200;
             else
                 fmt = '-';
             end
-            figure(hfig);
+
+            figure(hfigs(1));
             subplot(311)
-            plot(floats.time/86400,bsxfun(@times, floats.mom1,[ 1/1000 1/1000 10]),fmt); hold on;
+            plot(floats.time/86400,bsxfun(@times, floats.mom1(:,1:2), ...
+                                          [1/1000 1/1000]),fmt);
+            hold on;
             xlabel('time (days)'); ylabel('first moment');
-            legend('x (km)','y (km)','10 * z (m)','Location','NorthWest');
-            title(' dashed = LTRANS, line = ROMS');
+            legend('x (km)','y (km)','Location','NorthWest');
+            title([' dashed = ' floats.type ', line = ROMS']);
             beautify([14 14 16]);
+
             subplot(312)
-            plot(floats.time/86400,bsxfun(@times,floats.disp,[1 10 10]),fmt); hold on;
+            plot(floats.time/86400, ...
+                 bsxfun(@times,floats.disp(:,1:2), [1 1]),fmt); hold on;
             xlabel('time (days)'); ylabel('Relative Dispersion');
-            legend('x (km^2)','10*y (km^2)','10*z (m^2)','Location','NorthWest');
+            legend('x (km^2)','y (km^2)','Location','NorthWest');
             beautify([14 14 16]);
+
             subplot(313)
-            plot(floats.time/86400,floats.kur,fmt); hold on;
+            plot(floats.time/86400, floats.kur(:,1:2),fmt); hold on;
             xlabel('time (days)'); ylabel('Kurtosis');
             legend('x','y','z','Location','NorthWest');
             beautify([14 14 16]);
+
+            figure(hfigs(2));
+            subplot(311)
+            plot(floats.time/86400,bsxfun(@times, floats.mom1(:,3), ...
+                                          [1]),fmt);
+            hold on;
+            xlabel('time (days)'); ylabel('first moment');
+            legend('x (km)','y (km)','Location','NorthWest');
+            title([' dashed = ' floats.type ', line = ROMS']);
+            beautify([14 14 16]);
+
+            subplot(312)
+            plot(floats.time/86400, ...
+                 bsxfun(@times,floats.disp(:,3), [1]),fmt); hold on;
+            xlabel('time (days)'); ylabel('Relative Dispersion');
+            legend('x (km^2)','y (km^2)','Location','NorthWest');
+            beautify([14 14 16]);
+
+            subplot(313)
+            plot(floats.time/86400, floats.kur(:,3),fmt); hold on;
+            xlabel('time (days)'); ylabel('Kurtosis');
+            legend('x','y','z','Location','NorthWest');
+            beautify([14 14 16]);
+
         end
 
         % animates with zeta plot
