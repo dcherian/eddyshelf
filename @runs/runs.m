@@ -196,20 +196,6 @@ methods
                 warning([dname 'not found in ini file']);
             end
         end
-        try
-            runs.roms = floats('roms', runs.dir, runs.rgrid, ...
-                               runs.bathy.xsb, runs.fpos_file);
-        catch ME
-            disp('Reading ROMS floats failed.');
-            disp(ME);
-        end
-        try
-            runs.tracpy = floats('tracpy',runs.tracpy_file,runs.rgrid, ...
-                                 runs.bathy.xsb);
-        catch ME
-            disp('Reading tracpy floats failed.');
-            disp(ME);
-        end
 
         if runs.bathy.axis == 'y'
             runs.asvelname = 'u';
@@ -340,6 +326,35 @@ methods
             %runs.eddy_bulkproperties;
         end
 
+        % Process floats
+        try
+            runs.roms = floats('roms', runs.dir, runs.rgrid, ...
+                               runs.bathy.xsb, runs.fpos_file);
+        catch ME
+            disp('Reading ROMS floats failed.');
+            disp(ME);
+        end
+        try
+            runs.tracpy = floats('tracpy',runs.tracpy_file,runs.rgrid, ...
+                                 runs.bathy.xsb);
+        catch ME
+            disp('Reading tracpy floats failed.');
+            disp(ME);
+        end
+        if exist(runs.ltrans_file,'file')
+            try
+                runs.ltrans = floats('ltrans',runs.ltrans_file, ...
+                                     runs.rgrid, runs.bathy.xsb);
+            catch ME
+                warning('LTRANS data not read in');
+            end
+        end
+
+        % filter out floats that have crossed shelfbreak
+        runs.filter_cross_sb('roms');
+        runs.filter_cross_sb('tracpy');
+        runs.filter_cross_sb('ltrans');
+
         % load streamer data if it exists.
         if exist([dir '/streamer.mat'], 'file') && reset ~= 1
             disp('Loading streamer data');
@@ -408,15 +423,6 @@ methods
             data = load([dir '/jet.mat']);
             runs.jet = data.jet;
             clear data
-        end
-
-        if exist(runs.ltrans_file,'file')
-            try
-                runs.ltrans = floats('ltrans',runs.ltrans_file, ...
-                                     runs.rgrid, runs.bathy.xsb);
-            catch ME
-                warning('LTRANS data not read in');
-            end
         end
 
         % set time-scale for normalization
@@ -1486,7 +1492,9 @@ methods
 
         winds = []; einds = []; reenter_inds = [];
 
+        % assign float structure
         eval(['flt = runs.' name ';']);
+        if isempty(flt); return; end
 
         xsb = runs.bathy.xsb;
 
