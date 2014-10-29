@@ -1484,17 +1484,16 @@ methods
         tic;
         if ~exist('name', 'var') || isempty(name), name = 'tracpy'; end
 
-        winds = []; einds = [];
+        winds = []; einds = []; reenter_inds = [];
 
-        if strcmpi(name, 'tracpy')
-            flt = runs.tracpy;
-        end
+        eval(['flt = runs.' name ';']);
 
         xsb = runs.bathy.xsb;
 
         % floats that start shoreward of shelfbreak and end
         % offshore of shelfbreak
-        ind = find(flt.y(end,:) > xsb & flt.y(1,:) < xsb);
+        %ind = find(flt.y(end,:) > xsb & flt.init(:,2)' < xsb);
+        ind = find(flt.init(:,2)' < xsb);
         x1 = flt.x(:,ind); y1 = flt.y(:,ind);
 
         % how many floats re-enter shelf
@@ -1506,26 +1505,37 @@ methods
             tind1 = find(y1(:,ff) < xsb, 1, 'last');
             tind2 = find(y1(:,ff) > xsb, 1, 'first');
 
-            % make sure they never get back on shelf
-            if y1(tind2:end, ff) > xsb
-                % find appropriate time index in eddy time series
-                tfloat = flt.time(tind2, ff);
-                teddy = find_approx(runs.eddy.t * 86400, tfloat, 1);
+            % oops, this one didn't cross
+            if isempty(tind2), continue; end
 
+            % find appropriate time index in eddy time series
+            tfloat = flt.time(tind2);
+            teddy = find_approx(runs.eddy.t * 86400, tfloat, 1);
+
+            % make sure they end off the shelf
+            if y1(end, ff) > xsb
+                % these crossed to the west off the eddy
                 if x1(tind2, ff) < runs.eddy.vor.ee(teddy)
                     winds = [winds; ind(ff)];
                 else
                     einds = [einds; ind(ff)];
                 end
             else
-                reenter = reenter + 1;
-                %warning('Float re-enters shelf?');
+                % these didn't end off the shelf
+
+                % These have crossed the shelfbreak to the WEST of
+                % the eddy and then crossed back in
+                if x1(tind2, ff) < runs.eddy.vor.ee(teddy)
+                    reenter = reenter + 1;
+                    reenter_inds = [reenter_inds; ff];
+                end
             end
         end
 
         eval(['runs.', name, '.winds = winds;']);
         eval(['runs.', name, '.einds = einds;']);
         eval(['runs.', name, '.reenter = reenter;']);
+        eval(['runs.', name, '.reenter_inds = reenter_inds;']);
         toc;
 
     end
