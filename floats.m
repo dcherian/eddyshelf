@@ -8,8 +8,16 @@ classdef floats < handle
         einds; % indices of floats that crossed EAST of the eddy
         reenter; % number of floats that re-enter shelf after
                  % crossing shelfbreak
+        reenter_inds; % indices of floats that crossed the
+                      % shelfbreak to the WEST of the eddy and the
+                      % returned to the shelf
         roms_inds; % indices of floats that started at same place,
                    % time as ROMS deployment
+        actual_init; % for ROMS floats only. added if float output
+                     % doesn't coincide with history file
+                     % output. This is needed because stats are
+                     % calculated based on first location in
+                     % *flt.nc output.
         temp; salt; rho;
         hitLand; hitBottom
         init; N = 0;
@@ -266,32 +274,10 @@ classdef floats < handle
                 % requires fltname to be provided to the
                 % constructor.
 
-                floats.parse_roms_fltname(rgrid, fltname);
-
-                % add this initial position back to the floats
-                % location array
-                initmask = find([zeros([1 size(floats.x,2)]); ...
-                                 abs(diff((cumsum(repnan(floats.x,0)) >= 1)))] == 1);
-
-                % assign init values to location arrays
-                floats.x(initmask-1) = floats.init(:,1);
-                floats.y(initmask-1) = floats.init(:,2);
-                floats.z(initmask-1) = floats.init(:,3);
-
-                % check that the above worked
-                initmask = find([zeros([1 size(floats.x,2)]); ...
-                                 abs(diff((cumsum(repnan(floats.x,0)) ...
-                                           >= 1)))] == 1);
-                assert(isequal(floats.x(initmask), floats.init(:, ...
-                                                               1)));
-                assert(isequal(floats.y(initmask), floats.init(:, ...
-                                                               2)));
-                assert(isequal(floats.z(initmask), floats.init(:, ...
-                                                               3)));
-                assert(isequal(tmat(initmask), floats.init(:,4)));
+                floats.actual_init = floats.parse_roms_fltname(rgrid, fltname);
             end
 
-            if strcmpi(type, 'ltrans')
+            if strcmpi(type, 'ltrans') || strcmpi(type, 'roms')
                 initmask = find([zeros([1 size(floats.x,2)]); ...
                                  abs(diff((cumsum(repnan(floats.x,0)) >= 1)))] == 1);
                 floats.init = [floats.x(initmask) floats.y(initmask) ...
@@ -432,8 +418,7 @@ classdef floats < handle
                 fmt = '-';
             end
 
-            ind = floats.roms_inds; %[];
-
+            ind = [];
             if isempty(ind)
                 ind = 1:size(floats.mom1, 1);
             end
@@ -526,7 +511,7 @@ classdef floats < handle
             end
         end
 
-        function [] = parse_roms_fltname(floats, rgrid, fpos_file)
+        function [init] = parse_roms_fltname(floats, rgrid, fpos_file)
 
             % find line just before float location specification
             [~,p] = grep('POS = ', fpos_file);
