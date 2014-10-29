@@ -3532,8 +3532,15 @@ methods
     end
 
     function [] = create_floats_init_file(runs, type)
-        eval(['init = runs.' type '.init;']);
-        save([runs.dir '/' type '_init.mat'], 'init');
+        if ~strcmpi(type, 'roms')
+            eval(['init = runs.' type '.init;']);
+        else
+            init = runs.roms.actual_init;
+        end
+
+        fname = [runs.dir '/' type '_init.mat'];
+        disp(['Writing to ' , fname]);
+        save(fname, 'init');
     end
 
     function [] = animate_vor(runs,tind)
