@@ -5,12 +5,36 @@ function [] = plot_tracpy(runs)
 
     xsb = runs.bathy.xsb/1000;
     %    inds = find(latp(end,:) > xsb & latp(1,:) < xsb);
-    inds = runs.tracpy.winds;
+    inds = runs.tracpy.reenter_inds;
 
     figure;
-    hold on;
+    subplot(2,1,1);
     runs.plot_bathy('contour', 'k');
+    plot_map(lonp, latp, runs.tracpy.winds, runs.bathy.xsb);
+    ylim([0 runs.rgrid.y_rho(end,1)/2000])
+    xlim([0 runs.rgrid.x_rho(1,end)/1000]);
+    title([runs.name ' | Day ' ...
+           num2str(runs.tracpy.time(1)/86400) ' to ' ...
+           num2str(runs.tracpy.time(end)/86400) ' | S_{sh} = ', ...
+           num2str(runs.bathy.S_sh) ' | Streamer n = ' ...
+           num2str(length(runs.tracpy.winds))]);
+    beautify
 
+    subplot(2,1,2);
+    runs.plot_bathy('contour', 'k');
+    plot_map(lonp, latp, runs.tracpy.reenter_inds, runs.bathy.xsb);
+    ylim([0 runs.rgrid.y_rho(end,1)/2000])
+    xlim([0 runs.rgrid.x_rho(1,end)/1000]);
+    title([runs.name ' | Day ' ...
+           num2str(runs.tracpy.time(1)/86400) ' to ' ...
+           num2str(runs.tracpy.time(end)/86400) ' | S_{sh} = ', ...
+           num2str(runs.bathy.S_sh) ' | Re-entry n = ' ...
+           num2str(length(runs.tracpy.reenter_inds))]);
+    beautify
+end
+
+function [] = plot_map(lonp, latp, inds, xsb);
+    hold on;
     % all initial locations
     plot(lonp(1,:), latp(1,:), '.', 'Color', [158 202 225]/255);
 
@@ -37,18 +61,9 @@ function [] = plot_tracpy(runs)
              255);
     end
     axis image
-    ylim([0 runs.rgrid.y_rho(end,1)/1000])
-    xlim([0 runs.rgrid.x_rho(1,end)/1000]);
     xlabel('X (km)');
     ylabel('Y (km)');
 
     miny = min(latp(1,inds));
     liney(miny, ['Width = ' num2str(xsb - miny) 'km'], 'k');
-
-    title([runs.name ' | Day ' ...
-           num2str(runs.tracpy.time(1)/86400) ' to ' ...
-           num2str(runs.tracpy.time(end)/86400) ' | S_{sh} = ', ...
-           num2str(runs.bathy.S_sh)]);
-
-    beautify
 end
