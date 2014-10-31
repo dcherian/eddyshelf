@@ -2942,17 +2942,32 @@ methods
         figure;
         %quiver(runs.rgrid.x_r(1,2:end-1),
     end
-    function [] = animate_zeta(runs, t0)
+    function [] = animate_zeta(runs, t0, ntimes)
         runs.video_init('zeta');
 
         titlestr = 'SSH (m)';
 
+        % which flux plot do I do?
+        fluxplot = 2; % 1 = instantaneous x-profile;
+                      % 2 = flux v/s time
+
+
+        if ~exist('ntimes', 'var'), ntimes = length(runs.time); end
         if ~exist('t0', 'var'), t0 = 1; end
 
         if isempty(runs.zeta)
-            runs.read_zeta;
+            if ntimes == 1
+                runs.zeta = nan([size(runs.rgrid.x_rho') ...
+                                 length(runs.time)]);
+                runs.zeta(:,:,t0) = dc_roms_read_data(runs.dir, 'zeta', ...
+                                                  t0, {}, [], ...
+                                                  runs.rgrid, 'his', ...
+                                                  'double');
+            else
+                runs.read_zeta;
+            end
         end
-        
+
         figure;
         if ~isempty(runs.csflux)
             ax = subplot(3,1,[1 2]);
@@ -2987,56 +3002,62 @@ methods
 
         if ~isempty(runs.csflux)
             ax2 = subplot(3,1,3);
-            %plot(runs.csflux.time / runs.tscale, ...
-            %     runs.eddy.vor.lmaj/1000);
-            %htime = linex(runs.csflux.time(ii) / runs.tscale);
-            hflux = plot(runs.rgrid.xr(2:end-1,1)/1000, ...
-                         runs.csflux.shelfxt(:, ii));
-            ylim([min(runs.csflux.shelfxt(:)) ...
-                  max(runs.csflux.shelfxt(:))]);
-            hee = linex(runs.eddy.vor.ee(ii)/1000);
-            oldpos = get(ax, 'Position');
-            newpos = get(ax2, 'Position');
-            newpos(3) = oldpos(3);
-            set(ax2, 'Position', newpos);
-            linkaxes([ax ax2], 'x');
-            liney(0);
-            xlabel('X (km)');
-            title('\int v(x,z,t)dz (m^2/s)');
+            if fluxplot == 2
+                plot(runs.csflux.time / 86400, ...
+                     runs.csflux.west.shelf(:,1)/1000);
+                htime = linex(runs.csflux.time(ii));
+                xlabel('Time (days)');
+            else
+                hflux = plot(runs.rgrid.xr(2:end-1,1)/1000, ...
+                             runs.csflux.shelfxt(:, ii));
+                ylim([min(runs.csflux.shelfxt(:)) ...
+                      max(runs.csflux.shelfxt(:))]);
+                hee = linex(runs.eddy.vor.ee(ii)/1000);
+                oldpos = get(ax, 'Position');
+                newpos = get(ax2, 'Position');
+                newpos(3) = oldpos(3);
+                set(ax2, 'Position', newpos);
+                linkaxes([ax ax2], 'x');
+                liney(0);
+                xlabel('X (km)');
+                title('\int v(x,z,t)dz (m^2/s)');
+            end
             beautify;
         end
 
-        runs.video_update();
-        for ii = t0+1:4:size(runs.zeta,3)
-            %L = createLine(runs.eddy.vor.cx(ii)/1000, runs.eddy.vor.cy(ii)/1000, ...
-            %           1, -1*runs.eddy.vor.angle(ii)*pi/180);
-            %delete(hline);
-            if ~isempty(runs.csflux)
-                axes(ax);
-                %hline = drawLine(L);
-            end
-
-            set(hee_zeta, 'XData', [1 1]* runs.eddy.vor.ee(ii)/1000);
-
-            runs.update_zeta(hz,ii);
-            runs.update_eddy_contour(he,ii);
-            %   runs.update_eddy_sshcontour(he2,ii);
-            runs.update_title(ht,titlestr,ii);
-
-            if ~isempty(runs.csflux)
-                axis(ax2);
-                if exist('htime', 'var')
-                    set(htime, 'XData', [1 1]*runs.csflux.time(ii)/ ...
-                               runs.tscale);
-                else
-                    set(hflux, 'YData', runs.csflux.shelfxt(:,ii));
-                    set(hee, 'XData', [1 1]*runs.eddy.vor.ee(ii)/1000);
-                end
-            end
+        if ntimes > 1
             runs.video_update();
-            pause(1);
+            for ii = t0+1:4:ntimes
+                %L = createLine(runs.eddy.vor.cx(ii)/1000, runs.eddy.vor.cy(ii)/1000, ...
+                %           1, -1*runs.eddy.vor.angle(ii)*pi/180);
+                %delete(hline);
+                if ~isempty(runs.csflux)
+                    axes(ax);
+                    %hline = drawLine(L);
+                end
+
+                set(hee_zeta, 'XData', [1 1]* runs.eddy.vor.ee(ii)/1000);
+
+                runs.update_zeta(hz,ii);
+                runs.update_eddy_contour(he,ii);
+                %   runs.update_eddy_sshcontour(he2,ii);
+                runs.update_title(ht,titlestr,ii);
+
+                if ~isempty(runs.csflux)
+                    axis(ax2);
+                    if exist('htime', 'var')
+                        set(htime, 'XData', [1 1]*runs.csflux.time(ii)/ ...
+                                   86400);
+                    else
+                        set(hflux, 'YData', runs.csflux.shelfxt(:,ii));
+                        set(hee, 'XData', [1 1]*runs.eddy.vor.ee(ii)/1000);
+                    end
+                end
+                runs.video_update();
+                pause(1);
+            end
+            runs.video_write();
         end
-        runs.video_write();
     end
 
     % depth section through streamer
