@@ -956,21 +956,28 @@ classdef runArray < handle
                 plot(ndtime, run.eddy.vor.se/1000 - run.bathy.xsb/1000);
 
                 figure(hfig2)
-                hgplt = plot(run.eddy.mx/1000, run.eddy.my/1000);
-                addlegend(hgplt, name);
+                hgplt = plot((run.eddy.mx - run.eddy.mx(1))/run.rrdeep, ...
+                             (run.eddy.my - run.bathy.xsb)/run.rrdeep);
+                addlegend(hgplt, name, 'NorthWest');
             end
 
+            fontSize = [16 16 18];
             figure(hfig1);
             subplot(2,1,1)
             ylabel('Northern edge - Y_{sb}');
+            beautify(fontSize);
             subplot(2,1,2)
             ylabel('Southern edge - Y_{sb}');
             liney(0);
+            beautify(fontSize);
 
             figure(hfig2)
-            ylabel('Y (km)');
-            xlabel('X (km)');
-
+            ylabel('(Y - Y_{sb})/(deformation radius)');
+            ylim([0 max(ylim)]);
+            set(gca, 'YTick', [0:1:max(ylim)]);
+            liney(1);
+            xlabel('(X-X_0)/(deformation radius)');
+            beautify(fontSize);
         end
     end
 end
