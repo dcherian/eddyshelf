@@ -935,6 +935,9 @@ classdef runArray < handle
             hfig2 = figure;
             hold all;
 
+            hfig3 = figure; subplot(211); hold all; subplot(212); ...
+                    hold all;
+
             if isempty(runArray.filter)
                 runArray.filter = 1:runArray.len;
             end
@@ -943,9 +946,15 @@ classdef runArray < handle
                 ii = runArray.filter(ff);
 
                 run  = runArray.array(ii);
-                name = getname(runArray, ii);
+                %name = [getname(runArray, ii) ' | L_{sl} = ' ...
+                %        num2str(run.bathy.L_slope/1000) ' km'];
+                name = [getname(runArray, ii) ' | S_\alpha = ' ...
+                        num2str(run.bathy.S_sl)];
 
-                ndtime = run.eddy.t * 86400 / run.tscale;
+                ndtime = run.eddy.t * 86400 / run.csflux.tscale;
+
+                max(ndtime)
+                tinds = vecfind(ndtime, [0.5:0.5:(max(ndtime))]);
 
                 figure(hfig1);
                 subplot(2,1,1);
@@ -956,9 +965,21 @@ classdef runArray < handle
                 plot(ndtime, run.eddy.vor.se/1000 - run.bathy.xsb/1000);
 
                 figure(hfig2)
-                hgplt = plot((run.eddy.mx - run.eddy.mx(1))/run.rrdeep, ...
-                             (run.eddy.my - run.bathy.xsb)/run.rrdeep);
+                x = (run.eddy.mx - run.eddy.mx(1))/run.rrdeep;
+                y = (run.eddy.my - run.bathy.xsb)/run.rrdeep;
+                hgplt = plot(x, y);
                 addlegend(hgplt, name, 'NorthWest');
+                plot(x(tinds), y(tinds), 'kx');
+                text(x(tinds), y(tinds), ...
+                     cellstr(num2str(ndtime(tinds)', 2)));
+
+                figure(hfig3)
+                subplot(2,1,1)
+                hgplt = plot(ndtime, run.eddy.Lgauss);
+
+                subplot(2,1,2)
+                hgplt = plot(ndtime, run.eddy.Lgauss./run.eddy.hcen');
+                addlegend(hgplt, name);
             end
 
             fontSize = [16 16 18];
@@ -978,6 +999,15 @@ classdef runArray < handle
             liney(1);
             xlabel('(X-X_0)/(deformation radius)');
             beautify(fontSize);
+
+            figure(hfig3)
+            subplot(211)
+            ylabel('Eddy vertical scale (m)');
+            beautify;
+            subplot(212)
+            ylabel('Eddy vertical scale / water depth');
+            xlabel('Non-dimensional time');
+            beautify;
         end
     end
 end
