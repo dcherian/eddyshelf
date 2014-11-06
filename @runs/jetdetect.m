@@ -21,11 +21,11 @@ function [] = jetdetect(runs)
 
     eddye = dc_roms_read_data(runs.dir, runs.eddname, [t0 Inf], ...
                               {runs.bathy.axis runs.bathy.isb runs.bathy.isl; ...
-                        'z' 1 1}, [], runs.rgrid, [], 'single');
+                        'z' 1 1}, [], runs.rgrid, 'his', 'single');
 
     asbot = dc_roms_read_data(runs.dir, 'u', [t0 Inf], ...
                               {runs.bathy.axis runs.bathy.isb runs.bathy.isl; ...
-                        'z' 1 1}, [], runs.rgrid, [], 'single');
+                        'z' 1 1}, [], runs.rgrid, 'his', 'single');
 
     % allocate variables
     runs.jet.xnose = nan(size(runs.time));
