@@ -288,8 +288,10 @@ classdef floats < handle
             toc;
         end % read_floats
 
-        function [] = plot_xz(floats, rgrid, bathy)
+        function [] = plot_xz(floats, rgrid)
             hmin = min(rgrid.h(:));
+
+            ind = floats.winds;
 
             figure;
             % draw bathy cross-section
@@ -302,8 +304,8 @@ classdef floats < handle
             % add float tracks
             hold on;
 
-            latp = floats.y(:, floats.winds)/1000;
-            zp = floats.z(:, floats.winds);
+            latp = floats.y(:, ind)/1000;
+            zp = floats.z(:, ind);
 
             plot(latp, zp, '-', 'Color', [1 1 1]*0.75);
 
@@ -583,23 +585,24 @@ classdef floats < handle
                     Z = size(rgrid.z_r, 1);
 
                     k=1;
-                    floats.init = nan(N,4);
+                    init = nan(N,4);
                     for xx=1:xlimit
                         for yy=1:ylimit
                             for zz=1:zlimit
                                 for tt=1:tlimit
-                                    floats.init(k,1) = interp1(1:X, ...
+                                    init(k,1) = interp1(1:X, ...
                                                                rgrid.x_rho(1,:), ...
                                                                x0 + (xx-1)*dx);
-                                    floats.init(k,2) = interp1(1:Y, ...
+                                    init(k,2) = interp1(1:Y, ...
                                                                rgrid.y_rho(:,1), ...
                                                                y0 + (yy-1)*dy);
-                                    floats.init(k,3) = interp1(1:Z, ...
-                                                               rgrid.z_r(:, ...
-                                                                         y0+(yy-1)*dy, ...
-                                                                         x0+(xx-1)*dx), ...
-                                                               z0 + (zz-1)*dz);
-                                    floats.init(k,4) = (t0 + (tt-1)*dt)*86400;
+                                    %init(k,3) = interp1(1:Z, ...
+                                    %                           rgrid.z_r(:, ...
+                                    %                                     y0+(yy-1)*dy, ...
+                                    %                                     x0+(xx-1)*dx), ...
+                                    %                           z0 + (zz-1)*dz);
+                                    init(k,3) = z0+(zz-1)*dz;
+                                    init(k,4) = (t0 + (tt-1)*dt)*86400;
                                     k=k+1;
                                 end
                             end
