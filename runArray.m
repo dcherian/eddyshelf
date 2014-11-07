@@ -95,13 +95,25 @@ classdef runArray < handle
                     iflux = run.csflux.west.itrans.shelf(:,1);
                     dcy = diff(run.eddy.vor.cy);
 
+                    % make sure my time vectors are the same
+                    assert(isequal(run.eddy.t*86400, ...
+                                   run.csflux.time));
+
+                    % find where velocity changes sign
                     ind = find(dcy(run.csflux.tscaleind:end) > 0, ...
                                1, 'first') - 1 + run.csflux.tscaleind;
 
-                    % check ind detection
-                    %figure; plot(run.eddy.vor.cy); linex(ind);
+                    % check ind detection with flux and center
+                    % location plot
+                    %figure;
+                    %plotyy(run.eddy.t, run.eddy.vor.cy, ...
+                    %       run.csflux.time/86400, ...
+                    %       run.csflux.west.shelf(:,1));
+                    %linex(run.eddy.t(ind));
 
-                    % get flux at ind
+                    %run.animate_zeta(ind, 1);
+
+                    % Get Flux at ind
                     run.csflux.critrans = ...
                         run.csflux.west.itrans.shelf(ind,1);
 
