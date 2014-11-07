@@ -63,8 +63,9 @@ function [] = jetdetect(runs)
                           > thresh), [sz(1)*sz(2) sz(3)]);
     end
     [dmax, idmax] = max(bsxfun(@times, masked, xmask), [], 1);
+    [ix, iy] = ind2sub([sz(1) sz(2)], idmax);
     runs.jet.xnose(t0:end) = fillnan(dmax,min(xmask(:)));
-    runs.jet.ixnose(t0:end) = idmax;
+    runs.jet.ixnose(t0:end) = ix;
     runs.jet.thresh = thresh;
 
     % width at nose
