@@ -743,6 +743,27 @@ classdef runArray < handle
             end
         end
 
+        function [] = plot_jetprops(runArray)
+            figure;
+            ax = gca; hold all;
+
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
+                run = runArray.array(ii);
+
+                ndtime = run.eddy.t*86400 ./ run.csflux.tscale;
+
+                hplot = plot(ndtime, run.jet.vscale);
+                addlegend(hplot, run.name);
+            end
+            linkaxes(ax, 'x');
+            xlim([0 4])
+        end
+
         function [] = plot_test1(runArray)
             figure;
             ax = gca; hold all;
@@ -755,18 +776,11 @@ classdef runArray < handle
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
 
-                ndtime = run.csflux.time ./ run.csflux.tscale - 1;
+                ndtime = run.eddy.t*86400 ./ run.csflux.tscale;
 
-                ax(1) = subplot(2,1,1);
-                hold all
-                plot(avg1(ndtime), diff(run.eddy.vor.cy));
-
-                ax(2) = subplot(2,1,2);
-                hold all
-                plot(ndtime, run.csflux.west.itrans.shelf(:,1));
+                hplot = plot(ndtime, run.jet.vscale);
+                addlegend(hplot, run.name);
             end
-            linkaxes(ax, 'x');
-            xlim([0 4])
         end
 
         function [] = plot_test2(runArray)
