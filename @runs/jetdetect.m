@@ -196,40 +196,49 @@ function [] = jetdetect(runs)
         if isempty(runs.usurf), runs.read_velsurf; end
         svel = runs.usurf(:,runs.bathy.isb:runs.bathy.isl,t0:end);
         figure;
-        ii=40;
-        subplot(311)
+        ii=60;
+
+        cmap = flipud(cbrewer('div','RdBu',32));
+
+        ax(1) = subplot(311);
         hsv = pcolorcen(runs.rgrid.x_u(1,:)/1000, ...
                         runs.rgrid.y_u(runs.bathy.isb:runs.bathy.isl,1)/1000, ...
                         svel(:,:,ii)');
         hold on
         he1 = runs.plot_eddy_contour('contour',t0+ii-1);
-        caxis([-0.1 0.1]); cbfreeze; axis image
+        colorbar; caxis([-0.1 0.1]); colormap(cmap);%axis image
+        hl1 = linex(runs.jet.xnose(t0+ii-1)/1000, '');
         title('along-shore surface velocity');
 
-        subplot(3,1,2)
+        ax(2) = subplot(3,1,2);
         hbv = pcolorcen(runs.rgrid.x_u(1,:)/1000, ...
                         runs.rgrid.y_u(runs.bathy.isb:runs.bathy.isl,1)/1000, ...
                         asbot(:,:,ii)');
         he2 = runs.plot_eddy_contour('contour',t0+ii-1);
-        colorbar; caxis([-0.1 0.1]); cbfreeze; axis image
+        colorbar; caxis([-0.1 0.1]); colormap(cmap); %axis image
+        hl2 = linex(runs.jet.xnose(t0+ii-1)/1000, '');
         title('Along-shore vel on s = 0');
 
-        subplot(313)
+        ax(3) = subplot(313);
         [hd] = pcolorcen(runs.rgrid.xr(:,1)/1000, ...
                          runs.rgrid.yr(1,runs.bathy.isb:runs.bathy.isl)/1000, ...
                          eddye(:,:,ii)');
         he3 = runs.plot_eddy_contour('contour',t0+ii-1);
-        colorbar; caxis([0 1]); axis image
-        hl = linex(runs.jet.xnose(ii)/1000, '');
+        colorbar; caxis([0 1]); colormap(cmap); %axis image
+        hl3 = linex(runs.jet.xnose(t0+ii-1)/1000, '');
+
+        linkaxes(ax, 'xy');
 
         for ii=ii+1:size(eddye,3)
-            set(hsv, 'cdata', svel(:,:,ii)');
-            set(hbv, 'cdata', asbot(:,:,ii)');
-            set(hd, 'cdata', eddye(:,:,ii)');
+            set(hsv, 'cdata', double(svel(:,:,ii)'));
+            set(hbv, 'cdata', double(asbot(:,:,ii)'));
+            set(hd, 'cdata', double(eddye(:,:,ii)'));
             runs.update_eddy_contour(he1, t0+ii-1);
             runs.update_eddy_contour(he2, t0+ii-1);
             runs.update_eddy_contour(he3, t0+ii-1);
-            set(hl, 'xdata', [1 1]*runs.jet.xnose(ii)/1000);
+            set(hl1, 'xdata', [1 1]*runs.jet.xnose(t0+ii-1)/1000);
+            set(hl2, 'xdata', [1 1]*runs.jet.xnose(t0+ii-1)/1000);
+            set(hl3, 'xdata', [1 1]*runs.jet.xnose(t0+ii-1)/1000);
             title(['Dye on s=0 | day no = ' num2str(t0+ii) ', ii=', num2str(ii)])
             pause(0.05);
         end
