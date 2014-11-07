@@ -945,10 +945,9 @@ classdef runArray < handle
             subplot(2,1,2); hold all;
 
             hfig2 = figure;
-            ax1 = subplot(3,1,[1 2]); hold all;
-            ax2 = subplot(3,1,3); hold all;
-
-            hfig3 = figure; hold all;
+            ax1 = subplot(2,2,[1 3]); hold all;
+            ax2 = subplot(2,2,2); hold all;
+            ax3 = subplot(2,2,4); hold all;
 
             if isempty(runArray.filter)
                 runArray.filter = 1:runArray.len;
@@ -959,8 +958,8 @@ classdef runArray < handle
 
                 run  = runArray.array(ii);
                 name = getname(runArray, ii);
-                name = [getname(runArray, ii) ' | L_{sl} = ' ...
-                        num2str(run.bathy.L_slope/1000) ' km'];
+                %name = [getname(runArray, ii) ' | L_{sl} = ' ...
+                %        num2str(run.bathy.L_slope/1000) ' km'];
                 %name = [getname(runArray, ii) ' | S_\alpha = ' ...
                 %        num2str(run.bathy.S_sl)];
 
@@ -987,9 +986,8 @@ classdef runArray < handle
 
                 axes(ax2)
                 hgplt = plot(ndtime, run.eddy.Lgauss./run.eddy.hcen');
-                addlegend(hgplt, name);
 
-                figure(hfig3)
+                axes(ax3)
                 hgplt = plot(ndtime, run.eddy.Lgauss);
             end
 
@@ -1014,11 +1012,11 @@ classdef runArray < handle
             beautify(fontSize);
             axes(ax2)
             ylabel('Eddy vertical scale / water depth');
+            ylim([0 0.6]);
             xlabel('Non-dimensional time');
             beautify;
-
-            figure(hfig3)
-            title('Eddy vertical scale (m)');
+            axes(ax3);
+            ylabel('Eddy vertical scale (m)');
             beautify;
 
         end
