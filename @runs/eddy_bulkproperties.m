@@ -1,9 +1,10 @@
 % eddy bulk properties - integrated PV, RV, volume, energy
 function [] = eddy_bulkproperties(runs)
 %%
-    slab = 15; % read 10 at a time
+    slab = 30; % read 10 at a time
     ftype = 'his';
-    nt = size(runs.zeta, 3)
+
+    nt = length(runs.eddy.t);
 
     sz4dfull = [fliplr(size(runs.rgrid.z_r))-[2 2 0] slab];
     sz4dsp = [prod(sz4dfull(1:3)) slab];
@@ -52,10 +53,10 @@ function [] = eddy_bulkproperties(runs)
     end
 
     ticstart = tic;
-    for mm=1:ceil(size(runs.zeta,3)/slab)
+    for mm=1:ceil(nt/slab)
         tt = (mm-1)*slab + 1;
         disp([' mm= ' num2str(mm) '/' num2str( ...
-            ceil(size(runs.zeta,3)/slab))]);
+            ceil(nt/slab))]);
         tend = tt + slab - 1;
         if tend > nt
             tend = nt;
