@@ -33,11 +33,13 @@ function [] = jetdetect(runs)
 
     %% diagnostics
     % let's find location of nose
-    thresh = 0.5
+    thresh = 0.75
     sz = size(eddye);
     if runs.bathy.axis == 'y'
         xd = runs.rgrid.xr(:,runs.bathy.isb:runs.bathy.isl);
+        yd = runs.rgrid.yr(:,runs.bathy.isb:runs.bathy.isl);
         edge = runs.eddy.ee;
+        bound = runs.eddy.ne;
         xdvec = xd(:,1);
     else
         xd = runs.rgrid.yr(runs.bathy.isb:runs.bathy.isl,:);
@@ -48,9 +50,12 @@ function [] = jetdetect(runs)
 
     if runs.bathy.axis == 'y'
         % jet is east of eddy
-        masked = reshape((eddye .*  bsxfun( ...
-            @gt, xd, permute(edge(t0:end), [3 1 2])) ...
-                          > thresh), [sz(1)*sz(2) sz(3)]);
+        % find locations to the east of the eddy where dye > thresh
+        masked = reshape((eddye .*  ...
+                          bsxfun(@gt, xd, permute(edge(t0:end), [3 1 2])) .* ...
+                          bsxfun(@lt, yd, permute(bound(t0:end), [3 1 2]))) ...
+                          > thresh, [sz(1)*sz(2) sz(3)]);
+
     else
         % jet is south of eddy
         masked = reshape((eddye .*  bsxfun( ...
