@@ -6,23 +6,16 @@ function [] = jetdetect(runs)
     % number of rossby radii east of eddy to plot section
     nrr = 8;
 
-    debug = 0;
+    debug = 1;
 
-    t0 = 55;
+    t0 = runs.tscaleind - 30;
     ix0 = vecfind(runs.rgrid.x_u(1,:),runs.eddy.vor.cx(t0:end));
-    % along-shore velocity
-    %if runs.bathy.axis == 'y'
-    %    uas = dc_roms_read_data(runs.dir,'u',[t0 Inf], ...
-    %        {'y' 1 runs.bathy.isl},[],runs.rgrid);
-    %    zas = permute(runs.rgrid.z_u(:,1:runs.bathy.isl,:),[3 2 1]);
-    %end
 
-    %yz = repmat(runs.rgrid.y_u(1:runs.bathy.isl,1),[1 runs.rgrid.N]);
-
+    % bottom dye concentration
     eddye = dc_roms_read_data(runs.dir, runs.eddname, [t0 Inf], ...
                               {runs.bathy.axis runs.bathy.isb runs.bathy.isl; ...
-                        'z' 1 1}, [], runs.rgrid, 'his', 'single');
-
+                        'z' runs.rgrid.N runs.rgrid.N}, [], runs.rgrid, 'his', 'single');
+    % along-shore velocity on s=0
     asbot = dc_roms_read_data(runs.dir, 'u', [t0 Inf], ...
                               {runs.bathy.axis runs.bathy.isb runs.bathy.isl; ...
                         'z' 1 1}, [], runs.rgrid, 'his', 'single');
@@ -75,17 +68,39 @@ function [] = jetdetect(runs)
     tstart = find(~isnan(index) == 1, 1, 'first'); % W.R.T
                                                    % t0!!!!!
 
+    if debug
+
+        cmap = flipud(cbrewer('div','RdBu',32));
+        maskfull = reshape(masked, sz);
+        svel = runs.usurf(:,runs.bathy.isb:runs.bathy.isl,t0:end);
+        us = avg1(svel,1);
+        umask = maskfull(2:end-1,:,:) .* us;
+        if isempty(runs.vorsurf), runs.calc_vorsurf; end
+        vor = avg1(runs.vorsurf(:,runs.bathy.isb:runs.bathy.isl,t0:end));
+        vormask = maskfull(2:end-1,:,:) .* vor;
+        dyemask = maskfull .* eddye;
+
+        tt = 60;
+        figure; pcolorcen(umask(:,:,tt)'); center_colorbar; ...
+            colormap(cmap); title('u');
+        figure; pcolorcen(vormask(:,:,tt)'); center_colorbar; ...
+            colormap(cmap); title('vor');
+        figure; pcolorcen(dyemask(2:end-1,:,tt)'); caxis([0 1]); ...
+            colorbar; colormap((cbrewer('seq','Reds', 32))); title('dye');
+
+    end
+
     % read in data
     if runs.bathy.axis == 'y'
         [uprof,~,yu,zu,~] = dc_roms_read_data(runs.dir, 'u', [t0+tstart Inf], ...
                                               {'x' min(index)-1 max(index)-1; ...
                             'y' runs.bathy.isb runs.bathy.isl}, ...
                                               [], runs.rgrid, ...
-                                              [], 'single');
+                                              'his', 'single');
         dprof = dc_roms_read_data(runs.dir, runs.eddname, [t0+tstart Inf], ...
                                   {'x' min(index) max(index); ...
                             'y' runs.bathy.isb runs.bathy.isl}, ...
-                                  [], runs.rgrid, [], 'single');
+                                  [], runs.rgrid, 'his', 'single');
     else
         [uprof,yu,~,zu,~] = dc_roms_read_data(runs.dir, 'v', [t0+tstart Inf], ...
                                               {'y' min(index)-1 max(index)-1; ...
