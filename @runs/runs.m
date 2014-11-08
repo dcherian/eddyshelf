@@ -1585,9 +1585,6 @@ methods
 
     end
 
-
-
-
     % calculate ctw dispersion relation
     function [] = ctwdisprel(runs)
 
