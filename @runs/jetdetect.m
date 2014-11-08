@@ -76,6 +76,7 @@ function [] = jetdetect(runs)
 
     if debug
 
+        if isempty(runs.usurf), runs.read_velsurf; end
         cmap = flipud(cbrewer('div','RdBu',32));
         maskfull = reshape(masked, sz);
         svel = runs.usurf(:,runs.bathy.isb:runs.bathy.isl,t0:end);
@@ -84,14 +85,16 @@ function [] = jetdetect(runs)
         if isempty(runs.vorsurf), runs.calc_vorsurf; end
         vor = avg1(runs.vorsurf(:,runs.bathy.isb:runs.bathy.isl,t0:end));
         vormask = maskfull(2:end-1,:,:) .* vor;
-        dyemask = maskfull .* eddye;
+        dyemask = maskfull(2:end-1,:,:) .* eddye(2:end-1,:,:);
 
-        tt = 60;
+        tt = 120;
         figure; pcolorcen(umask(:,:,tt)'); center_colorbar; ...
             colormap(cmap); title('u');
         figure; pcolorcen(vormask(:,:,tt)'); center_colorbar; ...
             colormap(cmap); title('vor');
-        figure; pcolorcen(dyemask(2:end-1,:,tt)'); caxis([0 1]); ...
+        figure; pcolorcen(dyemask(:,:,tt)'); caxis([0 1]); ...
+            colorbar; colormap((cbrewer('seq','Reds', 32))); title('dye')
+        figure; pcolorcen((vormask(:,:,tt)<0)' .* dyemask(:,:,tt)'); caxis([0 1]); ...
             colorbar; colormap((cbrewer('seq','Reds', 32))); title('dye');
 
     end
