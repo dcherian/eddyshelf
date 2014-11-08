@@ -236,8 +236,10 @@ methods
             % if gaussian profile then track_eddy fits Lz2. copy to
             % Lgauss for backwards compatibility
             if runs.params.flags.vprof_gaussian && ~runs.noeddy
-                runs.eddy.Lgauss = runs.eddy.Lz2;
-                runs.eddy.Lz2 = nan(size(runs.eddy.Lz2));
+                if ~isnan(runs.eddy.Lz2)
+                    runs.eddy.Lgauss = runs.eddy.Lz2;
+                    runs.eddy.Lz2 = nan(size(runs.eddy.Lz2));
+                end
             end
 
             runs.params.nondim.eddy.Bu = (runs.params.phys.f0 * ...
