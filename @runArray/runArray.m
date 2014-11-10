@@ -276,7 +276,7 @@ classdef runArray < handle
                     %errorbar(ff , avgflux/1000, err/1000, 'x');
                     %set(hax1, 'Xtick', [1:runArray.len]);
                     %lab = cellstr(get(hax1,'xticklabel'));
-                    %lab{ff} = getname(runArray, ff);
+                    %lab{ff} = runArray.getname( ff);
                     %set(hax1,'xticklabel', lab);
                 end
 
@@ -455,7 +455,7 @@ classdef runArray < handle
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
-                name = getname(runArray, ii);
+                name = runArray.getname( ii);
 
                 env = run.csflux.west.shelfwater.envelope;
                 tind = 1;
@@ -478,7 +478,7 @@ classdef runArray < handle
            for ff=1:length(runArray.filter)
                ii = runArray.filter(ff);
                run = runArray.array(ii);
-               name = getname(runArray, ii);
+               name = runArray.getname( ii);
                if run.bathy.sl_shelf ~= 0
                    beta = run.params.phys.f0 ./ max(run.bathy.h(:)) * ...
                            run.bathy.sl_shelf;
@@ -500,7 +500,7 @@ classdef runArray < handle
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
-                name = getname(runArray, ii);
+                name = runArray.getname( ii);
 
                 %vec1 = run.eddy.vor.lmaj(run.tscaleind:end)./ ...
                 %       run.eddy.vor.lmin(run.tscaleind:end);
@@ -527,13 +527,13 @@ classdef runArray < handle
                 linex(0); liney(0);
             end
         end
-    end
-end
 
-function [name] = getname(runArray, ii)
-    if isempty(runArray.name)
-        name = runArray.array(ii).name;
-    else
-        name = runArray.name{ii};
+        function [name] = getname(runArray, ii)
+            if isempty(runArray.name)
+                name = runArray.array(ii).name;
+            else
+                name = runArray.name{ii};
+            end
+        end
     end
 end
