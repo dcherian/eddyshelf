@@ -2,7 +2,14 @@
 % plot eddye - y-z cross-sections to compare against diagnosed vertical
 % scale
 function [] = plot_eddye(runs, days)
-    tindices = vecfind(runs.time/86400, days)
+
+% hack for when I'm trying to provide non-dimensional times
+    if all(days) < 10
+        tindices = vecfind(runs.time./runs.tscale, days);
+    else
+        tindices = vecfind(runs.time/86400, days)
+    end
+
     nt = length(tindices);
     yz = repmat(runs.rgrid.y_rho(:,1), [1 runs.rgrid.N]);
 
@@ -23,7 +30,7 @@ function [] = plot_eddye(runs, days)
         ed = dc_roms_read_data(runs.dir, runs.eddname, tindices(ii), ...
                                {'x' num2str(runs.eddy.cx(tindices(ii))) ...
                             num2str(runs.eddy.cx(tindices(ii)))}, [], ...
-                               runs.rgrid, 'avg');
+                               runs.rgrid, 'his');
 
         ax1(ii) = subplot(1, nt, ii);
         contour(yz/1000, runs.rgrid.z_r(:,:,1)', ed, [0.1:0.1:1]);
