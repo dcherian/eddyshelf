@@ -4,7 +4,7 @@ properties
     name; dir; out_file; ltrans_file; flt_file; givenFile; tracpy_file; ...
         fpos_file;
     % data
-    zeta; temp; usurf; vsurf; vorsurf; csdsurf; ubot; vbot;
+    zeta; temp; usurf; vsurf; vorsurf; csdsurf; ubot; vbot; eddsurf;
     % dimensional and non-dimensional time
     time; ndtime; tscale; tscaleind;
     % barotropic vel (geostrophic)
@@ -458,6 +458,13 @@ methods
         else
             runs.zeta = (ncread(runs.out_file,'zeta'));
         end
+    end
+
+    % read eddy-dye at surface and save it
+    function [] = read_eddsurf(runs)
+        runs.eddsurf = dc_roms_read_data(runs.dir, runs.eddname, [], ...
+                                         {'z' runs.rgrid.N runs.rgrid.N}, ...
+                                         [], runs.rgrid, 'his', 'single');
     end
 
     % plot velocity / ζ sections through the eddy center
@@ -2814,9 +2821,11 @@ methods
         titlestr = 'SSH (m)';
 
         % which flux plot do I do?
-        fluxplot = 2; % 1 = instantaneous x-profile;
+        fluxplot = 0; % 0 = no flux plot
+                      % 1 = instantaneous x-profile;
                       % 2 = flux v/s time
-
+        sshplot = 1; % plot ssh-contour too?
+        dyeplot = 1; % plot eddye contour too?
 
         if ~exist('ntimes', 'var'), ntimes = length(runs.time); end
         if ~exist('t0', 'var'), t0 = 1; end
@@ -2834,8 +2843,12 @@ methods
             end
         end
 
+        if dyeplot && isempty(runs.eddsurf)
+            runs.read_eddsurf;
+        end
+
         figure;
-        if ~isempty(runs.csflux)
+        if ~isempty(runs.csflux) && fluxplot > 0
             ax = subplot(3,1,[1 2]);
         end
         ii=t0;
@@ -2848,7 +2861,14 @@ methods
         plot(runs.eddy.mx/1000, runs.eddy.vor.ne/1000);
         plot(runs.eddy.mx/1000, runs.eddy.vor.se/1000);
         he = runs.plot_eddy_contour('contour',ii);
-        %he2 = runs.plot_eddy_sshcontour('contour',ii);
+        if sshplot
+            he2 = runs.plot_eddy_sshcontour('contour',ii);
+        end
+        if dyeplot
+            [~,hedd2] = contour(runs.rgrid.x_rho/1000, runs.rgrid.y_rho/1000, ...
+                                runs.eddsurf(:,:,ii)', [1 1]*0.95, 'LineWidth', ...
+                                2, 'Color', 'r');
+        end
         ht = runs.set_title(titlestr,ii);
         if runs.params.flags.telescoping
             linex([runs.params.grid.ixn runs.params.grid.ixp], 'telescope','w');
@@ -2856,17 +2876,21 @@ methods
         end
 
         % draw angle
-        L = createLine(runs.eddy.vor.cx(ii)/1000, runs.eddy.vor.cy(ii)/1000, ...
-                       1, -1*runs.eddy.vor.angle(ii)*pi/180);
+        %L = createLine(runs.eddy.vor.cx(ii)/1000, runs.eddy.vor.cy(ii)/1000, ...
+        %               1, -1*runs.eddy.vor.angle(ii)*pi/180);
         %       hline = drawLine(L);
         xlabel('X (km)');ylabel('Y (km)');
-        %axis equal;
+        if fluxplot == 0
+            axis image;
+        else
+            axis equal;
+        end
         hee_zeta = linex(runs.eddy.vor.ee(ii)/1000);
         maximize(gcf); pause(0.2);
         beautify([16 16 18]);
         ax = gca;
 
-        if ~isempty(runs.csflux)
+        if ~isempty(runs.csflux) && fluxplot > 0
             ax2 = subplot(3,1,3);
             if fluxplot == 2
                 plot(runs.csflux.time / 86400, ...
@@ -2897,7 +2921,7 @@ methods
                 %L = createLine(runs.eddy.vor.cx(ii)/1000, runs.eddy.vor.cy(ii)/1000, ...
                 %           1, -1*runs.eddy.vor.angle(ii)*pi/180);
                 %delete(hline);
-                if ~isempty(runs.csflux)
+                if ~isempty(runs.csflux) && fluxplot > 0
                     axes(ax);
                     %hline = drawLine(L);
                 end
@@ -2906,10 +2930,16 @@ methods
 
                 runs.update_zeta(hz,ii);
                 runs.update_eddy_contour(he,ii);
-                %   runs.update_eddy_sshcontour(he2,ii);
+                if sshplot
+                    runs.update_eddy_sshcontour(he2,ii);
+                end
                 runs.update_title(ht,titlestr,ii);
 
-                if ~isempty(runs.csflux)
+                if dyeplot
+                    set(hedd2, 'ZData', runs.eddsurf(:,:,ii)');
+                end
+
+                if ~isempty(runs.csflux) && fluxplot > 0
                     axis(ax2);
                     if exist('htime', 'var')
                         set(htime, 'XData', [1 1]*runs.csflux.time(ii)/ ...
