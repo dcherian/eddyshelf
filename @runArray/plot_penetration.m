@@ -17,11 +17,13 @@ function [] = plot_penetration(runArray)
         ii = runArray.filter(ff);
 
         run  = runArray.array(ii);
-        name = getname(runArray, ii);
+        %name = getname(runArray, ii);
         %name = [getname(runArray, ii) ' | L_{sl} = ' ...
         %        num2str(run.bathy.L_slope/1000) ' km'];
         %name = [getname(runArray, ii) ' | S_\alpha = ' ...
         %        num2str(run.bathy.S_sl)];
+        name = [' H_{sb}/H_{eddy} = ' ...
+                num2str(run.bathy.hsb./run.eddy.Lgauss(1))];
 
         ndtime = run.eddy.t * 86400 / run.csflux.tscale;
         tinds = vecfind(ndtime, [0.5:0.5:(max(ndtime))]);
