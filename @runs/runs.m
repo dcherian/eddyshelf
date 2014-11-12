@@ -1386,6 +1386,18 @@ methods
         end
     end
 
+    % check time vectors
+    function [] = check_time(runs)
+        figure; hold all;
+        try
+            plot(runs.time/86400);
+            plot(runs.eddy.t);
+            plot(runs.csflux.time/86400);
+        catch ME
+        end
+        legend('time', 'eddy.time', 'csflux.time');
+    end
+
     % calculate geostrophically balanced barotropic velocities
     function [] = calc_ubarg(runs)
         runs.ubarg = -1 * 9.81 .* bsxfun(@rdivide,diff(runs.zeta,1,2), ...
