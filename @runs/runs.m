@@ -2832,7 +2832,7 @@ methods
 
         titlestr = 'SSH (m)';
 
-        dt = 1;
+        dt = 4;
 
         % which flux plot do I do?
         fluxplot = 0; % 0 = no flux plot
@@ -2846,7 +2846,7 @@ methods
         if ~exist('ntimes', 'var'), ntimes = length(runs.time); end
         if ~exist('t0', 'var'), t0 = 1; end
 
-        if isnan(runs.zeta(:,:,t0))
+        if isempty(runs.zeta) || isnan(runs.zeta(:,:,t0))
             if ntimes == 1
                 runs.zeta = nan([size(runs.rgrid.x_rho') ...
                                  length(runs.time)]);
