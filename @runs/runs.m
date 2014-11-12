@@ -2846,7 +2846,7 @@ methods
         if ~exist('ntimes', 'var'), ntimes = length(runs.time); end
         if ~exist('t0', 'var'), t0 = 1; end
 
-        if isempty(runs.zeta)
+        if isnan(runs.zeta(:,:,t0))
             if ntimes == 1
                 runs.zeta = nan([size(runs.rgrid.x_rho') ...
                                  length(runs.time)]);
@@ -3446,9 +3446,9 @@ methods
         caxis([-1 1] * vormax); colorbar; shading flat;
         hold on
         runs.plot_bathy('contour', [1 1 1]*0.7);
-        [~,h0vor] = contour(runs.rgrid.xvor/1000, runs.rgrid.yvor/1000, ...
-                            runs.vorsurf(:,:,tt), [0 0], 'r', ...
-                            'LineWidth', 2);
+        %[~,h0vor] = contour(runs.rgrid.xvor/1000, runs.rgrid.yvor/1000, ...
+        %                    runs.vorsurf(:,:,tt), [0 0], 'r', ...
+        %                    'LineWidth', 2);
         hedd = runs.plot_eddy_contour('contour', tt);
         [~,hcsd] = contour(runs.rgrid.x_rho'/1000, runs.rgrid.y_rho'/1000, ...
                            runs.csdsurf(:,:,tt), csdlevels, 'Color', [0 0 0], ...
@@ -3459,10 +3459,11 @@ methods
         xlabel('X (km)'); ylabel('Y (km)');
         axis image;
         ht = title(['Surface vorticity @ t = ' num2str(tt/2) ' days']);
+        beautify([18 18 20]);
         for tt = 2:3:size(runs.vorsurf,3)
             set(hh,'ZData', double(runs.vorsurf(:,:,tt)));
             set(hcsd, 'ZData', double(runs.csdsurf(:,:,tt)));
-            set(h0vor, 'ZData', double(runs.vorsurf(:,:,tt)));
+            %set(h0vor, 'ZData', double(runs.vorsurf(:,:,tt)));
             shading flat;
             runs.update_eddy_contour(hedd, tt);
             set(ht,'String',['Surface vorticity @ t = ' num2str(tt/2) ' days']);
