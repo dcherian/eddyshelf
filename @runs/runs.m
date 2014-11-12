@@ -2820,12 +2820,16 @@ methods
 
         titlestr = 'SSH (m)';
 
+        dt = 1;
+
         % which flux plot do I do?
         fluxplot = 0; % 0 = no flux plot
                       % 1 = instantaneous x-profile;
                       % 2 = flux v/s time
-        sshplot = 1; % plot ssh-contour too?
-        dyeplot = 1; % plot eddye contour too?
+        sshplot = 0; % plot ssh-contour too?
+        dyeplot = 0; % plot eddye contour too?
+        telesplot = 0;  % plot lines where grid stretching starts
+                        % and ends
 
         if ~exist('ntimes', 'var'), ntimes = length(runs.time); end
         if ~exist('t0', 'var'), t0 = 1; end
@@ -2855,7 +2859,7 @@ methods
         hz = runs.plot_zeta('pcolor',ii);
         hold on
         colorbar; freezeColors;
-        hbathy = runs.plot_bathy('contour','k');
+        hbathy = runs.plot_bathy('contour','w');
         % plot track
         plot(runs.eddy.mx/1000, runs.eddy.my/1000);
         plot(runs.eddy.mx/1000, runs.eddy.vor.ne/1000);
@@ -2870,7 +2874,7 @@ methods
                                 2, 'Color', 'r');
         end
         ht = runs.set_title(titlestr,ii);
-        if runs.params.flags.telescoping
+        if runs.params.flags.telescoping && telesplot
             linex([runs.params.grid.ixn runs.params.grid.ixp], 'telescope','w');
             liney([runs.params.grid.iyp],'telescope','w');
         end
@@ -2884,8 +2888,9 @@ methods
             axis image;
         else
             axis equal;
+            hee_zeta = linex(runs.eddy.vor.ee(ii)/1000);
         end
-        hee_zeta = linex(runs.eddy.vor.ee(ii)/1000);
+
         maximize(gcf); pause(0.2);
         beautify([16 16 18]);
         ax = gca;
@@ -2917,16 +2922,16 @@ methods
 
         if ntimes > 1
             runs.video_update();
-            for ii = t0+1:4:ntimes
+            for ii = t0+1:dt:ntimes
                 %L = createLine(runs.eddy.vor.cx(ii)/1000, runs.eddy.vor.cy(ii)/1000, ...
                 %           1, -1*runs.eddy.vor.angle(ii)*pi/180);
                 %delete(hline);
                 if ~isempty(runs.csflux) && fluxplot > 0
+                    set(hee_zeta, 'XData', [1 1]* runs.eddy.vor.ee(ii)/ ...
+                                  1000);
                     axes(ax);
                     %hline = drawLine(L);
                 end
-
-                set(hee_zeta, 'XData', [1 1]* runs.eddy.vor.ee(ii)/1000);
 
                 runs.update_zeta(hz,ii);
                 runs.update_eddy_contour(he,ii);
