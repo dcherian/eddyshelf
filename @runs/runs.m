@@ -33,8 +33,8 @@ properties
     eddy_thresh = 0.7;
     % initial params
     params
-    % fluxes - cross-shore & along-shore
-    csflux; asflux;
+    % fluxes - cross-shore & along-shore; - energy fluxes
+    csflux; asflux; enflux;
     % transport - TO BE DEPRECATED
     eutrans;
     % streamer properties
@@ -2246,40 +2246,70 @@ methods
 
     function [] = energy_flux(runs)
 
-        % locations - grid indices
+        ticstart = tic;
+        % locations - grid indices - RHO points
         locs = [runs.params.grid.ixn runs.params.grid.ixp]
+
+        ax = 'x';
 
         % (y,z,t, location)
         for ii=1:length(locs)
             u(:,:,:,ii) = squeeze(avg1(dc_roms_read_data(runs.dir, ...
                                                          'u', [], ...
-                                                         {'x' locs(ii)-1 locs(ii)+1}, ...
+                                                         {ax locs(ii) locs(ii)+1}, ...
                                                          [], runs.rgrid, ...
                                                          'his', 'single'),1));
-            v(:,:,:,ii) = dc_roms_read_data(runs.dir, 'v', [], {'x' ...
-                                locs(ii)-1 locs(ii)}, [], runs.rgrid, ...
+            v(:,:,:,ii) = dc_roms_read_data(runs.dir, 'v', [], {ax ...
+                                locs(ii) locs(ii)}, [], runs.rgrid, ...
                                             'his', 'single');
-            rho(:,:,:,ii) = dc_roms_read_data(runs.dir, 'rho', [], {'x' ...
-                                locs(ii)-1 locs(ii)}, [], runs.rgrid, ...
+            rho(:,:,:,ii) = dc_roms_read_data(runs.dir, 'rho', [], {ax ...
+                                locs(ii) locs(ii)}, [], runs.rgrid, ...
                                               'his', 'single');
-            rback(:,:,1,ii) = dc_roms_read_data(runs.dir, 'rho', [1 1], {'x' ...
-                                locs(ii)-1 locs(ii)}, [], runs.rgrid, ...
+            rback(:,:,1,ii) = dc_roms_read_data(runs.dir, 'rho', [1 1], {ax ...
+                                locs(ii) locs(ii)}, [], runs.rgrid, ...
                                       'his', 'single');
         end
 
-        ke = 1/2 * (avg1(u(:,2:end-1,:,:,:),1).^2 + avg1(v,2).^2);
+        % at interior RHO points
+        ke = 1/2 * (u(2:end-1,:,:,:).^2 + avg1(v,1).^2);
         pe = - runs.params.phys.g * ...
              bsxfun(@times, bsxfun(@minus, rho, rback), ...
                     runs.rgrid.z_r(:,:,1)');
 
-        % total energy
-        te = pe(2:end-1,:,:,:) + ke;
+        % energy flux (y, z, t, location)
+        peflux = u(2:end-1,:,:,:) .* (pe(2:end-1,:,:,:));
+        keflux = u(2:end-1,:,:,:) .* (ke);
 
-        % calculate derivatives
-        tex = diff_cgrid(te, 1);
+        for ii=1:length(locs)
+            % grid vectors for integration.
+            zvec = runs.rgrid.z_r(:,2:end-1,locs(ii))';
+            yvec = runs.rgrid.y_rho(2:end-1,locs(ii));
+            for jj=1:size(yvec,1)
+                % integrated flux (y, t, location)
+                ikefluxyt(jj,:,ii) = squeeze(trapz(zvec(jj,:), ...
+                                                 keflux(jj,:,:,ii), 2));
+                % integrated flux (y, t, location)
+                ipefluxyt(jj,:,ii) = squeeze(trapz(zvec(jj,:), ...
+                                                 peflux(jj,:,:,ii), 2));
+            end
+            % integrated flux (t, location)
+            ikeflux(:,ii) = squeeze(trapz(yvec, ikefluxyt(:,:,ii), ...
+                                          1));
+            ipeflux(:,ii) = squeeze(trapz(yvec, ipefluxyt(:,:,ii), ...
+                                          1));
+        end
 
-        % calculate flux
-        flux = u.*tex;
+        runs.enflux.comment = ['ix = indices | x = x-locations (m) ' ...
+                            '| ik(p)eflux(t, locations) - integrated ' ...
+                            'KE/PE flux'];
+        runs.enflux.hash = githash;
+        runs.enflux.time = runs.time;
+        runs.enflux.ix = locs;
+        runs.enflux.x = runs.rgrid.x_rho(1,locs);
+        runs.enflux.ikeflux = ikeflux;
+        runs.enflux.ipeflux = ipeflux;
+
+        toc(ticstart);
     end
 
     function [] = plot_shelfvelprofiles(runs, tt)
