@@ -82,23 +82,26 @@ function [] = jetdetect(runs)
         if isempty(runs.usurf), runs.read_velsurf; end
         cmap = flipud(cbrewer('div','RdBu',32));
         maskfull = reshape(masked, sz);
-        svel = runs.usurf(:,runs.bathy.isb:runs.bathy.isl,t0:end);
+        svel = runs.usurf(:,ilo:ihi,t0:end);
         us = avg1(svel,1);
         umask = maskfull(2:end-1,:,:) .* us;
         if isempty(runs.vorsurf), runs.calc_vorsurf; end
-        vor = avg1(runs.vorsurf(:,runs.bathy.isb:runs.bathy.isl,t0:end));
+        vor = avg1(runs.vorsurf(:,ilo:ihi,t0:end));
         vormask = maskfull(2:end-1,:,:) .* vor;
         dyemask = maskfull(2:end-1,:,:) .* eddye(2:end-1,:,:);
 
-        tt = 120;
-        figure; pcolorcen(umask(:,:,tt)'); center_colorbar; ...
-            colormap(cmap); title('u');
-        figure; pcolorcen(vormask(:,:,tt)'); center_colorbar; ...
-            colormap(cmap); title('vor');
-        figure; pcolorcen(dyemask(:,:,tt)'); caxis([0 1]); ...
-            colorbar; colormap((cbrewer('seq','Reds', 32))); title('dye')
-        figure; pcolorcen((vormask(:,:,tt)<0)' .* dyemask(:,:,tt)'); caxis([0 1]); ...
-            colorbar; colormap((cbrewer('seq','Reds', 32))); title('dye');
+        tt = 52;
+        figure;
+        subplot(3,1,1); pcolorcen(umask(:,:,tt)'); center_colorbar; ...
+            colormap(cmap); title('u'); axis image; freezeColors; cbfreeze;
+        subplot(3,1,2); pcolorcen(vormask(:,:,tt)'); center_colorbar; ...
+            colormap(cmap); title('vor'); axis image; freezeColors; ...
+            cbfreeze;
+        subplot(3,1,3); pcolorcen(dyemask(:,:,tt)'); caxis([0 1]); ...
+            colorbar; colormap((cbrewer('seq','Reds', 32))); ...
+            title('dye'); axis image; freezeColors
+        %figure; pcolorcen((vormask(:,:,tt)<0)' .* dyemask(:,:,tt)'); caxis([0 1]); ...
+        %    colorbar; colormap((cbrewer('seq','Reds', 32))); title('dye');
 
     end
 
