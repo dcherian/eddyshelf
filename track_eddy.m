@@ -567,7 +567,9 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
             eddy.cy   = cy; %     "
             eddy.mx   = ix(indx,indy) * dx; % maximum
             eddy.my   = iy(indx,indy) * dy; %    "
-            if eddy.my < sbreak; continue; end
+            if eddy.my < sbreak;
+                warning('eddy moving below shelfbreak!');
+            end
             eddy.we   = dx/2 + nanmin(xmax) * dx; % west edge
             eddy.ee   = dx/2 + nanmax(xmax) * dx; % east edge
             eddy.ne   = dy/2 + nanmax(ymax) * dy; % south edge
