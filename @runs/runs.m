@@ -2876,7 +2876,7 @@ methods
         if ~exist('ntimes', 'var'), ntimes = length(runs.time); end
         if ~exist('t0', 'var'), t0 = 1; end
 
-        if isempty(runs.zeta) || isnan(runs.zeta(:,:,t0))
+        if isempty(runs.zeta) | isnan(runs.zeta(:,:,t0))
             if ntimes == 1
                 runs.zeta = nan([size(runs.rgrid.x_rho') ...
                                  length(runs.time)]);
@@ -3464,7 +3464,7 @@ methods
                                              'his');
         end
 
-        csdlevels = runs.bathy.xsb + [-30 -20 -10 0 10 20] * 1000;
+        csdlevels = runs.bathy.xsb + [-20 -10 0 10] * 1000;
 
         tt = 1;
         figure();
