@@ -11,13 +11,16 @@ function [] = jetdetect(runs)
     t0 = runs.tscaleind - 30;
     ix0 = vecfind(runs.rgrid.x_u(1,:),runs.eddy.vor.cx(t0:end));
 
+    ilo = runs.bathy.isb - 10; % low index
+    ihi = runs.bathy.isl; % high index
+
     % bottom dye concentration
     eddye = dc_roms_read_data(runs.dir, runs.eddname, [t0 Inf], ...
-                              {runs.bathy.axis runs.bathy.isb runs.bathy.isl; ...
+                              {runs.bathy.axis ilo ihi; ...
                         'z' runs.rgrid.N runs.rgrid.N}, [], runs.rgrid, 'his', 'single');
     % along-shore velocity on s=0
     asbot = dc_roms_read_data(runs.dir, 'u', [t0 Inf], ...
-                              {runs.bathy.axis runs.bathy.isb runs.bathy.isl; ...
+                              {runs.bathy.axis ilo ihi; ...
                         'z' 1 1}, [], runs.rgrid, 'his', 'single');
 
     % allocate variables
@@ -36,13 +39,13 @@ function [] = jetdetect(runs)
     thresh = 0.75
     sz = size(eddye);
     if runs.bathy.axis == 'y'
-        xd = runs.rgrid.xr(:,runs.bathy.isb:runs.bathy.isl);
-        yd = runs.rgrid.yr(:,runs.bathy.isb:runs.bathy.isl);
-        edge = runs.eddy.ee;
+        xd = runs.rgrid.xr(:,ilo:ihi);
+        yd = runs.rgrid.yr(:,ilo:ihi);
+        edge = runs.eddy.we;
         bound = runs.eddy.ne;
         xdvec = xd(:,1);
     else
-        xd = runs.rgrid.yr(runs.bathy.isb:runs.bathy.isl,:);
+        xd = runs.rgrid.yr(ilo:ihi,:);
         edge = runs.eddy.se;
         xdvec = xd(1,:)';
     end
@@ -103,22 +106,22 @@ function [] = jetdetect(runs)
     if runs.bathy.axis == 'y'
         [uprof,~,yu,zu,~] = dc_roms_read_data(runs.dir, 'u', [t0+tstart Inf], ...
                                               {'x' min(index)-1 max(index)-1; ...
-                            'y' runs.bathy.isb runs.bathy.isl}, ...
+                            'y' ilo ihi}, ...
                                               [], runs.rgrid, ...
                                               'his', 'single');
         dprof = dc_roms_read_data(runs.dir, runs.eddname, [t0+tstart Inf], ...
                                   {'x' min(index) max(index); ...
-                            'y' runs.bathy.isb runs.bathy.isl}, ...
+                            'y' ilo ihi}, ...
                                   [], runs.rgrid, 'his', 'single');
     else
         [uprof,yu,~,zu,~] = dc_roms_read_data(runs.dir, 'v', [t0+tstart Inf], ...
                                               {'y' min(index)-1 max(index)-1; ...
-                            'x' runs.bathy.isb runs.bathy.isl}, ...
+                            'x' ilo ihi}, ...
                                               [], runs.rgrid, ...
                                               [], 'single');
         dprof = dc_roms_read_data(runs.dir, runs.eddname, [t0+tstart Inf], ...
                                   {'y' min(index) max(index); ...
-                            'x' runs.bathy.isb runs.bathy.isl}, ...
+                            'x' ilo ihi}, ...
                                   [], runs.rgrid, [], 'single');
     end
 
@@ -129,11 +132,11 @@ function [] = jetdetect(runs)
     if runs.bathy.axis == 'y'
         yu = squeeze(yu(1,:,:));
         zu = squeeze(zu(1,:,:));
-        h = runs.bathy.h(1, runs.bathy.isb:runs.bathy.isl);
+        h = runs.bathy.h(1, ilo:ihi);
     else
         yu = squeeze(yu(:,1,:));
         zu = squeeze(zu(:,1,:));
-        h = runs.bathy.h(runs.bathy.isb:runs.bathy.isl,1);
+        h = runs.bathy.h(ilo:ihi,1);
     end
     ixmin = min(index); % needed for indexing
 
@@ -197,7 +200,7 @@ function [] = jetdetect(runs)
     if debug
         %% animation
         if isempty(runs.usurf), runs.read_velsurf; end
-        svel = runs.usurf(:,runs.bathy.isb:runs.bathy.isl,t0:end);
+        svel = runs.usurf(:,ilo:ihi,t0:end);
         figure;
         ii=60;
 
@@ -205,7 +208,7 @@ function [] = jetdetect(runs)
 
         ax(1) = subplot(311);
         hsv = pcolorcen(runs.rgrid.x_u(1,:)/1000, ...
-                        runs.rgrid.y_u(runs.bathy.isb:runs.bathy.isl,1)/1000, ...
+                        runs.rgrid.y_u(ilo:ihi,1)/1000, ...
                         svel(:,:,ii)');
         hold on
         he1 = runs.plot_eddy_contour('contour',t0+ii-1);
@@ -215,7 +218,7 @@ function [] = jetdetect(runs)
 
         ax(2) = subplot(3,1,2);
         hbv = pcolorcen(runs.rgrid.x_u(1,:)/1000, ...
-                        runs.rgrid.y_u(runs.bathy.isb:runs.bathy.isl,1)/1000, ...
+                        runs.rgrid.y_u(ilo:ihi,1)/1000, ...
                         asbot(:,:,ii)');
         he2 = runs.plot_eddy_contour('contour',t0+ii-1);
         colorbar; caxis([-0.1 0.1]); colormap(cmap); %axis image
@@ -224,7 +227,7 @@ function [] = jetdetect(runs)
 
         ax(3) = subplot(313);
         [hd] = pcolorcen(runs.rgrid.xr(:,1)/1000, ...
-                         runs.rgrid.yr(1,runs.bathy.isb:runs.bathy.isl)/1000, ...
+                         runs.rgrid.yr(1,ilo:ihi)/1000, ...
                          eddye(:,:,ii)');
         he3 = runs.plot_eddy_contour('contour',t0+ii-1);
         colorbar; caxis([0 1]); colormap(cmap); %axis image
