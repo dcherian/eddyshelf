@@ -2301,13 +2301,16 @@ methods
 
         runs.enflux.comment = ['ix = indices | x = x-locations (m) ' ...
                             '| ik(p)eflux(t, locations) - integrated ' ...
-                            'KE/PE flux'];
+                            'KE/PE flux | **fluxyt (y, t, locations) ' ...
+                            '- depth-integrated fluxes'];
         runs.enflux.hash = githash;
         runs.enflux.time = runs.time;
         runs.enflux.ix = locs;
         runs.enflux.x = runs.rgrid.x_rho(1,locs);
         runs.enflux.ikeflux = ikeflux;
         runs.enflux.ipeflux = ipeflux;
+        runs.enflux.ikefluxyt = ikefluxyt;
+        runs.enflux.ipefluxyt = ipefluxyt;
 
         toc(ticstart);
     end
