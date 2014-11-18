@@ -2256,7 +2256,12 @@ methods
 
         ticstart = tic;
         % locations - grid indices - RHO points
-        locs = [runs.params.grid.ixn runs.params.grid.ixp]
+        % find location at ndtime == 1, then add 2 rossby radii
+        loc1 = find_approx(runs.rgrid.x_rho(1,:), ...
+                           runs.eddy.mx(find_approx( ...
+                               runs.eddy.t*86400/runs.tscale, 1)) + ...
+                           2 * runs.rrdeep);
+        locs = [loc1 runs.params.grid.ixn runs.params.grid.ixp]
 
         ax = 'x';
 
@@ -2288,6 +2293,8 @@ methods
         peflux = u(2:end-1,:,:,:) .* (pe(2:end-1,:,:,:));
         keflux = u(2:end-1,:,:,:) .* (ke);
 
+        disp('Looping over locations');
+        tic;
         for ii=1:length(locs)
             % grid vectors for integration.
             zvec = runs.rgrid.z_r(:,2:end-1,locs(ii))';
@@ -2306,6 +2313,7 @@ methods
             ipeflux(:,ii) = squeeze(trapz(yvec, ipefluxyt(:,:,ii), ...
                                           1));
         end
+        toc;
 
         runs.enflux.comment = ['ix = indices | x = x-locations (m) ' ...
                             '| ik(p)eflux(t, locations) - integrated ' ...
