@@ -2882,6 +2882,7 @@ methods
         fluxplot = 0; % 0 = no flux plot
                       % 1 = instantaneous x-profile;
                       % 2 = flux v/s time
+        enfluxplot = 1; % plot energy flux ?
         sshplot = 0; % plot ssh-contour too?
         dyeplot = 0; % plot eddye contour too?
         telesplot = 0;  % plot lines where grid stretching starts
@@ -2907,8 +2908,15 @@ methods
             runs.read_eddsurf;
         end
 
+        % do I need subplots?
+        if (~isempty(runs.csflux) && fluxplot > 0) || ...
+                enfluxplot == 1
+            subplots = 1;
+        end
+
+        %%%% actually plot
         figure;
-        if ~isempty(runs.csflux) && fluxplot > 0
+        if subplots
             ax = subplot(3,1,[1 2]);
         end
         ii=t0;
@@ -2916,6 +2924,7 @@ methods
         hold on
         colorbar; freezeColors;
         hbathy = runs.plot_bathy('contour','w');
+
         % plot track
         plot(runs.eddy.mx/1000, runs.eddy.my/1000);
         plot(runs.eddy.mx/1000, runs.eddy.vor.ne/1000);
@@ -2951,7 +2960,7 @@ methods
         beautify([16 16 18]);
         ax = gca;
 
-        if ~isempty(runs.csflux) && fluxplot > 0
+        if subplots
             ax2 = subplot(3,1,3);
             if fluxplot == 2
                 plot(runs.csflux.time / 86400, ...
@@ -2959,19 +2968,34 @@ methods
                 htime = linex(runs.csflux.time(ii));
                 xlabel('Time (days)');
             else
-                hflux = plot(runs.rgrid.xr(2:end-1,1)/1000, ...
-                             runs.csflux.shelfxt(:, ii));
-                ylim([min(runs.csflux.shelfxt(:)) ...
-                      max(runs.csflux.shelfxt(:))]);
-                hee = linex(runs.eddy.vor.ee(ii)/1000);
-                oldpos = get(ax, 'Position');
-                newpos = get(ax2, 'Position');
-                newpos(3) = oldpos(3);
-                set(ax2, 'Position', newpos);
-                linkaxes([ax ax2], 'x');
+                if fluxplot ~= 0
+                    hflux = plot(runs.rgrid.xr(2:end-1,1)/1000, ...
+                                 runs.csflux.shelfxt(:, ii));
+                    ylim([min(runs.csflux.shelfxt(:)) ...
+                          max(runs.csflux.shelfxt(:))]);
+                    hee = linex(runs.eddy.vor.ee(ii)/1000);
+                    oldpos = get(ax, 'Position');
+                    newpos = get(ax2, 'Position');
+                    newpos(3) = oldpos(3);
+                    set(ax2, 'Position', newpos);
+                    linkaxes([ax ax2], 'x');
+                    liney(0);
+                    xlabel('X (km)');
+                    title('\int v(x,z,t)dz (m^2/s)');
+                end
+            end
+
+            % energy flux
+            if enfluxplot == 1
+                axes(ax);
+                linex(runs.enflux.x(2)/1000, 'Energy flux', 'k');
+
+                subplot(3,1,3)
+                plot(runs.enflux.time/runs.tscale, runs.enflux.ikeflux(:,2));
+                henflx = linex(runs.enflux.time(ii)/runs.tscale);
                 liney(0);
-                xlabel('X (km)');
-                title('\int v(x,z,t)dz (m^2/s)');
+                ylabel('Energy flux');
+                xlabel('Non-dimensional time');
             end
             beautify;
         end
@@ -2991,15 +3015,18 @@ methods
 
                 runs.update_zeta(hz,ii);
                 runs.update_eddy_contour(he,ii);
+                % ssh contour
                 if sshplot
                     runs.update_eddy_sshcontour(he2,ii);
                 end
                 runs.update_title(ht,titlestr,ii);
 
+                % eddye contours
                 if dyeplot
                     set(hedd2, 'ZData', runs.eddsurf(:,:,ii)');
                 end
 
+                % shelfwater flux plots
                 if ~isempty(runs.csflux) && fluxplot > 0
                     axis(ax2);
                     if exist('htime', 'var')
@@ -3009,6 +3036,11 @@ methods
                         set(hflux, 'YData', runs.csflux.shelfxt(:,ii));
                         set(hee, 'XData', [1 1]*runs.eddy.vor.ee(ii)/1000);
                     end
+                end
+
+                % energy flux plots
+                if enfluxplot
+                    set(henflx, 'XData', [1 1]*runs.enflux.time(ii)/runs.tscale);
                 end
                 runs.video_update();
                 pause(1);
