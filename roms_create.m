@@ -1232,8 +1232,9 @@ end
 
 % write eddy params now (late) because eddy.nl might be calculated
 % in this cell
-fprintf('\n Writing eddy, bg params');
+fprintf('\n Writing eddy, strat, bg params');
 write_params_to_ini(INI_NAME,eddy);
+write_params_to_ini(INI_NAME,strat);
 write_params_to_ini(INI_NAME,bg);
 
 fprintf('\n BT vel - %4.1f MB \n\n', monitor_memory_whos);
