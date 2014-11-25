@@ -476,18 +476,33 @@ tgrid.s = S.s_rho;
 
 % Create background state (assumes uniform horizontal grid)
 % assign initial stratification
-Tz = N2/g/TCOEF * ones(size(zwmat) - [0 0 2]); % at w points except top / bottom face
-strat = T0.*ones(size(zrmat));
-strat(1,:,:) = T0;
-%strat_flat = strat;
+bstrat = T0.*ones(size(zrmat));
+if strat.z0 > 0 , strat.z0 = strat.z0 * -1; end
+% N2 here is phys.N2 = strat.N2
+if flags.conststrat
+    % constant stratification
+    Tz = N2/g/TCOEF * ones(size(zwmat) - [0 0 2]); % at w points except top / bottom face
+else
+    % non-constant stratification.
+    zmat = zwmat(:,:,2:end-1);
+    N2mat = N2 .* ...
+            ((exp(-(zmat - strat.z0)./strat.Lp) .* (zmat >  strat.z0)) + ...
+             (exp( (zmat - strat.z0)./strat.Lm) .* (zmat <= strat.z0)));
+    Tz = N2mat./g./TCOEF;
+end
 for k=size(zrmat,3)-1:-1:1
-    strat(:,:,k) = strat(:,:,k+1) - Tz(:,:,k).*(zrmat(:,:,k+1)-zrmat(:,:,k));
-%    strat_flat(:,:,k) = strat_flat(:,:,k+1) - Tz(:,:,k).*(zrflat(:,:,k+1)-zrflat(:,:,k));
+    bstrat(:,:,k) = bstrat(:,:,k+1) - Tz(:,:,k).*(zrmat(:,:,k+1)-zrmat(:,:,k));
 end
 
-S.temp = strat;
+subplot(1,2,1)
+plot(squeeze(bstrat(end,end,:)), squeeze(zrmat(end,end,:)));
+liney(strat.z0);
+subplot(1,2,2)
+plot(squeeze(Tz(end,end,:)), squeeze(zmat(end,end,:)));
+liney(strat.z0);
 
-clear S.Tz
+% assign background stratification to temp
+S.temp = bstrat;
 
 % choose axis + assign appropriate variables
 switch bathy.axis
@@ -686,15 +701,30 @@ if flags.eddy
 
     % reset in case I'm debugging
     if ~flags.front
-        S.temp = strat;
+        S.temp = bstrat;
         S.u = zeros(size(S.u));
         S.v = zeros(size(S.v));
         S.zeta = zeros(size(S.zeta));
     end
 
     % Set eddy parameters that depend on something else
-    eddy.Ldef = sqrt(phys.N2)*Z/pi/f0; % deformation radius NH/pi/f
-                                       % eddy.dia = 2*bathy.L_slope;
+    if flags.conststrat
+        eddy.Ldef = sqrt(phys.N2)*Z/pi/f0; % deformation radius NH/pi/f
+                                           % eddy.dia =
+                                           % 2*bathy.L_slope;
+    else
+        % determine deformation radius in deepest water
+        % this works for NS and EW isobaths
+        N2vec = squeeze(N2mat(end, end, :));
+        zvec  = squeeze(zrmat(end, end, :));
+
+        % calculate vertical modes
+        [Vmode, Hmode, c] = vertmode(N2vec, zvec, 1);
+        eddy.Ldef = c(1)./f0;
+
+        clear Tz N2mat
+    end
+
     % eddy.Bu is (Ldef / eddy_radius)^2
     if isnan(eddy.dia)
         eddy.dia = 2 * 1./sqrt(eddy.Bu) * eddy.Ldef;
@@ -702,7 +732,8 @@ if flags.eddy
 
     % set depth according to fL/N
     if flags.vprof_gaussian & isnan(eddy.depth)
-        eddy.depth = eddy.depth_factor * f0 * eddy.dia/2 / sqrt(N2);
+        eddy.depth = eddy.depth_factor * f0 * eddy.dia/2 / ...
+                sqrt(N2);
     end
 
     % check for consistency, just in case
