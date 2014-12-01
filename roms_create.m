@@ -489,19 +489,25 @@ else
     zmat = zwmat(:,:,2:end-1);
     N2mat = N2 .* ...
             ((exp(-(zmat - strat.z0)./strat.Lp) .* (zmat >  strat.z0)) + ...
-             (exp( (zmat - strat.z0)./strat.Lm) .* (zmat <= strat.z0)));
+             (exp( (zmat - strat.z0)./strat.Lm) .* (zmat <= ...
+                                                    strat.z0)));
+    % clamp min N² to 1e-6
+    N2mat(N2mat < 1e-6) = 1e-6;
     Tz = N2mat./g./TCOEF;
+
+    Zscl = 1;
+    subplot(1,2,1)
+    plot(squeeze(bstrat(end,end,:)), squeeze(zrmat(end,end,:))./Zscl);
+    liney(strat.z0./Zscl);
+    title('Temp');
+    subplot(1,2,2)
+    plot(squeeze(N2mat(end,end,:)), squeeze(zmat(end,end,:))./Zscl);
+    liney(strat.z0./Zscl);
+    title('N^2');
 end
 for k=size(zrmat,3)-1:-1:1
     bstrat(:,:,k) = bstrat(:,:,k+1) - Tz(:,:,k).*(zrmat(:,:,k+1)-zrmat(:,:,k));
 end
-
-subplot(1,2,1)
-plot(squeeze(bstrat(end,end,:)), squeeze(zrmat(end,end,:)));
-liney(strat.z0);
-subplot(1,2,2)
-plot(squeeze(Tz(end,end,:)), squeeze(zmat(end,end,:)));
-liney(strat.z0);
 
 % assign background stratification to temp
 S.temp = bstrat;
@@ -721,7 +727,7 @@ if flags.eddy
         zvec  = squeeze(zrmat(end, end, :));
 
         % calculate vertical modes
-        [Vmode, Hmode, c] = vertmode(N2vec, zvec, 1);
+        [Vmode, Hmode, c] = vertmode(N2vec, zvec, 1, 0);
         eddy.Ldef = c(1)./f0;
 
         clear Tz N2mat
