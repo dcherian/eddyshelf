@@ -962,7 +962,6 @@ if flags.eddy
         [~,ind] = sort(nn, 'descend');
         newmask = zeros(size(vormask));
         newmask(regions.PixelIdxList{ind(1)}) = 1;
-        imagesc(newmask')
         vormask = newmask;
 
         % area-averaged vor/f
