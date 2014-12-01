@@ -405,8 +405,13 @@ classdef runArray < handle
 
                 ndtime = run.eddy.t*86400 ./ run.csflux.tscale;
 
-                hplot = plot(ndtime, run.eddy.Ls);
+                %hplot = plot(ndtime, cumsum(run.enflux.ikeflux(:,2)));
+                hplot = plot(run.eddy.cx, run.eddy.cy);
                 addlegend(hplot, run.name);
+
+
+                plot(run.eddy.cx(tind), run.eddy.cy(tind), 'r*');
+
             end
         end
 
