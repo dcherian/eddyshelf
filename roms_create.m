@@ -739,7 +739,7 @@ if flags.eddy
     end
 
     % set depth according to fL/N
-    if flags.vprof_gaussian & isnan(eddy.depth)
+    if (flags.vprof_gaussian | flags.pres_gaussian) & isnan(eddy.depth)
         eddy.depth = eddy.depth_factor * f0 * eddy.dia/2 / ...
                 sqrt(N2);
     end
@@ -856,9 +856,15 @@ if flags.eddy
     % use half-Gaussian profile & normalize
     if flags.vprof_gaussian
         eddy.zprof = exp(-(eddy.z ./ eddy.depth) .^ 2);
-    else % energy in barotropic and BC1 mode
-        eddy.zprof = abs((cos((- eddy.z)/Z * pi + eddy.theta0)));
-        eddy.depth = Z/2;
+    else
+        if flags.pres_gaussian
+            eddy.zprof = -eddy.z .* exp(-(eddy.z ./ ...
+                                          eddy.depth).^2);
+            eddy.zprof = eddy.zprof ./ max(eddy.zprof);
+        else % energy in barotropic and BC1 mode
+            eddy.zprof = abs((cos((- eddy.z)/Z * pi + eddy.theta0)));
+            eddy.depth = Z/2;
+        end
     end
     %eddy.zprof = eddy.zprof./trapz(eddy.z,eddy.zprof);
 
@@ -895,7 +901,7 @@ if flags.eddy
                                .* exp(-exponent) .* (rnorm > rmnorm);
         else
             if flags.eddy_zhang
-                dTdr = - rnorm./r0 .* exp(-rnorm.^2/2) .* (2- rnorm.^2/2);
+                dTdr = - rnorm./r0 .* exp(-rnorm.^2/2) .* (2 - rnorm.^2/2);
 %            else
                 % gaussian eddy
 %                 S.zeta = S.zeta + -TCOEF * eddy.tamp * int_Tz .* (1-eddy.xyprof);
