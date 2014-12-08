@@ -252,6 +252,9 @@ fnew = f0*ones(size(S.x_rho));
 f = fnew + beta * (S.y_rho - S.y_rho(1,ymid));
 clear fnew
 
+% make plots to check bathymetry?
+bathy_plot = 0
+
 if isnan(bathy.H_shelf)
     bathy.H_shelf = bathy.H_sbreak - bathy.sl_shelf * bathy.L_shelf;
 end
@@ -292,15 +295,17 @@ else
             i_as = 1; % cross-shelf axis
             hvec = S.h(1,:)';
     end
-    fbathy = figure;
-    subplot(133);
-    plot(hvec,'b'); hold on
 
     % run smoother
     for i=1:bathy.n_passes
         hvec = smooth(hvec,bathy.n_points);
     end
-    plot(hvec,'k');
+    if bathy_plot
+        fbathy = figure;
+        subplot(133);
+        plot(hvec,'b'); hold on
+        plot(hvec,'k');
+    end
 
     % smooth transition to deep water even more
     % find end of slope
@@ -317,7 +322,6 @@ else
     else
         S.h = repmat(hvec, [1 size(S.h, 2)]);
     end
-    plot(hvec,'r*');
 
     % Calculate Burger numbers
     S_sh = bathy.sl_shelf * sqrt(N2)./f0; % shelf
@@ -390,7 +394,6 @@ Z  = abs(max(S.h(:)));
 bathy_title = sprintf(['\n\n Beckmann & Haidvogel number (r_{x0}) = %f (< 0.2 , max 0.4) \n' ...
             ' Haney number (r_{x1}) = %f (< 9 , maybe 16)'], rx0,rx1);
 
-bathy_plot = 0
 if bathy_plot
     if ~exist('fbathy','var')
         fbathy = figure;
