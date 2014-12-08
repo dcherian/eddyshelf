@@ -25,7 +25,7 @@ function [] = plot_penetration(runArray)
         %name = [' H_{sb}/H_{eddy} = ' ...
         %        num2str(run.bathy.hsb./run.eddy.Lgauss(1))];
 
-        ndtime = run.eddy.t * 86400 / run.csflux.tscale;
+        ndtime = run.eddy.t * 86400 / run.tscale;
         tinds = vecfind(ndtime, [0.5:0.5:(max(ndtime))]);
 
         if ~isempty(hfig1)
