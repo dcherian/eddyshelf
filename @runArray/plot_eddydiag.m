@@ -3,21 +3,16 @@
 function [] = plot_eddydiag(runArray)
 % mark crosses on eddy track at tcen
     tcen = [0 100 200 300]; % in days
-    hfig1 = [];figure;
-    %subplot(2,1,1); hold all
-    %subplot(2,1,2); hold all
+    hfig1 = figure; subplot(2,1,1); hold all subplot(2,1,2); hold all
 
-    hfig2 = figure;
-    hold all;
+    hfig2 = figure; hold all;
 
     hfig3 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all;
 
     hfig4 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all;
 
-    hfig5 = []; %figure;
-                %subplot(3,1,1); hold all;
-                %subplot(3,1,2); hold all;
-                %subplot(3,1,3); hold all;
+    hfig5 = figure; subplot(3,1,1); hold all; subplot(3,1,2); hold  all;
+    subplot(3,1,3); hold all;
 
     hfig6 = []; %figure; hold all
 
@@ -56,16 +51,17 @@ function [] = plot_eddydiag(runArray)
                      'x', 'Color', clr, 'MarkerSize', 12);
             end
         end
-        continue;
 
-        figure(hfig1)
+        if ~isempty(hfig1)
+            figure(hfig1)
 
-        subplot(2,1,1)
-        hgplt = plot(ndtime, asp./run.bathy.sl_slope);
-        addlegend(hgplt, name);
-        subplot(2,1,2)
-        hgplt = plot(ndtime, asp);
-        addlegend(hgplt, num2str(asp(1)));
+            subplot(2,1,1)
+            hgplt = plot(ndtime, run.eddy.Lgauss);
+            addlegend(hgplt, name);
+            subplot(2,1,2)
+            hgplt = plot(ndtime, asp);
+            addlegend(hgplt, num2str(asp(1)));
+        end
 
         if hfig3
             try
@@ -94,6 +90,7 @@ function [] = plot_eddydiag(runArray)
             hgplt = plot(ndtime, run.eddy.Ro);
             addlegend(hgplt, name);
         catch ME
+            warning('didn''t plot');
         end
         subplot(3,1,2)
         hgplt = plot(ndtime, run.eddy.Ls/1000);
