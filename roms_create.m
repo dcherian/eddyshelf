@@ -783,7 +783,7 @@ if flags.eddy
             if isnan(eddy.cy)
                 % add deformation radius buffer away from boundary
                 % note there is no sponge at the inflow boundary
-                eddy.cy = Y-eddy.Ldef-xtra-eddy.buffer_sp;
+                eddy.cy = 2*eddy.Ldef+xtra+eddy.buffer_sp;
             end
             fprintf('Distance from eastern edge = %.2f km \n', ...
                     (X-eddy.cx-xtra)/1000);
