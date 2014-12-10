@@ -697,8 +697,23 @@ if flags.front
         S.temp = S.temp + S.Tra;
     end
     % clear some vars
-    clear S.Tra S.Trax S.Traz S.Tz
-    fprintf('\n Writing front params');
+    clear S.Tra S.Trax S.Traz S.Tz vmat
+
+    % estimate Rossby number of front
+    if bathy.axis == 'x'
+        vx = diff(S.v, 1, 1)./diff(xvmat, 1, 1);
+        nondim.front.Ro = max(abs(vx(:)))./f0;
+    else
+        uy = diff(S.u, 1, 2)./diff(yumat, 1, 2);
+        nondim.front.Ro = max(abs(uy(:)))./f0;
+    end
+
+    fprintf('\n Front Parameters: ');
+    fprintf(['\n Ro = %.2f | h-scale = %.2f km | v-scale = %.2f m | ' ...
+             'vscale/Hsb = %.2f \n\n'], ...
+            nondim.front.Ro, front.hscale/1000, front.vscale, front.vscale./bathy.hsb);
+
+    fprintf('\n Writing front params \n');
 
     write_params_to_ini(INI_NAME,front);
     toc;
