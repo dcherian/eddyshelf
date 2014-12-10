@@ -14,7 +14,6 @@ function [] = fluxes(runs, ftype)
     % need some kind of initial time instant - decided by streamer mask
     % now
     runs.csflux = [];
-    runs.asflux = [];
     tstart = 1;%find(repnan(runs.streamer.time,0) ==
                %0,1,'last') + 1;
     revind = runs.eddy.trevind;
@@ -342,19 +341,15 @@ function [] = fluxes(runs, ftype)
 
     % save fluxes
     runs.csflux.time = time;
-    runs.asflux.time = time;
+    %runs.asflux.time = time;
 
     runs.csflux.westmask = westmask;
     runs.csflux.eastmask = eastmask;
-    runs.asflux.westmask = westmask;
-    runs.asflux.eastmask = eastmask;
 
     hash = githash([mfilename('fullpath') '.m']);
     runs.csflux.hash = hash;
-    runs.asflux.hash = hash;
 
     csflux = runs.csflux;
-    asflux = runs.asflux;
 
     save([runs.dir '/fluxes.mat'], 'csflux', 'asflux');
 end
