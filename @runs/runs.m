@@ -34,7 +34,7 @@ properties
     % initial params
     params
     % fluxes - cross-shore & along-shore; - energy fluxes
-    csflux; asflux; enflux;
+    csflux; asflux;
     % transport - TO BE DEPRECATED
     eutrans;
     % streamer properties
@@ -2797,10 +2797,10 @@ methods
         dt = 4;
 
         % which flux plot do I do?
-        fluxplot = 0; % 0 = no flux plot
+        fluxplot = 2; % 0 = no flux plot
                       % 1 = instantaneous x-profile;
                       % 2 = flux v/s time
-        enfluxplot = 1; % plot energy flux ?
+        enfluxplot = 0; % plot energy flux ?
         sshplot = 0; % plot ssh-contour too?
         dyeplot = 0; % plot eddye contour too?
         telesplot = 0;  % plot lines where grid stretching starts
@@ -2906,11 +2906,11 @@ methods
             % energy flux
             if enfluxplot == 1
                 axes(ax);
-                linex(runs.enflux.x(2)/1000, 'Energy flux', 'k');
+                linex(runs.asflux.x(2)/1000, 'Energy flux', 'k');
 
                 subplot(3,1,3)
-                plot(runs.enflux.time/runs.tscale, runs.enflux.ikeflux(:,2));
-                henflx = linex(runs.enflux.time(ii)/runs.tscale);
+                plot(runs.asflux.time/runs.tscale, runs.asflux.ikeflux(:,2));
+                henflx = linex(runs.asflux.time(ii)/runs.tscale);
                 liney(0);
                 ylabel('Energy flux');
                 xlabel('Non-dimensional time');
@@ -2958,7 +2958,7 @@ methods
 
                 % energy flux plots
                 if enfluxplot
-                    set(henflx, 'XData', [1 1]*runs.enflux.time(ii)/runs.tscale);
+                    set(henflx, 'XData', [1 1]*runs.asflux.time(ii)/runs.tscale);
                 end
                 runs.video_update();
                 pause(1);
