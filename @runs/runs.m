@@ -259,8 +259,8 @@ methods
                 runs.eddy.t = runs.eddy.t(1:runs.eddy.tend);
             end
 
-            runs.eddy.Bu = runs.params.phys.N2 .* runs.eddy.Lgauss.^2 ./ runs.params.phys.f0^2 ...
-                ./ (runs.eddy.vor.dia/2).^2;
+            runs.eddy.Bu = runs.params.phys.N2 .* runs.eddy.Lgauss.^2 ...
+                ./ runs.params.phys.f0^2 ./ (runs.eddy.vor.dia/2).^2;
 
             runs.ndtime = (runs.time - runs.eddy.tscale);
 
