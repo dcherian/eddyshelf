@@ -83,18 +83,34 @@ function [] = plot_sections(runArray, varname, ndtimes)
 
             % line at 1 deformation radius from shelfbreak
             linex(1.2);
+
+            beautify([18 18 20]);
+
             if runs_on_one_fig
                 title(['S_\alpha = ', num2str(run.bathy.S_sl)]);
+                set(gca, 'TickDir', 'out');
+                set(gca, 'box', 'on');
+                set(gcf, 'renderer', 'zbuffer');
+                if ii ~= 1
+                    set(gca, 'YTickLabel', []);
+                end
+                ylim([-round(run.params.eddy.depth/100)*100 0]);
             else
                 title(['ndtime = ', num2str(ndtimes(tt))]);
             end
-            beautify([18 18 20]);
+
         end
         linkaxes(ax, 'xy');
+
+        supAxes = [.1 .1 .85 .85];
         if runs_on_one_fig
-            suplabel('t', ['ndtime = ' num2str(ndtime)]);
+            %            suplabel('t', ['ndtime = ' num2str(ndtime)], supAxes);
         else
             suplabel('t', run.name);
         end
+        [~, hx] = suplabel('Distance from shelfbreak (km)', 'x', supAxes);
+        [~, hy] = suplabel('Depth (m)', 'y', supAxes);
+        set(hx, 'fontSize', 18);
+        set(hy, 'fontSize', 18);
     end
 end
