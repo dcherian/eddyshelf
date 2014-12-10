@@ -1,6 +1,6 @@
 % quantify cross-shelfbreak and along-shelfbreak fluxes of a whole
 % bunch of stuff:
-function [] = fluxes(runs, ftype)
+function [] = csfluxes(runs, ftype)
 
 % Things I want to calculate fluxes of:
 % 1. RV & PV
