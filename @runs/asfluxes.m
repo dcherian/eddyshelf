@@ -55,7 +55,7 @@ function asfluxes(runs)
     end
 
     % integrate flux
-    disp('Looping over locations - integrating energy flux');
+    disp('Looping over locations - integrating energy / mass fluxes');
     tic;
     for ii=1:length(locs)
         % grid vectors for integration.
