@@ -796,7 +796,9 @@ if flags.eddy
     switch bathy.axis % cross-shore axis
         case 'x'
             if isnan(eddy.cx)
-                eddy.cx = bathy.xsl+eddy.buffer+xtra;
+                base = S.x_rho(find_approx(bathy.h(:,1), ...
+                                              1.5*eddy.depth, 1), 1);
+                eddy.cx = base + eddy.buffer+xtra; %597000;
             end
             if isnan(eddy.cy)
                 % add deformation radius buffer away from boundary
