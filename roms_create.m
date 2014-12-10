@@ -774,7 +774,7 @@ if flags.eddy
         error([' pi/S_sl * Le/Lsl * 1/sqrt(Bu) = ' ...
                 num2str(factor)]);
     else
-        warning([' pi/S_sl * Le/Lsl * 1/sqrt(Bu) = ' ...
+        disp([' pi/S_sl * Le/Lsl * 1/sqrt(Bu) = ' ...
                 num2str(factor)]);
     end
     if flags.eddy_zhang
@@ -944,7 +944,7 @@ if flags.eddy
             sdisc = sqrt(1 + bsxfun(@times,vgeo,2./rfb2));% sqrt(discriminant)
             if isreal(sdisc) % gradient wind doesn't always work with anticyclones
                 rut = bsxfun(@times,(-1 + sdisc), rfb2);
-                warning('Using gradient wind balance.');
+                disp('Using gradient wind balance.');
             else
                 % cyclostrophic balance doesn't work yet
                 error(['gradient wind calculated complex v! - ' ...
@@ -1221,7 +1221,7 @@ if flags.ubt_initial == 1
         % zero to choose where to apply shear - u or v?
         if flags.bg_shear == 1
             if bg.vbt == 0 && bg.ubt == 0
-                warning('No background velocity added');
+                disp('No background velocity added');
             else
                 bg.shear = bg.shear_fac * max(abs(vor(:)));
                 if bg.vbt == 0
@@ -1437,7 +1437,7 @@ if S.NPT > 0
     try
         dc_roms_passive_tracer(S,names,1);
     catch ME
-        warning('Passive tracer variables already created?');
+        disp('Passive tracer variables already created?');
     end
 
     % assign initial condition
@@ -1904,6 +1904,7 @@ if ~flags.flat_bottom
     S_sh,S_sl,b_sh,b_sl);
 end
 if flags.wind, cprintf('Red',sprintf('Wind tau0 = %.2e \n\n',wind.tau0)); end
+
 if flags.eddy,
     fprintf('\n Eddy Parameters: ');
     fprintf('\n Ro (vor/f) = %.2f | max. Ro (vor/f)= %.2f | Bu = %.2f | Bu_temp = %.2f | Ri = %.2f | Rh = %.2f | Lsl/R = %.2f | H_sb/H_eddy = %.2f\n\n', ....
@@ -1920,7 +1921,7 @@ if flags.floats
    yhi = find_approx(yrmat(1,:,1),max(floaty(:))*1000,1);
    fprintf('\n Float deployment locations : (%d:%d , %d:%d)', xlo,xhi,ylo,yhi);
 end
-if beta == 0, warning('f-plane!!!'); end
+if beta == 0, disp('f-plane!!!'); end
 fprintf('\n\n');
 
 % figure out appropriate viscosity
