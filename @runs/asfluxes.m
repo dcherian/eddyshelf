@@ -28,6 +28,11 @@ function asfluxes(runs)
         rho(:,:,:,ii) = dc_roms_read_data(runs.dir, 'rho', [], {ax ...
                             locs(ii) locs(ii)}, [], runs.rgrid, ...
                                           'his', 'single');
+
+        eddmask(:,:,:,ii) = (dc_roms_read_data(runs.dir, runs.eddname, [], {ax ...
+                            locs(ii) locs(ii)}, [], runs.rgrid, ...
+                                          'his', 'single') > runs.eddy_thresh);
+
         if do_energy
             v(:,:,:,ii) = dc_roms_read_data(runs.dir, 'v', [], {ax ...
                                 locs(ii) locs(ii)}, [], runs.rgrid, ...
@@ -39,7 +44,7 @@ function asfluxes(runs)
     end
 
     % calculate mass flux ρu
-    rflux = rho .* u;
+    rflux = rho .* u .* eddmask;
 
     % calculate energy flux
     if do_energy
@@ -50,8 +55,8 @@ function asfluxes(runs)
                     runs.rgrid.z_r(:,:,1)');
 
         % energy flux (y, z, t, location)
-        peflux = u(2:end-1,:,:,:) .* (pe(2:end-1,:,:,:));
-        keflux = u(2:end-1,:,:,:) .* (ke);
+        peflux = u(2:end-1,:,:,:) .* (pe(2:end-1,:,:,:)) .* eddmask;
+        keflux = u(2:end-1,:,:,:) .* (ke) .* eddmask;
     end
 
     % integrate flux
