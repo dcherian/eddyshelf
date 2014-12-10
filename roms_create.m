@@ -1916,6 +1916,14 @@ if flags.eddy,
 
     fprintf('\n Deploy float in center of eddy = (%d,%d) \n\n',eddy.ix,eddy.iy);
 end
+
+if flags.front,
+    fprintf('\n Front Parameters: ');
+    fprintf(['\n Ro = %.2f | h-scale = %.2f km | v-scale = %.2f m | ' ...
+             'vscale/Hsb = %.2f \n\n'], ...
+            nondim.front.Ro, front.hscale/1000, front.vscale, front.vscale./bathy.hsb);
+ end
+
 if flags.floats
    xlo = find_approx(xrmat(:,1,1),min(floatx(:))*1000,1);
    xhi = find_approx(xrmat(:,1,1),max(floatx(:))*1000,1);
