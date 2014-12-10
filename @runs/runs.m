@@ -427,14 +427,6 @@ methods
             clear data
         end
 
-        % load energy flux diagnostics if the file exists
-        if exist([dir '/enflux.mat'],'file') && reset ~= 1
-            disp('Loading energy flux diagnostics');
-            data = load([dir '/enflux.mat']);
-            runs.enflux = data.enflux;
-            clear data
-        end
-
         % set time-scale for normalization
         if isfield(runs.csflux, 'tscale')
             runs.tscale = runs.csflux.tscale;
