@@ -239,8 +239,6 @@ end
 tic;
 fprintf('\n Writing params \n');
 write_params_to_ini(INI_NAME,flags);
-write_params_to_ini(INI_NAME,bathy);
-write_params_to_ini(INI_NAME,phys);
 write_params_to_ini(INI_NAME,grid);
 toc;
 
@@ -1292,13 +1290,15 @@ fprintf('\n Writing eddy, strat, bg params');
 write_params_to_ini(INI_NAME,eddy);
 write_params_to_ini(INI_NAME,strat);
 write_params_to_ini(INI_NAME,bg);
+write_params_to_ini(INI_NAME,bathy);
+write_params_to_ini(INI_NAME,phys);
 
 fprintf('\n BT vel - %4.1f MB \n\n', monitor_memory_whos);
 
 %% non-dimensional parameters
 
-if exist('S_sh','var');nondim.S_sh = S_sh; end
-if exist('S_sl','var');nondim.S_sl = S_sl; end
+if exist('S_sh','var');nondim.S_sh = bathy.S_sh; end
+if exist('S_sl','var');nondim.S_sl = bathy.S_sl; end
 nondim.comment = ['Ro = Rossby number | S_sh = shelf Burger number |' ...
                   'S_sl = slope Burger number | Bu_temp = Bu based on eddy temp perturbation' ...
                   ' | Bu = traditional eddy burger number = NH/fR | Ri = Richardson number | ' ...
