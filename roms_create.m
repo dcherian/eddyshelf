@@ -490,7 +490,7 @@ if flags.conststrat
 else
     % non-constant stratification.
     zmat = zwmat(:,:,2:end-1);
-    N2mat = N2 .* ...
+    N2mat = strat.N2max .* ...
             ((exp(-(zmat - strat.z0)./strat.Lp) .* (zmat >  strat.z0)) + ...
              (exp( (zmat - strat.z0)./strat.Lm) .* (zmat <= ...
                                                     strat.z0)));
@@ -498,6 +498,18 @@ else
     N2mat(N2mat < 1e-6) = 1e-6;
     Tz = N2mat./g./TCOEF;
 
+    % depth-averaged N² is calculated later
+
+    % estimate slope Burger number using max. N² at the _bottom_
+    N2bot = N2mat(:,:,1);
+    bathy.S_sl = sqrt(max(N2bot(:))) .* bathy.sl_slope ./ f0;
+end
+for k=size(zrmat,3)-1:-1:1
+    bstrat(:,:,k) = bstrat(:,:,k+1) - Tz(:,:,k).*(zrmat(:,:,k+1)-zrmat(:,:,k));
+end
+
+% plot vertical profile of temperature and N² for non-constant stratification.
+if ~flags.conststrat
     Zscl = 1;
     subplot(1,2,1)
     plot(squeeze(bstrat(end,end,:)), squeeze(zrmat(end,end,:))./Zscl);
@@ -507,9 +519,6 @@ else
     plot(squeeze(N2mat(end,end,:)), squeeze(zmat(end,end,:))./Zscl);
     liney(strat.z0./Zscl);
     title('N^2');
-end
-for k=size(zrmat,3)-1:-1:1
-    bstrat(:,:,k) = bstrat(:,:,k+1) - Tz(:,:,k).*(zrmat(:,:,k+1)-zrmat(:,:,k));
 end
 
 % assign background stratification to temp
@@ -744,9 +753,22 @@ if flags.eddy
         N2vec = squeeze(N2mat(end, end, :));
         zvec  = squeeze(zrmat(end, end, :));
 
+        % calculate depth-averaged N² in *deep water*
+        N2 = trapz(avg1(zvec), N2vec) ./ abs(min(zvec(:)));
+        phys.N2 = N2;
+
         % calculate vertical modes
         [Vmode, Hmode, c] = vertmode(N2vec, zvec, 1, 0);
         eddy.Ldef = c(1)./f0;
+
+        % find zero-crossing of first-mode
+        zeroind = find_approx(Hmode, 0, 1);
+        eddy.depth = abs(zvec(zeroind));
+
+        % print information
+        fprintf(['\n\n Non-constant stratification:' ...
+                '\n\t\t Ldef = %.2f km | Eddy depth = %.2f m | S_sl = %.2f \n'], ...
+                eddy.Ldef/1000, eddy.depth, bathy.S_sl);
 
         clear Tz N2mat
     end
@@ -757,6 +779,7 @@ if flags.eddy
     end
 
     % set depth according to fL/N
+    % for non-constant stratification, this is set earlier.
     if (flags.vprof_gaussian | flags.pres_gaussian) & isnan(eddy.depth)
         eddy.depth = eddy.depth_factor * f0 * eddy.dia/2 / ...
                 sqrt(N2);
@@ -1915,6 +1938,13 @@ if flags.eddy,
             nondim.eddy.gamma);
 
     fprintf('\n Deploy float in center of eddy = (%d,%d) \n\n',eddy.ix,eddy.iy);
+end
+
+if ~flags.conststrat
+    % print information
+    fprintf(['\n\n Non-constant stratification:' ...
+             '\n\t\t Ldef = %.2f km | S_sl = %.2f \n'], ...
+            eddy.Ldef/1000, bathy.S_sl);
 end
 
 if flags.front,
