@@ -40,14 +40,15 @@ function [] = plot_eddydiag(runArray)
         end
 
         if hfig2
+            x = (run.eddy.mx - run.eddy.mx(1))/run.rrdeep;
+            y = (run.eddy.my - run.bathy.xsb)/run.rrdeep;
             figure(hfig2)
-            hgplt = plot(run.eddy.mx/1000, (run.eddy.my - run.bathy.xsb)/run.rrdeep);
+            hgplt = plot(x, y);
             addlegend(hgplt, name);
             clr = get(hgplt, 'color');
             for ii=1:length(tcen)
                 tind = find_approx(run.eddy.t, tcen(ii), 1);
-                plot(run.eddy.mx(tind)/1000, ...
-                     (run.eddy.my(tind)-run.bathy.xsb)/run.rrdeep, ...
+                plot(x(tind), y(tind), ...
                      'x', 'Color', clr, 'MarkerSize', 12);
             end
         end
@@ -166,9 +167,9 @@ function [] = plot_eddydiag(runArray)
 
     if hfig2
         figure(hfig2)
-        ylabel(['Center - X_{sb} / Deep water rossby ' ...
+        ylabel(['(Center - Y_{sb}) / Deep water rossby ' ...
                 'radius']);
-        xlabel('Non dimensional time');
+        xlabel('(Center - X(1)) /  Deep water rossby radius');
         title(['Crosses at [' num2str(tcen) '] days']);
         hleg = legend;
         set(hleg, 'Location', 'Northwest');
