@@ -107,8 +107,16 @@ temp = runArray(folders);
 
 %% shelfbreak depth
 
-folders = {'runew-2340', 'runew-2341', 'runew-2342'};
+folders = {'runew-2340', 'runew-2341', 'runew-2342', ...
+           'runew-9340', 'runew-9341'};
 sb = runArray(folders);
+
+for ii=1:sb.len
+    tind = sb.array(ii).eddy.tscaleind;
+    sb.name{ii} = ['\lambda = ' ...
+                   num2str(sb.array(ii).bathy.hsb ./ ...
+                           sb.array(ii).eddy.Lgauss(1), '%.2f')];
+end
 
 %%ew-4
 folders = { ...
