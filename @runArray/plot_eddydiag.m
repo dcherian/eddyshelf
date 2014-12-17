@@ -3,7 +3,7 @@
 function [] = plot_eddydiag(runArray)
 % mark crosses on eddy track at tcen
     tcen = [0 100 200 300]; % in days
-    hfig1 = figure; subplot(2,1,1); hold all subplot(2,1,2); hold all
+    hfig1 = [];  %figure; subplot(2,1,1); hold all subplot(2,1,2); hold all
 
     hfig2 = figure; hold all;
 
@@ -11,8 +11,8 @@ function [] = plot_eddydiag(runArray)
 
     hfig4 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all;
 
-    hfig5 = figure; subplot(3,1,1); hold all; subplot(3,1,2); hold  all;
-    subplot(3,1,3); hold all;
+    hfig5 = []; %figure; subplot(3,1,1); hold all; subplot(3,1,2); hold  all;
+                %subplot(3,1,3); hold all;
 
     hfig6 = []; %figure; hold all
 
@@ -41,6 +41,7 @@ function [] = plot_eddydiag(runArray)
             name = runArray.name{ii};
         end
 
+        % center-track
         if hfig2
             x = (run.eddy.mx - run.eddy.mx(1))/run.rrdeep;
             y = (run.eddy.my - run.bathy.xsb)/run.rrdeep;
@@ -55,7 +56,8 @@ function [] = plot_eddydiag(runArray)
             end
         end
 
-        if ~isempty(hfig1)
+        % vertical scale
+        if hfig1
             figure(hfig1)
 
             subplot(2,1,1)
@@ -66,6 +68,7 @@ function [] = plot_eddydiag(runArray)
             addlegend(hgplt, num2str(asp(1)));
         end
 
+        % KE, PE
         if hfig3
             try
                 figure(hfig3)
@@ -85,27 +88,29 @@ function [] = plot_eddydiag(runArray)
             catch ME
             end
         end
-        figure(hfig5)
+
         Bu = (sqrt(run.params.phys.N2) * run.eddy.Lgauss ./ run.eddy.Ls / ...
               run.params.phys.f0).^2;
-        subplot(3,1,1)
-        try
-            hgplt = plot(ndtime, run.eddy.Ro);
-            addlegend(hgplt, name);
-        catch ME
-            warning('didn''t plot');
-        end
-        subplot(3,1,2)
-        hgplt = plot(ndtime, run.eddy.Ls/1000);
-        addlegend(hgplt, name);
-        subplot(3,1,3)
-        if ~isfield(run.params.nondim, 'S_sl')
-            run.params.nondim.S_sl = 0;
-        end
-        plot(ndtime, run.eddy.V);
-        %plot(ndtime, run.params.nondim.S_sl * ...
-        %     sqrt(run.params.phys.N2) * run.eddy.Lgauss ./ run.eddy.V);
 
+        % Ro, Length scale, Velocity Scale
+        if hfig5
+            figure(hfig5)
+            subplot(3,1,1)
+            try
+                hgplt = plot(ndtime, run.eddy.Ro);
+                addlegend(hgplt, name);
+            catch ME
+                warning('didn''t plot');
+            end
+            subplot(3,1,2)
+            hgplt = plot(ndtime, run.eddy.Ls/1000);
+            addlegend(hgplt, name);
+            subplot(3,1,3)
+            if ~isfield(run.params.nondim, 'S_sl')
+                run.params.nondim.S_sl = 0;
+            end
+            plot(ndtime, run.eddy.V);
+        end
         %{figure(hfig6)
         %try
         %    if isempty(run.vorsurf)
@@ -146,6 +151,7 @@ function [] = plot_eddydiag(runArray)
         %    end
         %    %}
 
+        % Horizontal length-scale, vertical scale, depth at center
         if hfig7
             figure(hfig7)
             subplot(3,1,1)
