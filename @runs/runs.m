@@ -2829,12 +2829,14 @@ methods
         % do I need subplots?
         if (~isempty(runs.csflux) && fluxplot > 0) || ...
                 enfluxplot == 1
-            subplots = 1;
+            subplots_flag = 1;
+        else
+            subplots_flag = 0;
         end
 
         %%%% actually plot
         figure;
-        if subplots
+        if subplots_flag
             ax = subplot(3,1,[1 2]);
         end
         ii=t0;
@@ -2878,7 +2880,7 @@ methods
         beautify([16 16 18]);
         ax = gca;
 
-        if subplots
+        if subplots_flag
             ax2 = subplot(3,1,3);
             if fluxplot == 2
                 plot(runs.csflux.time / 86400, ...
@@ -4637,10 +4639,6 @@ methods
         end
 
         runs.video_write();
-    end
-
-    function [] = animate_csd_rvor(runs, t0)
-
     end
 
     function [] = animate_pt(runs,depth,t0)
