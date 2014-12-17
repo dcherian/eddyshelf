@@ -17,6 +17,13 @@ function asfluxes(runs)
 
     ax = 'x';
 
+    assert(runs.bathy.axis == 'y');
+
+    % mask based on eddy contour's northern edge
+    % permute to (y,z,t) like eddmask later.
+    nedge = permute(bsxfun(@lt, runs.rgrid.y_rho(:,1), runs.eddy.vor.ne), ...
+                    [1 3 2]);
+
     % read data
     % (y,z,t, location)
     for ii=1:length(locs)
@@ -29,9 +36,13 @@ function asfluxes(runs)
                             locs(ii) locs(ii)}, [], runs.rgrid, ...
                                           'his', 'single');
 
+        % mask based on dye
         eddmask(:,:,:,ii) = (dc_roms_read_data(runs.dir, runs.eddname, [], {ax ...
                             locs(ii) locs(ii)}, [], runs.rgrid, ...
                                           'his', 'single') > runs.eddy_thresh);
+
+        eddmask(:,:,:,ii) = bsxfun(@and, eddmask(:,:,:,ii), ...
+                                   nedge);
 
         if do_energy
             v(:,:,:,ii) = dc_roms_read_data(runs.dir, 'v', [], {ax ...
