@@ -21,6 +21,8 @@ function [] = plot_eddydiag(runArray)
                 %subplot(3,1,2); hold all;
                 %subplot(3,1,3); hold all;
 
+    hfig8 = figure; hold all;
+
     if isempty(runArray.filter)
         runArray.filter = 1:runArray.len;
     end
@@ -154,6 +156,15 @@ function [] = plot_eddydiag(runArray)
             subplot(3,1,3)
             plot(ndtime, run.eddy.hcen);
         end
+
+        % volume
+        if hfig8
+            figure(hfig8)
+            hplot = plot(ndtime, ...
+                         smooth(run.eddy.vor.lmaj .* run.eddy.vor.lmin ...
+                                .* run.eddy.Lgauss, 1));
+            addlegend(hplot, name);
+         end
     end
     if hfig1
         figure(hfig1);
@@ -207,5 +218,11 @@ function [] = plot_eddydiag(runArray)
         subplot(3,1,3);
         ylabel('Water depth at center');
         xlabel('Non-dim time');
+    end
+    if hfig8
+        figure(hfig8);
+        ylabel('L_{maj} \times L_{min} \times H (m^3)');
+        xlabel('Non-dim time');
+        beautify;
     end
 end
