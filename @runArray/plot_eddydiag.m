@@ -165,11 +165,14 @@ function [] = plot_eddydiag(runArray)
 
         % volume
         if hfig8
+            vol = smooth(run.eddy.vor.lmaj .* run.eddy.vor.lmin ...
+                         .* run.eddy.Lgauss, 1);
+            tindex = find_approx(run.time./run.eddy.tscale, 1, 1);
             figure(hfig8)
-            hplot = plot(ndtime, ...
-                         smooth(run.eddy.vor.lmaj .* run.eddy.vor.lmin ...
-                                .* run.eddy.Lgauss, 1));
+            hplot = plot(ndtime, vol);
             addlegend(hplot, name);
+            plot(ndtime(tindex), vol(tindex), '.', 'MarkerSize', 24, ...
+                 'Color', get(hplot, 'Color'));
          end
     end
     if hfig1
@@ -227,6 +230,7 @@ function [] = plot_eddydiag(runArray)
     end
     if hfig8
         figure(hfig8);
+        title('Dots = eddy center crosses slopebreak');
         ylabel('L_{maj} \times L_{min} \times H (m^3)');
         xlabel('Non-dim time');
         beautify;
