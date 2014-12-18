@@ -404,15 +404,16 @@ classdef runArray < handle
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
 
+                index = 1;
+
+                name = [run.name ' | ' num2str(run.asflux.x(index)/1000 ...
+                                               ) ' km'];
                 ndtime = run.eddy.t*86400 ./ run.csflux.tscale;
+                tind = 1:length(ndtime);
 
-                %hplot = plot(ndtime, cumsum(run.enflux.ikeflux(:,2)));
-                hplot = plot(run.eddy.cx, run.eddy.cy);
-                addlegend(hplot, run.name);
-
-
-                plot(run.eddy.cx(tind), run.eddy.cy(tind), 'r*');
-
+                hplot = plot(ndtime(tind), run.asflux.irflux(tind,index));
+                %hplot = plot(run.eddy.cx, run.eddy.cy);
+                addlegend(hplot, name);
             end
         end
 
