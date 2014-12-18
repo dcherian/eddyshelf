@@ -1,5 +1,8 @@
 % diagnostic plots to show how much eddy penetrates slope
 function [] = plot_penetration(runArray)
+
+    mark_timestamp = 0;
+
     hfig1 = []; %figure;
     %subplot(2,1,1); hold all;
     %subplot(2,1,2); hold all;
@@ -26,7 +29,11 @@ function [] = plot_penetration(runArray)
         %        num2str(run.bathy.hsb./run.eddy.Lgauss(1))];
 
         ndtime = run.eddy.t * 86400 / run.tscale;
-        tinds = vecfind(ndtime, [0.5:0.5:(max(ndtime))]);
+        if mark_timestamp
+            tinds = vecfind(ndtime, [0.5:0.5:(max(ndtime))]);
+        else
+            tinds = [];
+        end
 
         if ~isempty(hfig1)
             figure(hfig1);
