@@ -487,7 +487,7 @@ if strat.z0 > 0 , strat.z0 = strat.z0 * -1; end
 % N2 here is phys.N2 = strat.N2
 if flags.conststrat
     % constant stratification
-    Tz = phys.N2/phys.g/TCOEF * ones(size(zwmat) - [0 0 2]); % at w points except top / bottom face
+    Tz = phys.N2/phys.g/phys.TCOEF * ones(size(zwmat) - [0 0 2]); % at w points except top / bottom face
 else
     % non-constant stratification.
     zmat = zwmat(:,:,2:end-1);
