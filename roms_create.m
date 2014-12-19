@@ -996,6 +996,22 @@ if flags.eddy
         eddy.u = -1 * bsxfun(@times,rut, sin(th));
         eddy.v =      bsxfun(@times,rut, cos(th));
 
+        % test hassanzadeh et al. (2011)
+        range = eddy.ix-10:eddy.ix+15; %eddy.ix-18:eddy.ix+18;
+        vt = rut(range, eddy.iy, end)';
+        ri = r(range, eddy.iy)';
+        fn = vt .* (phys.f0 + vt./ri);
+        mvt = max(abs(vt(:)));
+        L = eddy.dia/2;
+        %figure;
+        %subplot(211);
+        %plot(ri/1000, vt);
+        %subplot(212);
+        %plot(ri/1000, fn);
+
+        %-mvt .* (phys.f0 + mvt./L) .* L
+        %trapz(ri, fn)
+
         % check angular momentum integral
 %         % if zero, eddy is isolated
 %         L = R0*(1 - phys.TCOEF * eddy.temp) .* ...
