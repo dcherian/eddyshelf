@@ -144,10 +144,10 @@ if (~isfield(S, 'mask_u'  )),  S.mask_u   = ones([Lu Mu]);  end,
 if (~isfield(S, 'mask_v'  )),  S.mask_v   = ones([Lv Mv]);  end,
 
 % salt
-S.salt = S0*ones(size(S.salt));
+S.salt = phys.S0*ones(size(S.salt));
 
 % temperature
-S.temp = T0*ones(size(S.temp));
+S.temp = phys.T0*ones(size(S.temp));
 
 % Fix grids for future use
 xmid = ceil(S.Lm/2);
@@ -158,6 +158,7 @@ if ~flags.telescoping
 
     S.uniform = 1;
 
+    dx0 = grid.dx0; dy0 = grid.dy0;
     S.x_rho = repmat([-dx0/2:dx0:X+dx0/2]',[1 S.Mm+2]);
     S.y_rho = repmat(-dy0/2:dy0:Y+dy0/2 ,[S.Lm+2 1]);
 
@@ -173,6 +174,8 @@ if ~flags.telescoping
 
     S.pm = 1./dx0 * ones(size(S.x_rho));
     S.pn = 1./dy0 * ones(size(S.x_rho));
+
+    clear dx0 dy0
 else
     S.uniform = 0;
 
@@ -246,8 +249,8 @@ fprintf('\n Initialization - %4.1f MB \n\n', monitor_memory_whos);
 
 %% Bathymetry + Coriolis + more grid stuff
 % Coriolis with beta. f = f0 @ y=ymid
-fnew = f0*ones(size(S.x_rho));
-f = fnew + beta * (S.y_rho - S.y_rho(1,ymid));
+fnew = phys.f0*ones(size(S.x_rho));
+f = fnew + phys.beta * (S.y_rho - S.y_rho(1,ymid));
 clear fnew
 
 % make plots to check bathymetry?
@@ -322,12 +325,12 @@ else
     end
 
     % Calculate Burger numbers
-    S_sh = bathy.sl_shelf * sqrt(N2)./f0; % shelf
-    S_sl = bathy.sl_slope * sqrt(N2)./f0; % slope
+    S_sh = bathy.sl_shelf * sqrt(phys.N2)./phys.f0; % shelf
+    S_sl = bathy.sl_slope * sqrt(phys.N2)./phys.f0; % slope
 
     % Calculate topographic beta
-    b_sh = f0 * bathy.sl_shelf / bathy.H_shelf;
-    b_sl = f0 * bathy.sl_slope / max(S.h(:));
+    b_sh = phys.f0 * bathy.sl_shelf / bathy.H_shelf;
+    b_sl = phys.f0 * bathy.sl_slope / max(S.h(:));
 
     % calculate for smoothed bathymetry
     % find shelfbreak
@@ -469,8 +472,8 @@ fprintf('\n Bathy - %4.1f MB \n\n', monitor_memory_whos);
 tic
 
 % reset initial tracers just in case
-S.temp = T0*ones(size(S.temp));
-S.salt = S0*ones(size(S.salt));
+S.temp = phys.T0*ones(size(S.temp));
+S.salt = phys.S0*ones(size(S.salt));
 
 % setup variables for diff_cgrid used later
 tgrid.zw = permute(zwmat,[3 2 1]); tgrid.s_w = S.s_w;
@@ -479,12 +482,12 @@ tgrid.s = S.s_rho;
 
 % Create background state (assumes uniform horizontal grid)
 % assign initial stratification
-bstrat = T0.*ones(size(zrmat));
+bstrat = phys.T0.*ones(size(zrmat));
 if strat.z0 > 0 , strat.z0 = strat.z0 * -1; end
 % N2 here is phys.N2 = strat.N2
 if flags.conststrat
     % constant stratification
-    Tz = N2/g/TCOEF * ones(size(zwmat) - [0 0 2]); % at w points except top / bottom face
+    Tz = phys.N2/phys.g/TCOEF * ones(size(zwmat) - [0 0 2]); % at w points except top / bottom face
 else
     % non-constant stratification.
     zmat = zwmat(:,:,2:end-1);
@@ -494,13 +497,13 @@ else
                                                     strat.z0)));
     % clamp min N² to 1e-6
     N2mat(N2mat < 1e-6) = 1e-6;
-    Tz = N2mat./g./TCOEF;
+    Tz = N2mat./phys.g./phys.TCOEF;
 
     % depth-averaged N² is calculated later
 
     % estimate slope Burger number using max. N² at the _bottom_
     N2bot = N2mat(:,:,1);
-    bathy.S_sl = sqrt(max(N2bot(:))) .* bathy.sl_slope ./ f0;
+    bathy.S_sl = sqrt(max(N2bot(:))) .* bathy.sl_slope ./ phys.f0;
 end
 for k=size(zrmat,3)-1:-1:1
     bstrat(:,:,k) = bstrat(:,:,k+1) - Tz(:,:,k).*(zrmat(:,:,k+1)-zrmat(:,:,k));
@@ -562,10 +565,10 @@ if flags.front
     % this gets gradient on a Z level
     % for this to work Tx must be independent of z!
     if strcmpi(front.Tra,'salt')
-        coef = -SCOEF;
+        coef = -phys.SCOEF;
         S.Tra = S.salt;
     else
-        coef = TCOEF;
+        coef = phys.TCOEF;
         S.Tra = S.temp;
     end
 
@@ -642,7 +645,7 @@ if flags.front
 
     % then calculate zeta
     S.zeta = nan([size(S.h,1) size(S.h,2)]);
-    tmp = zeta_sign * f0/g * cumtrapz(zetahax,vmat(:,:,end),i_cs);
+    tmp = zeta_sign * phys.f0/phys.g * cumtrapz(zetahax,vmat(:,:,end),i_cs);
     if flip_flag,
         S.zeta = S.zeta';
         tmp = tmp';
@@ -709,10 +712,10 @@ if flags.front
     % estimate Rossby number of front
     if bathy.axis == 'x'
         vx = diff(S.v, 1, 1)./diff(xvmat, 1, 1);
-        nondim.front.Ro = max(abs(vx(:)))./f0;
+        nondim.front.Ro = max(abs(vx(:)))./phys.f0;
     else
         uy = diff(S.u, 1, 2)./diff(yumat, 1, 2);
-        nondim.front.Ro = max(abs(uy(:)))./f0;
+        nondim.front.Ro = max(abs(uy(:)))./phys.f0;
     end
 
     fprintf('\n Front Parameters: ');
@@ -742,7 +745,7 @@ if flags.eddy
 
     % Set eddy parameters that depend on something else
     if flags.conststrat
-        eddy.Ldef = sqrt(phys.N2)*Z/pi/f0; % deformation radius NH/pi/f
+        eddy.Ldef = sqrt(phys.N2)*Z/pi/phys.f0; % deformation radius NH/pi/f
                                            % eddy.dia =
                                            % 2*bathy.L_slope;
     else
@@ -757,7 +760,7 @@ if flags.eddy
 
         % calculate vertical modes
         [Vmode, Hmode, c] = vertmode(N2vec, zvec, 1, 0);
-        eddy.Ldef = c(1)./f0;
+        eddy.Ldef = c(1)./phys.f0;
 
         % find zero-crossing of first-mode
         zeroind = find_approx(Hmode, 0, 1);
@@ -779,14 +782,14 @@ if flags.eddy
     % set depth according to fL/N
     % for non-constant stratification, this is set earlier.
     if (flags.vprof_gaussian | flags.pres_gaussian) & isnan(eddy.depth)
-        eddy.depth = eddy.depth_factor * f0 * eddy.dia/2 / ...
-                sqrt(N2);
+        eddy.depth = eddy.depth_factor * phys.f0 * eddy.dia/2 / ...
+                sqrt(phys.N2);
     end
 
     % check for consistency, just in case
     if ~flags.flat_bottom
         factor = 1;1/sqrt(eddy.Bu) * eddy.dia/2 / bathy.L_slope * pi/ ...
-                 bathy.S_sl - sqrt(N2)*bathy.hsb/pi/f0/eddy.Ldef;
+                 bathy.S_sl - sqrt(phys.N2)*bathy.hsb/pi/phys.f0/eddy.Ldef;
     else
         factor = 1;
     end
@@ -929,8 +932,8 @@ if flags.eddy
 
         % SSH calculation is same for gradient wind & geostrophic balance!
         % also same for all profiles
-        %S.zeta = S.zeta + TCOEF*eddy.tamp * int_Tz .* eddy.xyprof;
-        eddy.zeta = TCOEF * trapz(eddy.z, ...
+        %S.zeta = S.zeta + phys.TCOEF*eddy.tamp * int_Tz .* eddy.xyprof;
+        eddy.zeta = phys.TCOEF * trapz(eddy.z, ...
                  bsxfun(@minus,eddy.temp,eddy.temp(eddy.ix,eddy.iy,:)),3);
         S.zeta = S.zeta + eddy.zeta;
         S.zeta = S.zeta - min(S.zeta(:));
@@ -945,17 +948,18 @@ if flags.eddy
                 dTdr = - rnorm./r0 .* exp(-rnorm.^2/2) .* (2 - rnorm.^2/2);
 %            else
                 % gaussian eddy
-%                 S.zeta = S.zeta + -TCOEF * eddy.tamp * int_Tz .* (1-eddy.xyprof);
+%                 S.zeta = S.zeta + -phys.TCOEF * eddy.tamp * int_Tz .* (1-eddy.xyprof);
 %                 % Calculate azimuthal velocity shear (r d(theta)/dt)_z using geostrophic balance
 %                 rutz = avg1(bsxfun(@times, eddy.temp, ...
-%                         g*TCOEF* 1./f .* (-exponent./r *eddy.a)),3);
+%                         g*phys.TCOEF* 1./f .* (-exponent./r *eddy.a)),3);
             end
         end
-        % rutz = eddy.tamp *(TCOEF*g) .* bsxfun(@times,eddy.tz,dTdr./f);
+        % rutz = eddy.tamp *(phys.TCOEF*g) .* bsxfun(@times,eddy.tz,dTdr./f);
 
         % azimuthal velocity = r d(theta)/dt
-        rut = eddy.tamp * (TCOEF*g) .* bsxfun(@times,cumtrapz(eddy.z,eddy.tz,3),dTdr./f);
-%         rut = zeros(size(xrmat));
+        rut = eddy.tamp * (phys.TCOEF*phys.g) .* bsxfun(@times, ...
+                                                        cumtrapz(eddy.z,eddy.tz,3),dTdr./f);
+        %         rut = zeros(size(xrmat));
 %         for i=2:size(xrmat,3)
 %             rut(:,:,i) = rut(:,:,i-1) + rutz(:,:,i-1).*(zrmat(:,:,i)-zrmat(:,:,i-1));
 %         end
@@ -981,7 +985,7 @@ if flags.eddy
 
         % check angular momentum integral
 %         % if zero, eddy is isolated
-%         L = R0*(1 - TCOEF * eddy.temp) .* ...
+%         L = R0*(1 - phys.TCOEF * eddy.temp) .* ...
 %             (bsxfun(@times,eddy.v,(S.x_rho - eddy.cx)) - ...
 %              bsxfun(@times,eddy.u,(S.y_rho - eddy.cy)));
 
@@ -1023,8 +1027,8 @@ if flags.eddy
 %        if  nondim.eddy.Ro > 0.25, error('Error: Ro > 0.25'); end
         nondim.eddy.Rh = eddy.U/phys.beta/eddy.R^2;
         nondim.eddy.Bu = (eddy.R / eddy.Ldef)^2;;
-        nondim.eddy.Ri = N2./(TCOEF*g*eddy.tamp/f0/eddy.R).^2;
-        nondim.eddy.Bu_temp = TCOEF *g * Z * eddy.tamp / f0^2 / eddy.R^2;
+        nondim.eddy.Ri = phys.N2./(phys.TCOEF*phys.g*eddy.tamp/phys.f0/eddy.R).^2;
+        nondim.eddy.Bu_temp = phys.TCOEF * phys.g * Z * eddy.tamp / phys.f0^2 / eddy.R^2;
         nondim.eddy.gamma = bathy.hsb/eddy.depth;
         fprintf('\n Ro (vor/f) = %.2f | Bu = %.2f | Bu_temp = %.2f | Ri = %.2f | Rh = %.2f | Lsl/R = %.2f | H_sb/H_eddy = %.2f\n\n', ....
                 nondim.eddy.Rovor,nondim.eddy.Bu,nondim.eddy.Bu_temp, ...
@@ -1040,12 +1044,12 @@ if flags.eddy
         fprintf('\n Max. Ro (vor/f)  = %.2f \n', Ro1);
 
         Lr = eddy.Ldef;
-        vgw1 = sqrt(N2) * Z;
-        vr1 = -beta * Lr^2;
+        vgw1 = sqrt(phys.N2) * Z;
+        vr1 = -phys.beta * Lr^2;
         % scaled height
-        Hs = vgw1^2/g;
+        Hs = vgw1^2/phys.g;
         vs1 = 14.5*vr1 * (vr1/vgw1) * nondim.eddy.Rh*86.4;
-        vx = (bg.ubt-beta*Lr^2/2) * 86.4;
+        vx = (bg.ubt-phys.beta*Lr^2/2) * 86.4;
         tsl = ceil((eddy.cy-bathy.xsl)/1000/vs1);
         tsb = ceil((eddy.cy-bathy.xsb)/1000/vs1);
         fprintf(['\n Southward vel = %.3f km/day | ' ...
@@ -1156,7 +1160,7 @@ if flags.eddy
     %% estimate speed based on van leeuwin (2007)
 
     % first, K.E
-    %rho_eddy = R0 * (- TCOEF * (eddy.temp));
+    %rho_eddy = R0 * (- phys.TCOEF * (eddy.temp));
     %ke = 1/2 * rho_eddy .* (eddy.u.^2 + eddy.v.^2);
     %pe = 1/2 * g * rho_eddy .* zrmat;
 
@@ -1171,18 +1175,18 @@ if flags.eddy
     %Ld = eddy.Ldef; % deformation radius
     %eta = eddy.temp(:,:,S.N/2);
     %num1 = 0;
-    %num2 = f0^2/h0 * Ld^2 * trapz(yrmat(1,:,1),trapz(xrmat(:,1,1),eta.^2,1),2);
+    %num2 = phys.f0^2/h0 * Ld^2 * trapz(yrmat(1,:,1),trapz(xrmat(:,1,1),eta.^2,1),2);
     %den = (2*Ld^2*trapz(yrmat(1,:,1),trapz(xrmat(:,1,1),eta,1),2));
     %gamma = (num1+num2)/den;
 
-    Vr = beta * eddy.Ldef^2;
+    Vr = phys.beta * eddy.Ldef^2;
 
     %fprintf(['\n Based on van Leeuwin (2007) : \n ' ...
     %        'Gamma = %.2f, Vr = %.3f m/s, Drift speed = %.3f m/s \n'], ...
     %    gamma, Vr, Vr*(gamma));
 
     A = max(abs(eddy.zeta(:)));
-    Nqg = f0*eddy.Ldef/g * Vr;
+    Nqg = phys.f0*eddy.Ldef/phys.g * Vr;
     gamma = Nqg/A - 1;
 
     % estimated westward translation speed
@@ -1269,17 +1273,17 @@ if flags.ubt_initial == 1
         if bg.ubt ~= 0
             S.u = bsxfun(@plus,S.u,avg1(ubt,1));
             if flags.fplanezeta
-                S.zeta = S.zeta + cumtrapz(squeeze(yrmat(1,:,1)),-f0./g * ubt,2);
+                S.zeta = S.zeta + cumtrapz(squeeze(yrmat(1,:,1)),-phys.f0./phys.g * ubt,2);
             else
-                S.zeta = S.zeta + cumtrapz(squeeze(yrmat(1,:,1)),-f./g .* ubt,2);
+                S.zeta = S.zeta + cumtrapz(squeeze(yrmat(1,:,1)),-f./phys.g .* ubt,2);
             end
         end
         if bg.vbt ~=0
             S.v = bsxfun(@plus,S.v,avg1(vbt,2));
             if ~flags.fplanezeta
-               S.zeta = S.zeta + cumtrapz(squeeze(xrmat(:,1,1)),f./g .* vbt,1);
+               S.zeta = S.zeta + cumtrapz(squeeze(xrmat(:,1,1)),f./phys.g .* vbt,1);
             else
-               S.zeta = S.zeta + cumtrapz(squeeze(xrmat(:,1,1)),f0./g * vbt,1);
+               S.zeta = S.zeta + cumtrapz(squeeze(xrmat(:,1,1)),phys.f0./phys.g * vbt,1);
             end
         end
 end
@@ -1332,7 +1336,7 @@ if ~flags.spinup
     [S.ubar,S.vbar] = uv_barotropic(S.u,S.v,Hz);
 end
 
-S.rho = R0*(1 - TCOEF * (S.temp-T0) + SCOEF * (S.salt-S0));
+S.rho = phys.R0*(1 - phys.TCOEF * (S.temp-phys.T0) + phys.SCOEF * (S.salt-phys.S0));
 
 toc;
 
@@ -1353,7 +1357,7 @@ if calc_pv
 
     grid1.s_w = S.s_w; grid1.s_rho = S.s_rho;
 
-    [pv,xpv,ypv,zpv] = pv_cgrid(grid1,S.u,S.v,S.rho,f,R0);
+    [pv,xpv,ypv,zpv] = pv_cgrid(grid1,S.u,S.v,S.rho,f,phys.R0);
 
     pvmin = min(pv(:));
     pvmid = pv(xmid,ymid,zmid);
@@ -1388,8 +1392,8 @@ if check_thermalwind
     dxarr = squeeze(diff(xrmat(:,:,end),1,1));
     dyarr = squeeze(diff(yrmat(:,:,end),1,2));
 
-    dRdx = bsxfun(@rdivide, diff_cgrid(tgrid,S.rho,1) * g/R0, avg1(f,1));
-    dRdy = bsxfun(@rdivide, diff_cgrid(tgrid,S.rho,2) * g/R0, avg1(f,2));
+    dRdx = bsxfun(@rdivide, diff_cgrid(tgrid,S.rho,1) * phys.g/phys.R0, avg1(f,1));
+    dRdy = bsxfun(@rdivide, diff_cgrid(tgrid,S.rho,2) * phys.g/phys.R0, avg1(f,2));
 
     dzdx = bsxfun(@rdivide, diff(zeta0,1,1), dxarr);
     dzdy = bsxfun(@rdivide, diff(zeta0,1,2), dyarr);
@@ -1440,7 +1444,7 @@ if max(abs(S.v(:))) > 1.0 || max(abs(S.u(:))) > 1.0
     input('Really high velocities. Are you sure?');
 end
 
-Ri = abs(fillnan(N2./(avg1(VZ.^2,1) + avg1(UZ.^2,2)),Inf));
+Ri = abs(fillnan(phys.N2./(avg1(VZ.^2,1) + avg1(UZ.^2,2)),Inf));
 if min(Ri(:)) <= 0.3
     figure; imagesc(addnan(Ri(:,:,end)',10)); title('Ri < 10'); colorbar;
     error('Ri <= 0.3.');
@@ -1621,7 +1625,7 @@ if flags.OBC == 1
 
                 zeta_east = zeros(size(S.zeta(end,:)));
                 zeta_east(end,:) = zeta_east(1,:) + cumtrapz(squeeze(yrmat(1,:)), ...
-                                                    -f(end,:)./g * ubt,2);
+                                                    -f(end,:)./phys.g * ubt,2);
                 zeta_east = zeta_east - nanmean(zeta_east);
         end
 
@@ -1633,7 +1637,7 @@ if flags.OBC == 1
 
                 zeta_north = zeros(size(S.zeta(:,end)));
                 zeta_north(:,end) = zeta_north(:,1) + cumtrapz(squeeze(xrmat(:,end,1)), ...
-                                                    f(:,end)./g * vbt,1);
+                                                    f(:,end)./phys.g * vbt,1);
                 zeta_north = zeta_north - nanmean(zeta_north);
         end
     end
@@ -1917,11 +1921,15 @@ fprintf('\n\n Beckmann & Haidvogel number = %f (< 0.2 , max 0.4) \n \t\t\t\tHane
 % Barotropic courant number
 dt = 60;
 ndtfast = 17;
-Cbt = sqrt(g*max(S.h(:))) * dt/ndtfast * sqrt(1/dx^2 + 1/dy^2);
-Cbc = sqrt(N2)*min(S.h(:))/pi * dt * sqrt(1/dx^2 + 1/dy^2);
+Cbt = sqrt(phys.g*max(S.h(:))) * dt/ndtfast * sqrt(1/dx^2 + 1/dy^2);
+Cbc = sqrt(phys.N2)*min(S.h(:))/pi * dt * sqrt(1/dx^2 + 1/dy^2);
 Cbc7 = 7 * dt * sqrt(1/dx^2 + 1/dy^2);
-fprintf('\n\n (dt)_bt < %.2f s | (dt)_bc < %.2f s\n\n', DX/(sqrt(g*min(S.h(:)))), DX/(sqrt(N2)*min(S.h(:))/pi))
-fprintf('\n\n Assuming dt = %.2f, ndtfast = %d, C_bt = %.3f | C_bc = %.3f  | C_bc7 = %.3f\n\n Min. Ri = %.2f', dt,ndtfast,Cbt,Cbc,Cbc7,min(Ri(:)));
+fprintf('\n\n (dt)_bt < %.2f s | (dt)_bc < %.2f s\n\n', ...
+        DX/(sqrt(phys.g*min(S.h(:)))), ...
+        DX/(sqrt(phys.N2)*min(S.h(:))/pi))
+fprintf(['\n\n Assuming dt = %.2f, ndtfast = %d, C_bt = %.3f | C_bc ' ...
+         '= %.3f  | C_bc7 = %.3f\n\n Min. Ri = %.2f'], ...
+        dt,ndtfast,Cbt,Cbc,Cbc7,min(Ri(:)));
 
 fprintf('\n Bathy Parameters');
 if ~flags.flat_bottom
@@ -1961,7 +1969,7 @@ if flags.floats
    yhi = find_approx(yrmat(1,:,1),max(floaty(:))*1000,1);
    fprintf('\n Float deployment locations : (%d:%d , %d:%d)', xlo,xhi,ylo,yhi);
 end
-if beta == 0, disp('f-plane!!!'); end
+if phys.beta == 0, disp('f-plane!!!'); end
 fprintf('\n\n');
 
 % figure out appropriate viscosity
@@ -1978,7 +1986,7 @@ fprintf('Max visc4 = %e  | max diff4 = %e\n', (sqrt(5e6)/min(factor(:)))^2, ...
 %     [S.Trax,mask_z] = hor_grad_tracer(axmat,ax_as,ax_cs,zrmat,i_cs,i_as,front,bathy);
 % %     S.Tz = mask_z .* exp(-(zrmat./front.LTz).^2);
 % %     S.Tz = S.Tz ./ nanmax(S.Tz(:));
-% %     S.Tz = N2/g/TCOEF .* (repnan(S.Tz,1));
+% %     S.Tz = N2/g/phys.TCOEF .* (repnan(S.Tz,1));
 %     S.Traz = 0;%N2/g/coef .* ones(size(zrmat));
 %
 %     % use chain rule to get gradient on SIGMA LEVEL
@@ -2051,8 +2059,8 @@ fprintf('Max visc4 = %e  | max diff4 = %e\n', (sqrt(5e6)/min(factor(:)))^2, ...
 % K.LNM_depth = 0; % integrate from bottom for FS
 % K.g = 9.81;
 % K.rho0 = 1025;
-% K.alpha = TCOEF * ones(size(S.temp,1),size(S.temp,2));
-% K.beta  = SCOEF * ones(size(S.temp,1),size(S.temp,2));
+% K.alpha = phys.TCOEF * ones(size(S.temp,1),size(S.temp,2));
+% K.beta  = phys.SCOEF * ones(size(S.temp,1),size(S.temp,2));
 %
 % K.f = f;
 % K.pm = S.pm;
@@ -2066,7 +2074,7 @@ fprintf('Max visc4 = %e  | max diff4 = %e\n', (sqrt(5e6)/min(factor(:)))^2, ...
 % K.Zr = zrmat;
 % K.Zw = zwmat;
 %
-% drho = rho_balance(K,S.temp-T0,S.salt-S0);
+% drho = rho_balance(K,S.temp-phys.T0,S.salt-phys.S0);
 % [u,v,zeta_rhs] = uv_balance(K,drho);
 % [zeta,~] = zeta_balance(K,0,drho);
 
@@ -2201,7 +2209,7 @@ fprintf('Max visc4 = %e  | max diff4 = %e\n', (sqrt(5e6)/min(factor(:)))^2, ...
 
 % % Thermal wind balance. Calculate dynamic height and then integrate.
 % % calculate w.r.t bottom
-% hp = TCOEF * cumtrapz(squeeze(zrmat(1,1,:)),(S.temp - T0),3);
+% hp = phys.TCOEF * cumtrapz(squeeze(zrmat(1,1,:)),(S.temp - phys.T0),3);
 % vg = g/f0*bsxfun(@rdivide,(hp(2:end,:,:) - hp(1:end-1,:,:)),xrmat(2:end,1,1)-xrmat(1:end-1,1,1));
 % ug = -g/f0*bsxfun(@rdivide,(hp(:,2:end,:) - hp(:,1:end-1,:)),squeeze(yrmat(:,2:end,1)-xrmat(:,1:end-1,1)));
 %
