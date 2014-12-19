@@ -483,12 +483,18 @@ tgrid.s = S.s_rho;
 % Create background state (assumes uniform horizontal grid)
 % assign initial stratification
 bstrat = phys.T0.*ones(size(zrmat));
-if strat.z0 > 0 , strat.z0 = strat.z0 * -1; end
+
+% this accounts for when I'm extracting parameters from runs that
+% didn't have flags.conststrat
+if ~isfield(flags, 'conststrat')
+    flags.conststrat = 1;
+end
 % N2 here is phys.N2 = strat.N2
 if flags.conststrat
     % constant stratification
     Tz = phys.N2/phys.g/phys.TCOEF * ones(size(zwmat) - [0 0 2]); % at w points except top / bottom face
 else
+    if strat.z0 > 0 , strat.z0 = strat.z0 * -1; end
     % non-constant stratification.
     zmat = zwmat(:,:,2:end-1);
     N2mat = strat.N2max .* ...
@@ -1321,7 +1327,7 @@ end
 % in this cell
 fprintf('\n Writing eddy, strat, bg params');
 write_params_to_ini(INI_NAME,eddy);
-write_params_to_ini(INI_NAME,strat);
+if exist('strat', 'var'); write_params_to_ini(INI_NAME,strat); end
 write_params_to_ini(INI_NAME,bg);
 write_params_to_ini(INI_NAME,bathy);
 write_params_to_ini(INI_NAME,phys);
