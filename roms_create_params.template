@@ -1,4 +1,4 @@
-flags.extract_params = 0;
+flags.extract_params = 1;
 
 if flags.extract_params
     extract_from = ew6042;
@@ -89,14 +89,6 @@ else
                      ' barotropic velocity field | fplanezeta = f-plane solution for zeta (BT vel) |' ...
                      ' vprof_gaussian = if 1, then eddy is Gaussian in vertical | ' ...
                      'conststrat = 1 if constant stratification'];
-
-    % DO NOT CHANGE THIS ORDER
-    if flags.OBC
-        OBC.west  = true;           % process western  boundary segment
-        OBC.east  = true;           % process eastern  boundary segment
-        OBC.south = true;           % process southern boundary segment
-        OBC.north = true;            % process northern boundary segment
-    end
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  Barotropic background flow parameters
     flags.fplanezeta = 1; % f-plane solution for zeta (BT vel)
@@ -266,4 +258,12 @@ else
     wind.tau0 = 0.1; % set later
     wind.ramp = 0; % days
     wind.v    = 0.05; % m/s
+end
+
+% DO NOT CHANGE THIS ORDER
+if flags.OBC
+    OBC.west  = true;           % process western  boundary segment
+    OBC.east  = true;           % process eastern  boundary segment
+    OBC.south = true;           % process southern boundary segment
+    OBC.north = true;            % process northern boundary segment
 end
