@@ -509,17 +509,30 @@ for k=size(zrmat,3)-1:-1:1
     bstrat(:,:,k) = bstrat(:,:,k+1) - Tz(:,:,k).*(zrmat(:,:,k+1)-zrmat(:,:,k));
 end
 
-% plot vertical profile of temperature and N² for non-constant stratification.
+% plot vertical profile of temperature, N² & dz for non-constant stratification.
 if ~flags.conststrat
     Zscl = 1;
-    subplot(1,2,1)
-    plot(squeeze(bstrat(end,end,:)), squeeze(zrmat(end,end,:))./Zscl);
+    subplot(1,3,1)
+    plot(squeeze(bstrat(end,end,:)), squeeze(zrmat(end,end,:))./Zscl, ...
+         '*-');
     liney(strat.z0./Zscl);
     title('Temp');
-    subplot(1,2,2)
-    plot(squeeze(N2mat(end,end,:)), squeeze(zmat(end,end,:))./Zscl);
+    subplot(1,3,2)
+    plot(squeeze(N2mat(end,end,:)), squeeze(zmat(end,end,:))./Zscl, ...
+         '*-');
     liney(strat.z0./Zscl);
+    linex(1e-5);
     title('N^2');
+    subplot(1,3,3)
+    plot(diff(squeeze(zwmat(end,end,:))), squeeze(zrmat(end,end,: ...
+                                                      )));
+    hold all
+    [s,z] = vgrid(2,4,[3 1], 60, max(S.h(:)), S.N);
+    plot(diff(z), avg1(z));
+    dzw = diff(squeeze(zwmat(end,end,:)));
+    title(['dz | dzmax = ' num2str(max(dzw)) ...
+           ' m (current) , ' num2str(max(diff(z))) ' m (new)']);
+    legend({'old', 'new'}, 'box' ,'off');
 end
 
 % assign background stratification to temp
