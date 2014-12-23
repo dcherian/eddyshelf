@@ -14,6 +14,7 @@ function [] = csfluxes(runs, ftype)
     % need some kind of initial time instant - decided by streamer mask
     % now
     runs.csflux = [];
+
     tstart = 1;%find(repnan(runs.streamer.time,0) ==
                %0,1,'last') + 1;
     revind = runs.eddy.trevind;
@@ -350,6 +351,7 @@ function [] = csfluxes(runs, ftype)
     runs.csflux.hash = hash;
 
     csflux = runs.csflux;
+    asflux = runs.asflux;
 
     save([runs.dir '/fluxes.mat'], 'csflux', 'asflux');
 end
