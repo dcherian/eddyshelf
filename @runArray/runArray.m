@@ -92,6 +92,13 @@ classdef runArray < handle
                     diagstr = num2str(diags(ff));
                 end
 
+                %%%%% topography parameter - taylor column
+                if strcmpi(name, 'hogg')
+                    diags(ff) = 1./(run.eddy.Ro(1)) ./ ...
+                           (1+ run.bathy.hsb/run.eddy.Lgauss(1) * ...
+                            1./run.bathy.S_sl);
+                    diagstr = num2str(diags(ff));
+                end
                 %%%%% test critical iflux hypothesis for eddy to
                 %%%%% start moving northward
                 if strcmpi(name, 'critical flux')
