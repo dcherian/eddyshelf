@@ -48,8 +48,11 @@ function [] = plot_penetration(runArray)
 
         figure(hfig2)
         axes(ax1)
-        x = (run.eddy.mx - run.eddy.mx(1))/run.rrdeep;
-        y = (run.eddy.my - run.bathy.xsb)/run.rrdeep;
+        xnorm = run.rrdeep;
+        ynorm = run.rrdeep; run.eddy.my(1) - run.bathy.xsb;
+
+        x = (run.eddy.mx - run.eddy.mx(1))/xnorm;
+        y = (run.eddy.my - run.bathy.xsb)/ynorm;
         hgplt = plot(x, y);
         addlegend(hgplt, name, 'NorthWest');
         plot(x(tinds), y(tinds), 'kx');
@@ -80,12 +83,20 @@ function [] = plot_penetration(runArray)
 
     figure(hfig2)
     axes(ax1)
-    ylabel('(Y - Y_{sb})/(deformation radius)');
-    axis image;
+    if ynorm == run.rrdeep
+        ylabel('(Y - Y_{sb})/(deformation radius)');
+        liney(1);
+    else
+        ylabel(['Distance from shelfbreak / Initial distance from ' ...
+                'shelfbreak']);
+    end
+    if xnorm == run.rrdeep
+        xlabel('(X-X_0)/(deformation radius)');
+    end
+
+    %axis image;
     ylim([0 max(ylim)]);
     set(gca, 'YTick', [0:1:max(ylim)]);
-    liney(1);
-    xlabel('(X-X_0)/(deformation radius)');
     beautify(fontSize);
 
     hlegend = legend;
