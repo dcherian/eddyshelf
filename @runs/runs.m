@@ -322,9 +322,10 @@ methods
         end
 
         if do_all == 1
-            runs.fluxes;
-            runs.water_census;
-            runs.jetdetect;
+            runs.asfluxes;
+            runs.csfluxes;
+            %runs.water_census;
+            %runs.jetdetect;
             %runs.eddy_bulkproperties;
         end
 
