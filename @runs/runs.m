@@ -449,6 +449,17 @@ methods
 
     function [] = plot_test1(runs)
 
+        if isempty(runs.ubot)
+            runs.read_velbot;
+        end
+
+        ue = avg1(runs.ubot(:,2:end-1,:),1) .* runs.eddy.vormask;
+        ve = avg1(runs.vbot(2:end-1,:,:),2) .* runs.eddy.vormask;
+
+        runs.eddy.Vb = squeeze(sqrt(max(max(ue.^2 + ve.^2,[], 1),[], 2)));
+
+        plot(runs.eddy.t, runs.eddy.Vb./runs.eddy.V');
+
     end
 
     function [] = read_zeta(runs)
