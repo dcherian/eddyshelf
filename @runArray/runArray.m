@@ -13,7 +13,9 @@ classdef runArray < handle
     end
     methods
         % constructor
-        function [runArray] = runArray(folders, name)
+        function [runArray] = runArray(folders, name, reset)
+
+            if ~exist('reset', 'var'), reset = 0; end
 
             runArray.array = runs.empty([length(folders) 0]);
             kk = 1;
@@ -21,7 +23,8 @@ classdef runArray < handle
                 warning off;
                 try
                     runArray.folders{kk} = ['../topoeddy/' folders{ii}];
-                    runArray.array(kk) = runs(runArray.folders{kk});
+                    runArray.array(kk) = runs(runArray.folders{kk}, ...
+                                              reset);
                     disp([runArray.array(kk).name ' completed'])
 
                     if ~exist('name', 'var') || isempty(name)
