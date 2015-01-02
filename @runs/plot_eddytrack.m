@@ -26,6 +26,6 @@ function [] = plot_eddytrack(runs)
           'sponge');
 
     limy = ylim;
-    ylim([0 max(limy)]);
+    ylim([-2 max(limy)]);
 
 end
