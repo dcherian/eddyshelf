@@ -126,8 +126,10 @@ classdef runArray < handle
                                                1);
                             hdiag = run.bathy.h(1,xind)
                         else
-                            error('not reading for N-S isobaths');
-                            hdiag = NaN;
+                            xind = find_approx(run.rgrid.x_rho(1,:), ...
+                                               run.eddy.vor.we(tind), ...
+                                               1);
+                            hdiag = run.bathy.h(xind,1)
                         end
                         laby = 'H_{edge}./H_{eddy}';
                     end
