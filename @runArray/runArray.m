@@ -78,7 +78,14 @@ classdef runArray < handle
                 runArray.filter = 1:runArray.len;
             end
 
+            plots = 1;
+
             diags = nan(size(runArray.filter));
+
+            if plots
+                hfig = gcf;%hfig = figure;
+                hold all;
+            end
 
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
@@ -86,10 +93,50 @@ classdef runArray < handle
 
                 tind = run.tscaleind;
 
+                diagstr = [];
+
                 %%%%% slope parameter
                 if strcmpi(name, 'slope param')
                     diags(ff) = run.eddy.Ro(1) ./ run.bathy.S_sl;
-                    diagstr = num2str(diags(ff));
+                end
+
+                %%%% resistance
+                if strcmpi(name, 'resistance')
+                    [xx,yy,tind] = run.locate_resistance;
+
+                    loc = 'cen';
+                    %loc = 'edge';
+
+                    % save for later
+                    run.eddy.res.xx = xx;
+                    run.eddy.res.yy = yy;
+                    run.eddy.res.tind = tind;
+                    run.eddy.res.comment = ['(xx,yy) = center ' ...
+                                        'location | tind = time index'];
+
+                    plotx = run.eddy.Ro(1)./run.bathy.S_sl;
+                    %diags(ff) = yy./run.rrdeep;
+                    if strcmpi(loc, 'cen')
+                        hdiag = run.eddy.hcen(tind);
+                        laby = 'H_{cen}./H_{eddy}';
+                    else
+                        if run.bathy.axis == 'y'
+                            xind = find_approx(run.rgrid.y_rho(:,1), ...
+                                               run.eddy.vor.se(tind), ...
+                                               1);
+                            hdiag = run.bathy.h(1,xind)
+                        else
+                            error('not reading for N-S isobaths');
+                            hdiag = NaN;
+                        end
+                        laby = 'H_{edge}./H_{eddy}';
+                    end
+
+                    diags(ff) = hdiag ./ run.eddy.Lgauss(tind);
+
+                    % name points with run names on summary plot
+                    name_points = 1;
+                    labx = 'Ro/S_\alpha';
                 end
 
                 %%%%% topography parameter - taylor column
