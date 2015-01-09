@@ -29,7 +29,6 @@ function [] = plot_eddytrack(runs)
     linex((runs.rgrid.x_rho(1, [ix1 ix2]) - runs.eddy.mx(1))/runs.rrdeep, ...
           'sponge');
 
-    limy = ylim;
-    ylim([-2 max(limy)]);
-
+    [~,~,tind] = runs.locate_resistance;
+    plot(plotx(tind), ploty(tind), 'x', 'MarkerSize', 12);
 end
