@@ -347,6 +347,8 @@ classdef runArray < handle
                     figure(hfig);
                     plot(plotx, diags(ff), '*');
 
+                    % add function call as annotation
+                    insertAnnotation(['runArray.print_diag(' name ')']);
                     % add run names
                     if name_points
                         text(plotx, diags(ff), run.name, 'FontSize', ...
@@ -367,6 +369,7 @@ classdef runArray < handle
 
             if exist('hfig_flux', 'var')
                 figure(hfig_flux);
+                insertAnnotation(['runArray.print_diag(' name ')']);
                 limy = ylim;
                 ylim([0 limy(2)]);
                 line45; axis square;
@@ -378,8 +381,10 @@ classdef runArray < handle
 
         function [] = plot_param(runArray)
             hfig1 = figure;
+            insertAnnotation(['runArray.plot_param']);
             hold all
             hfig2 = figure;
+            insertAnnotation(['runArray.plot_param']);
             hold all
 
             if isempty(runArray.filter)
@@ -455,7 +460,7 @@ classdef runArray < handle
         function [] = plot_jetprops(runArray)
             figure;
             ax = gca; hold all;
-
+            insertAnnotation('runArray.jetprops');
             if isempty(runArray.filter)
                 runArray.filter = 1:runArray.len;
             end

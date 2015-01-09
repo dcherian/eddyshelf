@@ -27,6 +27,7 @@ function [xx,yy,tind] = locate_resistance(runs)
 
     if debug_plot
         figure;
+        insertAnnotation('runArray.locate_resistance');
         subplot(221)
         plot(runs.eddy.my/1000);
         title(runs.name);

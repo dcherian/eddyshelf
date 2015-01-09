@@ -3,11 +3,11 @@ function [] = plot_penetration(runArray)
 
     mark_timestamp = 0;
 
-    hfig1 = []; %figure;
-    %subplot(2,1,1); hold all;
-    %subplot(2,1,2); hold all;
+    hfig1 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2);
+                %hold all; insertAnnotation('runArray.plot_penetration');
 
     hfig2 = figure;
+    insertAnnotation('runArray.plot_penetration');
     ax1 = gca; hold all; %subplot(2,2,[1 3]); hold all;
     ax2 = []; %subplot(2,2,2); hold all;
     ax3 = []; %subplot(2,2,4); hold all;

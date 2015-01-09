@@ -4,6 +4,7 @@ function [] = plot_eddytrack(runs)
     ploty = (runs.eddy.my - runs.bathy.xsb)/runs.rrdeep;
 
     figure;
+    insertAnnotation('runArray.plot_eddytrack');
     plot(plotx, ploty);
     hold all
 
