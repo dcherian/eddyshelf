@@ -1,9 +1,13 @@
 function [] = plot_eddytrack(runs)
 
+    plotx = (runs.eddy.mx - runs.eddy.mx(1))/runs.rrdeep;
+    ploty = (runs.eddy.my - runs.bathy.xsb)/runs.rrdeep;
+
     figure;
-    plot((runs.eddy.mx - runs.eddy.mx(1))/runs.rrdeep, ...
-          (runs.eddy.my - runs.bathy.xsb)/runs.rrdeep);
+    plot(plotx, ploty);
     hold all
+
+    limy = ylim; ylim([-2 max(limy)]);
 
     % telescoping line
     liney((runs.rgrid.y_rho([runs.params.grid.iyp],1) - runs.bathy.xsb)/runs.rrdeep, ...
