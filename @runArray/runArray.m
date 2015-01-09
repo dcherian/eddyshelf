@@ -144,8 +144,8 @@ classdef runArray < handle
                     diags(ff) = 1./(run.eddy.Ro(1)) ./ ...
                            (1+ run.bathy.hsb/run.eddy.Lgauss(1) * ...
                             1./run.bathy.S_sl);
-                    diagstr = num2str(diags(ff));
                 end
+
                 %%%%% test critical iflux hypothesis for eddy to
                 %%%%% start moving northward
                 if strcmpi(name, 'critical flux')
@@ -175,7 +175,6 @@ classdef runArray < handle
                         run.csflux.west.itrans.shelf(ind,1);
 
                     diags(ff) = run.csflux.critrans;
-                    diagstr = num2str(diags(ff));
                 end
 
                 % penetration
@@ -338,7 +337,30 @@ classdef runArray < handle
                     %set(hax1,'xticklabel', lab);
                 end
 
+                if isempty(diagstr)
+                    diagstr = num2str(diags(ff));
+                end
+
+                if plots
+                    figure(hfig);
+                    plot(plotx, diags(ff), '*');
+
+                    % add run names
+                    if name_points
+                        text(plotx, diags(ff), run.name, 'FontSize', ...
+                             12, 'Rotation', 90);
+                    end
+                    xlabel(labx);
+                    ylabel(laby);
+                    title(name);
+                end
+
                 disp([run.name ' | ' name ' = ' diagstr])
+            end
+
+            if plots
+                figure(hfig)
+                beautify([18 18 20]);
             end
 
             if exist('hfig_flux', 'var')
