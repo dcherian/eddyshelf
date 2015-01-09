@@ -53,11 +53,23 @@ function [] = plot_penetration(runArray)
 
         x = (run.eddy.mx - run.eddy.mx(1))/xnorm;
         y = (run.eddy.my - run.bathy.xsb)/ynorm;
+
+        % plot track
         hgplt = plot(x, y);
         addlegend(hgplt, name, 'NorthWest');
-        plot(x(tinds), y(tinds), 'kx');
-        text(x(tinds), y(tinds), ...
-             cellstr(num2str(ndtime(tinds)', 2)));
+
+        % mark start of resistance
+        if isfield(run.eddy, 'res')
+            plot(x(run.eddy.res.tind), y(run.eddy.res.tind), '.', ...
+                 'Color', get(hgplt, 'Color'), 'Markersize', 22);
+        end
+         
+        % mark timestamps
+        if mark_timestamp
+            plot(x(tinds), y(tinds), 'kx');
+            text(x(tinds), y(tinds), ...
+                 cellstr(num2str(ndtime(tinds)', 2)));
+        end
 
         if ~isempty(ax2)
             axes(ax2)
