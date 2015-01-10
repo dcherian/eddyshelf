@@ -267,3 +267,41 @@ if flags.OBC
     OBC.south = true;           % process southern boundary segment
     OBC.north = true;            % process northern boundary segment
 end
+
+if recalc_telescoping
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% GRID TELESCOPING
+    flags.telescoping = 1; % telescope dx,dy
+
+    grid.dxmin = grid.dx0;
+    grid.dymin = grid.dy0;
+
+    % p - positive side : axis > center
+    % n - negative side : axis < center
+    grid.xscalep = 75;
+    grid.xscalen = 75;
+    grid.yscalep = 75;
+    grid.yscalen = 75;
+
+    if bathy.axis == 'y'
+        grid.dxmax = 3*grid.dx0;
+        grid.dymax = 2*grid.dy0;
+
+        % telescope for ix > ixp & ix < ixn
+        % similarly for iy > iyp & iy < iyn
+        grid.ixp = ceil(0.9*S.Lm);
+        grid.ixn = floor(0.1*S.Lm);
+        grid.iyp = min([ceil((bathy.L_shelf + bathy.L_slope)*1.50/grid.dy0) S.Mm]);
+        grid.iyn = 1;
+    else
+        grid.dxmax = 2*grid.dx0;
+        grid.dymax = 3*grid.dy0;
+
+        % telescope for ix > ixp & ix < ixn
+        % similarly for iy > iyp & iy < iyn
+        grid.ixp = min([ceil((bathy.L_shelf + bathy.L_slope)*1.50/grid.dx0) ...
+                        S.Lm]);
+        grid.ixn = 1;
+        grid.iyp = ceil(0.9*S.Mm);
+        grid.iyn = floor(0.1*S.Mm);
+    end
+end
