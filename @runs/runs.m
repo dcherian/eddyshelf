@@ -339,6 +339,7 @@ methods
         try
             runs.roms = floats('roms', runs.dir, runs.rgrid, ...
                                runs.bathy.xsb, runs.fpos_file);
+            runs.filter_cross_sb('roms');
         catch ME
             disp('Reading ROMS floats failed.');
             disp(ME);
@@ -346,6 +347,7 @@ methods
         try
             runs.tracpy = floats('tracpy',runs.tracpy_file,runs.rgrid, ...
                                  runs.bathy.xsb);
+            runs.filter_cross_sb('tracpy');
         catch ME
             disp('Reading tracpy floats failed.');
             disp(ME);
@@ -357,12 +359,8 @@ methods
             catch ME
                 warning('LTRANS data not read in');
             end
+            runs.filter_cross_sb('ltrans');
         end
-
-        % filter out floats that have crossed shelfbreak
-        runs.filter_cross_sb('roms');
-        runs.filter_cross_sb('tracpy');
-        runs.filter_cross_sb('ltrans');
 
         % load streamer data if it exists.
         if exist([dir '/streamer.mat'], 'file') && reset ~= 1
