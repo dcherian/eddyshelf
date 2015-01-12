@@ -3,14 +3,19 @@
 function [] = plot_eddydiag(runArray)
 % mark crosses on eddy track at tcen
     tcen = [0 100 200 300]; % in days
-    hfig1 = [];  %figure; subplot(2,1,1); hold all subplot(2,1,2); hold all
 
+    % vertical scale
+    hfig1 = figure; subplot(2,1,1); hold all subplot(2,1,2); hold all
+
+    % center track
     hfig2 = figure; hold all;
 
+    % KE, PE
     hfig3 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all;
 
     hfig4 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all;
 
+    % Ro, L-scale, U-scale
     hfig5 = []; %figure; subplot(3,1,1); hold all; subplot(3,1,2); hold  all;
                 %subplot(3,1,3); hold all;
 
