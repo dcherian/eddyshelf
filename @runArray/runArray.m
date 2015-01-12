@@ -6,6 +6,8 @@ classdef runArray < handle
         array;
         % description
         name;
+        % rotate NS track plots to align with EW?
+        rotate_ns = 0;
         % length of array
         len;
         % actual indices to plot
