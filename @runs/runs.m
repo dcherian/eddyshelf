@@ -248,7 +248,13 @@ methods
                 runs.params.phys.N2;
 
             % scale time by eddy translation
-            runs.eddy.tscaleind = find_approx(runs.eddy.my, runs.bathy.xsl, 1);
+            if runs.bathy.axis == 'y'
+                runs.eddy.tscaleind = find_approx(runs.eddy.my, ...
+                                                  runs.bathy.xsl, 1);
+            else
+                runs.eddy.tscaleind = find_approx(runs.eddy.mx, ...
+                                                  runs.bathy.xsl, 1);
+            end
             runs.eddy.tscale = runs.eddy.t(runs.eddy.tscaleind) .* ...
                 86400;
 
