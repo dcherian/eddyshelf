@@ -25,17 +25,16 @@ function [] = csfluxes(runs, ftype)
     h = runs.bathy.h(2:end-1,2:end-1);
 
     % sort out isobaths across which to calculate transports
+    loc = runs.bathy.xsb; %linspace(runs.bathy.xsb, runs.bathy.xsl, 4);
     if runs.params.bathy.axis == 'x'
         csvelid = 'u';
         asvelid = 'v';
         bathyax = 1;
-        error(' not built for north-south isobaths');
         indices = vecfind(runs.eddy.xr(:,1),loc);
     else
         csvelid = 'v';
         asvelid = 'u';
         bathyax = 2;
-        loc = runs.bathy.xsb; %linspace(runs.bathy.xsb, runs.bathy.xsl, 4);
         indices = vecfind(runs.eddy.yr(1,:),loc);
         %runs.rgrid.y_rho(vecfind(runs.bathy.h(1,:),[250 1000]),1)']);
     end
@@ -64,17 +63,30 @@ function [] = csfluxes(runs, ftype)
                                  [], 'his');
         if length(time) ~= length(runs.eddy.t)
             t0 = find_approx(time, runs.time(tstart), 1);
-            cxi = interp1(runs.eddy.t(tstart:end)*86400, runs.eddy.vor.ee(tstart:end), ...
-                          time(t0:end));
+            if bathyax == 2
+                cxi = interp1(runs.eddy.t(tstart:end)*86400, runs.eddy.vor.ee(tstart:end), ...
+                              time(t0:end));
+            else
+                cxi = interp1(runs.eddy.t(tstart:end)*86400, runs.eddy.vor.se(tstart:end), ...
+                              time(t0:end));
+            end
         else
             t0 = tstart;
-            cxi = runs.eddy.vor.ee(tstart:end);
+            if bathyax == 2
+                cxi = runs.eddy.vor.ee(tstart:end);
+            else
+                cxi = runs.eddy.vor.se(tstart:end);
+            end
         end
     else
         if strcmpi(ftype, 'avg')
             t0 = tstart;
             time = runs.time;
-            cxi = runs.eddy.vor.ee(t0:end);
+            if bathyax == 2
+                cxi = runs.eddy.vor.ee(t0:end);
+            else
+                cxi = runs.eddy.vor.se(t0:end);
+            end
         end
     end
 
@@ -125,15 +137,21 @@ function [] = csfluxes(runs, ftype)
     if runs.bathy.axis == 'y'
         spongemask = ~runs.sponge(2:end-1,1);
     else
-        spongemask = ~runs.sponge(1,2:end-1);
+        spongemask = ~runs.sponge(1,2:end-1)';
     end
 
     % east and west (w.r.t eddy center) masks
     % cxi here = eastern edge because export occurs west of the eastern edge
     % dimensions - (along-shore) x time
-    westmask = bsxfun(@times, ...
-                      bsxfun(@lt, runs.eddy.xr(:,1), cxi(t0:tinf)), ...
-                      spongemask);
+    if bathyax == 2
+        westmask = bsxfun(@times, ...
+                          bsxfun(@lt, runs.eddy.xr(:,1), cxi(t0:tinf)), ...
+                          spongemask);
+    else
+        westmask = bsxfun(@times, ...
+                          bsxfun(@gt, runs.eddy.yr(1,:)', cxi(t0:tinf)), ...
+                          spongemask);
+    end
     eastmask = bsxfun(@times, 1 - westmask, ...
                       spongemask);
 
@@ -148,21 +166,25 @@ function [] = csfluxes(runs, ftype)
         % read along-shore section of cross-shore vel.
         % dimensions = (x/y , z , t )
         % average carefully to get values at RHO point
-        csvel = avg1(dc_roms_read_data(runs.dir, csvelid, ...
-                                       [t0 tinf], {runs.bathy.axis runs.csflux.ix(kk)-1 runs.csflux.ix(kk)}, ...
-                                       [], runs.rgrid, ftype, 'single'),bathyax);
+        csvel = squeeze(avg1(dc_roms_read_data(runs.dir, csvelid, ...
+                                       [t0 tinf], {runs.bathy.axis runs.csflux.ix(kk)-1 ...
+                            runs.csflux.ix(kk)}, [], runs.rgrid, ftype, ...
+                                       'single'), bathyax));
         csvel = csvel(2:end-1,:,:,:);
+
         % process cross-shelf dye
         csdye = dc_roms_read_data(runs.dir, runs.csdname, ...
-                                  [t0 tinf], {runs.bathy.axis runs.csflux.ix(kk)+1 runs.csflux.ix(kk)+1}, ...
-                                  [], runs.rgrid, ftype, 'single');
-        csdye = permute(csdye(2:end-1,:,:), [1 4 2 3]);
+                                  [t0 tinf], {runs.bathy.axis runs.csflux.ix(kk)+1 ...
+                            runs.csflux.ix(kk)+1}, [], runs.rgrid, ...
+                                  ftype, 'single');
+        csdye = csdye(2:end-1,:,:);
 
         % read eddye
         eddye = dc_roms_read_data(runs.dir, runs.eddname, ...
-                                  [t0 tinf], {runs.bathy.axis runs.csflux.ix(kk)+1 runs.csflux.ix(kk)+1}, ...
-                                  [], runs.rgrid, ftype, 'single');
-        eddye = permute(eddye(2:end-1,:,:), [1 4 2 3]);
+                                  [t0 tinf], {runs.bathy.axis runs.csflux.ix(kk)+1 ...
+                            runs.csflux.ix(kk)+1}, [], runs.rgrid, ...
+                                  ftype, 'single');
+        eddye = eddye(2:end-1,:,:);
 
         % define water masses
         shelfmask = (csdye < runs.bathy.xsb);
@@ -194,16 +216,18 @@ function [] = csfluxes(runs, ftype)
             end
         end
 
-        % transports
-        runs.csflux.shelfxt(:,:,kk) = squeeze(trapz( ...
-            runs.rgrid.z_r(:,runs.csflux.ix(kk)+1,1), ...
-            shelfmask .* csvel,3));
-        runs.csflux.slopext(:,:,kk) = squeeze(trapz( ...
-            runs.rgrid.z_r(:,runs.csflux.ix(kk)+1,1), ...
-            slopemask .* csvel,3));
-        runs.csflux.eddyxt(:,:,kk) = squeeze(trapz( ...
-            runs.rgrid.z_r(:,runs.csflux.ix(kk)+1,1), ...
-            eddymask .* csvel,3));
+        % transports - integrate in z - f(x,t)
+        if bathyax == 2
+            zvec = runs.rgrid.z_r(:, runs.csflux.ix(kk)+1, 1);
+        else
+            zvec = runs.rgrid.z_r(:, 1, runs.csflux.ix(kk)+1);
+        end
+        runs.csflux.shelfxt(:,:,kk) = squeeze(trapz(zvec, ...
+                                                    shelfmask .* csvel,2));
+        runs.csflux.slopext(:,:,kk) = squeeze(trapz(zvec, ...
+                                                    slopemask .* csvel,2));
+        runs.csflux.eddyxt(:,:,kk) = squeeze(trapz(zvec, ...
+                                                   eddymask .* csvel,2));
 
         %            for ntt = 60:size(runs.csflux.shelfxt,2)
         %    vec = runs.csflux.shelfxt(:,ntt,kk);
@@ -213,11 +237,16 @@ function [] = csfluxes(runs, ftype)
         %    pause(1);
         %end
 
-        % calculate transport as fn of vertical depth - west of eddy only
+        % calculate transport as fn of vertical depth - west of
+        % eddy only - f(z,t)
+        if bathyax == 2
+            dx = 1./runs.rgrid.pm(1,2:end-1)';
+        else
+            dx = 1./runs.rgrid.pn(2:end-1,1);
+        end
         runs.csflux.shelfzt = squeeze(nansum(bsxfun(@times, ...
                                                     bsxfun(@times, squeeze(shelfmask .* csvel), ...
-                                                          permute(westmask, [1 3 2])), ...
-                                                    1./runs.rgrid.pm(1,2:end-1)'),1));
+                                                          permute(westmask, [1 3 2])), dx),1));
         runs.csflux.west.shelfwater.vertitrans(:,kk) = nansum(bsxfun(@times, ...
                                                           runs.csflux.shelfzt, dt), 2);
         runs.csflux.west.shelfwater.vertbins(:,kk) = ...
@@ -239,8 +268,9 @@ function [] = csfluxes(runs, ftype)
                                 nansum(bsxfun(@times, ...
                                               bsxfun(@times, ...
                                                      bintrans,permute(westmask, [1 3 2])), ...
-                                              1./runs.rgrid.pm(1,2:end-1)'),1),2));
+                                              dx),1),2));
         end
+
         % save envelope for across-shelfbreak only
         if kk == 1
             runs.csflux.west.shelfwater.envelope = nanmin(binmat .* ...
@@ -255,20 +285,20 @@ function [] = csfluxes(runs, ftype)
         end
         toc;
 
-        % west of center
+        % west of center - f(x,t)
         runs.csflux.west.shelf(t0:tinf,kk) = squeeze(nansum( ...
             bsxfun(@times, runs.csflux.shelfxt(:,:,kk) .* westmask, ...
-                   1./runs.rgrid.pm(1,2:end-1)'),1))';
+                   dx),1))';
 
         runs.csflux.west.slope(t0:tinf,kk) = squeeze(nansum( ...
             bsxfun(@times, runs.csflux.slopext(:,:,kk) .* westmask, ...
-                   1./runs.rgrid.pm(1,2:end-1)'),1))';
+                   dx),1))';
 
         runs.csflux.west.eddy(t0:tinf,kk) = squeeze(nansum( ...
             bsxfun(@times, runs.csflux.eddyxt(:,:,kk) .* westmask, ...
-                   1./runs.rgrid.pm(1,2:end-1)'),1))';
+                   dx),1))';
 
-        % save average flux and itrans
+        % save average flux and itrans (west of center)
         [runs.csflux.west.itrans.shelf(:,kk), ...
          runs.csflux.west.avgflux.shelf(kk)] = ...
             runs.integrate_flux(time, runs.csflux.west.shelf(:,kk));
@@ -280,20 +310,21 @@ function [] = csfluxes(runs, ftype)
         [runs.csflux.west.itrans.eddy(:,kk), ...
          runs.csflux.west.avgflux.eddy(kk)] = ...
             runs.integrate_flux(time, runs.csflux.west.eddy(:,kk));
+
         % east of center
         runs.csflux.east.shelf(t0:tinf,kk) = squeeze(nansum( ...
             bsxfun(@times, runs.csflux.shelfxt(:,:,kk) .* eastmask, ...
-                   1./runs.rgrid.pm(1,2:end-1)'),1))';
+                   dx),1))';
 
         runs.csflux.east.slope(t0:tinf,kk) = squeeze(nansum( ...
             bsxfun(@times, runs.csflux.slopext(:,:,kk) .* eastmask, ...
-                   1./runs.rgrid.pm(1,2:end-1)'),1))';
+                   dx),1))';
 
         runs.csflux.east.eddy(t0:tinf,kk) = squeeze(nansum( ...
             bsxfun(@times, runs.csflux.eddyxt(:,:,kk) .* eastmask, ...
-                   1./runs.rgrid.pm(1,2:end-1)'),1))';
+                   dx),1))';
 
-        % save average flux and itrans
+        % save average flux and itrans (east of center)
         [runs.csflux.east.itrans.shelf(:,kk), ...
          runs.csflux.east.avgflux.shelf(kk)] = ...
             runs.integrate_flux(time, runs.csflux.east.shelf(:,kk));
@@ -310,8 +341,14 @@ function [] = csfluxes(runs, ftype)
         % process pv
         if dopv
             % both at interior RHO points
-            start = [1 runs.csflux.ix(kk) 1 t0];
-            count = [Inf 1 Inf Inf];
+            if bathy.ax == 2
+                start = [1 runs.csflux.ix(kk) 1 t0];
+                count = [Inf 1 Inf Inf];
+            else
+                start = [runs.csflux.ix(kk) 1 1 t0];
+                count = [1 Inf Inf Inf];
+                error('PV fluxes not tested for NS isobaths');
+            end
             pv = ncread(vorname,'pv',start,count);
             rv = avg1(avg1(ncread(vorname,'rv',start,count+[0 1 0 0]),1),2);
 
