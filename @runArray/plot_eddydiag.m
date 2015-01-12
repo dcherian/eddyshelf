@@ -48,8 +48,13 @@ function [] = plot_eddydiag(runArray)
 
         % center-track
         if hfig2
-            x = (run.eddy.mx - run.eddy.mx(1))/run.rrdeep;
-            y = (run.eddy.my - run.bathy.xsb)/run.rrdeep;
+            if runArray.rotate_ns && run.bathy.axis == 'x'
+                y = (run.eddy.mx - run.bathy.xsb)/run.rrdeep;
+                x = (run.eddy.my - run.eddy.my(1))/run.rrdeep;
+            else
+                x = (run.eddy.mx - run.eddy.mx(1))/run.rrdeep;
+                y = (run.eddy.my - run.bathy.xsb)/run.rrdeep;
+            end
             figure(hfig2)
             hgplt = plot(x, y);
             addlegend(hgplt, name);
