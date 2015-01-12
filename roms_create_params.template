@@ -1,12 +1,30 @@
 flags.extract_params = 1;
 
 if flags.extract_params
-    extract_from = ew6042;
+    extract_from = ns35;
     warning(['Extracting params from ' extract_from.name ' ! Hit ENTER to ' ...
                         'continue.']);
     pause;
     extract_params(extract_from);
     flags.extract_name = extract_from.name;
+
+    % add in custom options here
+    phys.beta = 4.2e-11;
+
+    eddy.dia = eddy.dia*2;
+    eddy.tamp = 0.95;
+    eddy.cy = NaN;
+    eddy.cx = NaN;
+
+    % if changing grid / bathy params then set to 1
+    recalc_telescoping = 1;
+    %S.Lm = 520;
+    %S.Mm = 384;
+
+    %bathy.L_shelf = 150 * 1000;
+    %bathy.L_slope = 50 * 1000;
+
+    grid.dx0 = 1000; grid.dy0 = 1000;
 else
     flags.extract_name = [];
 
