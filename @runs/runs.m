@@ -1453,7 +1453,7 @@ methods
     end
 
     % check eddy vertical scale estimations
-    function [] = eddy_vscale(runs)
+    function [] = plot_eddy_vscale(runs)
 
         c = hypot(runs.eddy.cvx, runs.eddy.cvy) / 86.4;
         c = nanmean(c(1:50));
@@ -1488,9 +1488,9 @@ methods
         figure;
         if isfield(runs.eddy, 'dyecen')
             subplot(211)
-            contourf(runs.eddy.tmat, runs.eddy.zT, ...
-                     runs.eddy.dyecen,  40);
-            colormap(flipud(colormap('bone')));
+            pcolorcen(runs.eddy.tmat, runs.eddy.zT, ...
+                     runs.eddy.dyecen);
+            %   colormap(flipud(colormap('bone')));
             caxis([0 1]);
             colorbar;
             hold all
@@ -1504,9 +1504,9 @@ methods
             title(['Eddy dye profiles | ' runs.name]);
             subplot(212)
         end
-        contourf(runs.eddy.tmat, runs.eddy.zT, ...
-                 runs.eddy.T./max(runs.eddy.T(1,:)),  40);
-        colormap(flipud(colormap('bone')));
+        pcolorcen(runs.eddy.tmat, runs.eddy.zT, ...
+                 runs.eddy.T./max(runs.eddy.T(1,:)));
+        %        colormap(flipud(colormap('bone')));
         caxis([0 1]);
         hold all
         plot(runs.time/86400, -1*runs.eddy.Lz2, 'c');
@@ -1518,7 +1518,6 @@ methods
                'SouthEast');
         contour(runs.eddy.tmat, runs.eddy.zT, runs.eddy.T, [0], ...
                 'LineWidth', 2,'Color', 'k');
-
     end
 
     % filter floats that cross shelfbreak
