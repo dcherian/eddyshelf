@@ -66,7 +66,13 @@ function [intTE] = eddy_energy_ideal(runs)
     % ∂E/∂t + cg.∇E = 0
     %figure;
 
-    runs.eddy.intTE = intTE;
+    runs.eddy.energy.intTE = intTE;
+    runs.eddy.energy.intKE = intKE;
+    runs.eddy.energy.intPE = intPE;
+    runs.eddy.energy.hash = githash;
+
+    energy = runs.eddy.energy;
+    save([runs.dir '/energy.mat'], 'energy');
 end
 
 function [intf] = domain_integrate(f)
