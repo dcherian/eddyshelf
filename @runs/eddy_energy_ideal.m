@@ -1,6 +1,6 @@
 % use expressions to determine energy
 
-function [] = eddy_energy_ideal(runs)
+function [intTE] = eddy_energy_ideal(runs)
 
     % physical parameters
     TCOEF = runs.params.phys.T0;
@@ -43,23 +43,27 @@ function [] = eddy_energy_ideal(runs)
     intTE = double(intKE(Tamp', Lx, Ly, Lz)) + double(intPE(Tamp', Lx, Ly, Lz));
     toc;
 
-    % total energy
-    intTE = intPE + intKE;
-
     % volume
     vol(lx,ly,lz) = intT / Ta;
-
     vol0 = vol(Lx, Ly, Lz);
 
+    % get group velocity
+    cg = runs.topowaves;
+
+    % plots
+    figure;
     plot(intTE./max(intTE));
     hold all
     plot(vol0./max(vol0));
     legend('Total Energy', 'Volume');
+    title(runs.name);
     beautify([18 20 22]);
 
-    figure;
-    plot(vol(Lx, Ly, Lz));
+    % check group velocity
+    % ∂E/∂t + cg.∇E = 0
+    %figure;
 
+    runs.eddy.intTE = intTE;
 end
 
 function [intf] = domain_integrate(f)
