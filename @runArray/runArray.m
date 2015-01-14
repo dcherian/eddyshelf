@@ -145,6 +145,36 @@ classdef runArray < handle
                     labx = 'Ro/S_\alpha';
                 end
 
+                %%%%% energy loss
+                if strcmpi(name, 'energy loss')
+
+                    % algorithm:
+                    %  1. Detect the minimum in vertical scale.
+                    %  2. approximate dh/dt as Δh/Δt
+                    %  3. compare with cg estimate
+                    %
+                    % Non-dimensionalizations:
+                    %  1. time → eddy turnover time
+                    %  2. height → initial vertical scale of eddy
+
+                    time =  run.eddy.t * 86400;
+                    ndtime = time./ (run.eddy.vor.lmaj(1)./run.eddy.V(1));
+
+                    vec = smooth(run.eddy.Lgauss,30);
+                    [xmax, imax, xmin, imin] = extrema(vec);
+
+                    % find the first minima in the height time series
+                    % presumably, this gives me a good slope
+                    imins = sort(imin, 'ascend');
+                    index = imins(find(imins > 40, 1, 'first'));
+
+                    dhdt = (run.eddy.Lgauss(1) - run.eddy.Lgauss(index))./ ...
+                           (time(index) - time(1));
+
+                    diags(ff) = dhdt;
+                    plotx = run.topowaves;
+                end
+
                 %%%%% topography parameter - taylor column
                 if strcmpi(name, 'hogg')
                     diags(ff) = 1./(run.eddy.Ro(1)) ./ ...
