@@ -1,5 +1,4 @@
 % use expressions to determine energy
-
 function [intTE] = eddy_energy_ideal(runs)
 
     % physical parameters
@@ -9,25 +8,28 @@ function [intTE] = eddy_energy_ideal(runs)
     f0 = runs.params.phys.f0;
 
     % extract surface temperature anomaly
-    Tamp = runs.eddy.T(:,end);
+    Tamp = runs.eddy.T(:,end)';
 
     Lx = runs.eddy.vor.lmaj;
     Ly = runs.eddy.vor.lmin;
     Lz = runs.eddy.Lgauss;
 
+    H0 = runs.eddy.hcen';
+
     syms x y z
     syms lx ly lz Ta positive
+    syms H positive
 
     % temperature anomaly
     T(Ta,lx,ly,lz,x,y,z) = Ta * exp(- (x/lx)^2 - (y/ly)^2 - (z/lz)^2);
-    intT = domain_integrate(T);
+    intT(Ta,lx,ly,lz,H) = domain_integrate(T);
 
     % density anomaly
     rho = -rho0 * TCOEF * T;
 
     % Potential energy
     PE = int(rho * g * z, z);
-    intPE = domain_integrate(PE);
+    intPE(Ta,lx,ly,lz,H) = domain_integrate(PE);
 
     % kinetic energy
     uz = -TCOEF*g/f0 * diff(T,y);
@@ -37,10 +39,11 @@ function [intTE] = eddy_energy_ideal(runs)
     v = int(vz, z, -Inf, z);
 
     KE = u^2 + v^2;
-    intKE = domain_integrate(KE);
+    intKE(Ta,lx,ly,lz,H) = domain_integrate(KE);
 
     tic;
-    intTE = double(intKE(Tamp', Lx, Ly, Lz)) + double(intPE(Tamp', Lx, Ly, Lz));
+    intTE = double(intKE(Tamp, Lx, Ly, Lz, H0)) + double(intPE(Tamp, ...
+                                                      Lx, Ly, Lz, H0));
     toc;
 
     % volume
@@ -68,6 +71,6 @@ end
 
 function [intf] = domain_integrate(f)
 
-    syms x y z
-    intf = int(int(int(f, x, -Inf, Inf), y, -Inf, Inf),z,-Inf,0);
+    syms x y z H
+    intf = int(int(int(f, x, -Inf, Inf), y, -Inf, Inf),z,-H,0);
 end
