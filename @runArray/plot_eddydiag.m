@@ -1,6 +1,9 @@
 % plot eddy diagnostics
 
 function [] = plot_eddydiag(runArray)
+
+    annostr = 'plot_eddydiag(runArray)';
+
 % mark crosses on eddy track at tcen
     tcen = [0 100 200 300]; % in days
 
@@ -48,12 +51,14 @@ function [] = plot_eddydiag(runArray)
 
         % center-track
         if hfig2
+            xnorm = run.rrdeep; (run.eddy.vor.dia(1)/2);
+            ynorm = run.rrdeep; (run.eddy.vor.dia(1)/2);
             if runArray.rotate_ns && run.bathy.axis == 'x'
-                y = (run.eddy.mx - run.bathy.xsb)/run.rrdeep;
-                x = (run.eddy.my - run.eddy.my(1))/run.rrdeep;
+                y = (run.eddy.mx - run.bathy.xsb)/ynorm;
+                x = (run.eddy.my - run.eddy.my(1))/xnorm;
             else
-                x = (run.eddy.mx - run.eddy.mx(1))/run.rrdeep;
-                y = (run.eddy.my - run.bathy.xsb)/run.rrdeep;
+                x = (run.eddy.mx - run.eddy.mx(1))/xnorm;
+                y = (run.eddy.my - run.bathy.xsb)/ynorm;
             end
             figure(hfig2)
             hgplt = plot(x, y);
@@ -193,6 +198,7 @@ function [] = plot_eddydiag(runArray)
         subplot(2,1,2)
         ylabel('Aspect ratio = \alpha_{iso}');
         xlabel('Non dimensional time');
+        insertAnnotation(annostr);
     end
 
     if hfig2
@@ -203,13 +209,18 @@ function [] = plot_eddydiag(runArray)
         title(['Crosses at [' num2str(tcen) '] days']);
         hleg = legend;
         set(hleg, 'Location', 'Northwest');
+        limy = ylim;
+        ylim([-2 max(limy)]);
+        liney(0);
         beautify([18 18 20]);
+        insertAnnotation(annostr);
     end
 
     if hfig3
         figure(hfig3);
         subplot(2,1,1); ylabel('KE/KE(1)');
         subplot(2,1,2); ylabel('PE/PE(1)');
+        insertAnnotation(annostr);
     end
     if hfig4
         figure(hfig4);
@@ -221,11 +232,13 @@ function [] = plot_eddydiag(runArray)
         subplot(3,1,1); ylabel('Surface Ro = <v_x>/f');
         subplot(3,1,2); ylabel('Ls (km)');
         subplot(3,1,3); ylabel('U (m/s)');
+        insertAnnotation(annostr);
         %ylabel(['\alpha_{bot}/\alpha_{iso} ' ...
         %                    '* Bu/Ro']);
     end
     if hfig6
         figure(hfig6); ylabel('max surf RV');
+        insertAnnotation(annostr);
     end
     if hfig7
         figure(hfig7)
@@ -237,6 +250,7 @@ function [] = plot_eddydiag(runArray)
         subplot(3,1,3);
         ylabel('Water depth at center');
         xlabel('Non-dim time');
+        insertAnnotation(annostr);
     end
     if hfig8
         figure(hfig8);
@@ -244,5 +258,6 @@ function [] = plot_eddydiag(runArray)
         ylabel('L_{maj} \times L_{min} \times H (m^3)');
         xlabel('Non-dim time');
         beautify;
+        insertAnnotation(annostr);
     end
 end
