@@ -8,6 +8,8 @@ classdef runArray < handle
         name;
         % rotate NS track plots to align with EW?
         rotate_ns = 0;
+        % sort by this parameter?
+        sort_param = []; sorted = 0;
         % length of array
         len;
         % actual indices to plot
@@ -49,6 +51,22 @@ classdef runArray < handle
             for ii=1:runArray.len
                 disp([num2str(ii) ' | ' runArray.array(ii).name]);
             end
+        end
+
+        % sort members of the array by runArray.sort_param;
+        function [] = sort(runArray, sort_input)
+
+            if ~exist('sort_input', 'var') || isempty(sort_input)
+                sort_input = [];
+            end
+
+            [ss,ind] = sort(sort_input, 'ascend');
+            runArray.sort_param = sort_input;
+            runArray.array = runArray.array(ind);
+
+            runArray.sorted = 1;
+
+            disp(['runArray sorted.']);
         end
 
         function [] = test_hashes(runArray)
