@@ -62,7 +62,12 @@ classdef runArray < handle
 
             [ss,ind] = sort(sort_input, 'ascend');
             runArray.sort_param = sort_input;
+
+            % sort arrays
             runArray.array = runArray.array(ind);
+
+            % sort names
+            runArray.name = runArray.name{ind};
 
             runArray.sorted = 1;
 
