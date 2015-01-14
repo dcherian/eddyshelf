@@ -432,6 +432,15 @@ methods
             clear data
         end
 
+
+        % load eddy energy diagnostics if the file exists
+        if exist([dir '/energy.mat'],'file') && reset ~= 1
+            disp('Loading energy diagnostics');
+            data = load([dir '/energy.mat']);
+            runs.eddy.energy = data.energy;
+            clear data
+        end
+
         % set time-scale for normalization
         if isfield(runs.csflux, 'tscale')
             runs.tscale = runs.csflux.tscale;
@@ -442,6 +451,9 @@ methods
             runs.tscale = runs.eddy.tscale;
             runs.tscaleind = runs.eddy.tscaleind;
         end
+
+        % eddy turnover time scale
+        runs.eddy.turnover = (runs.eddy.vor.dia(1)/2)./runs.eddy.V(1);
 
         runs.eddy.mask = logical(repnan(runs.eddy.mask, 0));
         runs.eddy.vormask = logical(repnan(runs.eddy.vormask,0));
