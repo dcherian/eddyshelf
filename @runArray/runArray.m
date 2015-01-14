@@ -67,7 +67,10 @@ classdef runArray < handle
             runArray.array = runArray.array(ind);
 
             % sort names
-            runArray.name = runArray.name{ind};
+            for ii = 1:length(ind)
+                names{ii} = runArray.name{ind(ii)};
+            end
+            runArray.name = names;
 
             runArray.sorted = 1;
 
