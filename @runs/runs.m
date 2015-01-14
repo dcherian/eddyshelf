@@ -391,8 +391,8 @@ methods
         if exist([dir '/fluxes.mat'],'file') && reset ~= 1
             disp('Loading fluxes');
             data = load([dir '/fluxes.mat']);
-            runs.csflux = data.csflux;
-            runs.asflux = data.asflux;
+            if isfield(data, 'csflux'), runs.csflux = data.csflux; end
+            if isfield(data, 'asflux'), runs.asflux = data.asflux; end
             clear data
 
             % find time when flux is increasing up
@@ -404,23 +404,6 @@ methods
             catch ME
                 warning(['Couldn''t calculate flux based ' ...
                          'timescale']);
-            end
-
-            if ~isfield(runs.csflux.west.shelfwater, 'envelope')
-                disp('Calculating shelfwater envelope');
-                bins = runs.csflux.west.shelfwater.bins;
-                binmat = repmat(bins, ...
-                                [size(runs.csflux.west.shelfwater.trans,1) 1]);
-                runs.csflux.west.shelfwater.envelope = nanmin(binmat .* ...
-                                                              fillnan(squeeze( ...
-                                                              runs.csflux.west.shelfwater.trans(:,1,:)) ...
-                                                                  > ...
-                                                                  0, 0), [], 2);
-                time = runs.csflux.time;
-                dt = [time(2)-time(1) diff(time)];
-                runs.csflux.west.shelfwater.itrans = squeeze(nansum( ...
-                    bsxfun(@times, runs.csflux.west.shelfwater.trans(:,1,:), ...
-                           dt'), 1));
             end
         end
 
