@@ -2823,19 +2823,24 @@ methods
 
         dt = 10;
 
-        % which flux plot do I do?
         csfluxplot = 0; % 0 = no flux plot
                       % 1 = instantaneous x-profile;
-                      % 2 = flux v/s time
-        asfluxplot = 2; % 0 = no flux plot
+        asfluxplot = 0; % 0 = no flux plot
                       % 1 = instantaneous x-profile;
-                      % 2 = flux v/s time
         enfluxplot = 0; % plot AS energy flux ?
         sshplot = 0; % plot ssh-contour too?
         areaplot = 0; % plot time series of eddy surface area at z=0
         dyeplot = 0; % plot eddye contour too?
         telesplot = 0;  % plot lines where grid stretching starts
                         % and ends
+
+        vecplot = 1; % plot some time vector (assign tvec and vec);
+        tvec = runs.eddy.t;
+        vec = runs.eddy.energy.intTE;
+        laby = 'Integrated total energy (eddy)';
+
+        %tvec = runs.csflux.time/86400;
+        %vec = runs.csflux.west.shelf/1000;
 
         if ~exist('ntimes', 'var'), ntimes = length(runs.time); end
         if ~exist('t0', 'var'), t0 = 1; end
@@ -2860,7 +2865,7 @@ methods
         % do I need subplots?
         if (~isempty(runs.csflux) && csfluxplot > 0) || ...
            (~isempty(runs.asflux) && asfluxplot > 0) || ...
-                enfluxplot || areaplot
+                enfluxplot || areaplot || vecplot
             subplots_flag = 1;
         else
             subplots_flag = 0;
@@ -2914,27 +2919,27 @@ methods
 
         if subplots_flag
             ax2 = subplot(3,1,3);
-            if csfluxplot == 2
-                plot(runs.csflux.time / 86400, ...
-                     runs.csflux.west.shelf(:,1)/1000);
-                htime = linex(runs.csflux.time(ii) / 86400);
+            if vecplot
+                hvec = plot(tvec, vec);
+                htime = linex(tvec(ii));
+                ylabel(laby);
                 xlabel('Time (days)');
-            else
-                if csfluxplot ~= 0
-                    hflux = plot(runs.rgrid.xr(2:end-1,1)/1000, ...
-                                 runs.csflux.shelfxt(:, ii));
-                    ylim([min(runs.csflux.shelfxt(:)) ...
-                          max(runs.csflux.shelfxt(:))]);
-                    hee = linex(runs.eddy.vor.ee(ii)/1000);
-                    oldpos = get(ax, 'Position');
-                    newpos = get(ax2, 'Position');
-                    newpos(3) = oldpos(3);
-                    set(ax2, 'Position', newpos);
-                    linkaxes([ax ax2], 'x');
-                    liney(0);
-                    xlabel('X (km)');
-                    title('\int v(x,z,t)dz (m^2/s)');
-                end
+            end
+
+            if csfluxplot ~= 0
+                hflux = plot(runs.rgrid.xr(2:end-1,1)/1000, ...
+                             runs.csflux.shelfxt(:, ii));
+                ylim([min(runs.csflux.shelfxt(:)) ...
+                      max(runs.csflux.shelfxt(:))]);
+                hee = linex(runs.eddy.vor.ee(ii)/1000);
+                oldpos = get(ax, 'Position');
+                newpos = get(ax2, 'Position');
+                newpos(3) = oldpos(3);
+                set(ax2, 'Position', newpos);
+                linkaxes([ax ax2], 'x');
+                liney(0);
+                xlabel('X (km)');
+                title('\int v(x,z,t)dz (m^2/s)');
             end
 
             % AS fluxes
@@ -3034,8 +3039,8 @@ methods
                     set(henflx, 'XData', [1 1]*runs.asflux.time(ii)/runs.tscale);
                 end
 
-                if areaplot
-                    set(harea, 'XData', [1 1]*runs.time(ii)/86400);
+                if vecplot
+                    set(htime, 'XData', [1 1]*tvec(ii));
                 end
                 runs.video_update();
                 pause(1);
