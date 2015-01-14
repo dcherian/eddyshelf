@@ -158,21 +158,43 @@ classdef runArray < handle
                     %  2. height → initial vertical scale of eddy
 
                     time =  run.eddy.t * 86400;
-                    ndtime = time./ (run.eddy.vor.lmaj(1)./run.eddy.V(1));
+                    ndtime = time ./ (run.eddy.vor.lmaj(1)./run.eddy.V(1));
 
-                    vec = smooth(run.eddy.Lgauss,30);
+                    vec = smooth(run.eddy.energy.intTE, 30);
                     [xmax, imax, xmin, imin] = extrema(vec);
 
                     % find the first minima in the height time series
                     % presumably, this gives me a good slope
                     imins = sort(imin, 'ascend');
-                    index = imins(find(imins > 40, 1, 'first'));
+                    index = imins(find(imins > 30, 1, 'first'))
 
-                    dhdt = (run.eddy.Lgauss(1) - run.eddy.Lgauss(index))./ ...
-                           (time(index) - time(1));
+                    try
+                        intTE = run.eddy.energy.intTE;
+                    catch ME
+                        intTE = run.eddy_energy_ideal;
+                    end
 
-                    diags(ff) = dhdt;
-                    plotx = run.topowaves;
+                    fig = 0;
+                    if fig
+                        field = intTE; run.eddy.Lgauss;
+                        figure; plot(ndtime, field./field(1)); hold all
+                        plot(ndtime, vec./vec(1));
+                        linex(ndtime(index));
+                        %plot(ndtime, vec);
+                        %plot(ndtime(index), field(index), 'x', ...
+                        %     'MarkerSize', 12);
+                        title(run.name);
+                    end
+
+                    dt = ndtime(index) - ndtime(1);
+                    dhdt = (run.eddy.Lgauss(1) - run.eddy.Lgauss(index))./dt;
+
+                    dEdt = (intTE(1) - intTE(index))./intTE(1)./dt;
+                    diags(ff) = dEdt; dhdt;
+
+                    plotx = run.topowaves; labx = 'cg (m/s)';
+                    %plotx = run.eddy.Ro(1)./run.bathy.S_sl; labx = 'Ro/S_\alpha';
+                    laby = 'dE/dt';
                 end
 
                 %%%%% topography parameter - taylor column
@@ -511,7 +533,6 @@ classdef runArray < handle
             linkaxes(ax, 'x');
             xlim([0 4])
         end
-
 
         function [] = plot_test1(runArray)
             hfig = figure;
