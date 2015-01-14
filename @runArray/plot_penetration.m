@@ -3,6 +3,19 @@ function [] = plot_penetration(runArray)
 
     mark_timestamp = 0;
 
+    if runArray.sorted
+        if isempty(runArray.filter)
+            len = runArray.len;
+        else
+            len = length(runArray.filter);
+        end
+
+        corder_backup = get(0, 'DefaultAxesColorOrder');
+        set(0, 'DefaultAxesLineStyleorder','-');
+        set(0, 'DefaultAxesColorOrder', brighten(cbrewer('seq','Reds',len), ...
+                                                 -0.5));
+    end
+
     hfig1 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2);
                 %hold all; insertAnnotation('runArray.plot_penetration');
 
@@ -98,17 +111,21 @@ function [] = plot_penetration(runArray)
     if ynorm == run.rrdeep
         ylabel('(Y - Y_{sb})/(deformation radius)');
         liney(1);
+        set(gca, 'YTick', [0:1:max(ylim)]);
     else
         ylabel(['Distance from shelfbreak / Initial distance from ' ...
                 'shelfbreak']);
+        liney(1);
+        set(gca, 'YTick', [0:0.1:max(ylim)]);
     end
+
     if xnorm == run.rrdeep
         xlabel('(X-X_0)/(deformation radius)');
     end
 
     %axis image;
     ylim([0 max(ylim)]);
-    set(gca, 'YTick', [0:1:max(ylim)]);
+
     beautify(fontSize);
 
     hlegend = legend;
@@ -125,5 +142,10 @@ function [] = plot_penetration(runArray)
         axes(ax3);
         ylabel('Eddy vertical scale (m)');
         beautify;
+    end
+
+    if runArray.sorted
+        set(0, 'DefaultAxesColorOrder', corder_backup);
+        set(0,'DefaultAxesLineStyleOrder',{'-','--','-.'});
     end
 end
