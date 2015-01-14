@@ -4,11 +4,24 @@ function [] = plot_eddydiag(runArray)
 
     annostr = 'plot_eddydiag(runArray)';
 
-% mark crosses on eddy track at tcen
+    % mark crosses on eddy track at tcen
     tcen = [0 100 200 300]; % in days
 
+    if runArray.sorted
+        if isempty(runArray.filter)
+            len = runArray.len;
+        else
+            len = length(runArray.filter);
+        end
+
+        corder_backup = get(0, 'DefaultAxesColorOrder');
+        set(0, 'DefaultAxesLineStyleorder','-');
+        set(0, 'DefaultAxesColorOrder', brighten(cbrewer('seq','Reds',len), ...
+                                                 -0.5));
+    end
+
     % vertical scale
-    hfig1 = figure; subplot(2,1,1); hold all subplot(2,1,2); hold all
+    hfig1 = []; %figure; subplot(2,1,1); hold all subplot(2,1,2); hold all
 
     % center track
     hfig2 = figure; hold all;
@@ -29,7 +42,7 @@ function [] = plot_eddydiag(runArray)
                 %subplot(3,1,2); hold all;
                 %subplot(3,1,3); hold all;
 
-    hfig8 = figure; hold all;
+    hfig8 = []; %figure; hold all;
 
     if isempty(runArray.filter)
         runArray.filter = 1:runArray.len;
@@ -63,12 +76,15 @@ function [] = plot_eddydiag(runArray)
             figure(hfig2)
             hgplt = plot(x, y);
             addlegend(hgplt, name);
-            clr = get(hgplt, 'color');
-            for ii=1:length(tcen)
-                tind = find_approx(run.eddy.t, tcen(ii), 1);
-                plot(x(tind), y(tind), ...
-                     'x', 'Color', clr, 'MarkerSize', 12);
-            end
+            %set(gca, 'ColorOrder', cbrewer('seq', 'Reds', len), ...
+            %         'NextPlot', 'replacechildren');
+
+            %clr = get(hgplt, 'color');
+            %for ii=1:length(tcen)
+            %    tind = find_approx(run.eddy.t, tcen(ii), 1);
+            %    plot(x(tind), y(tind), ...
+            %         'x', 'Color', clr, 'MarkerSize', 12);
+            %end
         end
 
         % vertical scale
