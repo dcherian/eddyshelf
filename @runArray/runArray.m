@@ -512,8 +512,9 @@ classdef runArray < handle
             xlim([0 4])
         end
 
+
         function [] = plot_test1(runArray)
-            figure;
+            hfig = figure;
             ax = gca; hold all;
 
             if isempty(runArray.filter)
@@ -525,15 +526,9 @@ classdef runArray < handle
                 run = runArray.array(ii);
 
                 index = 1;
-
-                name = [run.name ' | ' num2str(run.asflux.x(index)/1000 ...
-                                               ) ' km'];
-                ndtime = run.eddy.t*86400 ./ run.csflux.tscale;
+                name = run.name;
+                ndtime = run.eddy.t * 86400./ (run.eddy.vor.lmaj(1)./run.eddy.V(1));
                 tind = 1:length(ndtime);
-
-                hplot = plot(ndtime(tind), run.asflux.irflux(tind,index));
-                %hplot = plot(run.eddy.cx, run.eddy.cy);
-                addlegend(hplot, name);
             end
         end
 
