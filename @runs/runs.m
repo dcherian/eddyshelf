@@ -2809,15 +2809,18 @@ methods
 
         titlestr = 'SSH (m)';
 
-        dt = 4;
+        dt = 10;
 
         % which flux plot do I do?
-        fluxplot = 0; % 0 = no flux plot
+        csfluxplot = 0; % 0 = no flux plot
                       % 1 = instantaneous x-profile;
                       % 2 = flux v/s time
-        enfluxplot = 0; % plot energy flux ?
+        asfluxplot = 2; % 0 = no flux plot
+                      % 1 = instantaneous x-profile;
+                      % 2 = flux v/s time
+        enfluxplot = 0; % plot AS energy flux ?
         sshplot = 0; % plot ssh-contour too?
-        areaplot = 1; % plot time series of eddy surface area at z=0
+        areaplot = 0; % plot time series of eddy surface area at z=0
         dyeplot = 0; % plot eddye contour too?
         telesplot = 0;  % plot lines where grid stretching starts
                         % and ends
@@ -2843,7 +2846,8 @@ methods
         end
 
         % do I need subplots?
-        if (~isempty(runs.csflux) && fluxplot > 0) || ...
+        if (~isempty(runs.csflux) && csfluxplot > 0) || ...
+           (~isempty(runs.asflux) && asfluxplot > 0) || ...
                 enfluxplot || areaplot
             subplots_flag = 1;
         else
@@ -2885,7 +2889,7 @@ methods
         %               1, -1*runs.eddy.vor.angle(ii)*pi/180);
         %       hline = drawLine(L);
         xlabel('X (km)');ylabel('Y (km)');
-        if fluxplot == 0
+        if csfluxplot == 0
             axis image;
         else
             axis equal;
@@ -2898,13 +2902,13 @@ methods
 
         if subplots_flag
             ax2 = subplot(3,1,3);
-            if fluxplot == 2
+            if csfluxplot == 2
                 plot(runs.csflux.time / 86400, ...
                      runs.csflux.west.shelf(:,1)/1000);
-                htime = linex(runs.csflux.time(ii));
+                htime = linex(runs.csflux.time(ii) / 86400);
                 xlabel('Time (days)');
             else
-                if fluxplot ~= 0
+                if csfluxplot ~= 0
                     hflux = plot(runs.rgrid.xr(2:end-1,1)/1000, ...
                                  runs.csflux.shelfxt(:, ii));
                     ylim([min(runs.csflux.shelfxt(:)) ...
@@ -2921,7 +2925,25 @@ methods
                 end
             end
 
-            % energy flux
+            % AS fluxes
+            if asfluxplot == 2
+                index = 3;
+                plot(runs.asflux.time / 86400, ...
+                     runs.asflux.irflux(:,index)/1000);
+                htime = linex(runs.asflux.time(ii)/86400);
+                ylabel('Along-isobath mass flux');
+                xlabel('Time (days)');
+                liney(0);
+
+                axes(ax)
+                linex(runs.asflux.x(index)/1000);
+            else
+                if asfluxplot ~= 0
+                    error('Not implemented yet.');
+                end
+            end
+
+            % AS energy flux
             if enfluxplot == 1
                 axes(ax);
                 linex(runs.asflux.x(2)/1000, 'Energy flux', 'k');
@@ -2952,7 +2974,7 @@ methods
                 %L = createLine(runs.eddy.vor.cx(ii)/1000, runs.eddy.vor.cy(ii)/1000, ...
                 %           1, -1*runs.eddy.vor.angle(ii)*pi/180);
                 %delete(hline);
-                if ~isempty(runs.csflux) && fluxplot > 0
+                if ~isempty(runs.csflux) && csfluxplot > 0
                     set(hee_zeta, 'XData', [1 1]* runs.eddy.vor.ee(ii)/ ...
                                   1000);
                     axes(ax);
@@ -2973,7 +2995,7 @@ methods
                 end
 
                 % shelfwater flux plots
-                if ~isempty(runs.csflux) && fluxplot > 0
+                if ~isempty(runs.csflux) && csfluxplot > 0
                     axis(ax2);
                     if exist('htime', 'var')
                         set(htime, 'XData', [1 1]*runs.csflux.time(ii)/ ...
@@ -2981,6 +3003,17 @@ methods
                     else
                         set(hflux, 'YData', runs.csflux.shelfxt(:,ii));
                         set(hee, 'XData', [1 1]*runs.eddy.vor.ee(ii)/1000);
+                    end
+                end
+
+                % AS eddy water flux plots
+                if ~isempty(runs.asflux) && asfluxplot > 0
+                    axis(ax2);
+                    if exist('htime', 'var')
+                        set(htime, 'XData', [1 1]*runs.asflux.time(ii)/ ...
+                                   86400);
+                    else
+                        error('Not implemented yet.');
                     end
                 end
 
