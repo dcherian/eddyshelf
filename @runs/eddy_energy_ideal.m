@@ -47,8 +47,8 @@ function [intTE] = eddy_energy_ideal(runs)
     toc;
 
     % volume
-    vol(lx,ly,lz) = intT / Ta;
-    vol0 = vol(Lx, Ly, Lz);
+    vol(lx,ly,lz,H) = intT / Ta;
+    vol0 = vol(Lx, Ly, Lz, H0);
 
     % get group velocity
     cg = runs.topowaves;
@@ -66,6 +66,7 @@ function [intTE] = eddy_energy_ideal(runs)
     % ∂E/∂t + cg.∇E = 0
     %figure;
 
+    runs.eddy.energy.vol = vol0;
     runs.eddy.energy.intTE = intTE;
     runs.eddy.energy.intKE = intKE;
     runs.eddy.energy.intPE = intPE;
