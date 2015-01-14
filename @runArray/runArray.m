@@ -87,6 +87,8 @@ classdef runArray < handle
             if plots
                 hfig = gcf;%hfig = figure;
                 hold all;
+                name_points = 1; % name points by default
+                labx = ' '; laby = ' ';
             end
 
             for ff=1:length(runArray.filter)
