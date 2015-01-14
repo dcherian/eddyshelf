@@ -2812,11 +2812,12 @@ methods
         dt = 4;
 
         % which flux plot do I do?
-        fluxplot = 2; % 0 = no flux plot
+        fluxplot = 0; % 0 = no flux plot
                       % 1 = instantaneous x-profile;
                       % 2 = flux v/s time
         enfluxplot = 0; % plot energy flux ?
         sshplot = 0; % plot ssh-contour too?
+        areaplot = 1; % plot time series of eddy surface area at z=0
         dyeplot = 0; % plot eddye contour too?
         telesplot = 0;  % plot lines where grid stretching starts
                         % and ends
@@ -2843,7 +2844,7 @@ methods
 
         % do I need subplots?
         if (~isempty(runs.csflux) && fluxplot > 0) || ...
-                enfluxplot == 1
+                enfluxplot || areaplot
             subplots_flag = 1;
         else
             subplots_flag = 0;
@@ -2932,6 +2933,16 @@ methods
                 ylabel('Energy flux');
                 xlabel('Non-dimensional time');
             end
+
+            % plot area
+            if areaplot
+                subplot(3,1,3)
+                area = runs.eddy.vor.lmin .* runs.eddy.vor.lmaj;
+                plot(runs.time/86400, area./area(1));
+                harea = linex(runs.time(ii)/86400);
+                ylabel('Surface area of eddy (m^2)');
+                xlabel('Time (days)');
+            end
             beautify;
         end
 
@@ -2976,6 +2987,10 @@ methods
                 % energy flux plots
                 if enfluxplot
                     set(henflx, 'XData', [1 1]*runs.asflux.time(ii)/runs.tscale);
+                end
+
+                if areaplot
+                    set(harea, 'XData', [1 1]*runs.time(ii)/86400);
                 end
                 runs.video_update();
                 pause(1);
