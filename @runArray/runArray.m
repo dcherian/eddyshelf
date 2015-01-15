@@ -77,6 +77,30 @@ classdef runArray < handle
             disp(['runArray sorted.']);
         end
 
+        % helper function for setting line colors when plotting
+        % diagnostics from a sorted runArray object
+        function [corder_backup] = sorted_colors(runArray)
+            corder_backup = get(0, 'DefaultAxesColorOrder');
+            if runArray.sorted
+                if isempty(runArray.filter)
+                    len = runArray.len;
+                else
+                    len = length(runArray.filter);
+                end
+
+                set(0, 'DefaultAxesLineStyleorder','-');
+                set(0, 'DefaultAxesColorOrder', brighten(cbrewer('seq','Reds',len), ...
+                                                         -0.5));
+            end
+        end
+
+        function [] = reset_colors(runArray, corder_backup)
+            if runArray.sorted
+                set(0, 'DefaultAxesColorOrder', corder_backup);
+                set(0,'DefaultAxesLineStyleOrder',{'-','--','-.'});
+            end
+        end
+
         function [] = test_hashes(runArray)
             for ii=1:runArray.len
                 if ~strcmpi(runArray.array(ii).csflux.hash, ...

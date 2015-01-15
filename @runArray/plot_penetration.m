@@ -3,18 +3,7 @@ function [] = plot_penetration(runArray)
 
     mark_timestamp = 0;
 
-    if runArray.sorted
-        if isempty(runArray.filter)
-            len = runArray.len;
-        else
-            len = length(runArray.filter);
-        end
-
-        corder_backup = get(0, 'DefaultAxesColorOrder');
-        set(0, 'DefaultAxesLineStyleorder','-');
-        set(0, 'DefaultAxesColorOrder', brighten(cbrewer('seq','Reds',len), ...
-                                                 -0.5));
-    end
+    corder_backup = runArray.sorted_colors;
 
     hfig1 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2);
                 %hold all; insertAnnotation('runArray.plot_penetration');
@@ -144,8 +133,5 @@ function [] = plot_penetration(runArray)
         beautify;
     end
 
-    if runArray.sorted
-        set(0, 'DefaultAxesColorOrder', corder_backup);
-        set(0,'DefaultAxesLineStyleOrder',{'-','--','-.'});
-    end
+    runArray.reset_colors(corder_backup);
 end
