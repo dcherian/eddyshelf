@@ -7,18 +7,7 @@ function [] = plot_eddydiag(runArray)
     % mark crosses on eddy track at tcen
     tcen = [0 100 200 300]; % in days
 
-    if runArray.sorted
-        if isempty(runArray.filter)
-            len = runArray.len;
-        else
-            len = length(runArray.filter);
-        end
-
-        corder_backup = get(0, 'DefaultAxesColorOrder');
-        set(0, 'DefaultAxesLineStyleorder','-');
-        set(0, 'DefaultAxesColorOrder', brighten(cbrewer('seq','Reds',len), ...
-                                                 -0.5));
-    end
+    corder_backup = runArray.sorted_colors;
 
     % vertical scale
     hfig1 = []; %figure; subplot(2,1,1); hold all subplot(2,1,2); hold all
@@ -276,4 +265,6 @@ function [] = plot_eddydiag(runArray)
         beautify;
         insertAnnotation(annostr);
     end
+
+    runArray.reset_colors(corder_backup);
 end
