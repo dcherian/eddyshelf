@@ -363,7 +363,7 @@ function [eddy] = track_eddy(dir1)
     % save git hash
     eddy.hash = githash([mfilename('fullpath') '.m']);
 
-    save([dir1 '/eddytrack.mat'],'eddy');
+    save([dir1 '/eddytrack.mat'],'eddy', '-v7.3');
 
     disp('Done.');
 
