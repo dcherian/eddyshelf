@@ -50,8 +50,8 @@ function [] = plot_penetration(runArray)
 
         figure(hfig2)
         axes(ax1)
-        xnorm = run.rrdeep;
-        ynorm = run.rrdeep; run.eddy.my(1) - run.bathy.xsb;
+        xnorm = run.eddy.vor.dia(1)/2;
+        ynorm = run.eddy.vor.dia(1)/2; run.eddy.my(1) - run.bathy.xsb;
 
         x = (run.eddy.mx - run.eddy.mx(1))/xnorm;
         y = (run.eddy.my - run.bathy.xsb)/ynorm;
@@ -102,14 +102,24 @@ function [] = plot_penetration(runArray)
         liney(1);
         set(gca, 'YTick', [0:1:max(ylim)]);
     else
-        ylabel(['Distance from shelfbreak / Initial distance from ' ...
-                'shelfbreak']);
-        liney(1);
-        set(gca, 'YTick', [0:0.1:max(ylim)]);
+        if ynorm == run.eddy.vor.dia(1)/2
+            ylabel('(Y - Y_{sb})/(initial radius)');
+            liney(1);
+            set(gca, 'YTick', [0:1:max(ylim)]);
+        else
+            ylabel(['Distance from shelfbreak / Initial distance from ' ...
+                    'shelfbreak']);
+            liney(1);
+            set(gca, 'YTick', [0:0.1:max(ylim)]);
+        end
     end
 
     if xnorm == run.rrdeep
         xlabel('(X-X_0)/(deformation radius)');
+    else
+        if xnorm == run.eddy.vor.dia(1)/2
+            xlabel('(X-X_0)/(initial radius)');
+        end
     end
 
     %axis image;
