@@ -615,25 +615,8 @@ classdef runArray < handle
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
 
-                if isempty(run.ubot) || isempty(run.vbot)
-                    run.read_velbot;
-                end
-
-                % get bottom velocity scale
-                if size(run.ubot,3) > length(run.eddy.V)
-                    Ub = squeeze(max(max(bsxfun(@times, avg1(run.ubot(:,2: ...
-                                                              end-1, 2:2: ...
-                                                              end),1), ...
-                                            run.eddy.vormask),[], ...
-                                         1), [], 2));
-                else
-                    Ub = squeeze(max(max(bsxfun(@times, ...
-                                                avg1(run.ubot(:,2:end-1,:)), ...
-                                                run.eddy.vormask), [], 1), [], 2));
-                end
-
-                ndtime = run.eddy.t * 86400 / run.tscale;
-                hgplt = plot(ndtime, Ub ./ run.eddy.V');
+                ndtime = run.eddy.t * 86400 / run.eddy.turnover;
+                hgplt = plot(ndtime, run.eddy.Vb ./ run.eddy.V);
                 addlegend(hgplt, run.name);
             end
         end
