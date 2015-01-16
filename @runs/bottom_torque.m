@@ -114,12 +114,40 @@ function [] = bottom_torque(runs)
     % vertically integrated angular momentum
     iam = mask .* bsxfun(@times, H, (vbar.*xrmat - ubar.*yrmat));
 
+    %%%%%%%%% Translation term
+    c = runs.eddy.cvx(tind(1):tind(2));
+    f = runs.rgrid.f(2:end-1,2:end-1)';
+    f = f(imnx:imxx, imny:imxy);
+
+    % height anomaly for eddy is zeta
+    h = bsxfun(@minus, zeta, mean(zeta, 2));
+
+    iv = bsxfun(@times, bsxfun(@times, h, f), permute(c, [3 1 2]));
+
+    %%%%%%%%% area-integrate
+    for tt=1:size(iam,3)
+        P(tt) = squeeze(trapz(yrmat(1,:,tt), trapz(xrmat(:,1,tt), repnan(pbot(:,:,tt),0), ...
+                                            1), 2));
+        AM(tt) = squeeze(trapz(yrmat(1,:,tt), trapz(xrmat(:,1,tt), repnan(iam(:,:,tt),0), ...
+                                                    1), 2));
+        V(tt) = squeeze(trapz(yrmat(1,:,tt), trapz(xrmat(:,1,tt), repnan(iv(:,:,tt),0), ...
+                                             1), 2));
+    end
 
     %%%%%%%%% Summarize
     bottom.pressure = P;
     bottom.angmom = AM;
     bottom.pbtorque = P .* runs.bathy.sl_slope;
     bottom.betatorque = AM .* runs.params.phys.beta;
+    bottom.transtorque = V;
+    bottom.time = runs.eddy.t(tind(1):tind(2))*86400;
+
+    figure; hold all
+    plot(bottom.pbtorque);
+    plot(bottom.betatorque);
+    plot(bottom.transtorque);
+    legend('\alpha \int\int P_{bot}', '\beta \int\int \Psi', ['c\' ...
+                        'int\int fh']);
 
     bottom.comment = ['(pressure, angmom) = volume integrated ' ...
                       'pressure, angular momentum | pbtorque = slope ' ...
