@@ -625,7 +625,16 @@ classdef runArray < handle
                 name = run.name;
                 ndtime = run.eddy.t * 86400./ (run.eddy.vor.lmaj(1)./run.eddy.V(1));
                 tind = 1:length(ndtime);
+
+                intTE = run.eddy.energy.intTE;
+                hplot = plot(ndtime, intTE./intTE(1));
+                addlegend(hplot, name);
             end
+
+            ylabel('Energy / energy(1)');
+            xlabel('Time / turnover time');
+            insertAnnotation('runArray.plot_test1');
+            beautify;
         end
 
         function [] = plot_test2(runArray)
