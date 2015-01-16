@@ -1,7 +1,10 @@
 function [] = bottom_torque(runs)
 
     tind = length(runs.eddy.t);
-    tind = [tind-20 tind];
+    tind = [tind-80 tind];
+
+    rho0 = runs.params.phys.rho0;
+    g = runs.params.phys.g;
 
     mask = runs.eddy.vormask(:,:,tind(1):tind(2));
 
@@ -31,7 +34,7 @@ function [] = bottom_torque(runs)
     %    pause(1);
     %end
 
-    % first, bottom pressure
+    %%%%%%% first, bottom pressure
     imnx = min(ixmin(:)); imny = min(iymin(:));
     imxx = max(ixmax(:)); imxy = max(iymax(:));
 
@@ -53,7 +56,7 @@ function [] = bottom_torque(runs)
     rho = dc_roms_read_data(runs.dir, 'rho', tind, volume, [], ...
                             runs.rgrid, 'his', 'single');
     eddye = dc_roms_read_data(runs.dir, runs.eddname, tind, volume, [], ...
-                            runs.rgrid, 'his', 'single') > runs.eddye_thresh;
+                            runs.rgrid, 'his', 'single') > runs.eddy_thresh;
     if runs.bathy.axis == 'y'
         % (y,z)
         rback = dc_roms_read_data(runs.dir, 'rho', [1 1], {'x' 1 1}, [], ...
@@ -102,10 +105,10 @@ function [] = bottom_torque(runs)
     end
     toc;
 
-    % depth-integrate density field
     % calculate bottom pressure (x,y,t)
-    pbot = mask .* (R0 .* g .* zeta + irho .* g);
-    iam = mask .* iam;
+    % note that in Flierl (1987) the 1/ρ0 is absorbed into the
+    % pressure variable
+    pbot = mask .* (rho0 .* g .* zeta +  irho .* g) ./ rho0;
 
     % area-integrate
     P = squeeze(trapz(yrmat(1,:), trapz(xrmat(:,1), repnan(pbot,0), ...
@@ -113,6 +116,7 @@ function [] = bottom_torque(runs)
     AM = squeeze(trapz(yrmat(1,:), trapz(xrmat(:,1), repnan(iam,0), ...
                                          1), 2));
 
+    %%%%%%%%% Summarize
     bottom.pressure = P;
     bottom.angmom = AM;
     bottom.pbtorque = P .* runs.bathy.sl_slope;
