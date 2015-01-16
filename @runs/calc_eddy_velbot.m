@@ -11,7 +11,13 @@ function [] = calc_eddy_velbot(runs)
     vel = sqrt(avg1(u(:,2:end-1,:), 1).^2 + ...
                avg1(v(2:end-1,:,:), 2).^2);
     %if size(vel,3) > length(runs.eddy.V)
-    runs.eddy.Vb = squeeze(max(max(vel .* runs.eddy.vormask,[], 1), [], 2))';
+    runs.eddy.Vb = squeeze(max(max(vel .* runs.eddy.vormask,[], 1), ...
+                               [], 2))';
+
+    %eddbot = dc_roms_read_data(runs.dir, runs.eddname, [], {'z' 1 ...
+    %                    1}, [], runs.rgrid, 'his', 'single') > runs.eddy_thresh;
+    %Vb2 = squeeze(max(max(vel .* eddbot(2:end-1,2:end-1,:),[], 1), ...
+    %                           [], 2))';
 
     runs.eddy.hash = githash;
 
