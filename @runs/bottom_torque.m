@@ -103,7 +103,7 @@ function [] = bottom_torque(runs)
     % calculate bottom pressure (x,y,t)
     % note that in Flierl (1987) the 1/ρ0 is absorbed into the
     % pressure variable
-    pbot = mask .* (rho0 .* g .* zeta +  irho .* g) ./ rho0;
+    pbot = (rho0 .* g .* zeta +  irho .* g) ./ rho0;
 
     %%%%%%%%% now, angular momentum
     ubar = dc_roms_read_data(runs.dir, 'ubar', tind, volume, [], runs.rgrid, ...
@@ -112,7 +112,7 @@ function [] = bottom_torque(runs)
                              'his', 'single');
 
     % vertically integrated angular momentum
-    iam = mask .* bsxfun(@times, H, (vbar.*xrmat - ubar.*yrmat));
+    iam = bsxfun(@times, H, (vbar.*xrmat - ubar.*yrmat));
 
     %%%%%%%%% Translation term
     c = runs.eddy.cvx(tind(1):tind(2));
@@ -123,6 +123,12 @@ function [] = bottom_torque(runs)
     h = bsxfun(@minus, zeta, mean(zeta, 2));
 
     iv = bsxfun(@times, bsxfun(@times, h, f), permute(c, [3 1 2]));
+    iv2 = bsxfun(@times, bsxfun(@times, irho, f), permute(c, [3 1 2]));
+
+    %%%%%%%%% mask?
+    pbot = mask .* pbot;
+    iv = mask .* iv;
+    iam = mask .* iam;
 
     %%%%%%%%% area-integrate
     for tt=1:size(iam,3)
