@@ -115,7 +115,7 @@ function [] = bottom_torque(runs)
     iam = bsxfun(@times, H, (vbar.*xrmat - ubar.*yrmat));
 
     %%%%%%%%% Translation term
-    c = runs.eddy.cvx(tind(1):tind(2));
+    c = runs.eddy.cvx(tind(1):tind(2)) .* 1000/86400; % convert to m/s
     f = runs.rgrid.f(2:end-1,2:end-1)';
     f = f(imnx:imxx, imny:imxy);
 
@@ -148,6 +148,7 @@ function [] = bottom_torque(runs)
     bottom.transtorque = V;
     bottom.time = runs.eddy.t(tind(1):tind(2))*86400;
 
+    % plots
     figure; hold all
     plot(bottom.pbtorque);
     plot(bottom.betatorque);
