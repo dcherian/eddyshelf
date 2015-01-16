@@ -71,11 +71,16 @@ function [] = bottom_torque(runs)
         error('not implemented for NS isobaths yet');
     end
 
-    R0 = runs.params.phys.R0;
-    g = runs.params.phys.g;
+    % bathymetry
+    H = runs.bathy.h(2:end-1, 2:end-1);
+    H = H(imnx:imxx, imny:imxy);
 
-    xrmat = runs.rgrid.xr(imnx:imxx, imny:imxy);
-    yrmat = runs.rgrid.yr(imnx:imxx, imny:imxy);
+    % grid vectors - referenced at each time level to location of
+    % eddy center
+    xrmat = bsxfun(@minus, runs.rgrid.xr(imnx:imxx, imny:imxy), ...
+                   permute(runs.eddy.mx(:,tind(1):tind(2)), [3 1 2]));
+    yrmat = bsxfun(@minus, runs.rgrid.yr(imnx:imxx, imny:imxy), ...
+                   permute(runs.eddy.my(:,tind(1):tind(2)), [3 1 2]));
     zrmat = runs.rgrid.z_r(:,2:end-1,2:end-1);
     zrmat = zrmat(:,imny:imxy, imnx:imxx);
 
@@ -83,15 +88,7 @@ function [] = bottom_torque(runs)
     % surface
     rho = bsxfun(@minus, rho, rback) .* eddye;
 
-
-    % now, angular momentum
-    u = dc_roms_read_data(runs.dir, 'u', tind, volume, [], runs.rgrid, ...
-                          'his', 'single');
-    v = dc_roms_read_data(runs.dir, 'v', tind, volume, [], runs.rgrid, ...
-                          'his', 'single');
-    angmom = eddye .* ...
-             (bsxfun(@times, v, xrmat) - bsxfun(@times, u, yrmat));
-
+    % depth-integrate density field
     tic;
     disp('integrating vertically');
     irho = nan([size(rho,1) size(rho,2) size(rho,4)]);
@@ -99,8 +96,6 @@ function [] = bottom_torque(runs)
         for jj=1:size(rho,2)
             irho(ii,jj,:) = trapz(zrmat(:, jj, ii), rho(ii, jj, :, ...
                                                         :), 3);
-            iam(ii,jj,:) = trapz(zrmat(:, jj, ii), angmom(ii, jj, : ...
-                                                          , :), 3);
         end
     end
     toc;
@@ -110,11 +105,15 @@ function [] = bottom_torque(runs)
     % pressure variable
     pbot = mask .* (rho0 .* g .* zeta +  irho .* g) ./ rho0;
 
-    % area-integrate
-    P = squeeze(trapz(yrmat(1,:), trapz(xrmat(:,1), repnan(pbot,0), ...
-                                        1), 2));
-    AM = squeeze(trapz(yrmat(1,:), trapz(xrmat(:,1), repnan(iam,0), ...
-                                         1), 2));
+    %%%%%%%%% now, angular momentum
+    ubar = dc_roms_read_data(runs.dir, 'ubar', tind, volume, [], runs.rgrid, ...
+                          'his', 'single');
+    vbar = dc_roms_read_data(runs.dir, 'vbar', tind, volume, [], runs.rgrid, ...
+                             'his', 'single');
+
+    % vertically integrated angular momentum
+    iam = mask .* bsxfun(@times, H, (vbar.*xrmat - ubar.*yrmat));
+
 
     %%%%%%%%% Summarize
     bottom.pressure = P;
