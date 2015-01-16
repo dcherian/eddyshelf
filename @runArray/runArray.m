@@ -254,6 +254,31 @@ classdef runArray < handle
                             1./run.bathy.S_sl);
                 end
 
+                %%%%% Flierl (1987) bottom torque hypothesis.
+                if strcmpi(name, 'bottom torque')
+
+                    ndtime = run.eddy.t*86400 ./ run.eddy.turnover;
+                    Lx = run.eddy.vor.dia(1)/2; sqrt(run.eddy.vor.lmaj .* run.eddy.vor.lmin);
+                    c = smooth(run.eddy.mvx, 10)';
+                    V = run.eddy.V;
+                    %Vb = run.eddy.Vb;
+                    alpha = run.bathy.sl_slope;
+                    beta = run.params.phys.beta;
+                    f0 = run.params.phys.f0;
+
+                    c = runArray.sorted_colors;
+
+                    num = alpha * Lx;
+                    %deno = c./Vb +  V./Vb;
+                    vec = run.eddy.Lgauss;
+                    hold all;
+                    hplt = plot(ndtime, vec);
+                    addlegend(hplt, run.name);
+                    %plot(ndtime, run.eddy.Lgauss, 'Color', get(hplt, ...
+                    %                                            'Color'))
+                    runArray.reset_colors(c);
+                end
+
                 %%%%% test critical iflux hypothesis for eddy to
                 %%%%% start moving northward
                 if strcmpi(name, 'critical flux')
