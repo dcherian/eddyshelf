@@ -10,7 +10,7 @@ function [] = plot_eddydiag(runArray)
     corder_backup = runArray.sorted_colors;
 
     % vertical scale
-    hfig1 = []; %figure; subplot(2,1,1); hold all subplot(2,1,2); hold all
+    hfig1 = figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all
 
     % center track
     hfig2 = figure; hold all;
@@ -21,8 +21,8 @@ function [] = plot_eddydiag(runArray)
     hfig4 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all;
 
     % Ro, L-scale, U-scale
-    hfig5 = []; %figure; subplot(3,1,1); hold all; subplot(3,1,2); hold  all;
-                %subplot(3,1,3); hold all;
+    hfig5 = figure; subplot(3,1,1); hold all; subplot(3,1,2); hold  all;
+            subplot(3,1,3); hold all;
 
     hfig6 = []; %figure; hold all
 
@@ -41,10 +41,12 @@ function [] = plot_eddydiag(runArray)
         ii = runArray.filter(ff);
 
         run = runArray.array(ii);
-        asp = run.eddy.Lgauss./(run.eddy.vor.dia/2);
+        asp = run.eddy.hcen'./(run.eddy.vor.dia/2);
 
         tscale = run.tscale; find_approx(asp, 0.5, 1);
-        ndtime = run.eddy.t/tscale * 86400;
+        %ndtime = run.eddy.t/tscale * 86400;
+
+        ndtime = run.eddy.t*86400 ./ run.eddy.turnover;
         if isempty(runArray.name)
             name = run.name;
         else
@@ -185,8 +187,8 @@ function [] = plot_eddydiag(runArray)
 
         % volume
         if hfig8
-            vol = smooth(run.eddy.vor.lmaj .* run.eddy.vor.lmin ...
-                         .* run.eddy.Lgauss, 1);
+            vol = smooth(run.eddy.vor.lmaj./run.rrdeep .* run.eddy.vor.lmin./run.rrdeep ...
+                         .* run.eddy.Lgauss./run.bathy.xsl, 1);
             tindex = find_approx(run.time./run.eddy.tscale, 1, 1);
             figure(hfig8)
             hplot = plot(ndtime, vol);
