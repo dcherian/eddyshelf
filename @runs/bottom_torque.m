@@ -2,11 +2,24 @@ function [] = bottom_torque(runs)
 
     tind = length(runs.eddy.t);
     tind = [tind-80 tind];
+    %tind = [1 length(runs.eddy.t)];
 
     rho0 = runs.params.phys.rho0;
     g = runs.params.phys.g;
 
-    mask = runs.eddy.vormask(:,:,tind(1):tind(2));
+    % eddy-based mask
+    mask = runs.eddy.mask(:,:,tind(1):tind(2));
+    maskstr = 'sshmask';
+
+    % vorticity mask
+    %mask = runs.eddy.vormask(:,:,tind(1):tind(2));
+    %maskstr = 'vormask';
+
+    % topography based mask
+    %mask = (runs.rgrid.y_rho(2:end-1,2:end-1)' > runs.bathy.xsb) & ...
+    %       (runs.rgrid.y_rho(2:end-1,2:end-1)' < runs.bathy.xsl);
+    %mask = mask .* ~runs.sponge(2:end-1,2:end-1);
+    % mask = 'slopemask';
 
     % indices of eddy extremes - based on mask
     indx = repmat([1:size(mask, 1)]', [1 size(mask,2)]);
@@ -147,6 +160,7 @@ function [] = bottom_torque(runs)
     bottom.betatorque = AM .* runs.params.phys.beta;
     bottom.transtorque = V;
     bottom.time = runs.eddy.t(tind(1):tind(2))*86400;
+    bottom.maskstr = maskstr;
 
     % plots
     figure; hold all
