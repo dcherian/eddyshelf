@@ -133,13 +133,33 @@ function [] = bottom_torque(runs)
     pbot = (rho0 .* g .* zeta +  irho .* g) ./ rho0;
 
     %%%%%%%%% now, angular momentum
+    % depth averaged velocities (m/s)
     ubar = dc_roms_read_data(runs.dir, 'ubar', tind, volume, [], runs.rgrid, ...
                           'his', 'single');
     vbar = dc_roms_read_data(runs.dir, 'vbar', tind, volume, [], runs.rgrid, ...
                              'his', 'single');
 
+    % convert to depth integrated velocities (m^2/s)
+    U = bsxfun(@times, H, ubar);
+    V = bsxfun(@times, H, vbar);
+
     % vertically integrated angular momentum
-    iam = bsxfun(@times, H, (vbar.*xrmat - ubar.*yrmat));
+    %iam = 1/2 .* (V .* xrmat - U .* yrmat); % if ψ ~ O(1/r²)
+    iam = bsxfun(@times, U, yrmat); % if ψ ~ O(1/r)
+
+    % debug plots
+    %tt = 20;
+    %mzeta = mask .* zeta;
+    %for tt =1:size(mzeta,3)
+    %    clf;
+    %    contourf(xrmat(:,:,tt), yrmat(:,:,tt), mzeta(:,:,tt), 60);
+    %    hold on;
+    %    plot(runs.eddy.cx(tind(1)+tt) - mx(tt), ...
+    %         runs.eddy.cy(tind(1)+tt) - my(tt), 'k*', 'MarkerSize', 16);
+    %    shading flat;
+    %    linex(0); liney(0);
+    %    pause(0.5);
+    %end
 
     %%%%%%%%% Translation term
     c = runs.eddy.cvx(tind(1):tind(2)) .* 1000/86400; % convert to m/s
