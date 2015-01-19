@@ -162,21 +162,24 @@ function [] = bottom_torque(runs)
     %end
 
     %%%%%%%%% Translation term
-    c = runs.eddy.cvx(tind(1):tind(2)) .* 1000/86400; % convert to m/s
+    %c = runs.eddy.cvx(tind(1):tind(2)) .* 1000/86400; % convert to m/s
+    c = smooth(runs.eddy.mvx(tind(1):tind(2)), 10) .* 1000/86400; % convert to m/s
     f = runs.rgrid.f(2:end-1,2:end-1)';
     f = f(imnx:imxx, imny:imxy);
 
     % height anomaly for eddy is zeta
     h = bsxfun(@minus, zeta, mean(zeta, 2));
 
-    iv = bsxfun(@times, bsxfun(@times, h, f), permute(c, [3 1 2]));
-    iv2 = bsxfun(@times, bsxfun(@times, irho, f), permute(c, [3 1 2]));
+    iv = bsxfun(@times, bsxfun(@times, h, f), permute(c, [3 2 1]));
+    %iv2 = bsxfun(@times, bsxfun(@times, irho, f), permute(c, [3 1 2]));
+    %iv = runs.params.phys.f0 .* U;
 
     %%%%%%%%% mask?
     pbot = mask .* pbot;
     iv = mask .* iv;
     iam = mask .* iam;
 
+    clear V P AM
     %%%%%%%%% area-integrate
     for tt=1:size(iam,3)
         P(tt) = squeeze(trapz(yrmat(1,:,tt), trapz(xrmat(:,1,tt), repnan(pbot(:,:,tt),0), ...
