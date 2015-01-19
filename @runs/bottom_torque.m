@@ -68,8 +68,8 @@ function [] = bottom_torque(runs)
     % now read density and eddye fields
     rho = dc_roms_read_data(runs.dir, 'rho', tind, volume, [], ...
                             runs.rgrid, 'his', 'single');
-    eddye = dc_roms_read_data(runs.dir, runs.eddname, tind, volume, [], ...
-                            runs.rgrid, 'his', 'single') > runs.eddy_thresh;
+    %eddye = dc_roms_read_data(runs.dir, runs.eddname, tind, volume, [], ...
+    %                        runs.rgrid, 'his', 'single') > runs.eddy_thresh;
     if runs.bathy.axis == 'y'
         % (y,z)
         rback = dc_roms_read_data(runs.dir, 'rho', [1 1], {'x' 1 1}, [], ...
@@ -88,18 +88,32 @@ function [] = bottom_torque(runs)
     H = runs.bathy.h(2:end-1, 2:end-1);
     H = H(imnx:imxx, imny:imxy);
 
+    % looks like (eddy.mx, eddy.my) isn't totally accurate, so
+    % re-detect that.
+    xrmat = runs.rgrid.xr(imnx:imxx, imny:imxy);
+    yrmat = runs.rgrid.yr(imnx:imxx, imny:imxy);
+    clear mx my
+    for tt=1:size(zeta, 3)
+        mzeta = mask(:,:,tt) .* zeta(:,:,tt);
+        maxz = nanmax(nanmax(mzeta, [], 1), [], 2);
+        ind = find(mzeta == maxz);
+        [a,b] = ind2sub([size(mzeta,1) size(mzeta,2)], ind);
+        mx(tt) = xrmat(a,b);
+        my(tt) = yrmat(a,b);
+    end
+
     % grid vectors - referenced at each time level to location of
     % eddy center
     xrmat = bsxfun(@minus, runs.rgrid.xr(imnx:imxx, imny:imxy), ...
-                   permute(runs.eddy.mx(:,tind(1):tind(2)), [3 1 2]));
+                   permute(mx, [3 1 2]));
     yrmat = bsxfun(@minus, runs.rgrid.yr(imnx:imxx, imny:imxy), ...
-                   permute(runs.eddy.my(:,tind(1):tind(2)), [3 1 2]));
+                   permute(my, [3 1 2]));
     zrmat = runs.rgrid.z_r(:,2:end-1,2:end-1);
     zrmat = zrmat(:,imny:imxy, imnx:imxx);
 
     % subtract out density anomaly, and integrate from bottom to
     % surface
-    rho = bsxfun(@minus, rho, rback) .* eddye;
+    rho = bsxfun(@minus, rho, rback);
 
     % depth-integrate density field
     tic;
