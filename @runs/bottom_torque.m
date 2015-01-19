@@ -206,6 +206,9 @@ function [] = bottom_torque(runs)
     plot(bottom.transtorque);
     legend('\alpha \int\int P_{bot}', '\beta \int\int \Psi', ['c\' ...
                         'int\int fh']);
+    figure; hold all
+    plot(bottom.pbtorque + bottom.transtorque);
+    plot(bottom.betatorque);
 
     bottom.comment = ['(pressure, angmom) = volume integrated ' ...
                       'pressure, angular momentum | pbtorque = slope ' ...
