@@ -5,10 +5,11 @@
 function asfluxes(runs)
     ticstart = tic;
 
-    do_energy = 0;
+    do_energy = 1;
 
     % locations - grid indices - RHO points
-    % find location at ndtime == 1, then add 2 rossby radii
+    % find "resistance" location, then add 2 rossby radii
+    [xx,yy,tind] = locate_resistance(runs);
     loc1 = find_approx(runs.rgrid.x_rho(1,:), ...
                        runs.eddy.mx(find_approx( ...
                            runs.eddy.t*86400/runs.tscale, 1)) + ...
@@ -66,8 +67,12 @@ function asfluxes(runs)
                     runs.rgrid.z_r(:,:,1)');
 
         % energy flux (y, z, t, location)
-        peflux = u(2:end-1,:,:,:) .* (pe(2:end-1,:,:,:)) .* eddmask;
-        keflux = u(2:end-1,:,:,:) .* (ke) .* eddmask;
+        peflux = u(2:end-1,:,:,:) .* (pe(2:end-1,:,:,:));
+        keflux = u(2:end-1,:,:,:) .* (ke);
+
+        peflux_edd = peflux .* eddmask(2:end-1,:,:,:);
+        keflux_edd = keflux .* eddmask(2:end-1,:,:,:);
+
     end
 
     % integrate flux
@@ -89,6 +94,12 @@ function asfluxes(runs)
                 ipefluxyt(jj,:,ii) = squeeze(trapz(zvec(jj,:), ...
                                                    peflux(jj,:,:,ii), ...
                                                    2));
+                ikefluxyt_edd(jj,:,ii) = squeeze(trapz(zvec(jj,:), ...
+                                                   keflux_edd(jj,:,:,ii), 2));
+                % integrated flux (y, t, location)
+                ipefluxyt_edd(jj,:,ii) = squeeze(trapz(zvec(jj,:), ...
+                                                   peflux_edd(jj,:,:,ii), ...
+                                                   2));
             end
         end
 
@@ -99,6 +110,11 @@ function asfluxes(runs)
             ikeflux(:,ii) = squeeze(trapz(yvec, ikefluxyt(:,:,ii), ...
                                           1));
             ipeflux(:,ii) = squeeze(trapz(yvec, ipefluxyt(:,:,ii), ...
+                                          1));
+
+            ikeflux_edd(:,ii) = squeeze(trapz(yvec, ikefluxyt_edd(:,:,ii), ...
+                                          1));
+            ipeflux_edd(:,ii) = squeeze(trapz(yvec, ipefluxyt_edd(:,:,ii), ...
                                           1));
         end
     end
@@ -113,14 +129,20 @@ function asfluxes(runs)
     runs.asflux.time = runs.time;
     runs.asflux.ix = locs;
     runs.asflux.x = runs.rgrid.x_rho(1,locs);
-    runs.asflux.irflux = irflux;
-    runs.asflux.irfluxyt = irfluxyt;
+    runs.asflux.eddy.irflux = irflux;
+    runs.asflux.eddy.irfluxyt = irfluxyt;
 
     if do_energy
         runs.asflux.ikeflux = ikeflux;
         runs.asflux.ipeflux = ipeflux;
         runs.asflux.ikefluxyt = ikefluxyt;
         runs.asflux.ipefluxyt = ipefluxyt;
+
+        % eddy water
+        runs.asflux.eddy.ikeflux = ikeflux_edd;
+        runs.asflux.eddy.ipeflux = ipeflux_edd;
+        runs.asflux.eddy.ikefluxyt = ikefluxyt_edd;
+        runs.asflux.eddy.ipefluxyt = ipefluxyt_edd;
     end
 
     asflux = runs.asflux;
