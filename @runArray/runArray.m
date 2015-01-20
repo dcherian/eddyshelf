@@ -139,6 +139,7 @@ classdef runArray < handle
                 hold all;
                 name_points = 1; % name points by default
                 labx = ' '; laby = ' ';
+                plotx = [];
             end
 
             for ff=1:length(runArray.filter)
@@ -482,7 +483,7 @@ classdef runArray < handle
                     insertAnnotation(['runArray.print_diag(' name ')']);
                     % add run names
                     if name_points
-                        text(plotx, diags(ff), run.name, 'FontSize', ...
+                        text(plotx, diags(ff), runArray.name(ff), 'FontSize', ...
                              12, 'Rotation', 90);
                     end
                     xlabel(labx);
