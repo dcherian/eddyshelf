@@ -25,6 +25,8 @@ properties
     sponge;
     % eddy track data
     eddy; noeddy;
+    % bottom torque calculations
+    bottom;
     % wnoise metric
     wmetric;
     % along-shore jet properties
@@ -415,6 +417,13 @@ methods
             clear data
         end
 
+        % load bottom torque diagnostics if the file exists
+        if exist([dir '/bottom.mat'],'file') && reset ~= 1
+            disp('Loading bottom torque diagnostics');
+            data = load([dir '/bottom.mat']);
+            runs.bottom = data.bottom;
+            clear data
+        end
 
         % load eddy energy diagnostics if the file exists
         if exist([dir '/energy.mat'],'file') && reset ~= 1
