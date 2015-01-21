@@ -6,6 +6,7 @@ function [] = bottom_torque(runs)
 
     rho0 = runs.params.phys.rho0;
     g = runs.params.phys.g;
+    beta = runs.params.phys.beta;
 
     % eddy-based mask
     mask = runs.eddy.mask(:,:,tind(1):tind(2));
@@ -48,8 +49,9 @@ function [] = bottom_torque(runs)
     %end
 
     %%%%%%% first, bottom pressure
-    imnx = min(ixmin(:)); imny = min(iymin(:));
-    imxx = max(ixmax(:)); imxy = max(iymax(:));
+    di = 30;
+    imnx = min(ixmin(:)) - di; imny = min(iymin(:)) - di;
+    imxx = max(ixmax(:)) + di; imxy = max(iymax(:)) + di;
 
     volume = {'x' imnx imxx; ...
               'y' imny imxy};
@@ -62,14 +64,16 @@ function [] = bottom_torque(runs)
     zeta = runs.zeta(2:end-1,2:end-1, tind(1):tind(2));
     zeta = zeta(imnx:imxx, imny:imxy, :);
 
-    % subsample mask
+    % subsample mask and f
     mask = mask(imnx:imxx, imny:imxy, :);
+    f = runs.rgrid.f(2:end-1,2:end-1)';
+    f = f(imnx:imxx, imny:imxy);
 
     % now read density and eddye fields
     rho = dc_roms_read_data(runs.dir, 'rho', tind, volume, [], ...
                             runs.rgrid, 'his', 'single');
-    %eddye = dc_roms_read_data(runs.dir, runs.eddname, tind, volume, [], ...
-    %                        runs.rgrid, 'his', 'single') > runs.eddy_thresh;
+    eddye = dc_roms_read_data(runs.dir, runs.eddname, tind, volume, [], ...
+                            runs.rgrid, 'his', 'single') > runs.eddy_thresh;
     if runs.bathy.axis == 'y'
         % (y,z)
         rback = dc_roms_read_data(runs.dir, 'rho', [1 1], {'x' 1 1}, [], ...
@@ -92,15 +96,34 @@ function [] = bottom_torque(runs)
     % re-detect that.
     xrmat = runs.rgrid.xr(imnx:imxx, imny:imxy);
     yrmat = runs.rgrid.yr(imnx:imxx, imny:imxy);
-    clear mx my
-    for tt=1:size(zeta, 3)
-        mzeta = mask(:,:,tt) .* zeta(:,:,tt);
-        maxz = nanmax(nanmax(mzeta, [], 1), [], 2);
-        ind = find(mzeta == maxz);
-        [a,b] = ind2sub([size(mzeta,1) size(mzeta,2)], ind);
-        mx(tt) = xrmat(a,b);
-        my(tt) = yrmat(a,b);
-    end
+    %clear mx my
+    %for tt=1:size(zeta, 3)
+    %    mzeta = mask(:,:,tt) .* zeta(:,:,tt);
+    %    maxz = nanmax(nanmax(mzeta, [], 1), [], 2);
+    %    ind = find(mzeta == maxz);
+    %    [a,b] = ind2sub([size(mzeta,1) size(mzeta,2)], ind);
+    %    mx(tt) = xrmat(a,b);
+    %    my(tt) = yrmat(a,b);
+    %end
+    % debug plots
+    %tt = 20;
+    %mzeta = mask .* zeta;
+    %for tt =1:size(mzeta,3)
+    %    clf;
+    %    contourf(xrmat(:,:,tt), yrmat(:,:,tt), mzeta(:,:,tt), 60);
+    %    hold on;
+    %    plot(runs.eddy.cx(tind(1)+tt) - mx(tt), ...
+    %         runs.eddy.cy(tind(1)+tt) - my(tt), 'k*', 'MarkerSize', 16);
+    %    shading flat;
+    %    linex(0); liney(0);
+    %    pause(0.5);
+    %end
+
+    mx = runs.eddy.vor.cx(tind(1):tind(2));
+    my = runs.eddy.vor.cy(tind(1):tind(2));
+
+    imy = vecfind(runs.rgrid.yr(1,:), my);
+    f = bsxfun(@minus, f, permute(f(1,imy),[3 1 2]));
 
     % grid vectors - referenced at each time level to location of
     % eddy center
@@ -110,12 +133,19 @@ function [] = bottom_torque(runs)
                    permute(my, [3 1 2]));
     zrmat = runs.rgrid.z_r(:,2:end-1,2:end-1);
     zrmat = zrmat(:,imny:imxy, imnx:imxx);
+    zwmat = runs.rgrid.z_w(:,2:end-1,2:end-1);
+    zwmat = zwmat(:,imny:imxy, imnx:imxx);
+    zumat = runs.rgrid.z_u(:,2:end-1,2:end-1);
+    zumat = zumat(:,imny:imxy, imnx:imxx);
+    zvmat = runs.rgrid.z_v(:,2:end-1,2:end-1);
+    zvmat = zvmat(:,imny:imxy, imnx:imxx);
+    dzmat = diff(permute(zwmat, [3 2 1]), 1, 3);
 
-    % subtract out density anomaly, and integrate from bottom to
-    % surface
-    rho = bsxfun(@minus, rho, rback);
+    % subtract out background density to get anomaly
+    rho = bsxfun(@minus, rho, rback) .* eddye;
+    maskstr = [maskstr ' + rho.*eddye'];
 
-    % depth-integrate density field
+    % depth-integrate density anomaly field from surface to bottom
     tic;
     disp('integrating vertically');
     irho = nan([size(rho,1) size(rho,2) size(rho,4)]);
@@ -164,8 +194,6 @@ function [] = bottom_torque(runs)
     %%%%%%%%% Translation term
     %c = runs.eddy.cvx(tind(1):tind(2)) .* 1000/86400; % convert to m/s
     c = smooth(runs.eddy.mvx(tind(1):tind(2)), 10) .* 1000/86400; % convert to m/s
-    f = runs.rgrid.f(2:end-1,2:end-1)';
-    f = f(imnx:imxx, imny:imxy);
 
     % height anomaly for eddy is zeta
     h = bsxfun(@minus, zeta, mean(zeta, 2));
@@ -175,18 +203,22 @@ function [] = bottom_torque(runs)
     %iv = runs.params.phys.f0 .* U;
 
     %%%%%%%%% mask?
-    pbot = mask .* pbot;
-    iv = mask .* iv;
-    iam = mask .* iam;
+    mask_rho = 1; %irho < -1;
+    mpbot = mask_rho .* pbot;
+    miv = mask_rho .* iv;
+    miam = mask_rho .* iam;
 
     clear V P AM
     %%%%%%%%% area-integrate
     for tt=1:size(iam,3)
-        P(tt) = squeeze(trapz(yrmat(1,:,tt), trapz(xrmat(:,1,tt), repnan(pbot(:,:,tt),0), ...
-                                            1), 2));
-        AM(tt) = squeeze(trapz(yrmat(1,:,tt), trapz(xrmat(:,1,tt), repnan(iam(:,:,tt),0), ...
+        P(tt) = squeeze(trapz(yrmat(1,:,tt), ...
+                              trapz(xrmat(:,1,tt), repnan(mpbot(:,:,tt),0), ...
+                                    1), 2));
+        AM(tt) = squeeze(trapz(yrmat(1,:,tt), ...
+                               trapz(xrmat(:,1,tt), repnan(miam(:,:,tt),0), ...
                                                     1), 2));
-        V(tt) = squeeze(trapz(yrmat(1,:,tt), trapz(xrmat(:,1,tt), repnan(iv(:,:,tt),0), ...
+        V(tt) = squeeze(trapz(yrmat(1,:,tt), ...
+                              trapz(xrmat(:,1,tt), repnan(miv(:,:,tt),0), ...
                                              1), 2));
     end
 
@@ -194,21 +226,19 @@ function [] = bottom_torque(runs)
     bottom.pressure = P;
     bottom.angmom = AM;
     bottom.pbtorque = P .* runs.bathy.sl_slope;
-    bottom.betatorque = AM .* runs.params.phys.beta;
+    bottom.betatorque = AM;
     bottom.transtorque = V;
     bottom.time = runs.eddy.t(tind(1):tind(2))*86400;
     bottom.maskstr = maskstr;
 
     % plots
     figure; hold all
-    plot(bottom.pbtorque);
-    plot(bottom.betatorque);
-    plot(bottom.transtorque);
+    plot(bottom.time/86400, bottom.pbtorque);
+    plot(bottom.time/86400, bottom.betatorque);
+    plot(bottom.time/86400, bottom.transtorque);
     legend('\alpha \int\int P_{bot}', '\beta \int\int \Psi', ['c\' ...
-                        'int\int fh']);
-    figure; hold all
-    plot(bottom.pbtorque + bottom.transtorque);
-    plot(bottom.betatorque);
+                        'int\int fh'], 'Location', 'NorthWest');
+    beautify;
 
     bottom.comment = ['(pressure, angmom) = volume integrated ' ...
                       'pressure, angular momentum | pbtorque = slope ' ...
