@@ -170,32 +170,110 @@ function [] = bottom_torque(runs)
 
     %%%%%%%%% now, angular momentum
     % depth averaged velocities (m/s)
-    ubar = dc_roms_read_data(runs.dir, 'ubar', tind, volume, [], runs.rgrid, ...
-                          'his', 'single');
-    vbar = dc_roms_read_data(runs.dir, 'vbar', tind, volume, [], runs.rgrid, ...
-                             'his', 'single');
+    use_davg = 0;
+    mom_budget = 1;
+    if use_davg
+        ubar = dc_roms_read_data(runs.dir, 'ubar', tind, volume, [], runs.rgrid, ...
+                                 'his', 'single');
+        vbar = dc_roms_read_data(runs.dir, 'vbar', tind, volume, [], runs.rgrid, ...
+                                 'his', 'single');
 
-    % convert to depth integrated velocities (m^2/s)
-    U = bsxfun(@times, H, ubar);
-    V = bsxfun(@times, H, vbar);
+        % convert to depth integrated velocities (m^2/s)
+        U = bsxfun(@times, H, ubar);
+        V = bsxfun(@times, H, vbar);
 
-    % vertically integrated angular momentum
-    %iam = 1/2 .* (V .* xrmat - U .* yrmat); % if ψ ~ O(1/r²)
-    iam = bsxfun(@times, U, yrmat); % if ψ ~ O(1/r)
+        % vertically integrated angular momentum
+        %iam = 1/2 * beta .* (V .* xrmat - U .* yrmat); % if ψ ~ O(1/r²)
+        iam = beta .* bsxfun(@times, U, yrmat); % if ψ ~ O(1/r)
+    else
+        % read depth dependent velocity fields and integrate
+        u = dc_roms_read_data(runs.dir, 'u', tind, volume, [], ...
+                              runs.rgrid, 'his', 'single');
+        % read depth dependent velocity fields and integrate
+        v = dc_roms_read_data(runs.dir, 'v', tind, volume, [], ...
+                              runs.rgrid, 'his', 'single');
 
-    % debug plots
-    %tt = 20;
-    %mzeta = mask .* zeta;
-    %for tt =1:size(mzeta,3)
-    %    clf;
-    %    contourf(xrmat(:,:,tt), yrmat(:,:,tt), mzeta(:,:,tt), 60);
-    %    hold on;
-    %    plot(runs.eddy.cx(tind(1)+tt) - mx(tt), ...
-    %         runs.eddy.cy(tind(1)+tt) - my(tt), 'k*', 'MarkerSize', 16);
-    %    shading flat;
-    %    linex(0); liney(0);
-    %    pause(0.5);
-    %end
+        um = u .* eddye; % .* bsxfun(@times, eddye, permute(mask, [1 2 4 3]));
+        vm = v .* eddye; % .* bsxfun(@times, eddye, permute(mask, [1 2 4 3]));
+        pm = pres; % .* bsxfun(@times, eddye, permute(mask, [1 2 4 3]));
+        maskstr = [maskstr ' + u.*eddye'];
+
+        U = nan([size(um, 1) size(um, 2) size(um, 4)]);
+        if mom_budget
+            V = U; V2 = V; UV = V; U2 = U; P = U;
+        end
+        tic;
+        for ii=1:size(um, 1)
+            for jj=1:size(um, 2)
+                U(ii,jj,:) = trapz(zumat(:,jj,ii), um(ii,jj,:,:), 3);
+                if mom_budget
+                    V(ii,jj,:) = trapz(zvmat(:,jj,ii), vm(ii,jj,:,:), 3);
+                    UV(ii,jj,:) = trapz(zvmat(:,jj,ii), um(ii,jj,:,:) ...
+                                        .* vm(ii,jj,:,:), 3);
+                    V2(ii,jj,:) = trapz(zvmat(:,jj,ii), ...
+                                        vm(ii,jj,:,:).^2, 3);
+                    U2(ii,jj,:) = trapz(zumat(:,jj,ii), ...
+                                        um(ii,jj,:,:).^2, 3);
+                    P(ii,jj,:) = trapz(zrmat(:,jj,ii), pm(ii,jj,:,: ...
+                                                          ),3);
+                end
+            end
+        end
+        toc;
+        % vertically integrated angular momentum
+        iam = beta .* yrmat .* U;
+
+        if mom_budget
+            tic;
+            dPdx = nan([size(um,1)-1 size(um,2) size(um,4)]);
+            dpresdx = diff(pres,1,1)./dx;
+            for ii=1:size(dpresdx,1)
+                for jj=1:size(dpresdx, 2)
+                    dPdx(ii,jj,:) = trapz(zrmat(:,jj,ii), dpresdx(ii,jj,:,:), 3);
+                end
+            end
+            toc;
+
+            dx = 1000; dy = 1000;
+            botmask = pbot > 0.1*max(pbot(:));
+            maskstr = [maskstr ' + P.*botmask'];
+            dPdx = squeeze(trapz(trapz(dPdx .* (avg1(botmask) > 0),1),2)*dx*dy);
+
+            dv2dy = squeeze(trapz(trapz(diff(V2,1,2)./dy,1)*dx,2)*dy);
+            du2dx = squeeze(trapz(trapz(diff(U2,1,1)./dx,1)*dx,2)*dy);
+            duvdx = squeeze(trapz(trapz(diff(UV,1,1)./dx,1)*dx,2)*dy);
+            duvdy = squeeze(trapz(trapz(diff(UV,1,2)./dy,1)*dx,2)*dy);
+            dpdx = squeeze(trapz(trapz(diff(P,1,1)./dx .* ...
+                                       (avg1(botmask,1)>0),1)*dx)*dy);
+            dpdy = squeeze(trapz(trapz(diff(P,1,2)./dy .* ...
+                                       (avg1(botmask,2)>0),1)*dx)*dy);
+            fu = squeeze(trapz(trapz(f.*U, 1)*dx,2)*dx);
+            fv = squeeze(trapz(trapz(f.*V, 1)*dx,2)*dy);
+            dUdt = diff(squeeze(trapz(trapz(U,1)*dx, 2)*dy))./86400;
+            dVdt = diff(squeeze(trapz(trapz(V,1)*dx, 2)*dy))./86400;
+
+            % bottom torques
+            btq = squeeze(trapz(trapz(pbot .* botmask .* runs.bathy.sl_slope, 1)*dx, ...
+                                2)*dy);
+            figure;
+            subplot(211); hold all;
+            plot(dUdt);
+            plot(du2dx); plot(duvdy);
+            plot(fv);
+            plot(dpdx);
+            plot(dUdt + avg1(du2dx + duvdy - fv + dpdx));
+            title('x-mom');
+            legend('dudt', 'd/dx(u^2)', 'd/dy(uv)', 'fv', 'dPdx', 'total');
+            subplot(212); hold all;
+            plot(dVdt);
+            plot(duvdx); plot(dv2dy);
+            plot(fu); plot(dpdy); plot(btq);
+            plot(dVdt + avg1(dv2dy + duvdx + fu + dpdy + btq));
+            title('y-mom');
+            legend('dvdt', 'd/dx(uv)', 'd/dy(v^2)', 'fu', 'dPdy', ['p_0 ' ...
+                                's_{0y}'],'total');
+        end
+    end
 
     %%%%%%%%% Translation term
     %c = runs.eddy.cvx(tind(1):tind(2)) .* 1000/86400; % convert to m/s
