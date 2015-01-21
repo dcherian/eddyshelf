@@ -148,19 +148,25 @@ function [] = bottom_torque(runs)
     % depth-integrate density anomaly field from surface to bottom
     tic;
     disp('integrating vertically');
-    irho = nan([size(rho,1) size(rho,2) size(rho,4)]);
+    irho = nan(size(rho));
+    frho = flipdim(rho, 3); % flipped to integrate from _surface_
+                            % to bottom
+    fzrmat = flipdim(zrmat, 1);
     for ii=1:size(rho, 1)
         for jj=1:size(rho,2)
-            irho(ii,jj,:) = trapz(zrmat(:, jj, ii), rho(ii, jj, :, ...
-                                                        :), 3);
+            irho(ii,jj,:,:) = cumtrapz(fzrmat(:, jj, ii), ...
+                                       frho(ii, jj, :, :), 3);
         end
     end
     toc;
+    irho = flipdim(irho, 3);
+    clear frho fzrmat
 
     % calculate bottom pressure (x,y,t)
     % note that in Flierl (1987) the 1/ρ0 is absorbed into the
     % pressure variable
-    pbot = (rho0 .* g .* zeta +  irho .* g) ./ rho0;
+    pres = bsxfun(@plus, g./rho0 .* irho, g.*permute(zeta,[1 2 4 3]));
+    pbot = squeeze(pres(:,:,1,:));
 
     %%%%%%%%% now, angular momentum
     % depth averaged velocities (m/s)
