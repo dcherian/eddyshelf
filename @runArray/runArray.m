@@ -57,7 +57,7 @@ classdef runArray < handle
         function [] = sort(runArray, sort_input)
 
             if ~exist('sort_input', 'var') || isempty(sort_input)
-                sort_input = [];
+                error('need sort_input to sort!');
             end
 
             [ss,ind] = sort(sort_input, 'ascend');
