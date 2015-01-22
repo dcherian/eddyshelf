@@ -5,8 +5,8 @@ function [] = plot_penetration(runArray)
 
     corder_backup = runArray.sorted_colors;
 
-    hfig1 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2);
-                %hold all; insertAnnotation('runArray.plot_penetration');
+    hfig1 = figure; subplot(2,1,1); hold all; subplot(2,1,2);
+            hold all; insertAnnotation('runArray.plot_penetration');
 
     hfig2 = figure;
     insertAnnotation('runArray.plot_penetration');
@@ -30,29 +30,29 @@ function [] = plot_penetration(runArray)
         %name = [' H_{sb}/H_{eddy} = ' ...
         %        num2str(run.bathy.hsb./run.eddy.Lgauss(1))];
 
-        ndtime = run.eddy.t * 86400 / run.tscale;
+        ndtime = run.eddy.t * 86400 / run.eddy.turnover;
         if mark_timestamp
             tinds = vecfind(ndtime, [0.5:0.5:(max(ndtime))]);
         else
             tinds = [];
         end
 
+        % normalization for axes
+        xnorm = run.rrdeep; run.eddy.vor.dia(1)/2;
+        ynorm = run.rrdeep; run.eddy.vor.dia(1)/2; run.eddy.my(1) - run.bathy.xsb;
+
         if ~isempty(hfig1)
             figure(hfig1);
             subplot(2,1,1);
-            hgplt = plot(ndtime, run.eddy.vor.ne/1000 - run.bathy.xsb/1000);
+            hgplt = plot(ndtime, (run.eddy.vor.ne - run.bathy.xsb)./ynorm);
             addlegend(hgplt, name);
 
             subplot(2,1,2);
-            plot(ndtime, run.eddy.vor.se/1000 - run.bathy.xsb/ ...
-                 1000);
+            plot(ndtime, (run.eddy.vor.se - run.bathy.xsb)./ynorm);
         end
 
         figure(hfig2)
         axes(ax1)
-        xnorm = run.eddy.vor.dia(1)/2;
-        ynorm = run.eddy.vor.dia(1)/2; run.eddy.my(1) - run.bathy.xsb;
-
         x = (run.eddy.mx - run.eddy.mx(1))/xnorm;
         y = (run.eddy.my - run.bathy.xsb)/ynorm;
 
@@ -123,7 +123,7 @@ function [] = plot_penetration(runArray)
     end
 
     %axis image;
-    ylim([0 max(ylim)]);
+    ylim([-2 max(ylim)]);
 
     beautify(fontSize);
 
