@@ -11,11 +11,9 @@ function asfluxes(runs)
     % find "resistance" location, then add 2 rossby radii
     [xx,yy,tind] = locate_resistance(runs);
     loc1 = find_approx(runs.rgrid.x_rho(1,:), ...
-                       runs.eddy.mx(find_approx( ...
-                           runs.eddy.t*86400/runs.tscale, 1)) + ...
-                       2 * runs.rrdeep);
+                       xx + 2 * runs.rrdeep);
     locs = [loc1 runs.params.grid.ixn runs.params.grid.ixp]
-
+    %locs = loc1;
     ax = 'x';
 
     assert(runs.bathy.axis == 'y');
@@ -42,8 +40,8 @@ function asfluxes(runs)
                             locs(ii) locs(ii)}, [], runs.rgrid, ...
                                           'his', 'single') > runs.eddy_thresh);
 
-        eddmask(:,:,:,ii) = bsxfun(@and, eddmask(:,:,:,ii), ...
-                                   nedge);
+        %eddmask(:,:,:,ii) = bsxfun(@and, eddmask(:,:,:,ii), ...
+        %                           nedge);
 
         if do_energy
             v(:,:,:,ii) = dc_roms_read_data(runs.dir, 'v', [], {ax ...
@@ -62,17 +60,19 @@ function asfluxes(runs)
     if do_energy
         % at interior RHO points
         ke = 1/2 * (u(2:end-1,:,:,:).^2 + avg1(v,1).^2);
-        pe = - runs.params.phys.g * ...
-             bsxfun(@times, bsxfun(@minus, rho, rback), ...
+        pe = - runs.params.phys.g * bsxfun(@times, rho, ...
                     runs.rgrid.z_r(:,:,1)');
 
         % energy flux (y, z, t, location)
         peflux = u(2:end-1,:,:,:) .* (pe(2:end-1,:,:,:));
         keflux = u(2:end-1,:,:,:) .* (ke);
 
+        %peflux = bsxfun(@times, u(2:end-1,:,:,:) .* (pe(2:end-1,:,:,:)), ...
+        %                nedge(2:end-1,:,:));
+        %keflux = bsxfun(@times, u(2:end-1,:,:,:) .* (ke), nedge(2:end-1,:,:));
+
         peflux_edd = peflux .* eddmask(2:end-1,:,:,:);
         keflux_edd = keflux .* eddmask(2:end-1,:,:,:);
-
     end
 
     % integrate flux
