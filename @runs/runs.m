@@ -2826,10 +2826,12 @@ methods
         telesplot = 0;  % plot lines where grid stretching starts
                         % and ends
 
-        vecplot = 1; % plot some time vector (assign tvec and vec);
-        tvec = runs.eddy.t;
-        vec = runs.eddy.energy.intTE;
-        laby = 'Integrated total energy (eddy)';
+        vecplot = 0; % plot some time vector (assign tvec and vec);
+        if vecplot
+            tvec = runs.eddy.t;
+            vec = runs.asflux.ikeflux + runs.asflux.ipeflux;
+            laby = 'Integrated total energy (eddy)';
+        end
 
         %tvec = runs.csflux.time/86400;
         %vec = runs.csflux.west.shelf/1000;
@@ -2871,13 +2873,14 @@ methods
         ii=t0;
         hz = runs.plot_zeta('pcolor',ii);
         hold on
-        colorbar; freezeColors;
-        hbathy = runs.plot_bathy('contour','w');
+        colorbar; center_colorbar; freezeColors;
+        hbathy = runs.plot_bathy('contour','k');
 
         % plot track
         plot(runs.eddy.mx/1000, runs.eddy.my/1000);
         plot(runs.eddy.mx/1000, runs.eddy.vor.ne/1000);
         plot(runs.eddy.mx/1000, runs.eddy.vor.se/1000);
+
         he = runs.plot_eddy_contour('contour',ii);
         if sshplot
             he2 = runs.plot_eddy_sshcontour('contour',ii);
@@ -2936,9 +2939,10 @@ methods
 
             % AS fluxes
             if asfluxplot == 2
-                index = 3;
+                index = 1;
                 plot(runs.asflux.time / 86400, ...
-                     runs.asflux.irflux(:,index)/1000);
+                     runs.asflux.ikeflux(:,index) - runs.asflux.eddy.ikeflux + ...
+                     runs.asflux.ipeflux(:,index) - runs.asflux.eddy.ipeflux);
                 htime = linex(runs.asflux.time(ii)/86400);
                 ylabel('Along-isobath mass flux');
                 xlabel('Time (days)');
