@@ -4975,6 +4975,10 @@ methods
                 shading flat
             end
         end
+        zend = runs.zeta(:,:,end);
+        if ~isnan(zend)
+            caxis([min(zend(:)) max(zend(:))]);
+        end
     end
     function update_zeta(runs,handle,tt)
         try
