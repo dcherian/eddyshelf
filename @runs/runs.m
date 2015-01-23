@@ -2817,24 +2817,29 @@ methods
 
         csfluxplot = 0; % 0 = no flux plot
                       % 1 = instantaneous x-profile;
-        asfluxplot = 0; % 0 = no flux plot
-                      % 1 = instantaneous x-profile;
+        asfluxplot = 1; % 0 = no flux plot
+                        % 1 = instantaneous y-profile;
+        if asfluxplot == 1 % which location for asflux plot?
+            asindex = [2 3];
+        end
         enfluxplot = 0; % plot AS energy flux ?
         sshplot = 0; % plot ssh-contour too?
-        areaplot = 0; % plot time series of eddy surface area at z=0
         dyeplot = 0; % plot eddye contour too?
         telesplot = 0;  % plot lines where grid stretching starts
                         % and ends
 
         vecplot = 0; % plot some time vector (assign tvec and vec);
         if vecplot
-            tvec = runs.eddy.t;
-            vec = runs.asflux.ikeflux + runs.asflux.ipeflux;
-            laby = 'Integrated total energy (eddy)';
-        end
+            % integrated energy asflux
+            %tvec = runs.eddy.t;
+            %vec = runs.asflux.ikeflux + runs.asflux.ipeflux;
+            %laby = 'Integrated energy flux';
 
-        %tvec = runs.csflux.time/86400;
-        %vec = runs.csflux.west.shelf/1000;
+            % area plot
+            vec = runs.eddy.vor.lmin .* runs.eddy.vor.lmaj;
+            tvec = runs.eddy.t;
+            laby = 'Surface area (m^2)';
+        end
 
         if ~exist('ntimes', 'var'), ntimes = length(runs.time); end
         if ~exist('t0', 'var'), t0 = 1; end
@@ -2856,19 +2861,26 @@ methods
             runs.read_eddsurf;
         end
 
-        % do I need subplots?
-        if (~isempty(runs.csflux) && csfluxplot > 0) || ...
-           (~isempty(runs.asflux) && asfluxplot > 0) || ...
-                enfluxplot || areaplot || vecplot
-            subplots_flag = 1;
+        % which subplot do I need?
+        if (~isempty(runs.csflux) && csfluxplot == 1) || ...
+                enfluxplot || vecplot
+            subplots_flag = 'x';
         else
-            subplots_flag = 0;
+            if (~isempty(runs.asflux) && asfluxplot == 1)
+                subplots_flag = 'y';
+            else
+                subplots_flag = [];
+            end
         end
 
         %%%% actually plot
         figure;
-        if subplots_flag
+        if subplots_flag == 'x'
             ax = subplot(3,1,[1 2]);
+        else
+            if subplots_flag == 'y'
+                ax = subplot(1,3,[1 2]);
+            end
         end
         ii=t0;
         hz = runs.plot_zeta('pcolor',ii);
@@ -2901,18 +2913,17 @@ methods
         %               1, -1*runs.eddy.vor.angle(ii)*pi/180);
         %       hline = drawLine(L);
         xlabel('X (km)');ylabel('Y (km)');
-        if csfluxplot == 0
+        if isempty(subplots_flag)
             axis image;
         else
-            axis equal;
-            hee_zeta = linex(runs.eddy.vor.ee(ii)/1000);
+            %axis equal;
         end
 
         maximize(gcf); pause(0.2);
         beautify([16 16 18]);
         ax = gca;
 
-        if subplots_flag
+        if subplots_flag == 'x'
             ax2 = subplot(3,1,3);
             if vecplot
                 hvec = plot(tvec, vec);
@@ -2937,25 +2948,6 @@ methods
                 title('\int v(x,z,t)dz (m^2/s)');
             end
 
-            % AS fluxes
-            if asfluxplot == 2
-                index = 1;
-                plot(runs.asflux.time / 86400, ...
-                     runs.asflux.ikeflux(:,index) - runs.asflux.eddy.ikeflux + ...
-                     runs.asflux.ipeflux(:,index) - runs.asflux.eddy.ipeflux);
-                htime = linex(runs.asflux.time(ii)/86400);
-                ylabel('Along-isobath mass flux');
-                xlabel('Time (days)');
-                liney(0);
-
-                axes(ax)
-                linex(runs.asflux.x(index)/1000);
-            else
-                if asfluxplot ~= 0
-                    error('Not implemented yet.');
-                end
-            end
-
             % AS energy flux
             if enfluxplot == 1
                 axes(ax);
@@ -2968,16 +2960,41 @@ methods
                 ylabel('Energy flux');
                 xlabel('Non-dimensional time');
             end
+        end
+        if subplots_flag == 'y'
+            ax2 = subplot(1,3,3);
 
-            % plot area
-            if areaplot
-                subplot(3,1,3)
-                area = runs.eddy.vor.lmin .* runs.eddy.vor.lmaj;
-                plot(runs.time/86400, area./area(1));
-                harea = linex(runs.time(ii)/86400);
-                ylabel('Surface area of eddy (m^2)');
-                xlabel('Time (days)');
+            % AS fluxes
+            if asfluxplot == 1
+                cla
+                matrix1 = runs.asflux.ikefluxyt(:,:,asindex(1)) + ...
+                         runs.asflux.ipefluxyt(:,:,asindex(1));
+                hflux1 = plot(matrix1(:,ii), ...
+                              runs.rgrid.yr(1,2:end-1)/1000);
+                if length(asindex) > 1
+                    matrix2 = runs.asflux.ikefluxyt(:,:,asindex(2)) ...
+                              + runs.asflux.ipefluxyt(:,:, ...
+                                                      asindex(2));
+                    hold all
+                    hflux2 = plot(matrix2(:,ii), ...
+                                  runs.rgrid.yr(1,2:end-1)/1000);
+                else
+                    matrix2 = [];
+                end
+
+                xlim([-1 1]*max(abs([matrix1(:); matrix2(:)])));
+                liney([runs.bathy.xsb runs.bathy.xsl]/1000);
+                xlabel('Along-isobath depth-integrated energy flux');
+                ylabel('Y(km)');
+                linex(0); beautify;
+
+                axes(ax)
+                %               axis image;
+                linex(runs.asflux.x(asindex)/1000, [], 'k');
+
+                linkaxes([ax ax2], 'y');
             end
+
             beautify;
         end
 
@@ -3026,7 +3043,10 @@ methods
                         set(htime, 'XData', [1 1]*runs.asflux.time(ii)/ ...
                                    86400);
                     else
-                        error('Not implemented yet.');
+                        set(hflux1, 'XData', matrix1(:,ii));
+                        if length(asindex) > 1
+                            set(hflux2, 'XData', matrix2(:,ii));
+                        end
                     end
                 end
 
