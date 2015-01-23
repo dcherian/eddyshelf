@@ -2830,20 +2830,34 @@ methods
 
         vecplot = 0; % plot some time vector (assign tvec and vec);
         if vecplot
-            % integrated energy asflux
+            %%% integrated energy asflux
             %tvec = runs.eddy.t;
             %vec = runs.asflux.ikeflux + runs.asflux.ipeflux;
             %laby = 'Integrated energy flux';
+            %locx = []; locy = [];
 
-            % area plot
+            %%% asflux time series
+            %tvec = runs.asflux.time/runs.tscale;
+            %vec = runs.asflux.ikeflux(:,2);
+            %locx = runs.asflux.x(2); locy = [];
+
+            %%% cross-sb shelf water flux
+            %tvec = runs.csflux.time/86400;
+            %vec = runs.csflux.shelf.west.shelf;
+            %laby = 'Shelf water flux (m^3/s)';
+            %locy = runs.bathy.xsb/1000; locx = [];
+
+            %%% area plot
             vec = runs.eddy.vor.lmin .* runs.eddy.vor.lmaj;
             tvec = runs.eddy.t;
             laby = 'Surface area (m^2)';
+            locx = []; locy = [];
         end
 
         if ~exist('ntimes', 'var'), ntimes = length(runs.time); end
         if ~exist('t0', 'var'), t0 = 1; end
 
+        % read zeta if required
         if isempty(runs.zeta) | isnan(runs.zeta(:,:,t0))
             if ntimes == 1
                 runs.zeta = nan([size(runs.rgrid.x_rho') ...
@@ -2857,6 +2871,7 @@ methods
             end
         end
 
+        % read eddye if required
         if dyeplot && isempty(runs.eddsurf)
             runs.read_eddsurf;
         end
@@ -2928,11 +2943,12 @@ methods
             if vecplot
                 hvec = plot(tvec, vec);
                 htime = linex(tvec(ii));
+                linex(locx); liney(locy);
                 ylabel(laby);
                 xlabel('Time (days)');
             end
 
-            if csfluxplot ~= 0
+            if csfluxplot == 1
                 hflux = plot(runs.rgrid.xr(2:end-1,1)/1000, ...
                              runs.csflux.shelfxt(:, ii));
                 ylim([min(runs.csflux.shelfxt(:)) ...
@@ -2946,19 +2962,6 @@ methods
                 liney(0);
                 xlabel('X (km)');
                 title('\int v(x,z,t)dz (m^2/s)');
-            end
-
-            % AS energy flux
-            if enfluxplot == 1
-                axes(ax);
-                linex(runs.asflux.x(2)/1000, 'Energy flux', 'k');
-
-                subplot(3,1,3)
-                plot(runs.asflux.time/runs.tscale, runs.asflux.ikeflux(:,2));
-                henflx = linex(runs.asflux.time(ii)/runs.tscale);
-                liney(0);
-                ylabel('Energy flux');
-                xlabel('Non-dimensional time');
             end
         end
         if subplots_flag == 'y'
@@ -2983,14 +2986,13 @@ methods
                 end
 
                 xlim([-1 1]*max(abs([matrix1(:); matrix2(:)])));
-                liney([runs.bathy.xsb runs.bathy.xsl]/1000);
+                liney([runs.bathy.xsb runs.bathy.xsl]/1000, [], 'k');
                 xlabel('Along-isobath depth-integrated energy flux');
                 ylabel('Y(km)');
                 linex(0); beautify;
 
                 axes(ax)
-                %               axis image;
-                linex(runs.asflux.x(asindex)/1000, [], 'k');
+                linex(runs.asflux.x(asindex)/1000);
 
                 linkaxes([ax ax2], 'y');
             end
@@ -3025,7 +3027,7 @@ methods
                 end
 
                 % shelfwater flux plots
-                if ~isempty(runs.csflux) && csfluxplot > 0
+                if ~isempty(runs.csflux) && csfluxplot == 1
                     axis(ax2);
                     if exist('htime', 'var')
                         set(htime, 'XData', [1 1]*runs.csflux.time(ii)/ ...
@@ -3050,11 +3052,7 @@ methods
                     end
                 end
 
-                % energy flux plots
-                if enfluxplot
-                    set(henflx, 'XData', [1 1]*runs.asflux.time(ii)/runs.tscale);
-                end
-
+                % mark time for time-series plots
                 if vecplot
                     set(htime, 'XData', [1 1]*tvec(ii));
                 end
