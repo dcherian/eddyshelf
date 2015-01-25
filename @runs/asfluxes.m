@@ -47,19 +47,20 @@ function asfluxes(runs)
             v(:,:,:,ii) = dc_roms_read_data(runs.dir, 'v', [], {ax ...
                                 locs(ii) locs(ii)}, [], runs.rgrid, ...
                                             'his', 'single');
-            rback(:,:,1,ii) = dc_roms_read_data(runs.dir, 'rho', [1 1], {ax ...
-                                locs(ii) locs(ii)}, [], runs.rgrid, ...
-                                                'his', 'single');
+            %rback(:,:,1,ii) = dc_roms_read_data(runs.dir, 'rho', [1 1], {ax ...
+            %                    locs(ii) locs(ii)}, [], runs.rgrid, ...
+            %                                    'his', 'single');
         end
     end
 
+    rho = rho + runs.params.phys.rho0;
     % calculate mass flux ρu
     rflux = rho .* u .* eddmask;
 
     % calculate energy flux
     if do_energy
         % at interior RHO points
-        ke = 1/2 * (u(2:end-1,:,:,:).^2 + avg1(v,1).^2);
+        ke = 1/2 * (u(2:end-1,:,:,:).^2 + avg1(v,1).^2) .* rho(2:end-1,:,:,:);
         pe = - runs.params.phys.g * bsxfun(@times, rho, ...
                     runs.rgrid.z_r(:,:,1)');
 
