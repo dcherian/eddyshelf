@@ -681,6 +681,9 @@ classdef runArray < handle
         end
 
         function [] = plot_test2(runArray)
+
+            corder_backup = runArray.sorted_colors;
+
             figure;
             hold all
 
@@ -693,9 +696,11 @@ classdef runArray < handle
                 run = runArray.array(ii);
 
                 ndtime = run.eddy.t * 86400 / run.eddy.turnover;
-                hgplt = plot(ndtime, run.eddy.Vb ./ run.eddy.V);
+                hgplt = plot(ndtime, smooth(run.eddy.cvy, 10));
                 addlegend(hgplt, run.name);
             end
+
+            runArray.reset_colors(corder_backup);
         end
 
         function [] = plot_test3(runArray)
