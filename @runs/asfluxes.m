@@ -7,12 +7,24 @@ function asfluxes(runs)
 
     do_energy = 1;
 
+    locations = '';
+
     % locations - grid indices - RHO points
     % find "resistance" location, then add 2 rossby radii
     [xx,yy,tind] = locate_resistance(runs);
     loc1 = find_approx(runs.rgrid.x_rho(1,:), ...
                        xx + 2 * runs.rrdeep);
-    locs = [loc1 runs.params.grid.ixn runs.params.grid.ixp]
+
+    % find sponge edges
+    sz = size(runs.sponge);
+    sx1 = find(runs.sponge(1:sz(1)/2,sz(2)/2) == 0, 1, 'first');
+    sx2 = sz(1)/2 + find(runs.sponge(sz(1)/2:end,sz(2)/2) == 1, 1, ...
+                         'first') - 2;
+    sy1 = find(runs.sponge(sz(1)/2, :) == 1, 1, 'first') - 1;
+
+    locs = [loc1 sx1 sx2];
+    locations = [locations 'resistance | '];
+    locations = [locations 'sponge | '];
     %locs = loc1;
     ax = 'x';
 
@@ -128,6 +140,7 @@ function asfluxes(runs)
                         'fluxyt (y, t, locations) - depth-integrated fluxes'];
     runs.asflux.hash = githash;
     runs.asflux.time = runs.time;
+    runs.asflux.locations = locations;
     runs.asflux.ix = locs;
     runs.asflux.x = runs.rgrid.x_rho(1,locs);
     runs.asflux.eddy.irflux = irflux;
