@@ -65,20 +65,38 @@ function asfluxes(runs)
         end
     end
 
-    rho = rho + runs.params.phys.rho0;
+    rho0 = runs.params.phys.rho0;
+    % full rho field
+    rho = rho + rho0;
+
     % calculate mass flux ρu
     rflux = rho .* u .* eddmask;
 
     % calculate energy flux
     if do_energy
         % at interior RHO points
-        ke = 1/2 * (u(2:end-1,:,:,:).^2 + avg1(v,1).^2) .* rho(2:end-1,:,:,:);
+        ke = 1/2 * (u(2:end-1,:,:,:).^2 + avg1(v,1).^2) .* ...
+             (rho(2:end-1,:,:,:));
         pe = - runs.params.phys.g * bsxfun(@times, rho, ...
-                    runs.rgrid.z_r(:,:,1)');
+                                           runs.rgrid.z_r(:,:,1)');
+
+        % calculate pu term
+        % dz = (y,z) > 0
+        dzmat = permute(diff(runs.rgrid.z_w(:,:,1), 1, 1), [2 1]);
+        % p = ∫_ζ^z ρg dz (no negative sign)
+        % p = (y,z,t)
+        pres = 9.81 * bsxfun(@times, rho, dzmat);
+        % flip because I'm integrating from surface to (z)
+        pres = flipdim(pres, 2);
+        % integrate
+        pres = cumsum(pres, 2);
+        % flip back
+        pres = flipdim(pres, 2);
 
         % energy flux (y, z, t, location)
         peflux = u(2:end-1,:,:,:) .* (pe(2:end-1,:,:,:));
-        keflux = u(2:end-1,:,:,:) .* (ke);
+        keflux = u(2:end-1,:,:,:) .* ke + ...
+                 u(2:end-1,:,:,:) .* pres(2:end-1,:,:,:);
 
         %peflux = bsxfun(@times, u(2:end-1,:,:,:) .* (pe(2:end-1,:,:,:)), ...
         %                nedge(2:end-1,:,:));
