@@ -8,6 +8,8 @@ function [] = bottom_torque(runs)
     g = runs.params.phys.g;
     beta = runs.params.phys.beta;
 
+    dx = 1000; dy = 1000;
+
     % eddy-based mask
     mask = runs.eddy.mask(:,:,tind(1):tind(2));
     maskstr = 'sshmask';
@@ -49,7 +51,7 @@ function [] = bottom_torque(runs)
     %end
 
     %%%%%%% first, bottom pressure
-    di = 30;
+    di = 10;
     imnx = min(ixmin(:)) - di; imny = min(iymin(:)) - di;
     imxx = max(ixmax(:)) + di; imxy = max(iymax(:)) + di;
 
@@ -198,6 +200,7 @@ function [] = bottom_torque(runs)
         pm = pres; % .* bsxfun(@times, eddye, permute(mask, [1 2 4 3]));
         maskstr = [maskstr ' + u.*eddye'];
 
+        % depth-integrate quantities
         U = nan([size(um, 1) size(um, 2) size(um, 4)]);
         if mom_budget
             V = U; V2 = V; UV = V; U2 = U; P = U;
@@ -212,17 +215,17 @@ function [] = bottom_torque(runs)
                                         .* vm(ii,jj,:,:), 3);
                     V2(ii,jj,:) = trapz(zvmat(:,jj,ii), ...
                                         vm(ii,jj,:,:).^2, 3);
-                    U2(ii,jj,:) = trapz(zumat(:,jj,ii), ...
-                                        um(ii,jj,:,:).^2, 3);
-                    P(ii,jj,:) = trapz(zrmat(:,jj,ii), pm(ii,jj,:,: ...
-                                                          ),3);
+                    U2(ii,jj,:) = trapz(zumat(:,jj,ii), um(ii,jj,:,:).^2, 3);
+                    P(ii,jj,:) = trapz(zrmat(:,jj,ii), pm(ii,jj,:,:),3);
                 end
             end
         end
         toc;
+
         % vertically integrated angular momentum
         iam = beta .* yrmat .* U;
 
+        % try depth integrated momentum budget
         if mom_budget
             tic;
             dPdx = nan([size(um,1)-1 size(um,2) size(um,4)]);
@@ -234,7 +237,6 @@ function [] = bottom_torque(runs)
             end
             toc;
 
-            dx = 1000; dy = 1000;
             botmask = pbot > 0.1*max(pbot(:));
             maskstr = [maskstr ' + P.*botmask'];
             dPdx = squeeze(trapz(trapz(dPdx .* (avg1(botmask) > 0),1),2)*dx*dy);
@@ -287,7 +289,7 @@ function [] = bottom_torque(runs)
     %iv = runs.params.phys.f0 .* U;
 
     %%%%%%%%% mask?
-    mask_rho = 1; %irho < -1;
+    mask_rho = 1; botmask; %irho < -1;
     mpbot = mask_rho .* pbot;
     miv = mask_rho .* iv;
     miam = mask_rho .* iam;
