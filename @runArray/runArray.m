@@ -650,17 +650,31 @@ classdef runArray < handle
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
 
-                index = 1;
+                if isempty(run.vorsurf)
+                    run.calc_vorsurf;
+                end
+
                 name = run.name;
-                ndtime = run.eddy.t * 86400./ (run.eddy.vor.lmaj(1)./run.eddy.V(1));
+                ndtime = run.eddy.t * 86400./ (run.eddy.turnover);
                 tind = 1:length(ndtime);
 
-                intTE = run.eddy.energy.intTE;
-                hplot = plot(ndtime, intTE./intTE(1));
+                Ro = avg1(avg1(bsxfun(@rdivide, run.vorsurf, ...
+                                      avg1(avg1(run.rgrid.f', 1), ...
+                                           2)),1),2);
+
+                Ro = Ro .* run.eddy.vormask;
+
+                iy = vecfind(run.rgrid.y_rho(:,1), run.eddy.my);
+                fcen = run.rgrid.f(iy,1);
+                pv = fcen./run.eddy.Lgauss' .* (1+run.eddy.Ro');
+                hplot = plot(pv./pv(1));
+
+                Romin = squeeze(min(min(Ro,[],1),[],2));
+                %hplot = plot(ndtime, Romin./Romin(1));
                 addlegend(hplot, name);
             end
 
-            ylabel('Energy / energy(1)');
+            ylabel('min(vorticity/f)');
             xlabel('Time / turnover time');
             insertAnnotation('runArray.plot_test1');
             beautify;
