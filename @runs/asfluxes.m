@@ -32,23 +32,35 @@ function asfluxes(runs)
 
     % mask based on eddy contour's northern edge
     % permute to (y,z,t) like eddmask later.
-    nedge = permute(bsxfun(@lt, runs.rgrid.y_rho(:,1), runs.eddy.vor.ne), ...
-                    [1 3 2]);
+    %nedge = permute(bsxfun(@lt, runs.rgrid.y_rho(:,1), runs.eddy.vor.ne), ...
+    %                [1 3 2]);
 
     % read data
     % (y,z,t, location)
+    % preallocate for speed
+
+    tind = [1 length(runs.time)];
+    tind = [300 400];
+
+    u = nan([sz(2) runs.rgrid.N tind(2)-tind(1)+1 length(locs)]);
+    rho = u;
+    eddmask = u;
+    if do_energy
+        v = nan([sz(2)-1 runs.rgrid.N tind(2)-tind(1)+1 length(locs)]);
+    end
+
     for ii=1:length(locs)
         u(:,:,:,ii) = squeeze(avg1(dc_roms_read_data(runs.dir, ...
-                                                     'u', [], ...
+                                                     'u', tind, ...
                                                      {ax locs(ii) locs(ii)+1}, ...
                                                      [], runs.rgrid, ...
                                                      'his', 'single'),1));
-        rho(:,:,:,ii) = dc_roms_read_data(runs.dir, 'rho', [], {ax ...
+        rho(:,:,:,ii) = dc_roms_read_data(runs.dir, 'rho', tind, {ax ...
                             locs(ii) locs(ii)}, [], runs.rgrid, ...
                                           'his', 'single');
 
         % mask based on dye
-        eddmask(:,:,:,ii) = (dc_roms_read_data(runs.dir, runs.eddname, [], {ax ...
+        eddmask(:,:,:,ii) = (dc_roms_read_data(runs.dir, runs.eddname, tind, {ax ...
                             locs(ii) locs(ii)}, [], runs.rgrid, ...
                                           'his', 'single') > runs.eddy_thresh);
 
@@ -56,7 +68,7 @@ function asfluxes(runs)
         %                           nedge);
 
         if do_energy
-            v(:,:,:,ii) = dc_roms_read_data(runs.dir, 'v', [], {ax ...
+            v(:,:,:,ii) = dc_roms_read_data(runs.dir, 'v', tind, {ax ...
                                 locs(ii) locs(ii)}, [], runs.rgrid, ...
                                             'his', 'single');
             %rback(:,:,1,ii) = dc_roms_read_data(runs.dir, 'rho', [1 1], {ax ...
@@ -108,12 +120,29 @@ function asfluxes(runs)
 
     % integrate flux
     disp('Looping over locations - integrating energy / mass fluxes');
+    % preallocate for speed
+    sz2 = size(rho);
+    sz2 = [sz2 1];
+    sz2(1) = sz2(1) - 2; % 2:end-1 for y
+    irfluxyt = nan([sz2(1) sz2(3) sz2(4)]);
+    ikefluxyt = irfluxyt;
+    ipefluxyt = irfluxyt;
+    ikefluxyt_edd = irfluxyt;
+    ipefluxyt_edd = irfluxyt;
+
+    irflux = nan([sz2(3) sz2(4)]);
+    ikeflux = irflux;
+    ipeflux = irflux;
+    ikeflux_edd = irflux;
+    ipeflux_edd = irflux;
+
     tic;
     for ii=1:length(locs)
         % grid vectors for integration.
         zvec = runs.rgrid.z_r(:,2:end-1,locs(ii))';
         yvec = runs.rgrid.y_rho(2:end-1,locs(ii));
 
+        % integrate vertically
         for jj=1:size(yvec,1)
             irfluxyt(jj,:,ii) = squeeze(trapz(zvec(jj,:), ...
                                               rflux(jj,:,:,ii), 2));
@@ -136,6 +165,7 @@ function asfluxes(runs)
 
         irflux(:,ii) = squeeze(trapz(yvec, irfluxyt(:,:,ii), 1));
 
+        % integrate in y
         if do_energy
             % integrated flux (t, location)
             ikeflux(:,ii) = squeeze(trapz(yvec, ikefluxyt(:,:,ii), ...
