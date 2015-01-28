@@ -82,7 +82,7 @@ function asfluxes(runs)
     rho = rho + rho0;
 
     % calculate mass flux ρu
-    rflux = rho .* u .* eddmask;
+    rflux = rho(2:end-1,:,:,:) .* u(2:end-1,:,:,:) .* eddmask(2:end-1,:,:,:);
 
     % calculate energy flux
     if do_energy
@@ -99,11 +99,11 @@ function asfluxes(runs)
         % p = (y,z,t)
         pres = 9.81 * bsxfun(@times, rho, dzmat);
         % flip because I'm integrating from surface to (z)
-        pres = flipdim(pres, 2);
+        pres = flip(pres, 2);
         % integrate
         pres = cumsum(pres, 2);
         % flip back
-        pres = flipdim(pres, 2);
+        pres = flip(pres, 2);
 
         % energy flux (y, z, t, location)
         peflux = u(2:end-1,:,:,:) .* (pe(2:end-1,:,:,:));
