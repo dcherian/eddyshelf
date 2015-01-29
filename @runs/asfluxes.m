@@ -48,39 +48,46 @@ function asfluxes(runs)
     % preallocate for speed
     tind = [1 length(runs.time)];
 
-    u = nan([sz(2) runs.rgrid.N tind(2)-tind(1)+1 length(locs)]);
+    u = nan([sy2-sy1+1 runs.rgrid.N tind(2)-tind(1)+1 length(locs)]);
     rho = u;
     eddmask = u;
     if do_energy
-        v = nan([sz(2)-1 runs.rgrid.N tind(2)-tind(1)+1 length(locs)]);
+        v = nan([sy2-sy1+1 runs.rgrid.N tind(2)-tind(1)+1 length(locs)]);
     end
 
     % loop over locations - read data
     for ii=1:length(locs)
-        volume = {ax locs(ii) locs(ii)+1; ...
+        % works for rho points
+        volumer = {ax locs(ii) locs(ii); ...
+                   ax2 sy1 sy2};
+        % for u points
+        volumeu = {ax locs(ii)-1 locs(ii); ...
                   ax2 sy1 sy2};
+        % for v points
+        volumev = {ax locs(ii) locs(ii); ...
+                  ax2 sy1-1 sy2};
 
         u(:,:,:,ii) = squeeze(avg1(dc_roms_read_data(runs.dir, ...
                                                      'u', tind, ...
-                                                     volume, ...
+                                                     volumeu, ...
                                                      [], runs.rgrid, ...
                                                      'his', 'single'),1));
         rho(:,:,:,ii) = dc_roms_read_data(runs.dir, 'rho', tind, ...
-                                          volume, [], runs.rgrid, ...
+                                          volumer, [], runs.rgrid, ...
                                           'his', 'single');
 
         % mask based on dye
         eddmask(:,:,:,ii) = (dc_roms_read_data(runs.dir, runs.eddname, ...
-                                               tind, volume, [], runs.rgrid, ...
+                                               tind, volumer, [], runs.rgrid, ...
                                           'his', 'single') > runs.eddy_thresh);
 
         %eddmask(:,:,:,ii) = bsxfun(@and, eddmask(:,:,:,ii), ...
         %                           nedge);
 
         if do_energy
-            v(:,:,:,ii) = dc_roms_read_data(runs.dir, 'v', tind, ...
-                                            volume, [], runs.rgrid, ...
-                                            'his', 'single');
+            v(:,:,:,ii) = avg1(dc_roms_read_data(runs.dir, 'v', tind, ...
+                                            volumev, [], runs.rgrid, ...
+                                            'his', 'single'), 1);
             %rback(:,:,1,ii) = dc_roms_read_data(runs.dir, 'rho', [1 1], {ax ...
             %                    locs(ii) locs(ii)}, [], runs.rgrid, ...
             %                                    'his', 'single');
@@ -92,19 +99,18 @@ function asfluxes(runs)
     rho = rho + rho0;
 
     % calculate mass flux ρu
-    rflux = rho(2:end-1,:,:,:) .* u(2:end-1,:,:,:) .* eddmask(2:end-1,:,:,:);
+    rflux = rho .* u .* eddmask;
 
     % calculate energy flux
     if do_energy
         % at interior RHO points
-        ke = 1/2 * (u(2:end-1,:,:,:).^2 + avg1(v,1).^2) .* ...
-             (rho(2:end-1,:,:,:));
+        ke = 1/2 * (u.^2 + v.^2) .* rho;
         pe = - runs.params.phys.g * bsxfun(@times, rho, ...
-                                           runs.rgrid.z_r(:,:,1)');
+                                           runs.rgrid.z_r(:,sy1:sy2,1)');
 
         % calculate pu term
         % dz = (y,z) > 0
-        dzmat = permute(diff(runs.rgrid.z_w(:,:,1), 1, 1), [2 1]);
+        dzmat = permute(diff(runs.rgrid.z_w(:,sy1:sy2,1), 1, 1), [2 1]);
         % p = ∫_ζ^z ρg dz (no negative sign)
         % p = (y,z,t)
         pres = 9.81 * bsxfun(@times, rho, dzmat);
@@ -116,16 +122,15 @@ function asfluxes(runs)
         pres = flip(pres, 2);
 
         % energy flux (y, z, t, location)
-        peflux = u(2:end-1,:,:,:) .* (pe(2:end-1,:,:,:));
-        keflux = u(2:end-1,:,:,:) .* ke + ...
-                 u(2:end-1,:,:,:) .* pres(2:end-1,:,:,:);
+        peflux = u .* pe;
+        keflux = u .* ke + u .* pres;
 
         %peflux = bsxfun(@times, u(2:end-1,:,:,:) .* (pe(2:end-1,:,:,:)), ...
         %                nedge(2:end-1,:,:));
         %keflux = bsxfun(@times, u(2:end-1,:,:,:) .* (ke), nedge(2:end-1,:,:));
 
-        peflux_edd = peflux .* eddmask(2:end-1,:,:,:);
-        keflux_edd = keflux .* eddmask(2:end-1,:,:,:);
+        peflux_edd = peflux .* eddmask;
+        keflux_edd = keflux .* eddmask;
     end
 
     % integrate flux
@@ -133,7 +138,7 @@ function asfluxes(runs)
     % preallocate for speed
     sz2 = size(rho);
     sz2 = [sz2 1];
-    sz2(1) = sz2(1) - 2; % 2:end-1 for y
+    sz2(1) = sz2(1);
     irfluxyt = nan([sz2(1) sz2(3) sz2(4)]);
     ikefluxyt = irfluxyt;
     ipefluxyt = irfluxyt;
@@ -150,8 +155,8 @@ function asfluxes(runs)
     % loop over locations
     for ii=1:length(locs)
         % grid vectors for integration.
-        zvec = runs.rgrid.z_r(:,2:end-1,locs(ii))';
-        yvec = runs.rgrid.y_rho(2:end-1,locs(ii));
+        zvec = runs.rgrid.z_r(:,sy1:sy2,locs(ii))';
+        yvec = runs.rgrid.y_rho(sy1:sy2,locs(ii));
 
         % integrate vertically
         for jj=1:size(yvec,1)
