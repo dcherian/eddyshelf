@@ -680,6 +680,35 @@ classdef runArray < handle
             beautify;
         end
 
+        function [] = plot_enflux(runArray)
+
+            corder_backup = runArray.sorted_colors;
+
+            figure;
+            hold all
+
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
+                run = runArray.array(ii);
+
+                ndtime = run.asflux.time / run.eddy.turnover;
+
+                filter = 'topo.';
+                eval(['teflux = run.asflux.' filter 'ikeflux(:,3) + ' ...
+                      'run.asflux.' filter 'ipeflux(:,3)' ...
+                      '- run.asflux.' filter 'ikeflux(:,2) - ' ...
+                      'run.asflux.' filter 'ipeflux(:,2);']);
+                hgplt = plot(ndtime, teflux);
+                addlegend(hgplt, run.name);
+            end
+            liney(0);
+            runArray.reset_colors(corder_backup);
+        end
+
         function [] = plot_test2(runArray)
 
             corder_backup = runArray.sorted_colors;
