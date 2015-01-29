@@ -28,6 +28,8 @@ function asfluxes(runs)
     %locs = loc1;
     ax = 'x';
 
+    runs.asflux = [];
+
     assert(runs.bathy.axis == 'y');
 
     % mask based on eddy contour's northern edge
