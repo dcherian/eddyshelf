@@ -24,6 +24,10 @@ function [] = csfluxes(runs, ftype)
     %Lcs = runs.bathy.xsb;
     h = runs.bathy.h(2:end-1,2:end-1);
 
+    % find sponge edges
+    sz = size(runs.sponge);
+    sy2 = find(runs.sponge(sz(1)/2, :) == 1, 1, 'first') - 1;
+
     % sort out isobaths across which to calculate transports
     loc = runs.bathy.xsb; %linspace(runs.bathy.xsb, runs.bathy.xsl, 4);
     if runs.params.bathy.axis == 'x'
@@ -39,8 +43,10 @@ function [] = csfluxes(runs, ftype)
         %runs.rgrid.y_rho(vecfind(runs.bathy.h(1,:),[250 1000]),1)']);
     end
 
+    indices = [indices sy2];
+
     % save locations
-    runs.csflux.x = loc;
+    runs.csflux.x = [loc runs.eddy.yr(1, sy2)];
     % save indices for locations - w.r.t INTERIOR RHO POINTS
     runs.csflux.ix = indices;
     % save isobath values
@@ -159,9 +165,9 @@ function [] = csfluxes(runs, ftype)
     dt = [time(2)-time(1) diff(time)];
 
     % loop over all isobaths
-    for kk=1:length(loc)
+    for kk=1:length(indices)
         disp(['Doing isobath ' num2str(kk) '/', ...
-              num2str(length(loc))]);
+              num2str(length(indices)]);
 
         % read along-shore section of cross-shore vel.
         % dimensions = (x/y , z , t )

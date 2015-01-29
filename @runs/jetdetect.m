@@ -197,7 +197,7 @@ function [] = jetdetect(runs)
     end
 
     jet = runs.jet;
-    jet.hash  = githash;
+    jet.hash  = githash([mfilename('fullpath') '.m']);
     save([runs.dir '/jet.mat'], 'jet');
 
     if debug

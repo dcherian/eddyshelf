@@ -230,7 +230,7 @@ function asfluxes(runs)
                         'fluxyt (y, t, locations) - depth-integrated fluxes' ...
                         ' | .eddy. = eddye mask applied | .deep. = integrated' ...
                         ' over deep only | .topo. = integrated over shelf-slope'];
-    runs.asflux.hash = githash;
+    runs.asflux.hash = githash([mfilename('fullpath') '.m']);
     runs.asflux.time = runs.time;
     runs.asflux.locations = locations;
     runs.asflux.ix = locs;
