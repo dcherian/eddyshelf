@@ -49,6 +49,7 @@ function asfluxes(runs)
         v = nan([sz(2)-1 runs.rgrid.N tind(2)-tind(1)+1 length(locs)]);
     end
 
+    % loop over locations - read data
     for ii=1:length(locs)
         u(:,:,:,ii) = squeeze(avg1(dc_roms_read_data(runs.dir, ...
                                                      'u', tind, ...
@@ -137,6 +138,7 @@ function asfluxes(runs)
     ipeflux_edd = irflux;
 
     tic;
+    % loop over locations
     for ii=1:length(locs)
         % grid vectors for integration.
         zvec = runs.rgrid.z_r(:,2:end-1,locs(ii))';
@@ -163,9 +165,9 @@ function asfluxes(runs)
             end
         end
 
+        % integrate in y
         irflux(:,ii) = squeeze(trapz(yvec, irfluxyt(:,:,ii), 1));
 
-        % integrate in y
         if do_energy
             % integrated flux (t, location)
             ikeflux(:,ii) = squeeze(trapz(yvec, ikefluxyt(:,:,ii), ...
@@ -183,10 +185,6 @@ function asfluxes(runs)
             % ikeflux = deep.ikeflux + topo.ikeflux
             ideep = [isl:length(yvec)];
             itopo = [1:isl];
-
-            % reset just in case
-            runs.asflux.deep = [];
-            runs.asflux.topo = [];
 
             % deep water
             runs.asflux.deep.ikeflux(:,ii) = squeeze(trapz(yvec(ideep), ...
