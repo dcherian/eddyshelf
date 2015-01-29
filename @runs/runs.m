@@ -2817,9 +2817,10 @@ methods
 
         csfluxplot = 0; % 0 = no flux plot
                       % 1 = instantaneous x-profile;
-        asfluxplot = 1; % 0 = no flux plot
+        asfluxplot = 2; % 0 = no flux plot
                         % 1 = instantaneous y-profile;
-        if asfluxplot == 1 % which location for asflux plot?
+                        % 2 = time series plot : left, right and total
+        if (asfluxplot == 1) || (asfluxplot == 2) % which location for asflux plot?
             asindex = [2 3];
         end
         enfluxplot = 0; % plot AS energy flux ?
@@ -2831,10 +2832,11 @@ methods
         vecplot = 0; % plot some time vector (assign tvec and vec);
         if vecplot
             %%% integrated energy asflux
-            %tvec = runs.eddy.t;
-            %vec = runs.asflux.ikeflux + runs.asflux.ipeflux;
-            %laby = 'Integrated energy flux';
-            %locx = []; locy = [];
+            tvec = runs.eddy.t;
+            vec = (runs.asflux.ikeflux(:,3) + runs.asflux.ipeflux(:,3) ...
+                  - runs.asflux.ikeflux(:,2) - runs.asflux.ipeflux(:,2));
+            laby = 'Integrated energy flux';
+            locx = runs.asflux.x(2:3)/1000; locy = [];
 
             %%% asflux time series
             %tvec = runs.asflux.time/runs.tscale;
@@ -2848,10 +2850,10 @@ methods
             %locy = runs.bathy.xsb/1000; locx = [];
 
             %%% area plot
-            vec = runs.eddy.vor.lmin .* runs.eddy.vor.lmaj;
-            tvec = runs.eddy.t;
-            laby = 'Surface area (m^2)';
-            locx = []; locy = [];
+            %vec = runs.eddy.vor.lmin .* runs.eddy.vor.lmaj;
+            %tvec = runs.eddy.t;
+            %laby = 'Surface area (m^2)';
+            %locx = []; locy = [];
         end
 
         if ~exist('ntimes', 'var'), ntimes = length(runs.time); end
@@ -2884,7 +2886,11 @@ methods
             if (~isempty(runs.asflux) && asfluxplot == 1)
                 subplots_flag = 'y';
             else
-                subplots_flag = [];
+                if (~isempty(runs.asflux) && asfluxplot == 2)
+                    subplots_flag = 'x';
+                else
+                    subplots_flag = [];
+                end
             end
         end
 
@@ -2933,19 +2939,54 @@ methods
         else
             %axis equal;
         end
-
+        if vecplot
+            linex(locx); liney(locy);
+        end
         maximize(gcf); pause(0.2);
         beautify([16 16 18]);
         ax = gca;
 
+        % second plot
         if subplots_flag == 'x'
             ax2 = subplot(3,1,3);
             if vecplot
                 hvec = plot(tvec, vec);
                 htime = linex(tvec(ii));
-                linex(locx); liney(locy);
+                %ylim([-1 1] .* max(vec)/3);
+                % if vector goes through zero, mark zero
+                if min(vec(:)) .* max(vec(:)) < 0
+                    liney(0);
+                end
+
                 ylabel(laby);
                 xlabel('Time (days)');
+            end
+
+            if asfluxplot == 2
+                filter = '';
+
+                eval(['left = runs.asflux.' filter 'ikeflux(:,asindex(1)) + '...
+                       'runs.asflux.' filter 'ipeflux(:,asindex(1))']);
+                eval(['right = runs.asflux.' filter 'ikeflux(:,asindex(2)) + ' ...
+                        'runs.asflux.' filter 'ipeflux(:,asindex(2))']);
+
+                total = right - left;
+
+                tvec = runs.asflux.time/86400;
+
+                hold all
+                plot(tvec, left);
+                plot(tvec, right);
+                plot(tvec, total, 'k');
+                hleg = legend('west', 'east', 'total (into domain > 0)', ...
+                              'Location' ,'NorthWest');
+                set(hleg, 'box', 'off');
+                liney(0);
+                htime = linex(tvec(ii));
+                beautify;
+
+                axes(ax);
+                linex(runs.asflux.x(asindex)/1000);
             end
 
             if csfluxplot == 1
@@ -2970,8 +3011,8 @@ methods
             % AS fluxes
             if asfluxplot == 1
                 cla
-                matrix1 = runs.asflux.ikefluxyt(:,:,asindex(1)) + ...
-                         runs.asflux.ipefluxyt(:,:,asindex(1));
+                matrix1 = runs.asflux.ipefluxyt(:,:,asindex(1)) + ...
+                          runs.asflux.ikefluxyt(:,:,asindex(1));
                 hflux1 = plot(matrix1(:,ii), ...
                               runs.rgrid.yr(1,2:end-1)/1000);
                 hleg = addlegend(hflux1, ...
@@ -2979,9 +3020,8 @@ methods
                                   num2str(runs.asflux.x(asindex(1))/1000) ...
                                   ' km']);
                 if length(asindex) > 1
-                    matrix2 = runs.asflux.ikefluxyt(:,:,asindex(2)) ...
-                              + runs.asflux.ipefluxyt(:,:, ...
-                                                      asindex(2));
+                    matrix2 = runs.asflux.ipefluxyt(:,:,asindex(2)) ...
+                              + runs.asflux.ikefluxyt(:,:, asindex(2));
                     hold all
                     hflux2 = plot(matrix2(:,ii), ...
                                   runs.rgrid.yr(1,2:end-1)/1000);
@@ -3048,7 +3088,7 @@ methods
                 end
 
                 % AS eddy water flux plots
-                if ~isempty(runs.asflux) && asfluxplot > 0
+                if ~isempty(runs.asflux) && asfluxplot == 1
                     axis(ax2);
                     if exist('htime', 'var')
                         set(htime, 'XData', [1 1]*runs.asflux.time(ii)/ ...
@@ -3062,7 +3102,7 @@ methods
                 end
 
                 % mark time for time-series plots
-                if vecplot
+                if vecplot || (asfluxplot == 2)
                     set(htime, 'XData', [1 1]*tvec(ii));
                 end
                 runs.video_update();
