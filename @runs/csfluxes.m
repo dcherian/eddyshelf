@@ -108,43 +108,61 @@ function [] = csfluxes(runs, ftype)
         tinf = length(time);
     end
 
-    % initialize
-    runs.csflux.west.shelf = nan([tinf length(loc)]);
-    runs.csflux.west.slope = nan([tinf length(loc)]);
-    runs.csflux.west.eddy = nan([tinf length(loc)]);
+    % size for initialization
+    szfull = size(runs.bathy.h)
+    szflux = [tinf length(loc)];
+    szfluxxt = [szfull(1)-2 tinf length(loc)];
 
-    runs.csflux.west.itrans.shelf = nan([tinf length(loc)]);
-    runs.csflux.west.itrans.slope = nan([tinf length(loc)]);
-    runs.csflux.west.itrans.eddy = nan([tinf length(loc)]);
+    % initialize - mass flux variables
+    runs.csflux.west.shelf = nan(szflux);
+    runs.csflux.west.slope = nan(szflux);
+    runs.csflux.west.eddy = nan(szflux);
 
-    runs.csflux.east.shelf = nan([tinf length(loc)]);
-    runs.csflux.east.slope = nan([tinf length(loc)]);
-    runs.csflux.east.eddy = nan([tinf length(loc)]);
+    runs.csflux.west.itrans.shelf = nan(szflux);
+    runs.csflux.west.itrans.slope = nan(szflux);
+    runs.csflux.west.itrans.eddy = nan(szflux);
 
-    runs.csflux.east.itrans.shelf = nan([tinf length(loc)]);
-    runs.csflux.east.itrans.slope = nan([tinf length(loc)]);
-    runs.csflux.east.itrans.eddy = nan([tinf length(loc)]);
+    runs.csflux.east.shelf = nan(szflux);
+    runs.csflux.east.slope = nan(szflux);
+    runs.csflux.east.eddy = nan(szflux);
+
+    runs.csflux.east.itrans.shelf = nan(szflux);
+    runs.csflux.east.itrans.slope = nan(szflux);
+    runs.csflux.east.itrans.eddy = nan(szflux);
 
     rr = runs.rrshelf;
     maxrr = ceil(runs.bathy.xsb/rr);
     runs.csflux.west.shelfwater.bins = (1:maxrr) * rr;
-    runs.csflux.west.shelfwater.trans = nan([tinf length(loc) ...
-                        maxrr]);
+    runs.csflux.west.shelfwater.trans = nan([szflux maxrr]);
     binmat = repmat(runs.csflux.west.shelfwater.bins, [tinf 1]);
 
-    runs.csflux.west.shelfwater.vertitrans = nan([runs.rgrid.N length(loc)]);
+    runs.csflux.west.shelfwater.vertitrans = nan([runs.rgrid.N sz(2)]);
 
-    dopv = 0;
-
-    if exist(vorname, 'file')
+    % initialize - pv fluxes
+    if exist(vorname, 'file') && dopv == 1
         pvtime = ncread(vorname, 'ocean_time');
         if isequal(pvtime', time) || isequal(pvtime, time)
             dopv = 1;
-            runs.csflux.west.pv = nan([tinf length(loc)]);
-            runs.csflux.west.rv = nan([tinf length(loc)]);
-            runs.csflux.east.pv = nan([tinf length(loc)]);
-            runs.csflux.east.rv = nan([tinf length(loc)]);
+            runs.csflux.west.pv = nan(szflux);
+            runs.csflux.west.rv = nan(szflux);
+            runs.csflux.east.pv = nan(szflux);
+            runs.csflux.east.rv = nan(szflux);
         end
+    end
+
+    % initialize - energy fluxes
+    if do_energy
+        % total
+        runs.csflux.ikeflux = nan(szflux);
+        runs.csflux.ipeflux = nan(szflux);
+        runs.csflux.ikefluxxt = nan(szfluxxt);
+        runs.csflux.ipefluxxt = nan(szfluxxt);
+
+        % masked by eddye
+        runs.csflux.eddy.ikeflux = nan(szflux);
+        runs.csflux.eddy.ipeflux = nan(szflux);
+        runs.csflux.eddy.ikefluxxt = nan(szfluxxt);
+        runs.csflux.eddy.ipefluxxt = nan(szfluxxt);
     end
 
     % sponge mask
