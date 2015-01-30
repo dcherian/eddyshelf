@@ -52,6 +52,16 @@ function [] = eddy_bulkproperties(runs)
         error('Not implemented for N-S isobaths');
     end
 
+    % figure out eddy structure in 3D
+    % read surface density field
+    rhosurf = dc_roms_read_data(runs.dir, 'rho', [], {'z' runs.rgrid.N runs.rgrid.N}, ...
+                                [], runs.rgrid, ftype, 'single');
+    rhosurf = rhosurf(2:end-1, 2:end-1, :);
+    % find what density corresponds to 0 vorticity contour
+    rhothresh = squeeze(max(max(rhosurf.*runs.eddy.vormask, [], 1), ...
+                            [], 2));
+    rhothresh = rhothresh(1);
+
     ticstart = tic;
     for mm=1:ceil(nt/slab)
         tt = (mm-1)*slab + 1;
@@ -67,11 +77,11 @@ function [] = eddy_bulkproperties(runs)
             szpv = szpvsp;
         end
         disp([tt tend]);
-        eddye = dc_roms_read_data(dirname, eddname, ...
-                                  [tt tend],{'x' 2 sz4dfull(1)+1; 'y' 2 sz4dfull(2)+1}, ...
-                                  [],rgrid, ftype, 'single'); %#ok<*PROP>
+        %eddye = dc_roms_read_data(dirname, eddname, ...
+        %                          [tt tend],{'x' 2 sz4dfull(1)+1; 'y' 2 sz4dfull(2)+1}, ...
+        %                          [],rgrid, ftype, 'single'); %#ok<*PROP>
 
-        masked  = sparse(reshape(eddye > thresh, sz));
+        %masked  = sparse(reshape(eddye > thresh, sz));
         maskvor = sparse(reshape( repmat( ...
             permute(logical(repnan(vormask(:,:,tt:tend), 0)), [1 2 4 3]), ...
             [1 1 N 1]), sz));
@@ -110,15 +120,17 @@ function [] = eddy_bulkproperties(runs)
                                      [tt tend],{'x' 2 sz4dfull(1)+1; 'y' 2 sz4dfull(2)+1}, ...
                                      [], rgrid, ftype, 'single');
 
-            pe = double(bsxfun(@times, bsxfun(@minus, rho, rback), zr)  ...
-                        .* runs.params.phys.g);
+            pe = double(bsxfun(@times, rho, zr) .* runs.params.phys.g);
         end
+
+        masked = sparse(reshape(rho > rhothresh, sz));
 
         intpe{mm} = full(nansum( bsxfun(@times, ...
                                         masked.*maskvor.*reshape(pe, sz), dVsp)));
 
         intke{mm} = full(nansum( bsxfun(@times, ...
-                                        masked.*maskvor.*reshape(0.5 * double(u.^2 + v.^2), sz), dVsp)));
+                                        masked.*maskvor.*reshape(0.5 ...
+                                        * double((rho+1000) .* u.^2 + v.^2), sz), dVsp)));
 
         % integrated PV, RV
         if dopv
