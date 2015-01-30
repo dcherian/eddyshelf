@@ -10,6 +10,12 @@ function [] = csfluxes(runs, ftype)
     % Use history or avg files?
     if ~exist('ftype', 'var') || isempty(ftype), ftype = 'his'; end
 
+    % calculate energy fluxes?
+    do_energy = 1;
+
+    % do PV fluxes?
+    dopv = 0;
+
     vorname = [runs.dir '/ocean_vor.nc'];
     % need some kind of initial time instant - decided by streamer mask
     % now
@@ -43,10 +49,12 @@ function [] = csfluxes(runs, ftype)
         %runs.rgrid.y_rho(vecfind(runs.bathy.h(1,:),[250 1000]),1)']);
     end
 
+    % append sponge edge to existing values
     indices = [indices sy2];
+    loc = [loc runs.eddy.yr(1, sy2)];
 
     % save locations
-    runs.csflux.x = [loc runs.eddy.yr(1, sy2)];
+    runs.csflux.x = loc;
     % save indices for locations - w.r.t INTERIOR RHO POINTS
     runs.csflux.ix = indices;
     % save isobath values
