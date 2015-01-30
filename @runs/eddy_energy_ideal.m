@@ -44,25 +44,25 @@ function [intTE] = eddy_energy_ideal(runs)
     KE = u^2 + v^2;
     intKE(Ta,lx,ly,lz) = domain_integrate(KE, H);
 
-    err = Inf;
-    H0 = 100;
-    while err > 1e-3
-        H0 = H0 + 1;
-        Hh = H(H0, y);
+    %err = Inf;
+    %H0 = 100;
+    %while err > 1e-3
+    %    H0 = H0 + 1;
+    %    Hh = H(H0, y);
 
-        u0(x,y) = u(Tamp(1), Lx(1), Ly(1), Lz(1), x, y, H0);
-        rho1(x,y) = rho(Tamp(1), Lx(1), Ly(1), Lz(1), x, y, z, H0);
-        % beta torque
-        Fbeta(y) = beta .* domain_integrate(y*u0, Hh);
+    %u0(x,y) = u(Tamp(1), Lx(1), Ly(1), Lz(1), x, y, H0);
+    %    rho1(x,y) = rho(Tamp(1), Lx(1), Ly(1), Lz(1), x, y, z, H0);
+    %    % beta torque
+    %    Fbeta(y) = beta .* domain_integrate(y*u0, Hh);
 
-        % bottom pressure torque
-        Fbot(y) = domain_integrate(int(rho1*g./rho0, z, -Hh, 0), Hh);
+    %% bottom pressure torque
+    %   Fbot(y) = domain_integrate(int(rho1*g./rho0, z, -Hh, 0), Hh);
 
-        Fbeta0 = vpa(Fbeta(Tamp(1), Lx(1), Ly(1), Lz(1), H0))
-        Fbot0 = vpa(Fbot(Tamp(1), Lx(1), Ly(1), Lz(1), H0))
+    % Fbeta0 = vpa(Fbeta(Tamp(1), Lx(1), Ly(1), Lz(1), H0))
+    %    Fbot0 = vpa(Fbot(Tamp(1), Lx(1), Ly(1), Lz(1), H0))
 
-        err = Fbeta0 - Fbot0
-    end
+    %   err = Fbeta0 - Fbot0
+    %end
 
     tic;
     intTE = double(intKE(Tamp, Lx, Ly, Lz, H0)) + double(intPE(Tamp, ...
