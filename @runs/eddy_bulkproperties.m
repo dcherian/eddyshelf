@@ -86,10 +86,6 @@ function [] = eddy_bulkproperties(runs)
             permute(logical(repnan(vormask(:,:,tt:tend), 0)), [1 2 4 3]), ...
             [1 1 N 1]), sz));
 
-        %vol{tt} = runs.domain_integratesp(masked.*maskvor, dVsp);
-        % calculate total volume
-        volcell{mm} = full(nansum( bsxfun(@times, masked.*maskvor, dVsp)));
-
         % integrated energies
         % yes, using sz4dfull(1)+1 IS correct. sz4dfull has interior
         % RHO point counts
@@ -131,6 +127,10 @@ function [] = eddy_bulkproperties(runs)
         intke{mm} = full(nansum( bsxfun(@times, ...
                                         masked.*maskvor.*reshape(0.5 ...
                                         * double((rho+1000) .* u.^2 + v.^2), sz), dVsp)));
+
+        %vol{tt} = runs.domain_integratesp(masked.*maskvor, dVsp);
+        % calculate total volume
+        volcell{mm} = full(nansum( bsxfun(@times, masked.*maskvor, dVsp)));
 
         % integrated PV, RV
         if dopv
