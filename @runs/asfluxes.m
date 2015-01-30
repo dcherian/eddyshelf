@@ -194,7 +194,8 @@ function asfluxes(runs)
             ipeflux_edd(:,ii) = squeeze(trapz(yvec, ipefluxyt_edd(:,:,ii), ...
                                           1));
 
-            isl = runs.bathy.isl;
+            % correct for sy1 = isb by default
+            isl = runs.bathy.isl - sy1 + 1;
             % these ranges are correct! even if you don't think so.
             % ikeflux = deep.ikeflux + topo.ikeflux
             ideep = [isl:length(yvec)];
