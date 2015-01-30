@@ -46,7 +46,7 @@ function asfluxes(runs)
     % read data
     % (y,z,t, location)
     % preallocate for speed
-    tind = [1 length(runs.time)];
+    tind = [1 length(runs.eddy.t)];
 
     u = nan([sy2-sy1+1 runs.rgrid.N tind(2)-tind(1)+1 length(locs)]);
     rho = u;
