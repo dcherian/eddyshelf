@@ -224,6 +224,48 @@ function [] = csfluxes(runs, ftype)
             (csdye <= runs.bathy.xsl);
         eddymask = eddye > runs.eddy_thresh;
 
+        if do_energy
+            % read velocity and calculate pressure etc.
+            asvel = avg1(dc_roms_read_data(runs.dir, asvelid, [t0 tinf], ...
+                                      {runs.bathy.axis runs.csflux.ix(kk) ...
+                                runs.csflux.ix(kk)}, ...
+                                      [], runs.rgrid, ftype, ...
+                                      'single'), 1);
+
+            % read velocity and calculate pressure etc.
+            rho = dc_roms_read_data(runs.dir, 'rho', [t0 tinf], ...
+                                      {runs.bathy.axis runs.csflux.ix(kk) ...
+                                runs.csflux.ix(kk)}, ...
+                                      [], runs.rgrid, ftype, ...
+                                      'single');
+            rho = rho(2:end-1,:,:);
+
+            ke = 1/2 * rho .* (csvel.^2 + asvel.^2);
+
+            pe = - runs.params.phys.g * bsxfun(@times, rho, ...
+                                               squeeze(runs.rgrid ...
+                                                       .z_r(:,runs.csflux.ix(kk),2:end-1))');
+
+            % calculate pu term
+            % dz = (y,z) > 0
+            dzmat = permute(diff(squeeze(...
+                runs.rgrid.z_w(:, runs.csflux.ix(kk),2:end-1)), 1, 1), [2 1]);
+
+            % p = ∫_ζ^z ρg dz (no negative sign)
+            % p = (y,z,t)
+            pres = 9.81 * bsxfun(@times, rho, dzmat);
+            % flip because I'm integrating from surface to (z)
+            pres = flip(pres, 2);
+            % integrate
+            pres = cumsum(pres, 2);
+            % flip back
+            pres = flip(pres, 2);
+
+            % energy flux (y, z, t, location) - mask by sponge
+            peflux = bsxfun(@times, csvel .* pe, spongemask);
+            keflux = bsxfun(@times, csvel .* ke + csvel .* pres, spongemask);
+        end
+
         % check velocity plots
         debug = 0;
         if debug
@@ -260,6 +302,20 @@ function [] = csfluxes(runs, ftype)
                                                     slopemask .* csvel,2));
         runs.csflux.eddyxt(:,:,kk) = squeeze(trapz(zvec, ...
                                                    eddymask .* csvel,2));
+
+        if do_energy
+            runs.csflux.ikefluxxt(:,:,kk) = squeeze(trapz(zvec, ...
+                                                        keflux,2));
+            runs.csflux.ipefluxxt(:,:,kk) = squeeze(trapz(zvec, ...
+                                                          peflux,2));
+
+            runs.csflux.eddy.ikefluxxt(:,:,kk) = squeeze(trapz(zvec, ...
+                                                          eddymask ...
+                                                          .* keflux,2));
+            runs.csflux.eddy.ipefluxxt(:,:,kk) = squeeze(trapz(zvec, ...
+                                                        eddymask .* ...
+                                                          peflux,2));
+        end
 
         %            for ntt = 60:size(runs.csflux.shelfxt,2)
         %    vec = runs.csflux.shelfxt(:,ntt,kk);
@@ -409,6 +465,20 @@ function [] = csfluxes(runs, ftype)
         end
     end
     toc(ticstart);
+
+    % process energy for all locations
+    if do_energy
+        xvec = runs.rgrid.x_rho(1,2:end-1);
+        runs.csflux.ikeflux = squeeze(trapz(xvec, ...
+                                            runs.csflux.ikefluxxt, 1));
+        runs.csflux.ipeflux = squeeze(trapz(xvec, ...
+                                            runs.csflux.ipefluxxt, 1));
+
+        runs.csflux.eddy.ikeflux = squeeze(trapz(xvec, ...
+                                                 runs.csflux.eddy.ikefluxxt, 1));
+        runs.csflux.eddy.ipeflux = squeeze(trapz(xvec, ...
+                                                 runs.csflux.eddy.ipefluxxt, 1));
+    end
 
     % save fluxes
     runs.csflux.time = time;
