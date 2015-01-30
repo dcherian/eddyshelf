@@ -93,7 +93,7 @@ function [intTE] = eddy_energy_ideal(runs)
     runs.eddy.energy.intTE = intTE;
     runs.eddy.energy.intKE = intKE;
     runs.eddy.energy.intPE = intPE;
-    runs.eddy.energy.hash = githash;
+    runs.eddy.energy.hash = githash([mfilename('fullpath') '.m']);;
 
     energy = runs.eddy.energy;
     save([runs.dir '/energy.mat'], 'energy');
