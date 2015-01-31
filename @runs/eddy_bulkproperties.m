@@ -1,7 +1,7 @@
 % eddy bulk properties - integrated PV, RV, volume, energy
 function [] = eddy_bulkproperties(runs)
 %%
-    slab = 30; % read 10 at a time
+    slab = 40; % read 'n' at a time
     ftype = 'his';
     rho_flag = 1; % read density, not temperature
 
@@ -62,9 +62,12 @@ function [] = eddy_bulkproperties(runs)
     rhosurf = rhosurf(2:end-1,2:end-1,:);
     drhosurf = bsxfun(@minus, rhosurf, rback(:,:,end));
     % find what density corresponds to 0 vorticity contour
-    drhothresh = squeeze(nanmax(nanmax(drhosurf.*fillnan(runs.eddy.vormask,0), [], 1), ...
-                            [], 2));
-    drhothresh = drhothresh(1);
+    runs.eddy.drhothresh = squeeze(nanmax(nanmax(drhosurf.* ...
+                                                 fillnan(runs.eddy ...
+                                                      .vormask,0), ...
+                                                 [], 1), [], 2));
+    % initial time instant works well - see plot_eddye
+    drhothresh = runs.eddy.drhothresh(1);
 
     ticstart = tic;
     for mm=1:ceil(nt/slab)
