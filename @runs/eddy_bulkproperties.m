@@ -55,17 +55,20 @@ function [] = eddy_bulkproperties(runs)
         error('Not implemented for N-S isobaths');
     end
 
-    % figure out eddy structure in 3D
-    % read surface density field
-    rhosurf = dc_roms_read_data(runs.dir, 'rho', tind, {'z' runs.rgrid.N runs.rgrid.N}, ...
-                                [], runs.rgrid, ftype, 'single');
-    rhosurf = rhosurf(2:end-1,2:end-1,:);
-    drhosurf = bsxfun(@minus, rhosurf, rback(:,:,end));
-    % find what density corresponds to 0 vorticity contour
-    runs.eddy.drhothresh = squeeze(nanmax(nanmax(drhosurf.* ...
-                                                 fillnan(runs.eddy ...
-                                                      .vormask,0), ...
-                                                 [], 1), [], 2));
+    if ~isfield(runs.eddy, 'drhothresh')
+        % figure out eddy structure in 3D
+        % read surface density field
+        rhosurf = dc_roms_read_data(runs.dir, 'rho', tind, {'z' runs.rgrid.N runs.rgrid.N}, ...
+                                    [], runs.rgrid, ftype, 'single');
+        rhosurf = rhosurf(2:end-1,2:end-1,:);
+        drhosurf = bsxfun(@minus, rhosurf, rback(:,:,end));
+        % find what density corresponds to 0 vorticity contour
+        runs.eddy.drhothresh = squeeze(nanmax(nanmax(drhosurf.* ...
+                                                     fillnan(runs.eddy ...
+                                                          .vormask,0), ...
+                                                     [], 1), [], 2));
+    end
+
     % initial time instant works well - see plot_eddye
     drhothresh = runs.eddy.drhothresh(1);
 
