@@ -3,8 +3,11 @@ function [] = eddy_bulkproperties(runs)
 %%
     slab = 30; % read 10 at a time
     ftype = 'his';
+    rho_flag = 1; % read density, not temperature
 
     nt = length(runs.eddy.t);
+
+    tind = [1 nt];
 
     sz4dfull = [fliplr(size(runs.rgrid.z_r))-[2 2 0] slab];
     sz4dsp = [prod(sz4dfull(1:3)) slab];
@@ -37,12 +40,12 @@ function [] = eddy_bulkproperties(runs)
 
     % background density field
     if runs.bathy.axis == 'y'
-        try
+        if ~rho_flag
             tback = permute( dc_roms_read_data(dirname, 'temp', [1 1], ...
                                                {'x' 1 1; 'y' 2 sz4dfull(2)+1}, ...
                                                [], rgrid, ftype, ...
                                                'single'), [3 1 2]);
-        catch ME
+        else
             rback = permute( dc_roms_read_data(dirname, 'rho', [1 1], ...
                                                {'x' 1 1; 'y' 2 sz4dfull(2)+1}, ...
                                                [], rgrid, ftype, ...
@@ -103,7 +106,7 @@ function [] = eddy_bulkproperties(runs)
                                    [tt tend],{'x' 2 sz4dfull(1)+1}, ...
                                    [],rgrid, ftype, 'single'),2) - runs.params.bg.vbt; %#ok<*PROP>
 
-        try
+        if ~rho_flag
             temp = dc_roms_read_data(dirname, 'temp', ...
                                      [tt tend],{'x' 2 sz4dfull(1)+1; 'y' 2 sz4dfull(2)+1}, ...
                                      [], rgrid, ftype, 'single');
@@ -111,7 +114,7 @@ function [] = eddy_bulkproperties(runs)
             pe = double(- runs.params.phys.TCOEF* bsxfun(@times, ...
                                                          bsxfun(@minus, temp, tback), zr)  ...
                         .* runs.params.phys.g .* runs.params.phys.R0);
-        catch ME
+        else
             rho  = dc_roms_read_data(dirname, 'rho', ...
                                      [tt tend],{'x' 2 sz4dfull(1)+1; 'y' 2 sz4dfull(2)+1}, ...
                                      [], rgrid, ftype, 'single');
