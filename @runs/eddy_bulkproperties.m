@@ -57,13 +57,14 @@ function [] = eddy_bulkproperties(runs)
 
     % figure out eddy structure in 3D
     % read surface density field
-    rhosurf = dc_roms_read_data(runs.dir, 'rho', [], {'z' runs.rgrid.N runs.rgrid.N}, ...
+    rhosurf = dc_roms_read_data(runs.dir, 'rho', tind, {'z' runs.rgrid.N runs.rgrid.N}, ...
                                 [], runs.rgrid, ftype, 'single');
-    rhosurf = rhosurf(2:end-1, 2:end-1, :);
+    rhosurf = rhosurf(2:end-1,2:end-1,:);
+    drhosurf = bsxfun(@minus, rhosurf, rback(:,:,end));
     % find what density corresponds to 0 vorticity contour
-    rhothresh = squeeze(max(max(rhosurf.*runs.eddy.vormask, [], 1), ...
+    drhothresh = squeeze(nanmax(nanmax(drhosurf.*fillnan(runs.eddy.vormask,0), [], 1), ...
                             [], 2));
-    rhothresh = rhothresh(1);
+    drhothresh = drhothresh(1);
 
     ticstart = tic;
     for mm=1:ceil(nt/slab)
@@ -122,7 +123,7 @@ function [] = eddy_bulkproperties(runs)
             pe = double(bsxfun(@times, rho+1000, zr) .* runs.params.phys.g);
         end
 
-        masked = sparse(reshape(rho > rhothresh, sz));
+        masked = sparse(reshape(bsxfun(@minus, rho, rback) > drhothresh, sz));
 
         intpe{mm} = full(nansum( bsxfun(@times, ...
                                         masked.*maskvor.*reshape(pe, sz), dVsp)));
