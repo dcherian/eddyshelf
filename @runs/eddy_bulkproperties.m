@@ -123,7 +123,7 @@ function [] = eddy_bulkproperties(runs)
                                      [tt tend],{'x' 2 sz4dfull(1)+1; 'y' 2 sz4dfull(2)+1}, ...
                                      [], rgrid, ftype, 'single');
 
-            pe = double(bsxfun(@times, rho+1000, zr) .* runs.params.phys.g);
+            pe = -1 * double(bsxfun(@times, rho+1000, zr) .* runs.params.phys.g);
         end
 
         masked = sparse(reshape(bsxfun(@minus, rho, rback) > drhothresh, sz));
