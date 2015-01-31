@@ -56,16 +56,20 @@ function [] = plot_eddye(runs, days)
             shading flat;
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
             colorbar;
-            if ii == 1, clim = caxis; end
+            if ii == 1
+                clim = caxis;
+                ylabel('Z (m)');
+            end
             hold on;
             contour(yz, runs.rgrid.z_r(:,:,1)', ed, 1, 'k', ...
                     'LineWidth', 2);
             contour(yz, runs.rgrid.z_r(:,:,1)', drho, [1 1]*runs.eddy.drhothresh(1), ...
                     'Color', [1 1 1]*0.75, 'LineWidth', 2);
             caxis(clim);
-            title(['day' num2str(days(ii))]);
-            axis square
-            beautify;
+            title(['day ' num2str(days(ii))]);
+            xlabel('Y (km)');
+            %axis square
+            beautify([15 15 18]);
         end
 
         if exist('hf3', 'var')
@@ -142,7 +146,7 @@ function [] = plot_eddye(runs, days)
                            'threshold) | grey line = Gaussian fit vertical scale'], ...
                           't');
         set(ht, 'FontSize', 20);
-        spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
+        %spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
         linkaxes(ax2, 'xy');
         insertAnnotation([runs.name '.plot_eddye']);
     end
