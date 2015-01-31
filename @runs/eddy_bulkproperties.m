@@ -126,7 +126,7 @@ function [] = eddy_bulkproperties(runs)
             pe = -1 * double(bsxfun(@times, rho+1000, zr) .* runs.params.phys.g);
         end
 
-        masked = sparse(reshape(bsxfun(@minus, rho, rback) > drhothresh, sz));
+        masked = sparse(reshape(bsxfun(@minus, rho, rback) < drhothresh, sz));
 
         intpe{mm} = full(nansum( bsxfun(@times, ...
                                         masked.*maskvor.*reshape(pe, sz), dVsp)));
