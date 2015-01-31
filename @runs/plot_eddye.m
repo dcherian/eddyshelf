@@ -4,20 +4,20 @@
 function [] = plot_eddye(runs, days)
 
 % hack for when I'm trying to provide non-dimensional times
-    if all(days) < 10
+    if all(days < 10)
         tindices = vecfind(runs.time./runs.tscale, days);
     else
         tindices = vecfind(runs.time/86400, days)
     end
 
     nt = length(tindices);
-    yz = repmat(runs.rgrid.y_rho(:,1), [1 runs.rgrid.N]);
+    yz = repmat(runs.rgrid.y_rho(:,1), [1 runs.rgrid.N]) / 1000;
 
-    hf1 = figure; maximize();
-    hf2 = figure; maximize();
+    hf1 = figure; maximize();% - eddye
+    hf2 = figure; maximize();% - rho
     %hf3 = figure; maximize();
-    hf4 = figure; maximize();
-    hf5 = figure; maximize();
+    %hf4 = figure; maximize();
+    %hf5 = figure; maximize();
 
     tback = double(squeeze(ncread(runs.out_file, 'rho', [1 1 1 1], ...
                                   [1 Inf Inf 1])));
@@ -33,11 +33,12 @@ function [] = plot_eddye(runs, days)
                                runs.rgrid, 'his');
 
         ax1(ii) = subplot(1, nt, ii);
-        contour(yz/1000, runs.rgrid.z_r(:,:,1)', ed, [0.1:0.1:1]);
+        contour(yz, runs.rgrid.z_r(:,:,1)', ed, [0.1:0.1:1]);
         liney(-1 * runs.eddy.Lgauss(tindices(ii)));
         colorbar;
         colormap(flipud(colormap('bone')))
         title(['day' num2str(days(ii))]);
+        beautify;
 
         figure(hf2);
         temp = dc_roms_read_data(runs.dir, 'rho', tindices(ii), ...
@@ -58,6 +59,8 @@ function [] = plot_eddye(runs, days)
         caxis(clim);
         title(['day' num2str(days(ii))]);
         axis square
+        beautify;
+
         %{
         figure(hf3);
         zd = dc_roms_read_data(runs.dir, runs.zdname, tindices(ii), ...
@@ -75,7 +78,8 @@ function [] = plot_eddye(runs, days)
         colorbar;
         caxis( [-1 1] * max(abs(zd(:)-zback(:))) );
         title(['day' num2str(days(ii))]);
-        %}
+        beautify;
+
 
         figure(hf4);
         u = dc_roms_read_data(runs.dir, 'u', tindices(ii), ...
@@ -110,11 +114,14 @@ function [] = plot_eddye(runs, days)
         colorbar;
         caxis( [-1 1] * max(abs(v(:))));
         title(['day' num2str(days(ii))]);
+        %}
     end
 
     figure(hf1)
     suplabel('eddy dye', 't');
     spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
+    linkaxes(ax1, 'xy');
+    insertAnnotation([runs.name '.plot_eddye']);
 
     figure(hf2)
     suplabel('temp anomaly', 't');
@@ -124,17 +131,31 @@ function [] = plot_eddye(runs, days)
     %suplabel('z-dye - z-level', 't');
     %spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
 
-    figure(hf4)
-    suplabel('u - along-shore', 't');
     spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
-
-    figure(hf5)
-    suplabel('v - cross-shore', 't');
-    spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
-
-    linkaxes(ax1, 'xy');
     linkaxes(ax2, 'xy');
-    %linkaxes(ax3, 'xy');
-    linkaxes(ax4, 'xy');
-    linkaxes(ax5, 'xy');
+    insertAnnotation([runs.name '.plot_eddye']);
+
+    if exist('hf3', 'var')
+        figure(hf3)
+        suplabel('z-dye - z-level', 't');
+        spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
+        linkaxes(ax3, 'xy');
+        insertAnnotation([runs.name '.plot_eddye']);
+    end
+
+    if exist('hf4', 'var')
+        figure(hf4)
+        suplabel('u - along-shore', 't');
+        spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
+        linkaxes(ax4, 'xy');
+        insertAnnotation([runs.name '.plot_eddye']);
+    end
+
+    if exist('hf5', 'var')
+        figure(hf5)
+        suplabel('v - cross-shore', 't');
+        spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
+        linkaxes(ax5, 'xy');
+        insertAnnotation([runs.name '.plot_eddye']);
+    end
 end
