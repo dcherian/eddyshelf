@@ -136,7 +136,7 @@ function [] = eddy_bulkproperties(runs)
 
         intke{mm} = full(nansum( bsxfun(@times, ...
                                         masked.*maskvor.*reshape(0.5 ...
-                                        * double((rho+1000) .* u.^2 + v.^2), sz), dVsp)));
+                                        * double((rho+1000) .* (u.^2 + v.^2)), sz), dVsp)));
 
         %vol{tt} = runs.domain_integratesp(masked.*maskvor, dVsp);
         % calculate total volume
