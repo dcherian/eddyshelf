@@ -457,17 +457,41 @@ methods
 
     function [] = plot_test1(runs)
 
-        if isempty(runs.ubot)
-            runs.read_velbot;
-        end
+        beta = runs.params.phys.beta;
+        cp = abs(min(runs.eddy.mvy) * 1000/86400);
+        L =  runs.eddy.Ls(1);
+        f0 = runs.params.phys.f0;
 
-        ue = avg1(runs.ubot(:,2:end-1,:),1) .* runs.eddy.vormask;
-        ve = avg1(runs.vbot(2:end-1,:,:),2) .* runs.eddy.vormask;
+        disp(['Timescale = ' num2str(f0./beta./cp/86400/360)]);
+        tind = [runs.eddy.tscaleind runs.csflux.tscaleind];
 
-        runs.eddy.Vb = squeeze(sqrt(max(max(ue.^2 + ve.^2,[], 1),[], 2)));
+        E = runs.eddy.energy.intTE;3
 
-        plot(runs.eddy.t, runs.eddy.Vb./runs.eddy.V');
+        stop
+        % energy budget within sponge layers
+        figure;
+        hold all
 
+        plot(runs.csflux.ikeflux(:,1) + runs.csflux.ipeflux(:,1));
+        plot(- runs.csflux.ikeflux(:,2) - runs.csflux.ipeflux(:,2));
+
+        plot(runs.asflux.ikeflux(:,2) + runs.asflux.ipeflux(:,2));
+        plot(- runs.asflux.ikeflux(:,3) - runs.asflux.ipeflux(:,3));
+        linex(tind);
+        legend('Shelfbreak', 'north', 'west', 'east');
+
+        asindex = 3;
+        figure;
+        ax(1) = subplot(3,1,[1 2]);
+        pcolorcen(runs.asflux.ikefluxyt(:,:,asindex));
+        linex(tind);
+        center_colorbar;
+        colorbar('off');
+        ax(2) = subplot(3,1,3);
+        plot(runs.asflux.ikeflux(:,asindex));
+        liney(0);
+        linex(tind);
+        linkaxes(ax, 'x');
     end
 
     function [] = read_zeta(runs)
