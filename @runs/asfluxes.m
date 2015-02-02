@@ -94,9 +94,8 @@ function asfluxes(runs)
         end
     end
 
-    rho0 = runs.params.phys.rho0;
     % full rho field
-    rho = rho + rho0;
+    rho = rho + 1000;
 
     % calculate mass flux ρu
     rflux = rho .* u .* eddmask;
