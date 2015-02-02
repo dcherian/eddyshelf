@@ -27,7 +27,7 @@ all = runArray(folders);
 %          };
 
 folders = {'runew-03', 'runew-04', 'runew-05', 'runew-06'};
-Ro3 = runArray(folders);
+Rh3 = runArray(folders);
 
 for ii=1:Ro3.len
     tind = Ro3.array(ii).eddy.tscaleind;
@@ -36,13 +36,20 @@ for ii=1:Ro3.len
 end
 
 folders = {'runew-33', 'runew-34', 'runew-35', 'runew-36', 'runew-37'};
-Ro12 = runArray(folders);
+Rh12 = runArray(folders);
 
 for ii=1:Ro12.len
     tind = Ro12.array(ii).eddy.tscaleind;
     Ro12.name{ii} = ['Ro = ' num2str(Ro12.array(ii).eddy.Ro(tind), '%.2f') ' | Rh = ' ...
                      num2str(Ro12.array(ii).params.nondim.eddy.Rh, '%.2f')];
 end
+
+folders = { ...
+    'runew-04', 'runew-34', ...
+    'runew-05', 'runew-35', ...
+    'runew-06' ,'runew-36', ...
+          };
+Ro = runArray(folders);
 
 % ew34
 folders = { ...
@@ -69,22 +76,28 @@ for ii=1:process.len
     process.array(ii).asfluxes;
 end
 
-%% slope width
+%% asfluxes
 folders = { ...
-    'runew-34', 'runew-3340', 'runew-3341', ...
+    'runew-04', 'runew-34' ...
           };
+beta = runArray(folders);
 
 %% slope
 folders = { ...
-    ... %'runew-04', 'runew-6040', 'runew-6041', 'runew-6042-new', ...
+    'runew-04', 'runew-6040', 'runew-6041', 'runew-6042-new', ...
     ... %'runew-15', 'runew-6150', 'runew-6151', ... % 6152 sucks
     'runew-34', 'runew-6342', ...
-    'runew-36', 'runew-6362', 'runew-6362-1',...
+    'runew-36', 'runew-6362', ... %'runew-6362-1',...
     'runew-37', 'runew-6371', 'runew-6372', ...
     ... %'runew-05', 'runew-6052', ...
     ... %'runew-06', 'runew-6062', ...
           };
 sl = runArray(folders);
+for ii=1:sl.len
+    if ~isfield(sl.array(ii).eddy, 'KE')
+        sl.array(ii).eddy_bulkproperties(20);
+    end
+end
 
 for ii=1:sl.len
     tind = sl.array(ii).eddy.tscaleind;
