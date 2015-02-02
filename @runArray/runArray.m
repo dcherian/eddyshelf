@@ -714,41 +714,12 @@ classdef runArray < handle
             beautify;
         end
 
-        function [] = plot_enflux(runArray)
-
-            corder_backup = runArray.sorted_colors;
-
-            figure;
-            hold all
-
-            if isempty(runArray.filter)
-                runArray.filter = 1:runArray.len;
-            end
-
-            for ff=1:length(runArray.filter)
-                ii = runArray.filter(ff);
-                run = runArray.array(ii);
-
-                ndtime = run.asflux.time / run.eddy.turnover;
-
-                filter = 'topo.';
-                eval(['teflux = run.asflux.' filter 'ikeflux(:,3) + ' ...
-                      'run.asflux.' filter 'ipeflux(:,3)' ...
-                      '- run.asflux.' filter 'ikeflux(:,2) - ' ...
-                      'run.asflux.' filter 'ipeflux(:,2);']);
-                hgplt = plot(ndtime, teflux);
-                addlegend(hgplt, run.name);
-            end
-            liney(0);
-            runArray.reset_colors(corder_backup);
-        end
-
         function [] = plot_test2(runArray)
 
             corder_backup = runArray.sorted_colors;
 
-            figure;
-            hold all
+            %figure;
+            %hold all
 
             if isempty(runArray.filter)
                 runArray.filter = 1:runArray.len;
@@ -758,9 +729,12 @@ classdef runArray < handle
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
 
-                ndtime = run.eddy.t * 86400 / run.eddy.turnover;
-                hgplt = plot(ndtime, smooth(run.eddy.cvy, 10));
+                ndtime = run.eddy.t*86400 / run.eddy.turnover;
+                figure;
+                hgplt = plot(ndtime, smooth(run.eddy.cvx,5) * 1000/86400);
                 addlegend(hgplt, run.name);
+                liney( -1 .* run.params.phys.beta .* ...
+                       run.params.eddy.Ldef.^2)
             end
 
             runArray.reset_colors(corder_backup);
@@ -811,6 +785,35 @@ classdef runArray < handle
            end
            %axis square; line45;
            beautify([18 18 20]);
+        end
+
+        function [] = plot_enflux(runArray)
+
+            corder_backup = runArray.sorted_colors;
+
+            figure;
+            hold all
+
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
+                run = runArray.array(ii);
+
+                ndtime = run.asflux.time / run.eddy.turnover;
+
+                filter = 'topo.';
+                eval(['teflux = run.asflux.' filter 'ikeflux(:,3) + ' ...
+                      'run.asflux.' filter 'ipeflux(:,3)' ...
+                      '- run.asflux.' filter 'ikeflux(:,2) - ' ...
+                      'run.asflux.' filter 'ipeflux(:,2);']);
+                hgplt = plot(ndtime, teflux);
+                addlegend(hgplt, run.name);
+            end
+            liney(0);
+            runArray.reset_colors(corder_backup);
         end
 
         function [] = plot_fluxcor(runArray)
