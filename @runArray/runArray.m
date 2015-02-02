@@ -539,6 +539,40 @@ classdef runArray < handle
             end
         end
 
+        function [] = plot_energy(runArray)
+
+            hfig1 = figure;
+            insertAnnotation(['runArray.plot_energy']);
+
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            for ff = 1:length(runArray.filter)
+                ii = runArray.filter(ff);
+
+                run = runArray.array(ii);
+                name = runArray.getname(ii);
+
+                ndtime = run.eddy.t * 86400 ./ run.eddy.turnover;
+
+                try
+                    subplot(2,1,1); hold all
+                    hplt = plot(ndtime, run.eddy.KE);
+                    title('KE');
+                    addlegend(hplt, name);
+
+                    subplot(2,1,2); hold all
+                    plot(ndtime, (run.eddy.PE - run.eddy.PE(end)));
+                    title('PE');
+                catch ME
+                end
+            end
+
+            subplot(211); linex(1);
+            subplot(212); linex(1);
+        end
+
         function [] = plot_param(runArray)
             hfig1 = figure;
             insertAnnotation(['runArray.plot_param']);
