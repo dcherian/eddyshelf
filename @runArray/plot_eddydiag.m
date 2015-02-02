@@ -10,19 +10,20 @@ function [] = plot_eddydiag(runArray)
     corder_backup = runArray.sorted_colors;
 
     % vertical scale
-    hfig1 = figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all
+    hfig1 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all
 
     % center track
-    hfig2 = figure; hold all;
+    hfig2 = []; %figure; hold all;
 
-    % KE, PE
-    hfig3 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all;
+    % KE, PE - normalized by initial value
+    hfig3 = figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all;
 
+    % actual KE, PE
     hfig4 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all;
 
     % Ro, L-scale, U-scale
-    hfig5 = figure; subplot(3,1,1); hold all; subplot(3,1,2); hold  all;
-            subplot(3,1,3); hold all;
+    hfig5 = []; %figure; subplot(3,1,1); hold all; subplot(3,1,2); hold  all;
+                %subplot(3,1,3); hold all;
 
     hfig6 = []; %figure; hold all
 
@@ -100,12 +101,13 @@ function [] = plot_eddydiag(runArray)
                 subplot(2,1,2)
                 hgplt = plot(ndtime, run.eddy.PE./run.eddy.PE(1));
                 addlegend(hgplt, name);
+
                 figure(hfig4)
                 subplot(2,1,1)
                 hgplt = plot(ndtime, run.eddy.KE);
                 addlegend(hgplt, name);
                 subplot(2,1,2)
-                hgplt = plot(ndtime, run.eddy.KE./run.eddy.PE);
+                hgplt = plot(ndtime, run.eddy.PE);
                 addlegend(hgplt, name);
             catch ME
             end
