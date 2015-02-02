@@ -1,4 +1,6 @@
 % use expressions to determine energy
+% This si very sensitive to input time series provided.
+% Might not be the best idea;
 function [intTE] = eddy_energy_ideal(runs)
 
     % physical parameters
@@ -16,23 +18,24 @@ function [intTE] = eddy_energy_ideal(runs)
     Lx = runs.eddy.vor.lmaj;
     Ly = runs.eddy.vor.lmin;
     Lz = runs.eddy.Lgauss;
+    hcen = runs.eddy.hcen';
 
     % origin is at eddy center
     % H0 is depth at eddy center
-    syms x y z H0
-    syms lx ly lz Ta positive
-    H = symfun(sym(['H0 + ' num2str(alpha) '*y']), [H0 y])
+    syms x y z
+    syms H lx ly lz Ta positive
+    %H = symfun(sym(['H0 + ' num2str(alpha) '*y']), [H0 y])
 
     % temperature anomaly
-    T(Ta,lx,ly,lz,x,y,z,H0) = Ta * exp(- (x/lx)^2 - (y/ly)^2 - (z/lz)^2);
-    intT(Ta,lx,ly,lz,H0) = domain_integrate(T, H);
+    T(Ta,lx,ly,lz,x,y,z) = Ta * exp(- (x/lx)^2 - (y/ly)^2 - (z/lz)^2);
+    intT(Ta,lx,ly,lz,H) = domain_integrate(T, H);
 
     % density anomaly
     rho = -rho0 * TCOEF * T;
 
     % Potential energy
     PE = int(rho * g * z, z);
-    intPE(Ta,lx,ly,lz) = domain_integrate(PE, H);
+    intPE(Ta,lx,ly,lz,H) = domain_integrate(PE, H);
 
     % kinetic energy
     uz = -TCOEF*g/f0 * diff(T,y);
@@ -42,7 +45,7 @@ function [intTE] = eddy_energy_ideal(runs)
     v = int(vz, z, -H, z);
 
     KE = u^2 + v^2;
-    intKE(Ta,lx,ly,lz) = domain_integrate(KE, H);
+    intKE(Ta,lx,ly,lz,H) = domain_integrate(KE, H);
 
     %err = Inf;
     %H0 = 100;
@@ -65,16 +68,16 @@ function [intTE] = eddy_energy_ideal(runs)
     %end
 
     tic;
-    intTE = double(intKE(Tamp, Lx, Ly, Lz, H0)) + double(intPE(Tamp, ...
-                                                      Lx, Ly, Lz, H0));
+    intTE = double(intKE(Tamp, Lx, Ly, Lz, hcen)) + double(intPE(Tamp, ...
+                                                      Lx, Ly, Lz, hcen));
     toc;
 
     % volume
     vol(lx,ly,lz,H) = intT / Ta;
-    vol0 = vol(Lx, Ly, Lz, H0);
+    vol0 = vol(Lx, Ly, Lz, hcen);
 
     % get group velocity
-    cg = runs.topowaves;
+    % cg = runs.topowaves;
 
     % plots
     %figure;
