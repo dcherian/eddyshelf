@@ -330,7 +330,7 @@ function [] = bottom_torque(runs)
                       'pressure, angular momentum | pbtorque = slope ' ...
                       '* pressure | betatorque = beta .* angmom'];
 
-    bottom.hash = githash;
+    bottom.hash = githash([mfilename('fullpath') '.m']);
 
     runs.bottom = bottom;
     save([runs.dir '/bottom.mat'], 'bottom', '-v7.3');
