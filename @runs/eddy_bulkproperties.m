@@ -1,7 +1,10 @@
 % eddy bulk properties - integrated PV, RV, volume, energy
-function [] = eddy_bulkproperties(runs)
+function [] = eddy_bulkproperties(runs, slab)
 %%
-    slab = 40; % read 'n' at a time
+    if ~exist('slab', 'var') || isempty(slab)
+        slab = 40; % read 'n' at a time
+    end
+
     ftype = 'his';
     rho_flag = 1; % read density, not temperature
 
@@ -66,7 +69,10 @@ function [] = eddy_bulkproperties(runs)
         runs.eddy.drhothresh = squeeze(nanmax(nanmax(drhosurf.* ...
                                                      fillnan(runs.eddy ...
                                                           .vormask,0), ...
-                                                     [], 1), [], 2));
+                                                     [], 1), [], ...
+                                              2));
+        % rhosurf is not needed anymore
+        clear rhosurf;
     end
 
     % initial time instant works well - see plot_eddye
