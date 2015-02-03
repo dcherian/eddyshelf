@@ -464,7 +464,7 @@ methods
         figure; maximize(); pause(0.1);
         insertAnnotation([runs.name '.plot_sponge_enflux()']);
 
-        pcolorcen(runs.csflux.ikefluxxt(:,:,2));
+        pcolorcen(runs.csflux.ikefluxxt(:,:,2)');
         xlabel('X (index)');
         ylabel('Time (index)');
         center_colorbar;
@@ -475,7 +475,7 @@ methods
         sy1 = runs.bathy.isb;
         sy2 = find(runs.sponge(sz(1)/2, :) == 1, 1, 'first') - 1;
 
-        ymat = repmat(runs.rgrid.y_rho(sy1:sy2,1), [1 length(runs.eddy.t)]);
+        ymat = repmat(runs.rgrid.y_rho(sy1:sy2,1), [1 length(runs.eddy.t)])/1000;
         tmat = repmat(runs.eddy.t,[length(runs.asflux.yvec) 1]);
 
         figure; maximize(); pause(0.1);
