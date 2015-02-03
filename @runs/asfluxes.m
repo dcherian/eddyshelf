@@ -21,7 +21,7 @@ function asfluxes(runs)
     sx2 = sz(1)/2 + find(runs.sponge(sz(1)/2:end,sz(2)/2) == 1, 1, ...
                          'first') - 2;
 
-    locs = [sx1 sx2 1 sz(1)];
+    locs = [sx1 sx2 2 sz(1)-1];
     %locations = [locations 'resistance | '];
     locations = [locations 'sponge | '];
     locations = [locations 'domain edge | '];
