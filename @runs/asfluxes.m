@@ -37,8 +37,6 @@ function asfluxes(runs)
 
     runs.asflux = [];
 
-    runs.asflux.yvec = runs.rgrid.y_rho(1,sy1:sy2);
-
     assert(runs.bathy.axis == 'y');
 
     % mask based on eddy contour's northern edge
@@ -237,6 +235,8 @@ function asfluxes(runs)
     runs.asflux.time = runs.time;
     runs.asflux.locations = locations;
     runs.asflux.ix = locs;
+    runs.asflux.iy = [sy1 sy2];
+    runs.asflux.yvec = yvec;
     runs.asflux.x = runs.rgrid.x_rho(1,locs);
     runs.asflux.eddy.irflux = irflux;
     runs.asflux.eddy.irfluxyt = irfluxyt;
