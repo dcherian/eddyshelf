@@ -2887,7 +2887,7 @@ methods
 
         csfluxplot = 0; % 0 = no flux plot
                       % 1 = instantaneous x-profile;
-        asfluxplot = 2; % 0 = no flux plot
+        asfluxplot = 1; % 0 = no flux plot
                         % 1 = instantaneous y-profile;
                         % 2 = time series plot : left, right and total
         if (asfluxplot == 1) || (asfluxplot == 2) % which location for asflux plot?
@@ -3083,8 +3083,10 @@ methods
                 cla
                 matrix1 = runs.asflux.ipefluxyt(:,:,asindex(1)) + ...
                           runs.asflux.ikefluxyt(:,:,asindex(1));
+                yl = size(matrix1,1);
+                isb = runs.bathy.isb;
                 hflux1 = plot(matrix1(:,ii), ...
-                              runs.rgrid.yr(1,2:end-1)/1000);
+                              runs.rgrid.yr(1,isb:isb+yl-1)/1000);
                 hleg = addlegend(hflux1, ...
                                  ['x = ' ...
                                   num2str(runs.asflux.x(asindex(1))/1000) ...
@@ -3094,7 +3096,7 @@ methods
                               + runs.asflux.ikefluxyt(:,:, asindex(2));
                     hold all
                     hflux2 = plot(matrix2(:,ii), ...
-                                  runs.rgrid.yr(1,2:end-1)/1000);
+                                  runs.rgrid.yr(1,isb:isb+yl-1)/1000);
                     hleg = addlegend(hflux2, ...
                                  [' x = ' ...
                                   num2str(runs.asflux.x(asindex(2))/1000) ...
