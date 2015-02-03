@@ -457,6 +457,52 @@ methods
 
     function [] = plot_test1(runs)
 
+    end
+
+    function [] = plot_sponge_enflux(runs)
+
+        figure; maximize(); pause(0.1);
+        insertAnnotation([runs.name '.plot_sponge_enflux()']);
+
+        pcolorcen(runs.csflux.ikefluxxt(:,:,2));
+        xlabel('X (index)');
+        ylabel('Time (index)');
+        beautify;
+
+        % y (ax2) limits - between shelfbreak & edge of sponge
+        sz = size(runs.sponge);
+        sy1 = runs.bathy.isb;
+        sy2 = find(runs.sponge(sz(1)/2, :) == 1, 1, 'first') - 1;
+
+        ymat = repmat(runs.rgrid.y_rho(sy1:sy2,1), [1 length(runs.eddy.t)]);
+        tmat = repmat(runs.eddy.t,[length(runs.asflux.yvec) 1]);
+
+        figure; maximize(); pause(0.1);
+        insertAnnotation([runs.name '.plot_sponge_enflux()']);
+
+        subplot(131);
+        pcolorcen(tmat, ymat, runs.asflux.ikefluxyt(:,:,2));
+        center_colorbar; clim = caxis;
+        title('Edge of sponge');
+        ylabel('Y (km)');
+        xlabel('Time (days)');
+        beautify;
+        subplot(132);
+        pcolorcen(tmat, ymat, runs.asflux.ikefluxyt(:,:,5));
+        center_colorbar; caxis(clim);
+        title('Middle of sponge');
+        xlabel('Time (days)');
+        beautify;
+        subplot(133);
+        pcolorcen(tmat, ymat, runs.asflux.ikefluxyt(:,:,4));
+        center_colorbar; caxis(clim);
+        title('Open boundary');
+        xlabel('Time (days)');
+        beautify;
+        %spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
+    end
+
+    function [] = plot_asflux_budget(runs)
         beta = runs.params.phys.beta;
         cp = abs(min(runs.eddy.mvy) * 1000/86400);
         L =  runs.eddy.Ls(1);
