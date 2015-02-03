@@ -467,6 +467,7 @@ methods
         pcolorcen(runs.csflux.ikefluxxt(:,:,2));
         xlabel('X (index)');
         ylabel('Time (index)');
+        center_colorbar;
         beautify;
 
         % y (ax2) limits - between shelfbreak & edge of sponge
@@ -499,7 +500,7 @@ methods
         title('Open boundary');
         xlabel('Time (days)');
         beautify;
-        %spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
+        spaceplots(0.05*ones([1 4]),0.05*ones([1 2]));
     end
 
     function [] = plot_asflux_budget(runs)
