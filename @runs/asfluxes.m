@@ -21,9 +21,10 @@ function asfluxes(runs)
     sx2 = sz(1)/2 + find(runs.sponge(sz(1)/2:end,sz(2)/2) == 1, 1, ...
                          'first') - 2;
 
-    locs = [loc1 sx1 sx2];
-    locations = [locations 'resistance | '];
+    locs = [sx1 sx2 1 sz(1)];
+    %locations = [locations 'resistance | '];
     locations = [locations 'sponge | '];
+    locations = [locations 'domain edge | '];
     %locs = loc1;
     ax = 'x';
     ax2 ='y';
@@ -35,6 +36,8 @@ function asfluxes(runs)
                         'y'];
 
     runs.asflux = [];
+
+    runs.asflux.yvec = runs.rgrid.y_rho(1,sy1:sy2);
 
     assert(runs.bathy.axis == 'y');
 
