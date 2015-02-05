@@ -786,10 +786,10 @@ classdef runArray < handle
 
         function [] = plot_test2(runArray)
 
-            corder_backup = runArray.sorted_colors;
+            figure;
+            hold all;
 
-            %figure;
-            %hold all
+            corder_backup = runArray.sorted_colors;
 
             if isempty(runArray.filter)
                 runArray.filter = 1:runArray.len;
