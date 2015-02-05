@@ -125,7 +125,7 @@ classdef runArray < handle
             end
         end
 
-        function [diags] = print_diag(runArray, name)
+        function [diags, plotx] = print_diag(runArray, name)
             if isempty(runArray.filter)
                 runArray.filter = 1:runArray.len;
             end
@@ -152,6 +152,7 @@ classdef runArray < handle
 
                 %%%%% slope parameter
                 if strcmpi(name, 'slope param')
+                    plots = 0;
                     diags(ff) = run.eddy.Ro(1) ./ run.bathy.S_sl;
                 end
 
@@ -169,7 +170,7 @@ classdef runArray < handle
                     run.eddy.res.comment = ['(xx,yy) = center ' ...
                                         'location | tind = time index'];
 
-                    plotx = run.eddy.Ro(1)./run.bathy.S_sl;
+                    plotx(ff) = run.eddy.Ro(1)./run.bathy.S_sl;
                     %diags(ff) = yy./run.rrdeep;
                     if strcmpi(loc, 'cen')
                         hdiag = run.eddy.hcen(tind);
@@ -243,8 +244,8 @@ classdef runArray < handle
                     dEdt = (intTE(1) - intTE(index))./intTE(1)./dt;
                     diags(ff) = dEdt; dhdt;
 
-                    plotx = run.topowaves; labx = 'cg (m/s)';
-                    %plotx = run.eddy.Ro(1)./run.bathy.S_sl; labx = 'Ro/S_\alpha';
+                    plotx(ff) = run.topowaves; labx = 'cg (m/s)';
+                    %plotx(ff) = run.eddy.Ro(1)./run.bathy.S_sl; labx = 'Ro/S_\alpha';
                     laby = 'dE/dt';
                 end
 
@@ -299,7 +300,7 @@ classdef runArray < handle
                     d2 = cm./Vm .* f0./beta./Lxm .* Am;
                     diags(ff) = d1/100;
 
-                    plotx = mean((hedge(ind:end) + hcen(ind:end)) /2);
+                    plotx(ff) = mean((hedge(ind:end) + hcen(ind:end)) /2);
                     %hold all;
                     %hplt = plot(ndtime, vec);
                     %addlegend(hplt, run.name);
@@ -505,13 +506,13 @@ classdef runArray < handle
 
                 if plots
                     figure(hfig);
-                    plot(plotx, diags(ff), '*');
+                    plot(plotx(ff), diags(ff), '*');
 
                     % add function call as annotation
                     insertAnnotation(['runArray.print_diag(' name ')']);
                     % add run names
                     if name_points
-                        text(plotx, diags(ff), runArray.name(ff), 'FontSize', ...
+                        text(plotx(ff), diags(ff), runArray.name(ff), 'FontSize', ...
                              12, 'Rotation', 90);
                     end
                     xlabel(labx);
@@ -520,6 +521,10 @@ classdef runArray < handle
                 end
 
                 disp([run.name ' | ' name ' = ' diagstr])
+            end
+
+            if exist('sortedflag', 'var') & sortedflag
+                runArray.reset_colors(cb);
             end
 
             if plots
@@ -570,7 +575,7 @@ classdef runArray < handle
             end
 
             subplot(211); linex(1);
-            subplot(212); linex(1);
+            subplot(212); limy = ylim; ylim([0 limy(2)]);
         end
 
         function [] = plot_param(runArray)
