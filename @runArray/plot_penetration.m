@@ -41,20 +41,25 @@ function [] = plot_penetration(runArray)
         xnorm = run.rrdeep; run.eddy.vor.dia(1)/2;
         ynorm = run.rrdeep; run.eddy.vor.dia(1)/2; run.eddy.my(1) - run.bathy.xsb;
 
+        % reference location
+        x0 = run.eddy.mx(1);
+        %y0 = run.eddy.my(1);
+        y0 = run.bathy.xsb;
+
         if ~isempty(hfig1)
             figure(hfig1);
             subplot(2,1,1);
-            hgplt = plot(ndtime, (run.eddy.vor.ne - run.bathy.xsb)./ynorm);
+            hgplt = plot(ndtime, (run.eddy.vor.ne - y0)./ynorm);
             addlegend(hgplt, name);
 
             subplot(2,1,2);
-            plot(ndtime, (run.eddy.vor.se - run.bathy.xsb)./ynorm);
+            plot(ndtime, (run.eddy.vor.se - y0)./ynorm);
         end
 
         figure(hfig2)
         axes(ax1)
-        x = (run.eddy.mx - run.eddy.mx(1))/xnorm;
-        y = (run.eddy.my - run.bathy.xsb)/ynorm;
+        x = (run.eddy.mx - x0)/xnorm;
+        y = (run.eddy.my - y0)/ynorm;
 
         % plot track
         hgplt = plot(x, y);
@@ -123,7 +128,7 @@ function [] = plot_penetration(runArray)
     end
 
     %axis image;
-    ylim([-2 max(ylim)]);
+    %    ylim([-2 max(ylim)]);
 
     beautify(fontSize);
 
