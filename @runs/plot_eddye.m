@@ -64,7 +64,7 @@ function [] = plot_eddye(runs, days)
             contour(yz, runs.rgrid.z_r(:,:,1)', ed, 1, 'k', ...
                     'LineWidth', 2);
             contour(yz, runs.rgrid.z_r(:,:,1)', drho, [1 1]*runs.eddy.drhothresh(1), ...
-                    'Color', [1 1 1]*0.75, 'LineWidth', 2);
+                    'Color', [1 1 1]*0.5, 'LineWidth', 2);
             caxis(clim);
             title(['day ' num2str(days(ii))]);
             xlabel('Y (km)');
