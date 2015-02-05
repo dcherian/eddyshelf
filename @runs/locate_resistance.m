@@ -16,7 +16,10 @@ function [xx,yy,tind] = locate_resistance(runs)
     end
 
     % locate minimum, i.e., max. southward/westward speed
-    [mn, imin] = min(vel);
+    % but limit search to first 'n' turnover time scales
+    ndtime = runs.eddy.t*86400./runs.eddy.turnover;
+    it = find_approx(ndtime, 60);
+    [mn, imin] = min(vel(1:it));
 
     vv = vel(imin:end) - mn * 1/2;
     tind = find(vv > 0, 1, 'first');
@@ -29,14 +32,14 @@ function [xx,yy,tind] = locate_resistance(runs)
         figure;
         insertAnnotation('runArray.locate_resistance');
         subplot(221)
-        plot(runs.eddy.my/1000);
+        plot(ndtime, runs.eddy.my/1000);
         title(runs.name);
-        linex(tind);
+        linex(ndtime(tind));
 
         subplot(223)
-        plot(vel);
-        linex(imin); liney(mn); liney(mn/2);
-        linex(tind);
+        plot(ndtime, vel);
+        linex(ndtime(imin)); liney(mn); liney(mn/2);
+        linex(ndtime(tind));
 
         subplot(2,2,[2 4])
         plot(runs.eddy.mx/1000, runs.eddy.my/1000);
