@@ -800,17 +800,66 @@ classdef runArray < handle
                 run = runArray.array(ii);
 
                 ndtime = run.eddy.t*86400 / run.eddy.turnover;
-                figure;
-                hgplt = plot(ndtime, smooth(run.eddy.cvx,5) * 1000/86400);
+
+                hgplt = plot(ndtime, run.eddy.vol);
                 addlegend(hgplt, run.name);
-                liney( -1 .* run.params.phys.beta .* ...
-                       run.params.eddy.Ldef.^2)
+                plot(ndtime(run.tscaleind), run.eddy.vol(run.tscaleind), 'k*');
             end
 
             runArray.reset_colors(corder_backup);
         end
 
         function [] = plot_test3(runArray)
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            figure; hold all
+
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
+                run = runArray.array(ii);
+                name = runArray.getname(ii);
+
+
+                % find sponge edges
+                sz = size(run.sponge);
+                sx1 = find(run.sponge(1:sz(1)/2,sz(2)/2) == 0, 1, 'first');
+                sx2 = sz(1)/2 + find(run.sponge(sz(1)/2:end,sz(2)/2) == 1, 1, ...
+                                     'first') - 2;
+                sy2 = find(run.sponge(sz(1)/2, :) == 1, 1, 'first') - 1;
+
+                % indices to look at
+                % west, then east
+                ix = [sx1 + 10; sx2 - 10];
+                iy = [sy2 - 10; sy2 - 10];
+
+                for nn=1:length(ix)
+                    u = dc_roms_read_data(run.dir, 'u', [], {'x' ix(nn) ix(nn); ...
+                                        'y' iy(nn) iy(nn); }, ...
+                                          [], run.rgrid, 'his', 'single');
+
+                    v = dc_roms_read_data(run.dir, 'v', [], {'x' ix(nn) ix(nn); ...
+                                        'y' iy(nn) iy(nn); }, ...
+                                          [], run.rgrid, 'his', 'single');
+
+                    [t,iu,~] = unique(run.time, 'stable');
+
+                    inertialfreq = run.params.phys.f0./(2*pi);
+                    [psi, lambda] = sleptap(length(iu));
+                    [F,S] = mspec(1/2*(u(:,iu).^2 + v(:,iu).^2)', psi);
+                    f = fourier(86400, length(iu));
+
+                    hgplt = loglog(f./inertialfreq, S(:,end));
+                    set(gca, 'XScale', 'log');
+                    set(gca, 'YScale', 'log');
+                    addlegend(hgplt, [name ' | ' num2str(ix(nn))]);
+                end
+            end
+            linex(1);
+        end
+
+        function [] = plot_envelope(runArray)
             if isempty(runArray.filter)
                 runArray.filter = 1:runArray.len;
             end
