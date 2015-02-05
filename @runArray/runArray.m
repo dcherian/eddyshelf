@@ -145,10 +145,75 @@ classdef runArray < handle
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
+                runName = runArray.getname(ii);
 
                 tind = run.tscaleind;
 
                 diagstr = [];
+
+                %%%%% dummy
+                if strcmpi(name, 'dummy')
+
+                    % for local plots
+                    %figure; hold all
+                    %cb = runArray.sorted_colors;
+                    sortedflag = 0;
+
+                    diags(ff) = [];
+                    % x-axis variable for plots
+                    plotx(ff) = [];
+                    % label points with run-name?
+                    name_points = 0;
+                    % x,y axes labels
+                    labx = [];
+                    laby = [];
+                end
+
+                %%%%% cross-isobath translation velocity
+                if strcmpi(name, 'mvy')
+
+                    local_plot = 0;
+
+                    if local_plot
+                        % for local plots
+                        if ff == 1
+                            hfig2 = figure; hold all
+                            cb = runArray.sorted_colors;
+                            sortedflag = 1;
+                        end
+                    end
+
+                    beta = run.params.phys.beta;
+                    f0 = run.params.phys.f0;
+                    Lr = run.params.eddy.Ldef;
+                    Ro = run.eddy.Ro(1);
+                    Sa = run.bathy.S_sl;
+                    A = run.eddy.amp(1);
+
+                    % convert to m/s
+                    mvy = smooth(run.eddy.mvy, 28) * 1000/86400;
+                    [diags(ff), ind] = min(mvy);
+                    diags(ff) = abs(diags(ff));
+
+                    if local_plot
+                        ndtime = run.eddy.t * 86400 ./ ...
+                                 run.eddy.turnover;
+                        figure(hfig2);
+                        hgplt = plot(ndtime, mvy);
+                        addlegend(hgplt, runName);
+                        plot(ndtime(ind), mvy(ind), 'k*');
+                    end
+
+                    % make normal summary plot?
+                    plots = 1;
+                    % x-axis variable for plots
+                    plotx(ff) = 5*(1+Sa)^(-1).*(beta.*Lr^2).^2 .* f0*Lr./9.81./A;
+                    % label points with run-name?
+                    name_points = 1;
+                    % x,y axes labels
+                    labx = 'Parameterization';
+                    laby = 'max |cross-isobath velocity|';
+                end
 
                 %%%%% slope parameter
                 if strcmpi(name, 'slope param')
