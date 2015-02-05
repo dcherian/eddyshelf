@@ -10,7 +10,7 @@ function [] = plot_eddydiag(runArray)
     corder_backup = runArray.sorted_colors;
 
     % vertical scale
-    hfig1 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all
+    hfig1 = figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all
 
     % center track
     hfig2 = []; %figure; hold all;
@@ -44,7 +44,7 @@ function [] = plot_eddydiag(runArray)
         run = runArray.array(ii);
         asp = run.eddy.hcen'./(run.eddy.vor.dia/2);
 
-        tscale = run.tscale; find_approx(asp, 0.5, 1);
+        %tscale = run.tscale; find_approx(asp, 0.5, 1);
         %ndtime = run.eddy.t/tscale * 86400;
 
         ndtime = run.eddy.t*86400 ./ run.eddy.turnover;
@@ -82,13 +82,11 @@ function [] = plot_eddydiag(runArray)
         % vertical scale
         if hfig1
             figure(hfig1)
-
             subplot(2,1,1)
             hgplt = plot(ndtime, run.eddy.Lgauss);
             addlegend(hgplt, name);
             subplot(2,1,2)
-            hgplt = plot(ndtime, asp);
-            addlegend(hgplt, num2str(asp(1)));
+            hgplt = plot(ndtime, run.eddy.vol./run.eddy.vol(1));
         end
 
         % KE, PE
@@ -202,11 +200,13 @@ function [] = plot_eddydiag(runArray)
     if hfig1
         figure(hfig1);
         subplot(2,1,1)
-        ylabel(['aspect ratio / Bottom slope = \alpha_{iso} ' ...
-                '/ \alpha_{bot}']);
+        ylabel(['Vertical scale (m)']);
+        %ylabel(['aspect ratio / Bottom slope = \alpha_{iso} ' ...
+        %        '/ \alpha_{bot}']);
         subplot(2,1,2)
-        ylabel('Aspect ratio = \alpha_{iso}');
-        xlabel('Non dimensional time');
+        ylabel('Volume/Volume(1)');
+        %ylabel('Aspect ratio = \alpha_{iso}');
+        xlabel('Time /(time at slopebreak)');
         insertAnnotation(annostr);
     end
 
