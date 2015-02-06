@@ -35,7 +35,8 @@ function [] = csfluxes(runs, ftype)
     sy2 = find(runs.sponge(sz(1)/2, :) == 1, 1, 'first') - 1;
 
     % sort out isobaths across which to calculate transports
-    loc = runs.bathy.xsb; %linspace(runs.bathy.xsb, runs.bathy.xsl, 4);
+    Y = max(runs.rgrid.y_rho(:));
+    loc = [runs.bathy.xsb runs.bathy.xsl Y/2]; %linspace(runs.bathy.xsb, runs.bathy.xsl, 4);
     if runs.params.bathy.axis == 'x'
         csvelid = 'u';
         asvelid = 'v';
@@ -109,7 +110,7 @@ function [] = csfluxes(runs, ftype)
     end
 
     % size for initialization
-    szfull = size(runs.bathy.h)
+    szfull = size(runs.bathy.h);
     szflux = [tinf length(loc)];
     szfluxxt = [szfull(1)-2 tinf length(loc)];
 
