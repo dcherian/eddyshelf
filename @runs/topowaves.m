@@ -1,3 +1,5 @@
+% topographic waves dispersion relation
+
 function [cgout] = topowaves(runs)
 
 % plot modal structures
@@ -13,8 +15,9 @@ function [cgout] = topowaves(runs)
 
     % scales
     U = runs.eddy.V(1);
-    L = runs.rrdeep;
-    D = 1200; runs.eddy.Lgauss(1);
+    Ld = runs.rrdeep;
+    L = runs.eddy.vor.dia(runs.eddy.tscaleind)*2;
+    D = runs.eddy.Lgauss(1);
     N = sqrt(runs.params.phys.N2);
 
     % bottom slope
@@ -26,7 +29,7 @@ function [cgout] = topowaves(runs)
 
     k0 = 2*pi ./ (lambda_x./L);
     l0 = 2*pi ./ (lambda_y./L);
-    K = sqrt(k0^2 + l0^2);
+    K = sqrt(k0^2 + l0^2); % NON DIMENSIONAL
     S0 = N * D ./ f0 ./ L;
 
     beta_t = f0./D .* alpha;
@@ -74,8 +77,19 @@ function [cgout] = topowaves(runs)
     cgx(1) = - 1./Rh .* 1./(K^2 - mu0^2/S0) .* (1 + 2*k0^2./(K^2 - mu0^2/S0)) ...
              .* U
 
-    % frequency - μ
-    omega = -(1./Rh) .* k0 ./ (K^2 - mu0^2/S0^2)
+    % topo wave frequency - μ - (non-dimensionalized by f?)
+    omega = -(1./Rh) .* k0 ./ (K^2 - mu0^2/S0^2) .* f0;
+
+    % assume wave packet gets to edge of slope after refraction.
+    % Frequency is conserved.
+    % assume long wavelength, then
+    %      ω = - (β L_d^2) k_deep
+    % Use this to determine deep water wavelength (all dimensional)
+    k_deep = -1 * omega ./ (beta .* Ld^2);
+    lambda_deep = 2*pi ./ k_deep;
+    fprintf('\n Frequency = %.2e s^(-1)', omega);
+    fprintf('\n Period = %f days', 2*pi/omega/86400);
+    fprintf('\n Deep water wavelength = %.2f km \n\n', lambda_deep/1000);
 
     %%%%%%%%% surface intensified modes
     % m = [0.5:0.01:20];
