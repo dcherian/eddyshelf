@@ -511,6 +511,39 @@ methods
         spaceplots(0.05*ones([1 4]),0.05*ones([1 2]));
     end
 
+    function [] = plot_asflux(runs)
+
+        asindex = [1 2];
+
+        n = length(asindex);
+
+        % y (ax2) limits
+        sy1 = runs.asflux.iy(1);
+        sy2 = runs.asflux.iy(2);
+
+        ymat = repmat(runs.rgrid.y_rho(sy1:sy2,1), [1 length(runs.eddy.t)])/1000;
+        tmat = repmat(runs.eddy.t,[length(runs.asflux.yvec) 1]);
+        hmat = runs.asflux.hmat;
+
+        figure; maximize(); pause(0.1);
+        insertAnnotation([runs.name '.plot_asflux()']);
+
+        for ii=1:length(asindex)
+            subplot(1,n,ii);
+            pcolorcen(tmat, ymat, runs.asflux.ikefluxyt(:,:,asindex(ii))./hmat);
+            center_colorbar; clim = caxis;
+            title(['x = ' num2str(runs.asflux.x(asindex(ii))/1000) ...
+                   ' km']);
+            liney(ymat(runs.bathy.isl-sy1 + 1,1), 'slopebreak');
+            liney(ymat(runs.bathy.isb-sy1 + 1,1), 'shelfbreak');
+            ylabel('Y (km)');
+            xlabel('Time (days)');
+            beautify;
+        end
+
+        %        spaceplots(0.05*ones([1 4]),0.05*ones([1 2]));
+    end
+
     function [] = plot_asflux_budget(runs)
         beta = runs.params.phys.beta;
         cp = abs(min(runs.eddy.mvy) * 1000/86400);
