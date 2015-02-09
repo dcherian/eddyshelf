@@ -484,8 +484,14 @@ methods
     end
 
     function [] = plot_test1(runs)
+        figure;
+    end
 
-    % find sponge edges
+    function [] = plot_vvelnoise(runs)
+
+        figure;
+
+        % find sponge edges
         sz = size(runs.sponge);
         sx1 = find(runs.sponge(1:sz(1)/2,sz(2)/2) == 0, 1, 'first');
         sx2 = sz(1)/2 + find(runs.sponge(sz(1)/2:end,sz(2)/2) == 1, 1, ...
@@ -497,7 +503,7 @@ methods
                             sy2 sy2; 'z' 10 10}, [], runs.rgrid);
         v2 = dc_roms_read_data(runs.dir, 'v', [], {'x' sx2 sx2; 'y' ...
                             sy2 sy2; 'z' 10 10}, [], runs.rgrid);
-        t = runs.time/runs.eddy.turnover;
+        t = runs.time/86400;
 
         plot(t,v1,t,v2);
         linex([runs.eddy.edgtscale runs.eddy.tscale]./runs.eddy.turnover);
