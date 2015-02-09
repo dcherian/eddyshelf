@@ -407,6 +407,11 @@ methods
                 warning(['Couldn''t calculate flux based ' ...
                          'timescale']);
             end
+
+            % create hmat for plotting depth averaged fluxes
+            runs.asflux.hmat = repmat(...
+                runs.rgrid.h(1,runs.asflux.iy(1):runs.asflux.iy(2))', ...
+                [1 length(runs.eddy.t)]);
         end
 
         % load jet diagnostics if the file exists
