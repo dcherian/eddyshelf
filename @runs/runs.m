@@ -484,7 +484,43 @@ methods
     end
 
     function [] = plot_test1(runs)
+
         figure;
+
+    end
+
+    function [] = plot_nof1998(runs)
+        figure;
+        ind = runs.csflux.tscaleind;
+        H = runs.eddy.Lgauss(ind:end);
+        beta = runs.params.phys.beta;
+        Ldef = runs.params.eddy.Ldef;
+        t = runs.eddy.t(ind:end) * 86400;
+        t = t - t(1);
+
+        Hnof = H(1)./(1 + sqrt(2) * beta .* Ldef .*t/18).^2;
+
+        plot(t./runs.eddy.turnover, H);
+        hold all
+        plot(t./runs.eddy.turnover, Hnof);
+
+    end
+
+    function [] = plot_flierl1984(runs)
+        beta = runs.params.phys.beta;
+        Ldef = runs.params.eddy.Ldef;
+        f0 = runs.params.phys.f0;
+
+        cg = - beta .* Ldef^2;
+
+        fl = f0 ./ beta ./ nanmean(runs.eddy.mvy./86.4);
+
+        TE = runs.eddy.KE + runs.eddy.PE;
+        time = runs.eddy.t * 86400;
+
+        figure;
+        plot(avg1(TE) ./ (diff(TE)./diff(time)));
+        liney(fl)
     end
 
     function [] = plot_vvelnoise(runs)
