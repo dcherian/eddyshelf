@@ -836,19 +836,21 @@ classdef runArray < handle
 
                 for nn=1:length(ix)
                     u = dc_roms_read_data(run.dir, 'u', [], {'x' ix(nn) ix(nn); ...
-                                        'y' iy(nn) iy(nn); }, ...
+                                        'y' iy(nn) iy(nn); 'z' 72 72}, ...
                                           [], run.rgrid, 'his', 'single');
 
                     v = dc_roms_read_data(run.dir, 'v', [], {'x' ix(nn) ix(nn); ...
-                                        'y' iy(nn) iy(nn); }, ...
+                                        'y' iy(nn) iy(nn); 'z' 72 72}, ...
                                           [], run.rgrid, 'his', 'single');
 
                     [t,iu,~] = unique(run.time, 'stable');
 
-                    inertialfreq = run.params.phys.f0./(2*pi);
+                    inertialfreq = run.params.phys.f0/2*pi;
                     [psi, lambda] = sleptap(length(iu));
-                    [F,S] = mspec(1/2*(u(:,iu).^2 + v(:,iu).^2)', psi);
-                    f = fourier(86400, length(iu));
+                    [F,S] = mspec(1/2*(u(:,iu).^2 + v(:,iu).^2)', ...
+                                  psi);
+                    % fourier frequencies so that Nyquist is at 1
+                    f = fourier(86400, length(iu))/2*pi;
 
                     hgplt = loglog(f./inertialfreq, S(:,end));
                     set(gca, 'XScale', 'log');
