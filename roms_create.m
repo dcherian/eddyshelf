@@ -1847,10 +1847,8 @@ toc;
 fprintf('\n Started writing files...\n');
 
 % write git hash!
-[~, hash] = system('TERM=xterm-256color git log -n 1 --pretty=format:''%H''');
-% remove bash escape characters
-hash = hash(9:48)
-
+% save repo hash since output of this script depends on roms_create_params.m
+hash = githash;
 ncwriteatt(GRID_NAME, '/', 'git_hash', hash);
 ncwriteatt(INI_NAME, '/',  'git_hash', hash);
 ncwriteatt(BRY_NAME, '/',  'git_hash', hash);
