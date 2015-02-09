@@ -483,24 +483,27 @@ methods
         ymat = repmat(runs.rgrid.y_rho(sy1:sy2,1), [1 length(runs.eddy.t)])/1000;
         tmat = repmat(runs.eddy.t,[length(runs.asflux.yvec) 1]);
 
+        hmat = repmat(runs.rgrid.h(1,runs.asflux.iy(1):runs.asflux.iy(2))', ...
+                      [1 length(runs.eddy.t)]);
+
         figure; maximize(); pause(0.1);
         insertAnnotation([runs.name '.plot_sponge_enflux()']);
 
         subplot(131);
-        pcolorcen(tmat, ymat, runs.asflux.ikefluxyt(:,:,2));
+        pcolorcen(tmat, ymat, runs.asflux.ikefluxyt(:,:,2)./hmat);
         center_colorbar; clim = caxis;
         title('Edge of sponge');
         ylabel('Y (km)');
         xlabel('Time (days)');
         beautify;
         subplot(132);
-        pcolorcen(tmat, ymat, runs.asflux.ikefluxyt(:,:,5));
+        pcolorcen(tmat, ymat, runs.asflux.ikefluxyt(:,:,5)./hmat);
         center_colorbar; caxis(clim);
         title('Middle of sponge');
         xlabel('Time (days)');
         beautify;
         subplot(133);
-        pcolorcen(tmat, ymat, runs.asflux.ikefluxyt(:,:,4));
+        pcolorcen(tmat, ymat, runs.asflux.ikefluxyt(:,:,4)./hmat);
         center_colorbar; caxis(clim);
         title('Open boundary');
         xlabel('Time (days)');
