@@ -27,7 +27,7 @@ function [] = plot_eddye(runs, days)
     zback = runs.rgrid.z_r(:,:,1)';
     for ii=1:nt
 
-        loc = num2str(runs.eddy.vor.cx(tindices(ii)));
+        loc = num2str(runs.eddy.mx(tindices(ii)));
 
         ed = dc_roms_read_data(runs.dir, runs.eddname, tindices(ii), ...
                                {'x' loc loc}, [], runs.rgrid, 'his');
