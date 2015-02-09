@@ -490,7 +490,7 @@ methods
     function [] = plot_vvelnoise(runs)
 
         figure;
-
+        insertAnnotation([runs.name '.plot_vvelnoise()']);
         % find sponge edges
         sz = size(runs.sponge);
         sx1 = find(runs.sponge(1:sz(1)/2,sz(2)/2) == 0, 1, 'first');
@@ -506,7 +506,14 @@ methods
         t = runs.time/86400;
 
         plot(t,v1,t,v2);
-        linex([runs.eddy.edgtscale runs.eddy.tscale]./runs.eddy.turnover);
+        linex([runs.eddy.edgtscale runs.eddy.tscale]./ ...
+              runs.eddy.turnover);
+        title(runs.name);
+        legend(['(' num2str(sx1) ',' num2str(sy2) ')'], ...
+               ['(' num2str(sx2) ',' num2str(sy2) ')']);
+        xlabel('Time (days)');
+        ylabel('v (m/s)');
+        beautify;
     end
 
     function [] = plot_cg(runs)
