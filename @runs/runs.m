@@ -22,7 +22,8 @@ properties
     % float data
     roms; ltrans; tracpy;
     % sponge details
-    sponge;
+    sponge; % actual sponge mask
+    spng; % contains sponge indices
     % eddy track data
     eddy; noeddy;
     % bottom torque calculations
@@ -167,6 +168,14 @@ methods
         % read in sponge
         runs.sponge = ncread(runs.out_file, 'visc2_r') > 0;
 
+        % find sponge indices
+        sz = size(runs.sponge);
+        runs.spng.sx1 = find(runs.sponge(1:sz(1)/2,sz(2)/2) == 0, 1, 'first');
+        runs.spng.sx2 = sz(1)/2 + find(runs.sponge(sz(1)/2:end,sz(2)/2) == 1, 1, ...
+                             'first') - 2;
+        runs.spng.sy1 = NaN;
+        runs.spng.sy2 = find(runs.sponge(sz(1)/2, :) == 1, 1, 'first') - 1;
+
         % rossby radii
         runs.rrdeep = sqrt(runs.params.phys.N2)*max(runs.bathy.h(:)) ...
                     /mean(runs.rgrid.f(:))/pi;
@@ -259,6 +268,12 @@ methods
             end
             runs.eddy.tscale = runs.eddy.t(runs.eddy.tscaleind) .* ...
                 86400;
+
+            % find time when southern edge crosses slopebreak
+            runs.eddy.edgtscaleind = find_approx(runs.eddy.vor.se, ...
+                                                 runs.bathy.xsl, 1);
+            runs.eddy.edgtscale = runs.eddy.t(runs.eddy.edgtscaleind) ...
+                * 86400;
 
             if ~isfield(runs.eddy, 'tend')
                 runs.eddy.tend = length(runs.eddy.dia);
@@ -406,6 +421,14 @@ methods
             catch ME
                 warning(['Couldn''t calculate flux based ' ...
                          'timescale']);
+            end
+
+            % if asflux.iy hasn't been saved default to between
+            % shelfbreak and edge of northern sponge.
+            try
+                runs.asflux.iy(1);
+            catch ME
+               runs.asflux.iy = [runs.bathy.xsb runs.spng.sy2];
             end
 
             % create hmat for plotting depth averaged fluxes
