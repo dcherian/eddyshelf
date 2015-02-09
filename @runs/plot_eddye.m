@@ -27,10 +27,10 @@ function [] = plot_eddye(runs, days)
     zback = runs.rgrid.z_r(:,:,1)';
     for ii=1:nt
 
+        loc = num2str(runs.eddy.vor.cx(tindices(ii)));
+
         ed = dc_roms_read_data(runs.dir, runs.eddname, tindices(ii), ...
-                               {'x' num2str(runs.eddy.cx(tindices(ii))) ...
-                            num2str(runs.eddy.cx(tindices(ii)))}, [], ...
-                               runs.rgrid, 'his');
+                               {'x' loc loc}, [], runs.rgrid, 'his');
 
         if exist('hf1', 'var')
             figure(hf1);
@@ -46,9 +46,7 @@ function [] = plot_eddye(runs, days)
         if exist('hf2', 'var')
             figure(hf2);
             temp = dc_roms_read_data(runs.dir, 'rho', tindices(ii), ...
-                                     {'x' num2str(runs.eddy.cx(tindices(ii))) ...
-                                num2str(runs.eddy.cx(tindices(ii)))}, [], ...
-                                     runs.rgrid, 'his');
+                                     {'x' loc loc}, [], runs.rgrid, 'his');
 
             ax2(ii) = subplot(1, nt, ii);
             drho = bsxfun(@minus, temp, tback);
@@ -57,9 +55,10 @@ function [] = plot_eddye(runs, days)
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
             colorbar;
             if ii == 1
-                clim = caxis;
+                clim = [-0.0553 -0.0021]; %caxis;
                 ylabel('Z (m)');
             end
+            caxis(clim);
             hold on;
             contour(yz, runs.rgrid.z_r(:,:,1)', ed, 1, 'k', ...
                     'LineWidth', 2);
@@ -75,9 +74,7 @@ function [] = plot_eddye(runs, days)
         if exist('hf3', 'var')
             figure(hf3);
             zd = dc_roms_read_data(runs.dir, runs.zdname, tindices(ii), ...
-                                   {'x' num2str(runs.eddy.cx(tindices(ii))) ...
-                                num2str(runs.eddy.cx(tindices(ii)))}, [], ...
-                                   runs.rgrid, 'avg');
+                                  {'x' loc loc}, [], runs.rgrid, 'his');
 
             ax3(ii) = subplot(1, nt, ii);
             contourf(yz/1000, runs.rgrid.z_r(:,:,1)', zd-zback);
@@ -114,10 +111,7 @@ function [] = plot_eddye(runs, days)
         if exist('hf5', 'var')
             figure(hf5);
             v = dc_roms_read_data(runs.dir, 'v', tindices(ii), ...
-                                  {'x' num2str(runs.eddy.cx(tindices(ii))) ...
-                                num2str(runs.eddy.cx(tindices(ii)))}, [], ...
-                                  runs.rgrid, 'avg');
-
+                                  {'x' loc loc}, [], runs.rgrid, 'his');
             ax5(ii) = subplot(1, nt, ii);
             contourf(yz(2:end-1,:)/1000, runs.rgrid.z_r(:,2:end-1,1)', avg1(v,1));
             shading flat;
