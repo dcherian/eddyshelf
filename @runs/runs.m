@@ -485,6 +485,60 @@ methods
 
     function [] = plot_test1(runs)
 
+    % find sponge edges
+        sz = size(runs.sponge);
+        sx1 = find(runs.sponge(1:sz(1)/2,sz(2)/2) == 0, 1, 'first');
+        sx2 = sz(1)/2 + find(runs.sponge(sz(1)/2:end,sz(2)/2) == 1, 1, ...
+                             'first') - 2;
+
+        sy2 = find(runs.sponge(sz(1)/2, :) == 1, 1, 'first') - 1;
+
+        v1 = dc_roms_read_data(runs.dir, 'v', [], {'x' sx1 sx1; 'y' ...
+                            sy2 sy2; 'z' 10 10}, [], runs.rgrid);
+        v2 = dc_roms_read_data(runs.dir, 'v', [], {'x' sx2 sx2; 'y' ...
+                            sy2 sy2; 'z' 10 10}, [], runs.rgrid);
+        t = runs.time/runs.eddy.turnover;
+
+        plot(t,v1,t,v2);
+        linex([runs.eddy.edgtscale runs.eddy.tscale]./runs.eddy.turnover);
+    end
+
+    function [] = plot_cg(runs)
+
+        vec = runs.csflux.ikefluxxt(:,300,end)';
+        plot(vec);
+
+        %        gamma = 3; beta = 2;
+        %fs = morsespace(gamma, beta, length(vec));
+        %w = wavetrans(vec', {gamma, beta, fs});
+
+        m2 = 0;1./runs.rrdeep^2
+        k2 = (2*pi/210/1000)^2
+        l2 = (2*pi/150/1000)^2
+        beta = runs.params.phys.beta;
+
+        cgx = beta .* (k2 - (l2 + m2)) ./ (k2+l2+m2)^2
+        cpx = -1 * beta ./ (k2+l2+m2)
+
+        figure; maximize(); pause(0.1);
+
+        pcolorcen(runs.rgrid.x_rho(1,2:end-1)'/1000, runs.eddy.t, ...
+                  runs.csflux.ikefluxxt(:,:,end)');
+        center_colorbar;
+        hold all
+
+        % eddy center
+        plot(runs.eddy.cx/1000, runs.eddy.t);
+
+        % long rossby wave
+        c = - runs.params.phys.beta * runs.rrdeep^2
+        x = xlim;
+        x = [x(1):1:x(2)];
+        plot(x, 150 + (x-510)./(c*86.4));
+        plot(x, 200 + (x-510)./(cpx*86.4));
+
+        legend('energy flux', 'eddy center', 'long wave speed', ...
+               'estimated speed', 'Location', 'SouthWest');
     end
 
     function [] = plot_sponge_enflux(runs)
@@ -492,7 +546,7 @@ methods
         figure; maximize(); pause(0.1);
         insertAnnotation([runs.name '.plot_sponge_enflux()']);
 
-        pcolorcen(runs.csflux.ikefluxxt(:,:,2)');
+        pcolorcen(runs.csflux.ikefluxxt(:,:,end)');
         xlabel('X (index)');
         ylabel('Time (index)');
         center_colorbar;
@@ -564,7 +618,7 @@ methods
             beautify;
         end
 
-        %        spaceplots(0.05*ones([1 4]),0.05*ones([1 2]));
+        % spaceplots(0.05*ones([1 4]),0.05*ones([1 2]));
     end
 
     function [] = plot_asflux_budget(runs)
