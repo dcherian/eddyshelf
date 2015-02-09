@@ -19,7 +19,7 @@ function [] = plot_eddydiag(runArray)
     hfig3 = figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all;
 
     % actual KE, PE
-    hfig4 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all;
+    hfig4 = figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all;
 
     % Ro, L-scale, U-scale
     hfig5 = []; %figure; subplot(3,1,1); hold all; subplot(3,1,2); hold  all;
@@ -94,10 +94,10 @@ function [] = plot_eddydiag(runArray)
             try
                 figure(hfig3)
                 subplot(2,1,1)
-                hgplt = plot(ndtime, run.eddy.KE./run.eddy.KE(1));
+                hgplt = plot(ndtime, run.eddy.KE./run.eddy.vol);
                 addlegend(hgplt, name);
                 subplot(2,1,2)
-                hgplt = plot(ndtime, run.eddy.PE./run.eddy.PE(1));
+                hgplt = plot(ndtime, run.eddy.PE./run.eddy.vol);
                 addlegend(hgplt, name);
 
                 figure(hfig4)
@@ -227,14 +227,14 @@ function [] = plot_eddydiag(runArray)
 
     if hfig3
         figure(hfig3);
-        subplot(2,1,1); ylabel('KE/KE(1)');
-        subplot(2,1,2); ylabel('PE/PE(1)');
+        subplot(2,1,1); ylabel('KE/vol');
+        subplot(2,1,2); ylabel('PE/vol');
         insertAnnotation(annostr);
     end
     if hfig4
         figure(hfig4);
         subplot(2,1,1); ylabel('KE');
-        subplot(2,1,2); ylabel('KE/PE');
+        subplot(2,1,2); ylabel('PE');
     end
     if hfig5
         figure(hfig5);
