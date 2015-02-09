@@ -73,6 +73,44 @@ function [] = eddy_bulkproperties(runs, slab)
                                               2));
         % rhosurf is not needed anymore
         clear rhosurf;
+
+        debug = 0;
+        if debug
+            runs.eddy.pvthresh = squeeze(nanmean(nanmean(fillnan(pv(:,:,1).* ...
+                                bwmorph(runs.eddy.vormask(:,:,1), 'remove'), ...
+                                                              0), 1), 2));
+
+            % calculate ertel pv
+            %[pv,xpv,ypv,zpv] = roms_pv(runs.dir, [], {'z' 70 70},
+            %'ocean_pv.nc', 'his')'
+            pv = squeeze(ncread([runs.dir '/ocean_pv.nc'], 'pv'));
+
+            % debugging plots
+            tt = 1;
+            var = pv; %drhosurf;
+            hplt = pcolorcen(runs.rgrid.x_rho(2:end-1, 2:end-1)/1000, ...
+                             runs.rgrid.y_rho(2:end-1, 2:end-1)/1000, ...
+                             var(:,:,tt)');
+            clim = caxis;
+            hedd = runs.plot_eddy_contour('contour',tt);
+            hssh = runs.plot_eddy_sshcontour('contour',tt);
+            [~,hpv] = contour(runs.rgrid.x_rho(2:end-1, 2:end-1)/1000, ...
+                              runs.rgrid.y_rho(2:end-1, 2:end-1)/1000, ...
+                              pv(:,:,tt)', [1 1] * runs.eddy.pvthresh(1), ...
+                              'g', 'LineWidth', 2);
+            %vend = var(:,:,end);
+            %caxis([min(vend(:)) max(vend(:))]);
+            caxis(clim);
+
+            for tt=1:2:size(var, 3)
+                set(hplt, 'CData', double(var(:,:,tt)'));
+                runs.update_eddy_contour(hedd, tt);
+                runs.update_eddy_sshcontour(hssh, tt);
+                set(hpv, 'zdata', pv(:,:,tt)');
+                pause(0.1);
+            end
+
+        end
     end
 
     % initial time instant works well - see plot_eddye
