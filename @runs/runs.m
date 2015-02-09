@@ -428,7 +428,7 @@ methods
             try
                 runs.asflux.iy(1);
             catch ME
-               runs.asflux.iy = [runs.bathy.xsb runs.spng.sy2];
+                runs.asflux.iy = [runs.bathy.isb runs.spng.sy2];
             end
 
             % create hmat for plotting depth averaged fluxes
