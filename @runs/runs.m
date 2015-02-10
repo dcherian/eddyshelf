@@ -483,9 +483,51 @@ methods
         roms_info(runs.dir);
     end
 
+
     function [] = plot_test1(runs)
 
         figure;
+    end
+
+    function [] = plot_dEdt(runs)
+
+        annostr = 'plot_dEdt';
+
+        dt = diff(runs.eddy.t*86400);
+        TE = runs.eddy.KE + runs.eddy.PE;
+        dEdt = diff(TE)./dt;
+        dhdt = diff(runs.eddy.Lgauss)./dt;
+
+        % velocity
+        v = avg1(runs.eddy.cvy);
+
+        tvec = avg1(runs.eddy.t*86400)./runs.eddy.turnover;
+
+        nanmask = ~(dt == 0) &  ~isnan(v);
+
+        % mask out
+        dEdt = dEdt(nanmask);
+        dhdt = dhdt(nanmask);
+        tvec = tvec(nanmask);
+        v = v(nanmask);
+
+        figure; insertAnnotation(annostr);
+        plot(tvec, dEdt./min(dEdt));
+        hold all
+        plot(tvec, v./min(v));
+        plot(tvec, smooth(dhdt./dhdt(1), 5));
+        title(runs.name); liney(0);
+        xlabel('Time / turnover time');
+        legend('dE/dt','cvy','dh/dt');
+        beautify;
+
+        figure; insertAnnotation(annostr);
+        nsmooth = 1; tind = 40:length(tvec);
+        plot(smooth(dEdt(tind),nsmooth), smooth(v(tind),nsmooth), '*')
+
+        [c,lags] = xcorr(v(tind),dEdt(tind), 'coeff');
+        figure;
+        plot(lags,c);
 
     end
 
