@@ -511,8 +511,10 @@ methods
         tvec = tvec(nanmask);
         v = v(nanmask);
 
+        nsmooth = 3; tind = 40:length(tvec);
+
         figure; insertAnnotation(annostr);
-        plot(tvec, dEdt./min(dEdt));
+        plot(tvec, smooth(dEdt./min(dEdt), nsmooth));
         hold all
         plot(tvec, v./min(v));
         plot(tvec, smooth(dhdt./dhdt(1), 5));
@@ -522,12 +524,16 @@ methods
         beautify;
 
         figure; insertAnnotation(annostr);
-        nsmooth = 1; tind = 40:length(tvec);
-        plot(smooth(dEdt(tind),nsmooth), smooth(v(tind),nsmooth), '*')
+        scatter(smooth(v(tind),nsmooth), smooth(dEdt(tind),nsmooth), ...
+                24, tvec(tind), 'filled')
+        colormap(brighten(cbrewer('seq','Reds',24), -0.75));
+        title(['Scatter plot color coded by time | nsmooth = ' num2str(nsmooth)]);
+        xlabel('v'); ylabel('dE/dt');
+        beautify;
 
-        [c,lags] = xcorr(v(tind),dEdt(tind), 'coeff');
-        figure;
-        plot(lags,c);
+        %[c,lags] = xcorr(v(tind),dEdt(tind), 'coeff');
+        %figure;
+        %plot(lags,c);
 
     end
 
