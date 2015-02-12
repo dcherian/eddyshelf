@@ -13,13 +13,13 @@ function [] = plot_eddydiag(runArray)
     hfig1 = figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all
 
     % center track
-    hfig2 = []; %figure; hold all;
+    hfig2 = figure; hold all;
 
     % KE, PE - normalized by initial value
-    hfig3 = figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all;
+    hfig3 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all;
 
     % actual KE, PE
-    hfig4 = figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all;
+    hfig4 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all;
 
     % Ro, L-scale, U-scale
     hfig5 = []; %figure; subplot(3,1,1); hold all; subplot(3,1,2); hold  all;
@@ -33,6 +33,8 @@ function [] = plot_eddydiag(runArray)
                 %subplot(3,1,3); hold all;
 
     hfig8 = []; %figure; hold all;
+
+    hfig9 = figure; subplot(211); hold all; subplot(212); hold all;
 
     if isempty(runArray.filter)
         runArray.filter = 1:runArray.len;
@@ -99,13 +101,18 @@ function [] = plot_eddydiag(runArray)
                 subplot(2,1,2)
                 hgplt = plot(ndtime, run.eddy.PE./run.eddy.vol);
                 addlegend(hgplt, name);
-
+            catch ME
+            end
+        end
+        if hfig4
+            try
+                Escale = 1/2 * 1000 * run.eddy.V(2)^2 * run.eddy.vol(1);
                 figure(hfig4)
                 subplot(2,1,1)
-                hgplt = plot(ndtime, run.eddy.KE);
+                hgplt = plot(ndtime, run.eddy.KE./Escale);
                 addlegend(hgplt, name);
                 subplot(2,1,2)
-                hgplt = plot(ndtime, run.eddy.PE);
+                hgplt = plot(ndtime, run.eddy.PE./Escale);
                 addlegend(hgplt, name);
             catch ME
             end
@@ -195,7 +202,19 @@ function [] = plot_eddydiag(runArray)
             addlegend(hplot, name);
             plot(ndtime(tindex), vol(tindex), '.', 'MarkerSize', 24, ...
                  'Color', get(hplot, 'Color'));
-         end
+        end
+
+        % x and y velocities
+        if hfig9
+            figure(hfig9)
+            subplot(211)
+            hplot = plot(ndtime, run.eddy.cvx./run.eddy.V);
+            addlegend(hplot, name);
+
+            subplot(212)
+            plot(ndtime, run.eddy.cvy./run.eddy.V);
+        end
+
     end
     if hfig1
         figure(hfig1);
@@ -268,6 +287,18 @@ function [] = plot_eddydiag(runArray)
         xlabel('Non-dim time');
         beautify;
         insertAnnotation(annostr);
+    end
+    if hfig9
+        figure(hfig9);
+        subplot(211);
+        ylabel('Center x-velocity / Eddy velocity scale');
+        beautify;
+
+        subplot(212);
+        liney(0);
+        ylabel('Center y-velocity / Eddy velocity scale');
+        xlabel('Non-dimensional time');
+        beautify;
     end
 
     runArray.reset_colors(corder_backup);
