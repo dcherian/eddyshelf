@@ -124,7 +124,9 @@ function [] = bottom_torque(runs)
     mx = runs.eddy.vor.cx(tind(1):tind(2));
     my = runs.eddy.vor.cy(tind(1):tind(2));
 
-    imy = vecfind(runs.rgrid.yr(1,:), my);
+    imy = vecfind(runs.rgrid.yr(1,imny:imxy), my);
+
+    % f - f @ center of eddy
     f = bsxfun(@minus, f, permute(f(1,imy),[3 1 2]));
 
     % grid vectors - referenced at each time level to location of
@@ -237,7 +239,7 @@ function [] = bottom_torque(runs)
             end
             toc;
 
-            botmask = pbot > 0.1*max(pbot(:));
+
             maskstr = [maskstr ' + P.*botmask'];
             dPdx = squeeze(trapz(trapz(dPdx .* (avg1(botmask) > 0),1),2)*dx*dy);
 
@@ -289,6 +291,7 @@ function [] = bottom_torque(runs)
     %iv = runs.params.phys.f0 .* U;
 
     %%%%%%%%% mask?
+    botmask = pbot > 0.1*max(pbot(:));
     mask_rho = 1; botmask; %irho < -1;
     mpbot = mask_rho .* pbot;
     miv = mask_rho .* iv;
