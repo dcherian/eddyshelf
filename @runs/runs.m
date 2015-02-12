@@ -4,7 +4,9 @@ properties
     name; dir; out_file; ltrans_file; flt_file; givenFile; tracpy_file; ...
         fpos_file;
     % data
-    zeta; temp; usurf; vsurf; vorsurf; csdsurf; ubot; vbot; eddsurf;
+    zeta; temp; usurf; vsurf; vorsurf; csdsurf; ubot; vbot; eddsurf; ...
+        rhosurf;
+    rbacksurf; % background density at surface
     % dimensional and non-dimensional time
     time; ndtime; tscale; tscaleind;
     % barotropic vel (geostrophic)
@@ -96,6 +98,9 @@ methods
         runs.rgrid.zeta = [];
         runs.rgrid.dx = mean(1./runs.rgrid.pm(:));
         runs.rgrid.dy = mean(1./runs.rgrid.pn(:));
+
+        runs.rbacksurf = ncread(runs.out_file, 'rho', [1 1 runs.rgrid.N ...
+                            1], [1 1 1 1]);
 
         % read zeta
         if ~runs.givenFile
@@ -771,21 +776,77 @@ methods
         linkaxes(ax, 'x');
     end
 
-    function [] = read_zeta(runs)
-    % read zeta
-        if ~runs.givenFile
-            runs.zeta = dc_roms_read_data(runs.dir,'zeta',[],{},[],runs.rgrid, ...
-                                          'his', 'single');
+    function [] = read_zeta(runs, t0, ntimes)
+
+        if ~exist('t0', 'var'), t0 = 1; end
+        if ~exist('ntimes', 'var'), ntimes = Inf; end
+
+        % read zeta
+        if ntimes == 1
+            tind = [t0 t0+1];
         else
-            runs.zeta = (ncread(runs.out_file,'zeta'));
+            tind = [1 length(runs.time)];
+        end
+
+        if any(isempty(runs.zeta(:,:,tind(1):tind(2))))
+            if ~runs.givenFile
+                runs.zeta = dc_roms_read_data(runs.dir,'zeta',tind,{},[], ...
+                                              runs.rgrid, 'his', ...
+                                              'single');
+            else
+                runs.zeta = (ncread(runs.out_file,'zeta'));
+            end
         end
     end
 
     % read eddy-dye at surface and save it
-    function [] = read_eddsurf(runs)
-        runs.eddsurf = dc_roms_read_data(runs.dir, runs.eddname, [], ...
-                                         {'z' runs.rgrid.N runs.rgrid.N}, ...
-                                         [], runs.rgrid, 'his', 'single');
+    function [] = read_eddsurf(runs, t0, ntimes)
+        if ~exist('t0', 'var'), t0 = 1; end
+        if ~exist('ntimes', 'var'), ntimes = Inf; end
+
+        % read zeta
+        if ntimes == 1
+            tind = [t0 t0+1];
+        else
+            tind = [1 length(runs.time)];
+        end
+
+        if isempty(runs.eddsurf) | ...
+                any(isempty(runs.eddsurf(:,:,tind(1):tind(2))))
+            if ~runs.givenFile
+                runs.eddsurf = dc_roms_read_data(runs.dir, runs.eddname, [], ...
+                                                 {'z' runs.rgrid.N runs.rgrid.N}, ...
+                                                 [], runs.rgrid, 'his', 'single');
+            else
+                runs.eddsurf = single(squeeze(ncread(runs.out_file,runs.eddname, ...
+                                                     [1 1 runs.rgrid.N ...
+                                    1], [Inf Inf 1 Inf])));
+            end
+        end
+    end
+
+    function [] = read_rhosurf(runs, t0, ntimes)
+        if ~exist('t0', 'var'), t0 = 1; end
+        if ~exist('ntimes', 'var'), ntimes = Inf; end
+
+        % read zeta
+        if ntimes == 1
+            tind = [t0 t0+1];
+        else
+            tind = [1 length(runs.time)];
+        end
+
+        if isempty(runs.rhosurf) | ...
+                any(isempty(runs.rhosurf(:,:,tind(1):tind(2))))
+            if ~runs.givenFile
+                runs.rhosurf = dc_roms_read_data(runs.dir, 'rho', [], ...
+                                                 {'z' runs.rgrid.N runs.rgrid.N}, ...
+                                                 [], runs.rgrid, 'his', 'single');
+            else
+                runs.rhosurf = single(squeeze(ncread(runs.out_file,'rho',[1 1 runs.rgrid.N ...
+                                    1], [Inf Inf 1 Inf])));
+            end
+        end
     end
 
     % plot velocity / ζ sections through the eddy center
@@ -3109,310 +3170,9 @@ methods
         figure;
         %quiver(runs.rgrid.x_r(1,2:end-1),
     end
+
     function [] = animate_zeta(runs, t0, ntimes)
-        runs.video_init('zeta');
-
-        titlestr = 'SSH (m)';
-
-        dt = 10;
-
-        csfluxplot = 0; % 0 = no flux plot
-                      % 1 = instantaneous x-profile;
-        asfluxplot = 1; % 0 = no flux plot
-                        % 1 = instantaneous y-profile;
-                        % 2 = time series plot : left, right and total
-        if (asfluxplot == 1) || (asfluxplot == 2) % which location for asflux plot?
-            asindex = [2 3];
-        end
-        enfluxplot = 0; % plot AS energy flux ?
-        sshplot = 0; % plot ssh-contour too?
-        dyeplot = 0; % plot eddye contour too?
-        telesplot = 0;  % plot lines where grid stretching starts
-                        % and ends
-
-        vecplot = 0; % plot some time vector (assign tvec and vec);
-        if vecplot
-            %%% integrated energy asflux
-            tvec = runs.eddy.t;
-            vec = (runs.asflux.ikeflux(:,3) + runs.asflux.ipeflux(:,3) ...
-                  - runs.asflux.ikeflux(:,2) - runs.asflux.ipeflux(:,2));
-            laby = 'Integrated energy flux';
-            locx = runs.asflux.x(2:3)/1000; locy = [];
-
-            %%% asflux time series
-            %tvec = runs.asflux.time/runs.tscale;
-            %vec = runs.asflux.ikeflux(:,2);
-            %locx = runs.asflux.x(2); locy = [];
-
-            %%% cross-sb shelf water flux
-            %tvec = runs.csflux.time/86400;
-            %vec = runs.csflux.shelf.west.shelf;
-            %laby = 'Shelf water flux (m^3/s)';
-            %locy = runs.bathy.xsb/1000; locx = [];
-
-            %%% area plot
-            %vec = runs.eddy.vor.lmin .* runs.eddy.vor.lmaj;
-            %tvec = runs.eddy.t;
-            %laby = 'Surface area (m^2)';
-            %locx = []; locy = [];
-        end
-
-        if ~exist('ntimes', 'var'), ntimes = length(runs.time); end
-        if ~exist('t0', 'var'), t0 = 1; end
-
-        % read zeta if required
-        if isempty(runs.zeta) | isnan(runs.zeta(:,:,t0))
-            if ntimes == 1
-                runs.zeta = nan([size(runs.rgrid.x_rho') ...
-                                 length(runs.time)]);
-                runs.zeta(:,:,t0) = dc_roms_read_data(runs.dir, 'zeta', ...
-                                                  t0, {}, [], ...
-                                                  runs.rgrid, 'his', ...
-                                                  'double');
-            else
-                runs.read_zeta;
-            end
-        end
-
-        % read eddye if required
-        if dyeplot && isempty(runs.eddsurf)
-            runs.read_eddsurf;
-        end
-
-        % which subplot do I need?
-        if (~isempty(runs.csflux) && csfluxplot == 1) || ...
-                enfluxplot || vecplot
-            subplots_flag = 'x';
-        else
-            if (~isempty(runs.asflux) && asfluxplot == 1)
-                subplots_flag = 'y';
-            else
-                if (~isempty(runs.asflux) && asfluxplot == 2)
-                    subplots_flag = 'x';
-                else
-                    subplots_flag = [];
-                end
-            end
-        end
-
-        %%%% actually plot
-        figure;
-        if subplots_flag == 'x'
-            ax = subplot(3,1,[1 2]);
-        else
-            if subplots_flag == 'y'
-                ax = subplot(1,3,[1 2]);
-            end
-        end
-        ii=t0;
-        hz = runs.plot_zeta('pcolor',ii);
-        hold on
-        colorbar; center_colorbar; freezeColors;
-        hbathy = runs.plot_bathy('contour','k');
-
-        % plot track
-        plot(runs.eddy.mx/1000, runs.eddy.my/1000);
-        plot(runs.eddy.mx/1000, runs.eddy.vor.ne/1000);
-        plot(runs.eddy.mx/1000, runs.eddy.vor.se/1000);
-
-        he = runs.plot_eddy_contour('contour',ii);
-        if sshplot
-            he2 = runs.plot_eddy_sshcontour('contour',ii);
-        end
-        if dyeplot
-            [~,hedd2] = contour(runs.rgrid.x_rho/1000, runs.rgrid.y_rho/1000, ...
-                                runs.eddsurf(:,:,ii)', [1 1]*0.95, 'LineWidth', ...
-                                2, 'Color', 'r');
-        end
-        ht = runs.set_title(titlestr,ii);
-        if runs.params.flags.telescoping && telesplot
-            linex([runs.params.grid.ixn runs.params.grid.ixp], 'telescope','w');
-            liney([runs.params.grid.iyp],'telescope','w');
-        end
-
-        % draw angle
-        %L = createLine(runs.eddy.vor.cx(ii)/1000, runs.eddy.vor.cy(ii)/1000, ...
-        %               1, -1*runs.eddy.vor.angle(ii)*pi/180);
-        %       hline = drawLine(L);
-        xlabel('X (km)');ylabel('Y (km)');
-        if isempty(subplots_flag)
-            axis image;
-        else
-            %axis equal;
-        end
-        if vecplot
-            linex(locx); liney(locy);
-        end
-        maximize(gcf); pause(0.2);
-        beautify([16 16 18]);
-        ax = gca;
-
-        % second plot
-        if subplots_flag == 'x'
-            ax2 = subplot(3,1,3);
-            if vecplot
-                hvec = plot(tvec, vec);
-                htime = linex(tvec(ii));
-                %ylim([-1 1] .* max(vec)/3);
-                % if vector goes through zero, mark zero
-                if min(vec(:)) .* max(vec(:)) < 0
-                    liney(0);
-                end
-
-                ylabel(laby);
-                xlabel('Time (days)');
-            end
-
-            if asfluxplot == 2
-                filter = '';
-
-                eval(['left = runs.asflux.' filter 'ikeflux(:,asindex(1)) + '...
-                       'runs.asflux.' filter 'ipeflux(:,asindex(1))']);
-                eval(['right = runs.asflux.' filter 'ikeflux(:,asindex(2)) + ' ...
-                        'runs.asflux.' filter 'ipeflux(:,asindex(2))']);
-
-                total = right - left;
-
-                tvec = runs.asflux.time/86400;
-
-                hold all
-                plot(tvec, left);
-                plot(tvec, right);
-                plot(tvec, total, 'k');
-                hleg = legend('west', 'east', 'total (into domain > 0)', ...
-                              'Location' ,'NorthWest');
-                set(hleg, 'box', 'off');
-                liney(0);
-                htime = linex(tvec(ii));
-                beautify;
-
-                axes(ax);
-                linex(runs.asflux.x(asindex)/1000);
-            end
-
-            if csfluxplot == 1
-                hflux = plot(runs.rgrid.xr(2:end-1,1)/1000, ...
-                             runs.csflux.shelfxt(:, ii));
-                ylim([min(runs.csflux.shelfxt(:)) ...
-                      max(runs.csflux.shelfxt(:))]);
-                hee = linex(runs.eddy.vor.ee(ii)/1000);
-                oldpos = get(ax, 'Position');
-                newpos = get(ax2, 'Position');
-                newpos(3) = oldpos(3);
-                set(ax2, 'Position', newpos);
-                linkaxes([ax ax2], 'x');
-                liney(0);
-                xlabel('X (km)');
-                title('\int v(x,z,t)dz (m^2/s)');
-            end
-        end
-        if subplots_flag == 'y'
-            ax2 = subplot(1,3,3);
-
-            % AS fluxes
-            if asfluxplot == 1
-                cla
-                matrix1 = runs.asflux.ipefluxyt(:,:,asindex(1)) + ...
-                          runs.asflux.ikefluxyt(:,:,asindex(1));
-                yl = size(matrix1,1);
-                isb = runs.bathy.isb;
-                hflux1 = plot(matrix1(:,ii), ...
-                              runs.rgrid.yr(1,isb:isb+yl-1)/1000);
-                hleg = addlegend(hflux1, ...
-                                 ['x = ' ...
-                                  num2str(runs.asflux.x(asindex(1))/1000) ...
-                                  ' km']);
-                if length(asindex) > 1
-                    matrix2 = runs.asflux.ipefluxyt(:,:,asindex(2)) ...
-                              + runs.asflux.ikefluxyt(:,:, asindex(2));
-                    hold all
-                    hflux2 = plot(matrix2(:,ii), ...
-                                  runs.rgrid.yr(1,isb:isb+yl-1)/1000);
-                    hleg = addlegend(hflux2, ...
-                                 [' x = ' ...
-                                  num2str(runs.asflux.x(asindex(2))/1000) ...
-                                  ' km']);
-                else
-                    matrix2 = [];
-                end
-
-                set(hleg, 'Location', 'NorthWest', 'Box' ,'off');
-                xlim([-1 1]*max(abs([matrix1(:); matrix2(:)])));
-                liney([runs.bathy.xsb runs.bathy.xsl]/1000, [], 'k');
-                xlabel('Along-isobath depth-integrated energy flux');
-                ylabel('Y(km)');
-                linex(0); beautify;
-
-                axes(ax)
-                linex(runs.asflux.x(asindex)/1000);
-
-                linkaxes([ax ax2], 'y');
-            end
-
-            beautify;
-        end
-
-        if ntimes > 1
-            runs.video_update();
-            for ii = t0+1:dt:ntimes
-                %L = createLine(runs.eddy.vor.cx(ii)/1000, runs.eddy.vor.cy(ii)/1000, ...
-                %           1, -1*runs.eddy.vor.angle(ii)*pi/180);
-                %delete(hline);
-                if ~isempty(runs.csflux) && csfluxplot > 0
-                    set(hee_zeta, 'XData', [1 1]* runs.eddy.vor.ee(ii)/ ...
-                                  1000);
-                    axes(ax);
-                    %hline = drawLine(L);
-                end
-
-                runs.update_zeta(hz,ii);
-                runs.update_eddy_contour(he,ii);
-                % ssh contour
-                if sshplot
-                    runs.update_eddy_sshcontour(he2,ii);
-                end
-                runs.update_title(ht,titlestr,ii);
-
-                % eddye contours
-                if dyeplot
-                    set(hedd2, 'ZData', runs.eddsurf(:,:,ii)');
-                end
-
-                % shelfwater flux plots
-                if ~isempty(runs.csflux) && csfluxplot == 1
-                    axis(ax2);
-                    if exist('htime', 'var')
-                        set(htime, 'XData', [1 1]*runs.csflux.time(ii)/ ...
-                                   86400);
-                    else
-                        set(hflux, 'YData', runs.csflux.shelfxt(:,ii));
-                        set(hee, 'XData', [1 1]*runs.eddy.vor.ee(ii)/1000);
-                    end
-                end
-
-                % AS eddy water flux plots
-                if ~isempty(runs.asflux) && asfluxplot == 1
-                    axis(ax2);
-                    if exist('htime', 'var')
-                        set(htime, 'XData', [1 1]*runs.asflux.time(ii)/ ...
-                                   86400);
-                    else
-                        set(hflux1, 'XData', matrix1(:,ii));
-                        if length(asindex) > 1
-                            set(hflux2, 'XData', matrix2(:,ii));
-                        end
-                    end
-                end
-
-                % mark time for time-series plots
-                if vecplot || (asfluxplot == 2)
-                    set(htime, 'XData', [1 1]*tvec(ii));
-                end
-                runs.video_update();
-                pause(1);
-            end
-            runs.video_write();
-        end
+        runs.animate_field('zeta', t0, ntimes);
     end
 
     % depth section through streamer
@@ -5351,6 +5111,7 @@ methods
         if ~isnan(zend)
             caxis([min(zend(:)) max(zend(:))]);
         end
+        center_colorbar;
     end
     function update_zeta(runs,handle,tt)
         try
@@ -5361,6 +5122,42 @@ methods
             set(handle,'ZData',double(runs.zeta(:,:,tt)));
         end
     end
+
+    function [hplot] = plot_surf(runs,varname,plottype,tt)
+        if ~exist('tt','var'), tt = 1; end
+
+        if strcmpi(plottype,'pcolor')
+            eval(['hplot = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000,' ...
+                  'double(runs.' varname '(:,:,tt)));']);
+            if runs.makeVideo
+                shading interp;
+            else
+                shading flat
+            end
+        else
+            if strcmpi(plottype,'contourf') || strcmpi(plottype,'contour')
+                eval(['[cc,hplot] = ' plottype '(runs.rgrid.xr/1000,runs.rgrid.yr/1000,'...
+                    'double(runs.' varname '(:,:,tt)));']);
+                shading flat
+            end
+        end
+        eval(['zend = runs.' varname '(:,:,end);']);
+        if ~isnan(zend)
+            caxis([min(zend(:)) max(zend(:))]);
+        end
+
+        if strcmpi(varname, 'eddye')
+            center_colorbar;
+        end
+    end
+    function update_surf(runs,varname,handle,tt)
+        try
+            eval(['set(handle,''CData'',double(runs.' varname '(:,:,tt)))']);
+        catch ME
+            eval(['set(handle,''ZData'',double(runs.' varname '(:,:,tt)))']);
+        end
+    end
+
 
     function [hplot] = plot_eddy_contour(runs,plottype,tt)
         try
@@ -5386,6 +5183,29 @@ methods
             end
         end
     end
+
+
+    function [hplot] = plot_rho_contour(runs,plottype,tt)
+
+        mask = ((runs.rhosurf(2:end-1,2:end-1,tt) - runs.rbacksurf) < ...
+               runs.eddy.drhothresh(1)) .* runs.eddy.vormask(:,:,tt);
+        hold on;
+
+        [~,hplot] = contour(runs.eddy.xr/1000,runs.eddy.yr/1000, ...
+                    mask,'Color',[44 162 95]/256,'LineWidth',1);
+    end
+    function update_rho_contour(runs,handle,tt)
+        mask = ((runs.rhosurf(2:end-1,2:end-1,tt) - runs.rbacksurf) < ...
+               runs.eddy.drhothresh(1)) .* runs.eddy.vormask(:,:,tt);
+
+        for ii=1:length(handle)
+            try
+                set(handle(ii),'ZData',mask);
+            catch ME
+            end
+        end
+    end
+
 
     function [hplot] = plot_eddy_sshcontour(runs,plottype,tt)
         try
