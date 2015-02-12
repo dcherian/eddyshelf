@@ -788,7 +788,8 @@ methods
             tind = [1 length(runs.time)];
         end
 
-        if any(isempty(runs.zeta(:,:,tind(1):tind(2))))
+        if isempty(runs.zeta) | ...
+                any(isempty(runs.zeta(:,:,tind(1):tind(2))))
             if ~runs.givenFile
                 runs.zeta = dc_roms_read_data(runs.dir,'zeta',tind,{},[], ...
                                               runs.rgrid, 'his', ...
@@ -3172,6 +3173,9 @@ methods
     end
 
     function [] = animate_zeta(runs, t0, ntimes)
+        if ~exist('t0', 'var'), t0 = 1; end
+        if ~exist('ntimes', 'var'), ntimes = length(runs.time); end
+
         runs.animate_field('zeta', t0, ntimes);
     end
 
