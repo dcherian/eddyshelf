@@ -493,6 +493,7 @@ methods
 
         annostr = 'plot_dEdt';
 
+        beta = runs.params.phys.beta;
         dt = diff(runs.eddy.t*86400);
         TE = runs.eddy.KE + runs.eddy.PE;
         dEdt = diff(TE)./dt;
@@ -505,29 +506,43 @@ methods
 
         nanmask = ~(dt == 0) &  ~isnan(v);
 
+
+        figure;
+        plot(tvec, avg1(TE));
+
         % mask out
         dEdt = dEdt(nanmask);
         dhdt = dhdt(nanmask);
         tvec = tvec(nanmask);
         v = v(nanmask);
 
-        nsmooth = 3; tind = 40:length(tvec);
+        nsmooth = 3; tind = 1:ceil(50*runs.eddy.turnover/86400);
 
         figure; insertAnnotation(annostr);
         plot(tvec, smooth(dEdt./min(dEdt), nsmooth));
         hold all
         plot(tvec, v./min(v));
-        plot(tvec, smooth(dhdt./dhdt(1), 5));
+        %plot(tvec, smooth(dhdt./dhdt(1), 5));
         title(runs.name); liney(0);
         xlabel('Time / turnover time');
         legend('dE/dt','cvy','dh/dt');
         beautify;
 
+        %stop
+
+        param = (runs.eddy.Lgauss)./abs(runs.eddy.hcen' - runs.eddy.Lgauss) ...
+                .* runs.params.phys.beta .* runs.eddy.V;
+
+        figure;
+        plot(param);
+
         figure; insertAnnotation(annostr);
-        scatter(smooth(v(tind),nsmooth), smooth(dEdt(tind),nsmooth), ...
+        hold all;
+        scatter(smooth(beta * v(tind),nsmooth), smooth(dEdt(tind),nsmooth), ...
                 24, tvec(tind), 'filled')
         colormap(brighten(cbrewer('seq','Reds',24), -0.75));
-        title(['Scatter plot color coded by time | nsmooth = ' num2str(nsmooth)]);
+        title([runs.name [' | Scatter plot color coded by time | ' ...
+                          'nsmooth = '] num2str(nsmooth)]);
         xlabel('v'); ylabel('dE/dt');
         beautify;
 
