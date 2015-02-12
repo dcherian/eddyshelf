@@ -15,6 +15,7 @@ function [] = animate_field(runs, name, t0, ntimes)
         asindex = [1 2];
     end
 
+    rhocontourplot = 1; % plot eddy drho contour too?
     enfluxplot = 0; % plot AS energy flux ?
     sshplot = 0; % plot ssh-contour too?
     dyeplot = 0; % plot eddye contour too?
@@ -75,7 +76,7 @@ function [] = animate_field(runs, name, t0, ntimes)
     end
 
     % read rhosurf if required
-    if strcmpi(name, 'rho');
+    if strcmpi(name, 'rho') || rhocontourplot
         runs.read_rhosurf(t0, ntimes);
         varname = 'rhosurf';
         titlestr = 'Surface \rho';
@@ -130,6 +131,9 @@ function [] = animate_field(runs, name, t0, ntimes)
     he = runs.plot_eddy_contour('contour',ii);
     if sshplot
         he2 = runs.plot_eddy_sshcontour('contour',ii);
+    end
+    if rhocontourplot
+        he3 = runs.plot_rho_contour('contour', ii);
     end
 
     % telescoping lines
@@ -289,6 +293,9 @@ function [] = animate_field(runs, name, t0, ntimes)
             % ssh contour
             if sshplot
                 runs.update_eddy_sshcontour(he2,ii);
+            end
+            if rhocontourplot
+                runs.update_rho_contour(he3,ii);
             end
             runs.update_title(ht,titlestr,ii);
 
