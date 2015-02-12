@@ -76,14 +76,15 @@ function [] = eddy_bulkproperties(runs, slab)
 
         debug = 0;
         if debug
-            runs.eddy.pvthresh = squeeze(nanmean(nanmean(fillnan(pv(:,:,1).* ...
-                                bwmorph(runs.eddy.vormask(:,:,1), 'remove'), ...
-                                                              0), 1), 2));
 
             % calculate ertel pv
             %[pv,xpv,ypv,zpv] = roms_pv(runs.dir, [], {'z' 70 70},
             %'ocean_pv.nc', 'his')'
             pv = squeeze(ncread([runs.dir '/ocean_pv.nc'], 'pv'));
+
+            runs.eddy.pvthresh = squeeze(nanmean(nanmean(fillnan(pv(:,:,1).* ...
+                                                              bwmorph(runs.eddy.vormask(:,:,1), 'remove'), ...
+                                                              0), 1), 2));
 
             % debugging plots
             tt = 1;
