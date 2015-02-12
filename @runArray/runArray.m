@@ -744,6 +744,64 @@ classdef runArray < handle
 
         function [] = plot_test1(runArray)
             hfig = figure;
+            ax1 = subplot(211); hold all;
+            ax2 = subplot(212); hold all;
+
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            if runArray.sorted
+                subplot(211);
+                co = runArray.sorted_colors;
+                subplot(212);
+                co = runArray.sorted_colors;
+            end
+
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
+                run = runArray.array(ii);
+                name = run.name;
+
+                ndtime = run.eddy.t * 86400./ (run.eddy.turnover);
+                tind = 1:ceil(50*run.eddy.turnover/86400);
+
+                beta = run.params.phys.beta;
+                Ldef = run.rrdeep;
+
+                dEdt = smooth(diff(run.eddy.KE + run.eddy.PE)./ ...
+                       diff(run.eddy.t*86400), 14);
+                ndtime1 = avg1(ndtime);
+
+                [~,~,rest] = run.locate_resistance;
+                tinds = [run.eddy.tscaleind run.eddy.edgtscaleind rest];
+                axes(ax1)
+                hplot = plot(ndtime1, dEdt);
+                %figure;
+                %hplot = plot(ndtime, run.eddy.cvx * 1000/86400);
+                addlegend(hplot, name);
+                plot(ndtime1(tinds), dEdt(tinds), 'k*');
+                %liney(-beta .* Ldef^2);
+                %linex(ndtime(run.tscaleind));
+                %pause();
+
+                axes(ax2)
+                plot(ndtime, run.eddy.KE);
+                plot(ndtime(tinds), run.eddy.KE(tinds), 'k*');
+            end
+            axes(ax1); liney(0);
+            axes(ax2); liney(0);
+
+            insertAnnotation('runArray.plot_test1');
+            beautify;
+
+            if runArray.sorted
+                runArray.reset_colors(co);
+            end
+        end
+
+        function [] = plot_Rosurf(runArray)
+            hfig = figure;
             ax = gca; hold all;
 
             if isempty(runArray.filter)
