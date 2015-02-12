@@ -6,6 +6,7 @@ properties
     % data
     zeta; temp; usurf; vsurf; vorsurf; csdsurf; ubot; vbot; eddsurf; ...
         rhosurf;
+    rbacksurf; % background density at surface
     % dimensional and non-dimensional time
     time; ndtime; tscale; tscaleind;
     % barotropic vel (geostrophic)
@@ -97,6 +98,9 @@ methods
         runs.rgrid.zeta = [];
         runs.rgrid.dx = mean(1./runs.rgrid.pm(:));
         runs.rgrid.dy = mean(1./runs.rgrid.pn(:));
+
+        runs.rbacksurf = ncread(runs.out_file, 'rho', [1 1 runs.rgrid.N ...
+                            1], [1 1 1 1]);
 
         % read zeta
         if ~runs.givenFile
@@ -5162,6 +5166,29 @@ methods
             end
         end
     end
+
+
+    function [hplot] = plot_rho_contour(runs,plottype,tt)
+
+        mask = ((runs.rhosurf(2:end-1,2:end-1,tt) - runs.rbacksurf) < ...
+               runs.eddy.drhothresh(1)) .* runs.eddy.vormask(:,:,tt);
+        hold on;
+
+        [~,hplot] = contour(runs.eddy.xr/1000,runs.eddy.yr/1000, ...
+                    mask,'Color',[44 162 95]/256,'LineWidth',1);
+    end
+    function update_rho_contour(runs,handle,tt)
+        mask = ((runs.rhosurf(2:end-1,2:end-1,tt) - runs.rbacksurf) < ...
+               runs.eddy.drhothresh(1)) .* runs.eddy.vormask(:,:,tt);
+
+        for ii=1:length(handle)
+            try
+                set(handle(ii),'ZData',mask);
+            catch ME
+            end
+        end
+    end
+
 
     function [hplot] = plot_eddy_sshcontour(runs,plottype,tt)
         try
