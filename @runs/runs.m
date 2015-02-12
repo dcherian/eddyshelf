@@ -4,7 +4,8 @@ properties
     name; dir; out_file; ltrans_file; flt_file; givenFile; tracpy_file; ...
         fpos_file;
     % data
-    zeta; temp; usurf; vsurf; vorsurf; csdsurf; ubot; vbot; eddsurf;
+    zeta; temp; usurf; vsurf; vorsurf; csdsurf; ubot; vbot; eddsurf; ...
+        rhosurf;
     % dimensional and non-dimensional time
     time; ndtime; tscale; tscaleind;
     % barotropic vel (geostrophic)
@@ -756,21 +757,77 @@ methods
         linkaxes(ax, 'x');
     end
 
-    function [] = read_zeta(runs)
-    % read zeta
-        if ~runs.givenFile
-            runs.zeta = dc_roms_read_data(runs.dir,'zeta',[],{},[],runs.rgrid, ...
-                                          'his', 'single');
+    function [] = read_zeta(runs, t0, ntimes)
+
+        if ~exist('t0', 'var'), t0 = 1; end
+        if ~exist('ntimes', 'var'), ntimes = Inf; end
+
+        % read zeta
+        if ntimes == 1
+            tind = [t0 t0+1];
         else
-            runs.zeta = (ncread(runs.out_file,'zeta'));
+            tind = [1 length(runs.time)];
+        end
+
+        if any(isempty(runs.zeta(:,:,tind(1):tind(2))))
+            if ~runs.givenFile
+                runs.zeta = dc_roms_read_data(runs.dir,'zeta',tind,{},[], ...
+                                              runs.rgrid, 'his', ...
+                                              'single');
+            else
+                runs.zeta = (ncread(runs.out_file,'zeta'));
+            end
         end
     end
 
     % read eddy-dye at surface and save it
-    function [] = read_eddsurf(runs)
-        runs.eddsurf = dc_roms_read_data(runs.dir, runs.eddname, [], ...
-                                         {'z' runs.rgrid.N runs.rgrid.N}, ...
-                                         [], runs.rgrid, 'his', 'single');
+    function [] = read_eddsurf(runs, t0, ntimes)
+        if ~exist('t0', 'var'), t0 = 1; end
+        if ~exist('ntimes', 'var'), ntimes = Inf; end
+
+        % read zeta
+        if ntimes == 1
+            tind = [t0 t0+1];
+        else
+            tind = [1 length(runs.time)];
+        end
+
+        if isempth(runs.eddsurf) | ...
+                any(isempty(runs.eddsurf(:,:,tind(1):tind(2))))
+            if ~runs.givenFile
+                runs.eddsurf = dc_roms_read_data(runs.dir, runs.eddname, [], ...
+                                                 {'z' runs.rgrid.N runs.rgrid.N}, ...
+                                                 [], runs.rgrid, 'his', 'single');
+            else
+                runs.eddsurf = single(squeeze(ncread(runs.out_file,runs.eddname, ...
+                                                     [1 1 runs.rgrid.N ...
+                                    1], [Inf Inf 1 Inf])));
+            end
+        end
+    end
+
+    function [] = read_rhosurf(runs, t0, ntimes)
+        if ~exist('t0', 'var'), t0 = 1; end
+        if ~exist('ntimes', 'var'), ntimes = Inf; end
+
+        % read zeta
+        if ntimes == 1
+            tind = [t0 t0+1];
+        else
+            tind = [1 length(runs.time)];
+        end
+
+        if isempty(runs.rhosurf) | ...
+                any(isempty(runs.rhosurf(:,:,tind(1):tind(2))))
+            if ~runs.givenFile
+                runs.rhosurf = dc_roms_read_data(runs.dir, 'rho', [], ...
+                                                 {'z' runs.rgrid.N runs.rgrid.N}, ...
+                                                 [], runs.rgrid, 'his', 'single');
+            else
+                runs.rhosurf = single(squeeze(ncread(runs.out_file,'rho',[1 1 runs.rgrid.N ...
+                                    1], [Inf Inf 1 Inf])));
+            end
+        end
     end
 
     % plot velocity / ζ sections through the eddy center
@@ -5033,6 +5090,7 @@ methods
         if ~isnan(zend)
             caxis([min(zend(:)) max(zend(:))]);
         end
+        center_colorbar;
     end
     function update_zeta(runs,handle,tt)
         try
@@ -5043,6 +5101,42 @@ methods
             set(handle,'ZData',double(runs.zeta(:,:,tt)));
         end
     end
+
+    function [hplot] = plot_surf(runs,varname,plottype,tt)
+        if ~exist('tt','var'), tt = 1; end
+
+        if strcmpi(plottype,'pcolor')
+            eval(['hplot = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000,' ...
+                  'double(runs.' varname '(:,:,tt)));']);
+            if runs.makeVideo
+                shading interp;
+            else
+                shading flat
+            end
+        else
+            if strcmpi(plottype,'contourf') || strcmpi(plottype,'contour')
+                eval(['[cc,hplot] = ' plottype '(runs.rgrid.xr/1000,runs.rgrid.yr/1000,'...
+                    'double(runs.' varname '(:,:,tt)));']);
+                shading flat
+            end
+        end
+        eval(['zend = runs.' varname '(:,:,end);']);
+        if ~isnan(zend)
+            caxis([min(zend(:)) max(zend(:))]);
+        end
+
+        if strcmpi(varname, 'eddye')
+            center_colorbar;
+        end
+    end
+    function update_surf(runs,varname,handle,tt)
+        try
+            eval(['set(handle,''CData'',double(runs.' varname '(:,:,tt)))']);
+        catch ME
+            eval(['set(handle,''ZData'',double(runs.' varname '(:,:,tt)))']);
+        end
+    end
+
 
     function [hplot] = plot_eddy_contour(runs,plottype,tt)
         try
