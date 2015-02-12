@@ -32,10 +32,15 @@ function [] = animate_field(runs, name, t0, ntimes)
         %locx = runs.asflux.x(2:3)/1000; locy = [];
 
         %%% dE/dt
-        tvec = avg1(runs.eddy.t);
-        vec = smooth(diff(runs.eddy.KE + runs.eddy.PE)./ ...
-                     diff(runs.eddy.t*86400), 4);
-        laby = 'dE/dt';
+        %tvec = avg1(runs.eddy.t);
+        %vec = smooth(diff(runs.eddy.KE + runs.eddy.PE)./ ...
+        %             diff(runs.eddy.t*86400), 4);
+        %laby = 'dE/dt';
+        %locx = []; locy = [];
+
+        tvec = runs.eddy.t;
+        vec = runs.eddy.vol;
+        laby = 'Volume (m^3)';
         locx = []; locy = [];
 
         %%% asflux time series
@@ -105,7 +110,7 @@ function [] = animate_field(runs, name, t0, ntimes)
     %%%% actually plot
     figure; insertAnnotation([runs.name '.animate_field']);
     if subplots_flag == 'x'
-        ax = subplot(3,1,[1 2]);
+        ax = subplot(5,1,[1 2 3]);
     else
         if subplots_flag == 'y'
             ax = subplot(1,3,[1 2]);
@@ -172,7 +177,7 @@ function [] = animate_field(runs, name, t0, ntimes)
 
     % second plot
     if subplots_flag == 'x'
-        ax2 = subplot(3,1,3);
+        ax2 = subplot(5,1,[4 5]);
         if vecplot
             hvec = plot(tvec, vec);
             htime = linex(tvec(ii));
