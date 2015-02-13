@@ -55,15 +55,16 @@ function [] = plot_eddye(runs, days)
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
             colorbar;
             if ii == 1
-                clim = [-0.0553 -0.0021]; %caxis;
+                clim = caxis; %[-0.0553 -0.0021]; %caxis;
                 ylabel('Z (m)');
             end
             caxis(clim);
             hold on;
             contour(yz, runs.rgrid.z_r(:,:,1)', ed, 1, 'k', ...
                     'LineWidth', 2);
-            contour(yz, runs.rgrid.z_r(:,:,1)', drho, [1 1]*runs.eddy.drhothresh(1), ...
-                    'Color', [1 1 1]*0.5, 'LineWidth', 2);
+            contour(yz, runs.rgrid.z_r(:,:,1)', drho, ...
+                    [runs.eddy.drhothresh(1) runs.eddy.drhothreshssh(1)], ...
+                    'Color', [1 1 1]*0.3, 'LineWidth', 2);
             caxis(clim);
             title(['day ' num2str(days(ii))]);
             xlabel('Y (km)');
