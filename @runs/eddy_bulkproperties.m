@@ -61,9 +61,8 @@ function [] = eddy_bulkproperties(runs, slab)
     if ~isfield(runs.eddy, 'drhothresh')
         % figure out eddy structure in 3D
         % read surface density field
-        rhosurf = dc_roms_read_data(runs.dir, 'rho', tind, {'z' runs.rgrid.N runs.rgrid.N}, ...
-                                    [], runs.rgrid, ftype, 'single');
-        rhosurf = rhosurf(2:end-1,2:end-1,:);
+        runs.read_rhosurf;
+        rhosurf = runs.rhosurf(2:end-1,2:end-1,:);
         drhosurf = bsxfun(@minus, rhosurf, rback(:,:,end));
         % find what density corresponds to 0 vorticity contour
         runs.eddy.drhothresh = squeeze(nanmax(nanmax(drhosurf.* ...
@@ -71,6 +70,10 @@ function [] = eddy_bulkproperties(runs, slab)
                                                           .vormask,0), ...
                                                      [], 1), [], ...
                                               2));
+        runs.eddy.rhothreshssh = squeeze(nanmax(nanmax(drhosurf.* ...
+                                           fillnan(runs.eddy.mask,0), ...
+                                           [], 1), [], 2));
+
         % rhosurf is not needed anymore
         clear rhosurf;
 
