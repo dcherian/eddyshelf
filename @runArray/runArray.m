@@ -135,7 +135,7 @@ classdef runArray < handle
             diags = nan(size(runArray.filter));
 
             if plots
-                hfig = gcf;%hfig = figure;
+                hfig = figure;
                 hold all;
                 name_points = 1; % name points by default
                 labx = ' '; laby = ' ';
@@ -436,6 +436,7 @@ classdef runArray < handle
 
                 %%%%% beta v/s beta_t
                 if strcmpi(name, 'betas')
+                    plots = 0;
                     betat = run.bathy.sl_slope .* run.params.phys.f0 ...
                             ./ max(run.bathy.h(:));
                     diagstr = [num2str( ...
