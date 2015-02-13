@@ -200,30 +200,15 @@ function [] = bottom_torque(runs)
         v = avg1(dc_roms_read_data(runs.dir, 'v', tind, volumev, [], ...
                               runs.rgrid, 'his', 'single'), 2);
 
-        um = u; % .* eddye; % .* bsxfun(@times, eddye, permute(mask, [1 2 4 3]));
-        vm = v; % .* eddye; % .* bsxfun(@times, eddye, permute(mask, [1 2 4 3]));
-        pm = pres; % .* bsxfun(@times, eddye, permute(mask, [1 2 4 3]));
-        maskstr = [maskstr ' + u.*eddye'];
-
         % depth-integrate quantities
-        U = nan([size(um, 1) size(um, 2) size(um, 4)]);
-        if mom_budget
-            V = U; V2 = V; UV = V; U2 = U; P = U;
-        end
         tic;
-        for ii=1:size(um, 1)
-            for jj=1:size(um, 2)
-                U(ii,jj,:) = trapz(zrmat(:,jj,ii), um(ii,jj,:,:), 3);
-                if mom_budget
-                    V(ii,jj,:) = trapz(zrmat(:,jj,ii), vm(ii,jj,:,:), 3);
-                    UV(ii,jj,:) = trapz(zrmat(:,jj,ii), um(ii,jj,:,:) ...
-                                        .* vm(ii,jj,:,:), 3);
-                    V2(ii,jj,:) = trapz(zrmat(:,jj,ii), ...
-                                        vm(ii,jj,:,:).^2, 3);
-                    U2(ii,jj,:) = trapz(zrmat(:,jj,ii), um(ii,jj,:,:).^2, 3);
-                    P(ii,jj,:) = trapz(zrmat(:,jj,ii), pm(ii,jj,:,:),3);
-                end
-            end
+        U = squeeze(sum(bsxfun(@times, u, dzmat), 3));
+        if mom_budget
+             V = squeeze(sum(bsxfun(@times, v, dzmat), 3));
+            UV = squeeze(sum(bsxfun(@times, u.*v, dzmat), 3));
+            U2 = squeeze(sum(bsxfun(@times, u.^2, dzmat), 3));
+            V2 = squeeze(sum(bsxfun(@times, v.^2, dzmat), 3));
+             P = squeeze(sum(bsxfun(@times, p, dzmat), 3));
         end
         toc;
 
@@ -232,20 +217,6 @@ function [] = bottom_torque(runs)
 
         % try depth integrated momentum budget
         if mom_budget
-            tic;
-            dPdx = nan([size(um,1)-1 size(um,2) size(um,4)]);
-            dpresdx = diff(pres,1,1)./dx;
-            for ii=1:size(dpresdx,1)
-                for jj=1:size(dpresdx, 2)
-                    dPdx(ii,jj,:) = trapz(zrmat(:,jj,ii), dpresdx(ii,jj,:,:), 3);
-                end
-            end
-            toc;
-
-            maskstr = [maskstr ' + P.*botmask'];
-
-            % intergrated form
-            dPdx = squeeze(trapz(trapz(dPdx,1),2)*dx*dy);
 
             % pressure gradients
             dpdy = squeeze(trapz(trapz(diff(P,1,1)./dx,1),2));
