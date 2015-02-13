@@ -154,8 +154,9 @@ function [] = bottom_torque(runs)
     dzmat = diff(permute(zwmat, [3 2 1]), 1, 3);
 
     % subtract out background density to get anomaly
-    rho = bsxfun(@minus, rho, rback) .* eddye;
-    maskstr = [maskstr ' + rho.*eddye'];
+    % see Flierl (1987)
+    rho = bsxfun(@minus, rho, rback);
+    maskstr = [maskstr];
 
     % depth-integrate density anomaly field from surface to bottom
     tic;
