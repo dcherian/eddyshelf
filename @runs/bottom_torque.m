@@ -141,12 +141,19 @@ function [] = bottom_torque(runs)
 
     % grid vectors - referenced at each time level to location of
     % eddy center
-    xrmat = bsxfun(@minus, runs.rgrid.xr(imnx:imxx, imny:imxy), ...
-                   permute(mx, [3 1 2]));
-    yrmat = bsxfun(@minus, runs.rgrid.yr(imnx:imxx, imny:imxy), ...
-                   permute(my, [3 1 2]));
+    %xrmat = bsxfun(@minus, runs.rgrid.xr(imnx:imxx, imny:imxy), ...
+    %               permute(mx, [3 1 2]));
+    %yrmat = bsxfun(@minus, runs.rgrid.yr(imnx:imxx, imny:imxy), ...
+    %               permute(my, [3 1 2]));
+    xrmat = repmat(runs.rgrid.x_rho(imny:imxy, imnx:imxx)', [1 1 ...
+                        size(mask,3)]);
+    yrmat = repmat(runs.rgrid.y_rho(imny:imxy, imnx:imxx)', [1 1 ...
+                        size(mask,3)]);
+
     zrmat = runs.rgrid.z_r(:,2:end-1,2:end-1);
     zrmat = zrmat(:,imny:imxy, imnx:imxx);
+    zwmat = runs.rgrid.z_w(:,2:end-1,2:end-1);
+    zwmat = zwmat(:,imny:imxy, imnx:imxx);
     dzmat = diff(permute(zwmat, [3 2 1]), 1, 3);
 
     % subtract out background density to get anomaly
