@@ -324,54 +324,69 @@ classdef runArray < handle
                 %%%%% Flierl (1987) bottom torque hypothesis.
                 if strcmpi(name, 'bottom torque')
 
-                    ndtime = run.eddy.t*86400 ./ run.eddy.turnover;
-                    Lx = sqrt(run.eddy.vor.lmaj .* run.eddy.vor.lmin);
-                    c = smooth(run.eddy.mvx, 10)';
-                    V = run.eddy.V;
-                    Vb = run.eddy.Vb;
-                    alpha = run.bathy.sl_slope;
                     beta = run.params.phys.beta;
                     f0 = run.params.phys.f0;
-                    hcen = run.eddy.hcen';
+                    Lz = run.eddy.Lgauss(1);
+                    H0 = run.eddy.hcen(1);
+                    alpha = run.bathy.sl_slope;
+                    V = run.eddy.V;
 
-                    % last 'n' turnover periods
-                    n = 30;
-                    ind = find_approx(run.eddy.t, run.eddy.t(end) - ...
-                                      n * run.eddy.turnover/86400);
+                    [~,~,tind] = run.locate_resistance;
+                    H = runs.eddy.hcen(tind);
 
-                    % average quantities
-                    Vm = nanmean(V(ind:end));
-                    Vbm = nanmean(Vb(ind:end));
-                    cm = nanmean(c(ind:end));
-                    Lxm = nanmean(Lx(ind:end));
-                    Am = nanmean(run.eddy.vor.amp(ind:end));
+                    diags(ff) = (H./Lz);
+                    plotx(ff) =  (beta *  (Lz) ./ alpha ./ f0);
 
-                    h = run.bathy.h(1,:);
-                    seind = vecfind(run.eddy.yr(1,:), run.eddy.vor.se);
-                    hedge = h(seind);
+                    laby = 'H_{cen}./H_{cen}^0';
+                    labx = '\beta L_z^0 / (\alpha f_0)';
 
-                    %figure;
-                    %plot(run.eddy.mx, run.eddy.my);
-                    %hold on;
-                    %plot(run.eddy.mx(ind), run.eddy.my(ind), 'k*');
-                    %title(run.name);
+                    % there is an older version that didn't really work
+                    %  ndtime = run.eddy.t*86400 ./ run.eddy.turnover;
+                    % Lx = sqrt(run.eddy.vor.lmaj .* run.eddy.vor.lmin);
+                    % c = smooth(run.eddy.mvx, 10)';
 
-                    %c = runArray.sorted_colors;
+                    % Vb = run.eddy.Vb;
 
-                    %num = alpha * Lx;
-                    %deno = c./Vb +  V./Vb;
+                    % hcen = run.eddy.hcen';
 
-                    d1 = alpha .* f0./beta .* Vbm./Vm;
-                    d2 = cm./Vm .* f0./beta./Lxm .* Am;
-                    diags(ff) = d1/100;
+                    % % last 'n' turnover periods
+                    % n = 30;
+                    % ind = find_approx(run.eddy.t, run.eddy.t(end) - ...
+                    %                   n * run.eddy.turnover/86400);
 
-                    plotx(ff) = mean((hedge(ind:end) + hcen(ind:end)) /2);
-                    %hold all;
-                    %hplt = plot(ndtime, vec);
-                    %addlegend(hplt, run.name);
-                    %plot(ndtime, run.eddy.Lgauss, 'Color', get(hplt, ...
-                    %                                            'Color'))
-                    %runArray.reset_colors(c);
+                    % % average quantities
+                    % Vm = nanmean(V(ind:end));
+                    % Vbm = nanmean(Vb(ind:end));
+                    % cm = nanmean(c(ind:end));
+                    % Lxm = nanmean(Lx(ind:end));
+                    % Am = nanmean(run.eddy.vor.amp(ind:end));
+
+                    % h = run.bathy.h(1,:);
+                    % seind = vecfind(run.eddy.yr(1,:), run.eddy.vor.se);
+                    % hedge = h(seind);
+
+                    % %figure;
+                    % %plot(run.eddy.mx, run.eddy.my);
+                    % %hold on;
+                    % %plot(run.eddy.mx(ind), run.eddy.my(ind), 'k*');
+                    % %title(run.name);
+
+                    % %c = runArray.sorted_colors;
+
+                    % %num = alpha * Lx;
+                    % %deno = c./Vb +  V./Vb;
+
+                    % d1 = alpha .* f0./beta .* Vbm./Vm;
+                    % d2 = cm./Vm .* f0./beta./Lxm .* Am;
+                    % diags(ff) = d1/100;
+
+                    % plotx(ff) = mean((hedge(ind:end) + hcen(ind:end)) /2);
+                    % %hold all;
+                    % %hplt = plot(ndtime, vec);
+                    % %addlegend(hplt, run.name);
+                    % %plot(ndtime, run.eddy.Lgauss, 'Color', get(hplt, ...
+                    % %                                            'Color'))
+                    % %runArray.reset_colors(c);
                 end
 
                 %%%%% test critical iflux hypothesis for eddy to
