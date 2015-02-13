@@ -7,6 +7,7 @@ function [] = bottom_torque(runs)
     rho0 = runs.params.phys.rho0;
     g = runs.params.phys.g;
     beta = runs.params.phys.beta;
+    f0 = runs.params.phys.f0;
 
     dx = 1000; dy = 1000;
 
@@ -51,7 +52,7 @@ function [] = bottom_torque(runs)
     %end
 
     %%%%%%% first, bottom pressure
-    di = 10;
+    di = 40;
     imnx = min(ixmin(:)) - di; imny = min(iymin(:)) - di;
     imxx = max(ixmax(:)) + di; imxy = max(iymax(:)) + di;
 
@@ -114,6 +115,7 @@ function [] = bottom_torque(runs)
     % re-detect that.
     xrmat = runs.rgrid.xr(imnx:imxx, imny:imxy);
     yrmat = runs.rgrid.yr(imnx:imxx, imny:imxy);
+
     %clear mx my
     %for tt=1:size(zeta, 3)
     %    mzeta = mask(:,:,tt) .* zeta(:,:,tt);
@@ -177,8 +179,8 @@ function [] = bottom_torque(runs)
 
     %%%%%%%%% now, angular momentum
     % depth averaged velocities (m/s)
-    use_davg = 1;
-    mom_budget = 0;
+    use_davg = 0;
+    mom_budget = 1;
     if use_davg
         ubar = dc_roms_read_data(runs.dir, 'ubar', tind, volumer, [], runs.rgrid, ...
                                  'his', 'single');
@@ -208,13 +210,14 @@ function [] = bottom_torque(runs)
             UV = squeeze(sum(bsxfun(@times, u.*v, dzmat), 3));
             U2 = squeeze(sum(bsxfun(@times, u.^2, dzmat), 3));
             V2 = squeeze(sum(bsxfun(@times, v.^2, dzmat), 3));
-             P = squeeze(sum(bsxfun(@times, p, dzmat), 3));
+             P = squeeze(sum(bsxfun(@times, pres, dzmat), 3));
         end
         toc;
 
         % vertically integrated angular momentum
         iam = beta .* yrmat .* U;
 
+        Y = max(runs.rgrid.y_rho(:));
         % try depth integrated momentum budget
         if mom_budget
 
