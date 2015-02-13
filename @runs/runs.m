@@ -300,6 +300,14 @@ methods
             runs.eddy.mask = logical(repnan(runs.eddy.mask, 0));
             runs.eddy.vormask = logical(repnan(runs.eddy.vormask,0));
 
+            % drhothresh based on ssh mask if it doesn't exist
+            if ~isfield(runs.eddy, 'drhothreshssh')
+                rs = ncread(runs.out_file, 'rho', [1 1 runs.rgrid.N ...
+                                    1], [Inf Inf 1 1]);
+                rs = rs(2:end-1,2:end-1) - rs(1,1);
+                runs.eddy.drhothreshssh = squeeze(nanmax(nanmax(rs .* ...
+                                         fillnan(runs.eddy.mask(:,:,1),0), [], 1), [], 2));
+            end
 
             if isfield(runs.eddy,'cvx')
                 if runs.eddy.cvx(1) == 0 || runs.eddy.cvy(1) == 0
