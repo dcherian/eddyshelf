@@ -55,8 +55,17 @@ function [] = bottom_torque(runs)
     imnx = min(ixmin(:)) - di; imny = min(iymin(:)) - di;
     imxx = max(ixmax(:)) + di; imxy = max(iymax(:)) + di;
 
-    volume = {'x' imnx imxx; ...
+    volumer = {'x' imnx imxx; ...
               'y' imny imxy};
+    volumeu = {'x' imnx-1 imxx; ...
+               'y' imny imxy};
+    volumev = {'x' imnx imxx; ...
+               'y' imny imxy+1};
+
+    % eddy center
+    mx = runs.eddy.vor.cx(tind(1):tind(2));
+    my = runs.eddy.vor.cy(tind(1):tind(2));
+    imy = vecfind(runs.rgrid.yr(1,imny:imxy), my);
 
     if isempty(runs.zeta)
         runs.read_zeta;
@@ -70,12 +79,19 @@ function [] = bottom_torque(runs)
     mask = mask(imnx:imxx, imny:imxy, :);
     f = runs.rgrid.f(2:end-1,2:end-1)';
     f = f(imnx:imxx, imny:imxy);
+    % f - f @ center of eddy
+    % f = bsxfun(@minus, f, permute(f(1,imy),[3 1 2]));
+    f = repmat(f, [1 1 size(mask,3)]);
+
+    % subsample bottom slope
+    slbot = diff(runs.rgrid.h',1,2)./diff(runs.rgrid.y_rho',1,2);
+    slbot = repmat(slbot(imnx:imxx, imny:imxy), [1 1 size(mask,3)]);
 
     % now read density and eddye fields
-    rho = dc_roms_read_data(runs.dir, 'rho', tind, volume, [], ...
+    rho = dc_roms_read_data(runs.dir, 'rho', tind, volumer, [], ...
                             runs.rgrid, 'his', 'single');
-    eddye = dc_roms_read_data(runs.dir, runs.eddname, tind, volume, [], ...
-                            runs.rgrid, 'his', 'single') > runs.eddy_thresh;
+    %eddye = dc_roms_read_data(runs.dir, runs.eddname, tind, volumer, [], ...
+    %                        runs.rgrid, 'his', 'single') > runs.eddy_thresh;
     if runs.bathy.axis == 'y'
         % (y,z)
         rback = dc_roms_read_data(runs.dir, 'rho', [1 1], {'x' 1 1}, [], ...
@@ -120,14 +136,6 @@ function [] = bottom_torque(runs)
     %    linex(0); liney(0);
     %    pause(0.5);
     %end
-
-    mx = runs.eddy.vor.cx(tind(1):tind(2));
-    my = runs.eddy.vor.cy(tind(1):tind(2));
-
-    imy = vecfind(runs.rgrid.yr(1,imny:imxy), my);
-
-    % f - f @ center of eddy
-    f = bsxfun(@minus, f, permute(f(1,imy),[3 1 2]));
 
     % grid vectors - referenced at each time level to location of
     % eddy center
@@ -174,12 +182,12 @@ function [] = bottom_torque(runs)
 
     %%%%%%%%% now, angular momentum
     % depth averaged velocities (m/s)
-    use_davg = 0;
-    mom_budget = 1;
+    use_davg = 1;
+    mom_budget = 0;
     if use_davg
-        ubar = dc_roms_read_data(runs.dir, 'ubar', tind, volume, [], runs.rgrid, ...
+        ubar = dc_roms_read_data(runs.dir, 'ubar', tind, volumer, [], runs.rgrid, ...
                                  'his', 'single');
-        vbar = dc_roms_read_data(runs.dir, 'vbar', tind, volume, [], runs.rgrid, ...
+        vbar = dc_roms_read_data(runs.dir, 'vbar', tind, volumer, [], runs.rgrid, ...
                                  'his', 'single');
 
         % convert to depth integrated velocities (m^2/s)
@@ -191,14 +199,14 @@ function [] = bottom_torque(runs)
         iam = beta .* bsxfun(@times, U, yrmat); % if ψ ~ O(1/r)
     else
         % read depth dependent velocity fields and integrate
-        u = dc_roms_read_data(runs.dir, 'u', tind, volume, [], ...
-                              runs.rgrid, 'his', 'single');
+        u = avg1(dc_roms_read_data(runs.dir, 'u', tind, volumeu, [], ...
+                              runs.rgrid, 'his', 'single'), 1);
         % read depth dependent velocity fields and integrate
-        v = dc_roms_read_data(runs.dir, 'v', tind, volume, [], ...
-                              runs.rgrid, 'his', 'single');
+        v = avg1(dc_roms_read_data(runs.dir, 'v', tind, volumev, [], ...
+                              runs.rgrid, 'his', 'single'), 2);
 
-        um = u .* eddye; % .* bsxfun(@times, eddye, permute(mask, [1 2 4 3]));
-        vm = v .* eddye; % .* bsxfun(@times, eddye, permute(mask, [1 2 4 3]));
+        um = u; % .* eddye; % .* bsxfun(@times, eddye, permute(mask, [1 2 4 3]));
+        vm = v; % .* eddye; % .* bsxfun(@times, eddye, permute(mask, [1 2 4 3]));
         pm = pres; % .* bsxfun(@times, eddye, permute(mask, [1 2 4 3]));
         maskstr = [maskstr ' + u.*eddye'];
 
