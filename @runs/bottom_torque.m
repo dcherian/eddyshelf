@@ -145,12 +145,6 @@ function [] = bottom_torque(runs)
                    permute(my, [3 1 2]));
     zrmat = runs.rgrid.z_r(:,2:end-1,2:end-1);
     zrmat = zrmat(:,imny:imxy, imnx:imxx);
-    zwmat = runs.rgrid.z_w(:,2:end-1,2:end-1);
-    zwmat = zwmat(:,imny:imxy, imnx:imxx);
-    zumat = runs.rgrid.z_u(:,2:end-1,2:end-1);
-    zumat = zumat(:,imny:imxy, imnx:imxx);
-    zvmat = runs.rgrid.z_v(:,2:end-1,2:end-1);
-    zvmat = zvmat(:,imny:imxy, imnx:imxx);
     dzmat = diff(permute(zwmat, [3 2 1]), 1, 3);
 
     % subtract out background density to get anomaly
@@ -219,14 +213,14 @@ function [] = bottom_torque(runs)
         tic;
         for ii=1:size(um, 1)
             for jj=1:size(um, 2)
-                U(ii,jj,:) = trapz(zumat(:,jj,ii), um(ii,jj,:,:), 3);
+                U(ii,jj,:) = trapz(zrmat(:,jj,ii), um(ii,jj,:,:), 3);
                 if mom_budget
-                    V(ii,jj,:) = trapz(zvmat(:,jj,ii), vm(ii,jj,:,:), 3);
-                    UV(ii,jj,:) = trapz(zvmat(:,jj,ii), um(ii,jj,:,:) ...
+                    V(ii,jj,:) = trapz(zrmat(:,jj,ii), vm(ii,jj,:,:), 3);
+                    UV(ii,jj,:) = trapz(zrmat(:,jj,ii), um(ii,jj,:,:) ...
                                         .* vm(ii,jj,:,:), 3);
-                    V2(ii,jj,:) = trapz(zvmat(:,jj,ii), ...
+                    V2(ii,jj,:) = trapz(zrmat(:,jj,ii), ...
                                         vm(ii,jj,:,:).^2, 3);
-                    U2(ii,jj,:) = trapz(zumat(:,jj,ii), um(ii,jj,:,:).^2, 3);
+                    U2(ii,jj,:) = trapz(zrmat(:,jj,ii), um(ii,jj,:,:).^2, 3);
                     P(ii,jj,:) = trapz(zrmat(:,jj,ii), pm(ii,jj,:,:),3);
                 end
             end
