@@ -332,12 +332,12 @@ classdef runArray < handle
                     V = run.eddy.V;
 
                     [~,~,tind] = run.locate_resistance;
-                    H = runs.eddy.hcen(tind);
+                    H = run.eddy.hcen(tind);
 
                     diags(ff) = (H./Lz);
                     plotx(ff) =  (beta *  (Lz) ./ alpha ./ f0);
 
-                    laby = 'H_{cen}./H_{cen}^0';
+                    laby = 'H_{cen}/L_z^0';
                     labx = '\beta L_z^0 / (\alpha f_0)';
 
                     % there is an older version that didn't really work
