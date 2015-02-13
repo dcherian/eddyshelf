@@ -227,13 +227,14 @@ function [] = bottom_torque(runs)
         Y = max(runs.rgrid.y_rho(:));
         % try depth integrated momentum budget
         if mom_budget
-
             % pressure gradients
             dpdy = squeeze(trapz(trapz(diff(P,1,1)./dx,1),2));
             dpdy = squeeze(trapz(trapz(diff(P,1,2)./dy,1),2));
             % coriolis terms
             fv = squeeze(trapz(trapz(f .* V, 1), 2));
             fu = squeeze(trapz(trapz(f .* U, 1), 2));
+            f0u = squeeze(trapz(trapz(f0 .* U, 1), 2));
+            byu = squeeze(trapz(trapz(beta .* (yrmat-Y/2) .* U, 1), 2));
             % non-linear terms
             dv2dy = squeeze(trapz(trapz(diff(V2,1,2)./dy,1),2));
             duvdx = squeeze(trapz(trapz(diff(UV,1,1)./dx,1),2));
@@ -244,12 +245,13 @@ function [] = bottom_torque(runs)
 
             total = duvdx + dv2dy + fu + dpdy + btq;
             figure; hold all;
-            plot(fu./total);
+            plot(-1*f0u./total);
+            plot(-1*byu./total);
             plot(dpdy./total);
             plot(duvdx./total);
             plot(dv2dy./total);
             plot(btq./total);
-            legend('fu','dpdy','duvdx','dv2dy', 'btq');
+            legend('-f_0u','\beta yu', 'dpdy','duvdx','dv2dy', 'btq');
         end
     end
 
