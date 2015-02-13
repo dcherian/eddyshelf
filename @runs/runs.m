@@ -290,22 +290,32 @@ methods
             runs.eddy.Bu = runs.params.phys.N2 .* runs.eddy.Lgauss.^2 ...
                 ./ runs.params.phys.f0^2 ./ (runs.eddy.vor.dia/2).^2;
 
-            runs.ndtime = (runs.time - runs.eddy.tscale);
+            % eddy turnover time scale
+            runs.eddy.turnover = (runs.eddy.vor.dia(1)/2)./runs.eddy.V(1);
 
-           if isfield(runs.eddy,'cvx')
-               if runs.eddy.cvx(1) == 0 || runs.eddy.cvy(1) == 0
-                runs.eddy.cvx(1) = NaN;
-                runs.eddy.cvy(1) = NaN;
-               end
-           end
+            % non-dimensionalized time
+            runs.ndtime = runs.time ./ runs.eddy.turnover;
 
+            % save memory by converting masks to logical
+            runs.eddy.mask = logical(repnan(runs.eddy.mask, 0));
+            runs.eddy.vormask = logical(repnan(runs.eddy.vormask,0));
+
+
+            if isfield(runs.eddy,'cvx')
+                if runs.eddy.cvx(1) == 0 || runs.eddy.cvy(1) == 0
+                    runs.eddy.cvx(1) = NaN;
+                    runs.eddy.cvy(1) = NaN;
+                end
+            end
+
+            % proximity to shelfbreak
             if runs.bathy.axis == 'y'
                 edge = runs.eddy.vor.se;
             else
                 edge = runs.eddy.vor.we;
             end
-            % proximity to shelfbreak
             runs.eddy.prox = (edge-runs.bathy.xsb);
+
             % time of reversal
             try
                 runs.eddy.trevind = find(runs.eddy.cvx < 0,1,'first');
@@ -343,10 +353,6 @@ methods
             ix = vecfind(runs.eddy.xr(:,1), runs.eddy.mx);
             iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.my);
             runs.eddy.hcen = h(sub2ind(size(runs.eddy.xr),ix,iy))';
-            % non-dimensionalized time
-            %runs.ndtime = (runs.eddy.cx - runs.eddy.cx(1))./ ...
-            %        (runs.params.bg.ubt -  ...
-            %        runs.params.phys.beta/2*(runs.eddy.dia/2),^2);
         end
 
         if do_all == 1
@@ -476,12 +482,6 @@ methods
             runs.tscale = runs.eddy.tscale;
             runs.tscaleind = runs.eddy.tscaleind;
         end
-
-        % eddy turnover time scale
-        runs.eddy.turnover = (runs.eddy.vor.dia(1)/2)./runs.eddy.V(1);
-
-        runs.eddy.mask = logical(repnan(runs.eddy.mask, 0));
-        runs.eddy.vormask = logical(repnan(runs.eddy.vormask,0));
     end
 
     function [] = info(runs)
