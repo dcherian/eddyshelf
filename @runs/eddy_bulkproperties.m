@@ -118,8 +118,8 @@ function [] = eddy_bulkproperties(runs, slab)
     end
 
     % initial time instant works well - see plot_eddye
-    drhothresh = runs.eddy.drhothresh(1);
-
+    rhothreshes = [runs.eddy.drhothresh(1) ...
+                   runs.eddy.drhothreshssh(1)];
     ticstart = tic;
     for mm=1:ceil(nt/slab)
         tt = (mm-1)*slab + 1;
@@ -177,18 +177,32 @@ function [] = eddy_bulkproperties(runs, slab)
             pe = -1 * double(bsxfun(@times, rho+1000, zr) .* runs.params.phys.g);
         end
 
-        masked = sparse(reshape(bsxfun(@minus, rho, rback) < drhothresh, sz));
+        for nnn = 1:length(rhothreshes)
+            drhothresh = rhothreshes(nnn);
 
-        intpe{mm} = full(nansum( bsxfun(@times, ...
-                                        masked.*maskvor.*reshape(pe, sz), dVsp)));
+            disp(['rho threshold ' num2str(nnn) '/' ...
+                  num2str(length(rhothreshes))]);
 
-        intke{mm} = full(nansum( bsxfun(@times, ...
-                                        masked.*maskvor.*reshape(0.5 ...
-                                        * double((rho+1000) .* (u.^2 + v.^2)), sz), dVsp)));
+            masked = sparse(reshape(bsxfun(@minus, rho, rback) < drhothresh, sz));
 
-        %vol{tt} = runs.domain_integratesp(masked.*maskvor, dVsp);
-        % calculate total volume
-        volcell{mm} = full(nansum( bsxfun(@times, masked.*maskvor, dVsp)));
+            intpe{mm, nnn} = full(nansum( bsxfun(@times, ...
+                                                 masked.*maskvor.*reshape(pe, sz), dVsp)));
+
+            intke{mm, nnn} = full(nansum( bsxfun(@times, ...
+                                                 masked.*maskvor.* ...
+                                                 reshape(0.5 * ...
+                                                         double((rho+1000) .* ...
+                                                              (u.^2 + v.^2)), sz), dVsp)));
+
+            %vol{tt} = runs.domain_integratesp(masked.*maskvor, dVsp);
+            % calculate total volume
+            volcell{mm, nnn} = full(nansum( bsxfun(@times, masked.*maskvor, ...
+                                                   dVsp)));
+            masscell{mm, nnn} = full(nansum( bsxfun(@times, ...
+                                                    masked .* maskvor .* ...
+                                                    reshape(double(rho+1000), ...
+                                                            sz), dVsp)));
+        end
 
         % integrated PV, RV
         if dopv
@@ -215,6 +229,7 @@ function [] = eddy_bulkproperties(runs, slab)
 
     % save data to structure
 
+    runs.eddy.mass = cell2mat(masscell);
     runs.eddy.vol = cell2mat(volcell);
     if dopv
         runs.eddy.PV = cell2mat(intpv);
@@ -223,6 +238,7 @@ function [] = eddy_bulkproperties(runs, slab)
     runs.eddy.KE = cell2mat(intke);
     runs.eddy.PE = cell2mat(intpe);
 
+    runs.eddy.threshes = threshes;
     runs.eddy.hash = githash([mfilename('fullpath') '.m']);
 
     eddy = runs.eddy;
