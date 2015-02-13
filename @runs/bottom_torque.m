@@ -248,43 +248,33 @@ function [] = bottom_torque(runs)
             end
             toc;
 
-
             maskstr = [maskstr ' + P.*botmask'];
-            dPdx = squeeze(trapz(trapz(dPdx .* (avg1(botmask) > 0),1),2)*dx*dy);
 
-            dv2dy = squeeze(trapz(trapz(diff(V2,1,2)./dy,1)*dx,2)*dy);
-            du2dx = squeeze(trapz(trapz(diff(U2,1,1)./dx,1)*dx,2)*dy);
-            duvdx = squeeze(trapz(trapz(diff(UV,1,1)./dx,1)*dx,2)*dy);
-            duvdy = squeeze(trapz(trapz(diff(UV,1,2)./dy,1)*dx,2)*dy);
-            dpdx = squeeze(trapz(trapz(diff(P,1,1)./dx .* ...
-                                       (avg1(botmask,1)>0),1)*dx)*dy);
-            dpdy = squeeze(trapz(trapz(diff(P,1,2)./dy .* ...
-                                       (avg1(botmask,2)>0),1)*dx)*dy);
-            fu = squeeze(trapz(trapz(f.*U, 1)*dx,2)*dx);
-            fv = squeeze(trapz(trapz(f.*V, 1)*dx,2)*dy);
-            dUdt = diff(squeeze(trapz(trapz(U,1)*dx, 2)*dy))./86400;
-            dVdt = diff(squeeze(trapz(trapz(V,1)*dx, 2)*dy))./86400;
+            % intergrated form
+            dPdx = squeeze(trapz(trapz(dPdx,1),2)*dx*dy);
 
-            % bottom torques
-            btq = squeeze(trapz(trapz(pbot .* botmask .* runs.bathy.sl_slope, 1)*dx, ...
-                                2)*dy);
-            figure;
-            subplot(211); hold all;
-            plot(dUdt);
-            plot(du2dx); plot(duvdy);
-            plot(fv);
-            plot(dpdx);
-            plot(dUdt + avg1(du2dx + duvdy - fv + dpdx));
-            title('x-mom');
-            legend('dudt', 'd/dx(u^2)', 'd/dy(uv)', 'fv', 'dPdx', 'total');
-            subplot(212); hold all;
-            plot(dVdt);
-            plot(duvdx); plot(dv2dy);
-            plot(fu); plot(dpdy); plot(btq);
-            plot(dVdt + avg1(dv2dy + duvdx + fu + dpdy + btq));
-            title('y-mom');
-            legend('dvdt', 'd/dx(uv)', 'd/dy(v^2)', 'fu', 'dPdy', ['p_0 ' ...
-                                's_{0y}'],'total');
+            % pressure gradients
+            dpdy = squeeze(trapz(trapz(diff(P,1,1)./dx,1),2));
+            dpdy = squeeze(trapz(trapz(diff(P,1,2)./dy,1),2));
+            % coriolis terms
+            fv = squeeze(trapz(trapz(f .* V, 1), 2));
+            fu = squeeze(trapz(trapz(f .* U, 1), 2));
+            % non-linear terms
+            dv2dy = squeeze(trapz(trapz(diff(V2,1,2)./dy,1),2));
+            duvdx = squeeze(trapz(trapz(diff(UV,1,1)./dx,1),2));
+            % tendency term - THIS IS A BAD ESTIMATE
+            %dvdt = squeeze(trapz(trapz(diff(V,1,3)./86400,1),2));
+            % bottom torque
+            btq = squeeze(trapz(trapz(pbot .* slbot, 1), 2));
+
+            total = duvdx + dv2dy + fu + dpdy + btq;
+            figure; hold all;
+            plot(fu./total);
+            plot(dpdy./total);
+            plot(duvdx./total);
+            plot(dv2dy./total);
+            plot(btq./total);
+            legend('fu','dpdy','duvdx','dv2dy', 'btq');
         end
     end
 
