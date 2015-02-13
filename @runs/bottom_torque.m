@@ -182,6 +182,8 @@ function [] = bottom_torque(runs)
     % note that in Flierl (1987) the 1/ρ0 is absorbed into the
     % pressure variable
     pres = bsxfun(@plus, g./rho0 .* irho, g.*permute(zeta,[1 2 4 3]));
+    % remove some more background signal
+    pres = bsxfun(@minus, pres, pres(end,:,:,1));
     pbot = squeeze(pres(:,:,1,:));
 
     %%%%%%%%% now, angular momentum
