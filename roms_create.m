@@ -805,6 +805,10 @@ if flags.eddy
                 sqrt(phys.N2);
     end
 
+    disp(['beta/beta_t = ' ...
+         num2str(phys.beta * eddy.depth./bathy.sl_slope./phys.f0) ' | Continue?']);
+    pause;
+
     % check for consistency, just in case
     if ~flags.flat_bottom
         factor = 1;1/sqrt(eddy.Bu) * eddy.dia/2 / bathy.L_slope * pi/ ...
