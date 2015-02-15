@@ -1065,7 +1065,7 @@ if flags.eddy
         % condition is that Ro using _geostrophic_ velocity is < 0.25
 %        if  nondim.eddy.Ro > 0.25, error('Error: Ro > 0.25'); end
         nondim.eddy.Rh = eddy.U/phys.beta/eddy.R^2;
-        nondim.eddy.Bu = (eddy.R / eddy.Ldef)^2;;
+        nondim.eddy.Bu = (eddy.R / eddy.Ldef)^2;
         nondim.eddy.Ri = phys.N2./(phys.TCOEF*phys.g*eddy.tamp/phys.f0/eddy.R).^2;
         nondim.eddy.Bu_temp = phys.TCOEF * phys.g * Z * eddy.tamp / phys.f0^2 / eddy.R^2;
         nondim.eddy.gamma = bathy.hsb/eddy.depth;
@@ -1111,7 +1111,7 @@ if flags.eddy
         hfeddy = figure;
     end
     contourf(xrmat(:,:,1)./fx,yrmat(:,:,1)./fy,S.zeta,20); shading flat;
-    hcb = colorbar; freezeColors; cbfreeze(hcb)
+    hcb = colorbar; clim = caxis;
     hold on
     [C,h] = contour(xrmat(:,:,1)./fx,yrmat(:,:,1)./fy,S.h,...
                 floor(linspace(min(S.h(:)),max(S.h(:)),5)),'k');
@@ -1127,6 +1127,7 @@ if flags.eddy
         contour(xrmat(:,:,1)./fx, yrmat(:,:,1)./fy, 1./S.pn, [1:0.5: ...
                             grid.dxmax/grid.dymin] * grid.dymin, 'w');
     end
+    caxis(clim);
     title('Zeta with eddy');
     if bathy.axis == 'y'
         liney([bathy.xsl bathy.xsb]/fy);
@@ -1194,7 +1195,7 @@ if flags.eddy
     linkaxes([axe(1) axe(3) axe(5) axe(7)],'xy');
     linkaxes([axe(2) axe(4) axe(6) axe(8)],'xy');
 
-    spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
+    %spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
 
     %% estimate speed based on van leeuwin (2007)
 
