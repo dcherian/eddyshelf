@@ -1,30 +1,52 @@
-function [] = extract_params(run)
+% returns structure S used by roms_create
+function [S] = extract_params(run)
 
-    name = inputname(1);
+    % if provided with runs object
+    if isobject(run)
+        fname = run.out_file;
 
-    % gets all parameters I have saved
-    names = evalin('caller', ['fieldnames(' name '.params);']);
+         % gets all parameters I have saved
+        params = run.params;
+
+        grd = run.rgrid;
+    else
+        % if provided with folder (config/)
+        dir = run;
+        ininame = [dir '/' roms_find_file(dir, 'ini')];
+        grdname = [dir '/' roms_find_file(dir, 'grd')];
+
+        grd = roms_get_grid(grdname, ininame, 0);
+
+        params = read_params_from_ini(ininame);
+
+        % read other info from nc file
+        fname = ininame;
+    end
+
+    % at this points, I expect to have the following structures
+    %   - params, grd
+    % and file 'fname' to read other stuff
+
+    names = fieldnames(params);
+    % read params into workspace
     for ii = 1:length(names)
-        evalin('caller', [names{ii} ' = ' name '.params.' names{ii} ';']);
+        assignin('caller', names{ii}, params.(names{ii}));
     end
 
     % Now for the ones I don't save - grid params
     names = {'N', 'Vtransform', 'Vstretching', 'theta_s', 'theta_b', ...
              'Tcline'};
     for ii = 1:length(names)
-        evalin('caller', ['S.' names{ii} ' = ' name '.rgrid.' names{ii} ';']);
+        S.(names{ii}) = grd.(names{ii});
     end
-    evalin('caller', ['S.Lm = size(' name '.rgrid.mask_rho, 2) - 2;']);
-    evalin('caller', ['S.Mm = size(' name '.rgrid.mask_rho, 1) - ' ...
-                        '2;']);
+    S.Lm =  size(grd.mask_rho, 2) - 2;
+    S.Mm = size(grd.mask_rho, 1) - 2;
 
-    ncid = netcdf.open(run.out_file);
-    [~, NT] = netcdf.inqDim(ncid, netcdf.inqDimID(ncid, 'tracer'));
+    ncid = netcdf.open(fname);
+    [~, S.NT] = netcdf.inqDim(ncid, netcdf.inqDimID(ncid, 'tracer'));
     netcdf.close(ncid);
-    spherical = ncread(run.out_file, 'spherical');
+    S.NPT = S.NT - 2;
+    S.spherical = ncread(fname, 'spherical');
 
-    evalin('caller', ['S.NT = ' num2str(NT) ';']);
-    evalin('caller', ['S.spherical = ' num2str(spherical) ';']);
-    evalin('caller', 'S.NPT = S.NT - 2;');
-    evalin('caller', 'calc_pv = 0;');
+    assignin('caller', 'calc_pv', 0);
 end
