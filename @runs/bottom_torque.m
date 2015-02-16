@@ -155,6 +155,8 @@ function [] = bottom_torque(runs)
     zwmat = runs.rgrid.z_w(:,2:end-1,2:end-1);
     zwmat = zwmat(:,imny:imxy, imnx:imxx);
     dzmat = diff(permute(zwmat, [3 2 1]), 1, 3);
+    xvec = runs.rgrid.x_rho(1,imnx:imxx);
+    yvec = runs.rgrid.y_rho(imny:imxy);
 
     % subtract out background density to get anomaly
     % see Flierl (1987)
@@ -230,21 +232,28 @@ function [] = bottom_torque(runs)
 
         % try depth integrated momentum budget
         if mom_budget
+
             % pressure gradients
-            dpdx = squeeze(trapz(trapz(diff(P,1,1)./dx,1),2));
-            dpdy = squeeze(trapz(trapz(diff(P,1,2)./dy,1),2));
+            dpdx = integrate(avg1(xvec), yvec, ...
+                             bsxfun(@rdivide, diff(P,1,1), diff(xvec')));
+            dpdy = integrate(xvec, avg1(yvec), ...
+                             bsxfun(@rdivide, diff(P,1,2), diff(yvec)));
+
             % coriolis terms
-            fv = squeeze(trapz(trapz(f .* V, 1), 2));
-            fu = squeeze(trapz(trapz(f .* U, 1), 2));
-            f0u = squeeze(trapz(trapz(f0 .* U, 1), 2));
-            byu = squeeze(trapz(trapz(beta .* (yrmat-Y/2) .* U, 1), 2));
+            fv = integrate(xvec, yvec, f .* V);
+            fu = integrate(xvec, yvec, f .* U);
+            f0u = integrate(xvec, yvec, f0 .* U);
+            byu = integrate(xvec, yvec, beta .* (yrmat-Y/2) .* U);
+
             % non-linear terms
-            dv2dy = squeeze(trapz(trapz(diff(V2,1,2)./dy,1),2));
-            duvdx = squeeze(trapz(trapz(diff(UV,1,1)./dx,1),2));
+            dv2dy = integrate(xvec, avg1(yvec), ...
+                              bsxfun(@rdivide, diff(V2,1,2), diff(yvec)));
+            duvdx = integrate(avg1(xvec), yvec, ...
+                              bsxfun(@rdivide, diff(UV,1,1), diff(xvec')));
             % tendency term - THIS IS A BAD ESTIMATE
             %dvdt = squeeze(trapz(trapz(diff(V,1,3)./86400,1),2));
             % bottom torque
-            btq = squeeze(trapz(trapz(pbot .* slbot, 1), 2));
+            btq = integrate(xvec, yvec, pbot .* slbot);
 
             total = duvdx + dv2dy + fu + dpdy - btq;
             figure; hold all;
@@ -322,4 +331,9 @@ function [] = bottom_torque(runs)
 
     runs.bottom = bottom;
     save([runs.dir '/bottom.mat'], 'bottom', '-v7.3');
+end
+
+function [out] = integrate(xvec, yvec, in)
+    out = squeeze(trapz(yvec, ...
+                        trapz(xvec, in, 1), 2));
 end
