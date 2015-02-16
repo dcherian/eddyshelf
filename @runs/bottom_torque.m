@@ -244,6 +244,8 @@ function [] = bottom_torque(runs)
             fu = integrate(xvec, yvec, f .* U);
             f0u = integrate(xvec, yvec, f0 .* U);
             byu = integrate(xvec, yvec, beta .* (yrmat-Y/2) .* U);
+            f0v = integrate(xvec, yvec, f0 .* V);
+            byv = integrate(xvec, yvec, beta .* (yrmat-Y/2) .* V);
 
             % non-linear terms
             dv2dy = integrate(xvec, avg1(yvec), ...
