@@ -978,7 +978,7 @@ if flags.eddy
 
         % azimuthal velocity = r d(theta)/dt
         rut = eddy.tamp * (phys.TCOEF*phys.g) .* bsxfun(@times, ...
-                                                        cumtrapz(eddy.z,eddy.tz,3),dTdr./f);
+                                                        cumtrapz(eddy.z,eddy.tz,3),dTdr./phys.f0);
         %         rut = zeros(size(xrmat));
 %         for i=2:size(xrmat,3)
 %             rut(:,:,i) = rut(:,:,i-1) + rutz(:,:,i-1).*(zrmat(:,:,i)-zrmat(:,:,i-1));
@@ -987,7 +987,7 @@ if flags.eddy
         % solve quadratic for vel. if gradient wind balance
         vgeo = rut;
         if flags.use_gradient
-            rfb2 = r.*f ./ 2;
+            rfb2 = r.*phys.f0 ./ 2;
             sdisc = sqrt(1 + bsxfun(@times,vgeo,2./rfb2));% sqrt(discriminant)
             if isreal(sdisc) % gradient wind doesn't always work with anticyclones
                 rut = bsxfun(@times,(-1 + sdisc), rfb2);
