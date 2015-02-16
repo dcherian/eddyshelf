@@ -56,17 +56,21 @@ function [] = bottom_torque(runs)
     imnx = min(ixmin(:)) - di; imny = min(iymin(:)) - di;
     imxx = max(ixmax(:)) + di; imxy = max(iymax(:)) + di;
 
+    sz = size(runs.rgrid.x_rho') - 4;
+    imnx = 2; imxx = sz(1);
+    imny = 2; imxy = sz(2);
+
     volumer = {'x' imnx imxx; ...
-              'y' imny imxy};
+               'y' imny imxy};
     volumeu = {'x' imnx-1 imxx; ...
                'y' imny imxy};
     volumev = {'x' imnx imxx; ...
                'y' imny imxy+1};
 
     % eddy center
-    mx = runs.eddy.vor.cx(tind(1):tind(2));
-    my = runs.eddy.vor.cy(tind(1):tind(2));
-    imy = vecfind(runs.rgrid.yr(1,imny:imxy), my);
+    %mx = runs.eddy.vor.cx(tind(1):tind(2));
+    %my = runs.eddy.vor.cy(tind(1):tind(2));
+    %imy = vecfind(runs.rgrid.yr(1,imny:imxy), my);
 
     if isempty(runs.zeta)
         runs.read_zeta;
@@ -257,7 +261,7 @@ function [] = bottom_torque(runs)
             % bottom torque
             btq = integrate(xvec, yvec, pbot .* slbot);
 
-            total = duvdx + dv2dy + fu + dpdy - btq;
+            total = 1; duvdx + dv2dy + fu + dpdy - btq;
             figure; hold all;
             plot(-1*f0u./total);
             plot(-1*byu./total);
