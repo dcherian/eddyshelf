@@ -199,9 +199,6 @@ function [] = bottom_torque(runs)
         end
         toc;
 
-        % vertically integrated angular momentum
-        iam = beta .* yrmat .* U;
-
         Y = max(runs.rgrid.y_rho(:));
 
         % try depth integrated momentum budget
@@ -248,6 +245,10 @@ function [] = bottom_torque(runs)
                  'time');
         end
     end
+
+    % vertically integrated angular momentum
+    %iam = 1/2 * beta .* (V .* xrmat - U .* yrmat); % if ψ ~ O(1/r²)
+    iam = f0 .* U + beta .* U .* yrmat; % if ψ ~ O(1/r)
 
     %%%%%%%%% Translation term
     %c = runs.eddy.cvx(tind(1):dt:tind(2)) .* 1000/86400; % convert to m/s
