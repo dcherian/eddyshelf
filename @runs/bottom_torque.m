@@ -4,6 +4,10 @@ function [] = bottom_torque(runs)
     tind = [tind-80 1 tind];
     tind = [1 10 length(runs.eddy.t)];
 
+    slab = Inf;
+    [iend,tind,dt,nt,~] = roms_tindices(tind, Inf, ...
+                                        length(runs.eddy.t));
+
     rho0 = runs.params.phys.rho0;
     g = runs.params.phys.g;
     beta = runs.params.phys.beta;
@@ -14,11 +18,11 @@ function [] = bottom_torque(runs)
     use_mask = 0;
     if use_mask
         % eddy-based mask
-        mask = runs.eddy.mask(:,:,tind(1):tind(2):tind(3));
+        mask = runs.eddy.mask(:,:,tind(1):dt:tind(2));
         maskstr = 'sshmask';
 
         % vorticity mask
-        %mask = runs.eddy.vormask(:,:,tind(1):tind(2):tind(3));
+        %mask = runs.eddy.vormask(:,:,tind(1):dt:tind(2));
         %maskstr = 'vormask';
 
         % topography based mask
@@ -62,25 +66,25 @@ function [] = bottom_torque(runs)
                'y' imny imxy+1};
 
     % eddy center
-    %mx = runs.eddy.vor.cx(tind(1):tind(2):tind(3));
-    %my = runs.eddy.vor.cy(tind(1):tind(2):tind(3));
+    %mx = runs.eddy.vor.cx(tind(1):dt:tind(2));
+    %my = runs.eddy.vor.cy(tind(1):dt:tind(2));
     %imy = vecfind(runs.rgrid.yr(1,imny:imxy), my);
 
     % read free-surface
-    % if isempty(runs.zeta)
-    %     runs.read_zeta;
-    % end
-    % % subsample to size(mask);
-    % % then subsample to region I'm interested in.
-    % zeta = runs.zeta(2:end-1,2:end-1, tind(1):tind(2):tind(3));
-    % zeta = zeta(imnx:imxx, imny:imxy, :);
+    if isempty(runs.zeta)
+        runs.read_zeta;
+    end
+    % subsample to size(mask);
+    % then subsample to region I'm interested in.
+    zeta = runs.zeta(2:end-1,2:end-1, tind(1):dt:tind(2));
+    zeta = zeta(imnx:imxx, imny:imxy, :);
 
     % subsample f
     f = runs.rgrid.f(2:end-1,2:end-1)';
     f = f(imnx:imxx, imny:imxy);
     % f - f @ center of eddy
     % f = bsxfun(@minus, f, permute(f(1,imy),[3 1 2]));
-    f = repmat(f, [1 1 size(mask,3)]);
+    f = repmat(f, [1 1 nt]);
 
     % subsample bathymetry
     H = runs.bathy.h(2:end-1, 2:end-1);
@@ -88,7 +92,7 @@ function [] = bottom_torque(runs)
 
     % subsample bottom slope
     slbot = diff(runs.rgrid.h',1,2)./diff(runs.rgrid.y_rho',1,2);
-    slbot = repmat(slbot(imnx:imxx, imny:imxy), [1 1 size(mask,3)]);
+    slbot = repmat(slbot(imnx:imxx, imny:imxy), [1 1 nt]);
 
     % get background density field for initial time instant
     if runs.bathy.axis == 'y'
@@ -112,10 +116,8 @@ function [] = bottom_torque(runs)
     %                        runs.rgrid, 'his', 'single') > runs.eddy_thresh;
 
     % grid vectors and matrices
-    xrmat = repmat(runs.rgrid.x_rho(imny:imxy, imnx:imxx)', [1 1 ...
-                        size(mask,3)]);
-    yrmat = repmat(runs.rgrid.y_rho(imny:imxy, imnx:imxx)', [1 1 ...
-                        size(mask,3)]);
+    xrmat = repmat(runs.rgrid.x_rho(imny:imxy, imnx:imxx)', [1 1 nt]);
+    yrmat = repmat(runs.rgrid.y_rho(imny:imxy, imnx:imxx)', [1 1 nt]);
 
     zrmat = runs.rgrid.z_r(:,2:end-1,2:end-1);
     zrmat = zrmat(:,imny:imxy, imnx:imxx);
@@ -130,7 +132,6 @@ function [] = bottom_torque(runs)
     % subtract out background density to get anomaly
     % see Flierl (1987)
     rho = bsxfun(@minus, rho, rback);
-    maskstr = [maskstr];
 
     % depth-integrate density anomaly field from surface to bottom
     % tic;
@@ -251,8 +252,8 @@ function [] = bottom_torque(runs)
     end
 
     %%%%%%%%% Translation term
-    %c = runs.eddy.cvx(tind(1):tind(2):tind(3)) .* 1000/86400; % convert to m/s
-    c = smooth(runs.eddy.mvx(tind(1):tind(2):tind(3)), 10) .* 1000/86400; % convert to m/s
+    %c = runs.eddy.cvx(tind(1):dt:tind(2)) .* 1000/86400; % convert to m/s
+    c = smooth(runs.eddy.mvx(tind(1):dt:tind(2)), 10) .* 1000/86400; % convert to m/s
 
     % height anomaly for eddy is zeta
     h = bsxfun(@minus, zeta, mean(zeta, 2));
@@ -288,7 +289,7 @@ function [] = bottom_torque(runs)
     bottom.pbtorque = P;
     bottom.betatorque = AM;
     bottom.transtorque = V;
-    bottom.time = runs.eddy.t(tind(1):tind(2):tind(3))*86400;
+    bottom.time = runs.eddy.t(tind(1):dt:tind(2))*86400;
     bottom.maskstr = maskstr;
 
     % plots
