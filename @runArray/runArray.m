@@ -796,7 +796,7 @@ classdef runArray < handle
                 beta = run.params.phys.beta;
                 Ldef = run.rrdeep;
 
-                dEdt = smooth(diff(run.eddy.KE + run.eddy.PE)./ ...
+                dEdt = smooth(diff((run.eddy.KE + run.eddy.PE)./run.eddy.vol)./ ...
                        diff(run.eddy.t*86400), 14);
                 ndtime1 = avg1(ndtime);
 
@@ -874,7 +874,7 @@ classdef runArray < handle
             figure;
             hold all;
 
-            corder_backup = runArray.sorted_colors;
+            %corder_backup = runArray.sorted_colors;
 
             if isempty(runArray.filter)
                 runArray.filter = 1:runArray.len;
@@ -886,12 +886,17 @@ classdef runArray < handle
 
                 ndtime = run.eddy.t*86400 / run.eddy.turnover;
 
-                hgplt = plot(ndtime, run.eddy.vol);
-                addlegend(hgplt, run.name);
-                plot(ndtime(run.tscaleind), run.eddy.vol(run.tscaleind), 'k*');
+                [~,~,tind] = run.locate_resistance;
+
+                Ro = run.eddy.Ro(1);
+                Sa = run.bathy.S_sl;
+                hgplt = plot(Ro./Sa, (run.eddy.hcen(tind))./ ...
+                             run.eddy.Lgauss(tind), 'k*');
+                %addlegend(hgplt, run.name);
+                %plot(ndtime(run.tscaleind), run.eddy.vol(run.tscaleind), 'k*');
             end
 
-            runArray.reset_colors(corder_backup);
+            %runArray.reset_colors(corder_backup);
         end
 
         function [] = plot_test3(runArray)
