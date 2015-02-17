@@ -186,6 +186,22 @@ function [] = bottom_torque(runs)
         v = avg1(dc_roms_read_data(runs.dir, 'v', tindices, volumev, [], ...
                                    runs.rgrid, 'his', 'single'), 2);
 
+        vormask = runs.eddy.vormask(imnx:imxx, imny:imxy, :);
+        sshmask = runs.eddy.mask(imnx:imxx, imny:imxy, :);
+
+        % find what density corresponds to 0 vorticity contour
+        rhothreshvor = squeeze(nanmax(nanmax(rho(:,:,1) .* ...
+                                             fillnan(vormask(:,:,1),0), ...
+                                             [], 1), [], 2));
+        rhothreshssh = squeeze(nanmax(nanmax(rho(:,:,1) .* ...
+                                             fillnan(sshmask(:,:,1),0), ...
+                                             [], 1), [], 2));
+
+        % mask out velocities
+        masked = bsxfun(@times, rho < rhothreshssh, ...
+                        permute(sshmask(:,:,tind(1):dt:tind(2)), [1 2 4 3]));
+        u = u .* masked;
+        v = v .* masked;
 
         % depth-integrate quantities
         tic;
@@ -262,8 +278,8 @@ function [] = bottom_torque(runs)
     %iv = runs.params.phys.f0 .* U;
 
     %%%%%%%%% mask?
-    botmask = pbot > 0.1*max(pbot(:));
-    mask_rho = 1; botmask; %irho < -1;
+    botmask = pbot < 0.1*min(pbot(:));
+    mask_rho = botmask; %irho < -1;
     mpbot = mask_rho .* pbot .* slbot;
     miv = mask_rho .* iv;
     miam = mask_rho .* iam;
