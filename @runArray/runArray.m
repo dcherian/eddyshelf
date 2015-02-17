@@ -331,12 +331,23 @@ classdef runArray < handle
                     alpha = run.bathy.sl_slope;
                     V = run.eddy.V;
 
-                    [~,~,tind] = run.locate_resistance;
+                    expfitflag = 0;
+                    if expfitflag
+                        hcen = smooth(run.eddy.hcen, 5);
+                        ndtime = run.eddy.t*86400./run.eddy.turnover;
+                        ind = find((hcen - hcen(1)) ~= 0, 1, 'first');
+                        [h0, T] = exp_fit(ndtime(ind:end), hcen(ind:end)'./hcen(ind), 1);
+                        tind = find_approx(ndtime, T, 1);
+                    else
+                        [~,~,tind] = run.locate_resistance;
+                    end
+                    if isempty(tind), continue; end
+
                     H = run.eddy.hcen(tind);
 
                     diags(ff) = (H./Lz);
-                    plotx(ff) =  (beta *  (Lz) ./ alpha ./ f0);
-
+                    plotx(ff) = (beta * Lz / alpha / f0);
+                    name_points = 1;
                     laby = 'H_{cen}/L_z^0';
                     labx = '\beta L_z^0 / (\alpha f_0)';
 
