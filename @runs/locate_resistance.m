@@ -6,20 +6,33 @@ function [xx,yy,tind] = locate_resistance(runs)
     debug_plot = 0;
 
     % number of points to smooth over.
-    npts = 15;
+    npts = (4*runs.eddy.turnover/86400);
 
     % smooth velocity a lot!
     if runs.bathy.axis == 'y'
-        vel = smooth(runs.eddy.mvy, npts);
+        cy = smooth(runs.eddy.my, npts)/1000;
+
+        vel = [0; diff(cy)./diff(smooth(runs.eddy.t', npts))];
+        ndtime = runs.eddy.t*86400./runs.eddy.turnover;
+
+        %vel = smooth(runs.eddy.mvy, npts);
+        % figure;
+        % subplot(211)
+        % plot(runs.eddy.my/1000); hold all
+        % plot(cy);
+        % subplot(212)
+        % plot(smooth(runs.eddy.mvy, 15)); hold all
+        % plot(vel);
     else
         vel = smooth(runs.eddy.mvx, npts);
+        ndtime = runs.eddy.t*86400./runs.eddy.turnover;
     end
 
     % locate minimum, i.e., max. southward/westward speed
     % but limit search to first 'n' turnover time scales
-    ndtime = runs.eddy.t*86400./runs.eddy.turnover;
+
     it = find_approx(ndtime, 60);
-    [mn, imin] = min(vel(1:it));
+    [mn, imin] = min(vel(5:it));
 
     vv = vel(imin:end) - mn * 1/2;
     tind = find(vv > 0, 1, 'first');
