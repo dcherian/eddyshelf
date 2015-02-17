@@ -226,7 +226,7 @@ classdef runArray < handle
                     [xx,yy,tind] = run.locate_resistance;
 
                     loc = 'cen';
-                    %loc = 'edge';
+                    loc = 'edge';
 
                     % save for later
                     run.eddy.res.xx = xx;
@@ -255,7 +255,7 @@ classdef runArray < handle
                         laby = 'H_{edge}./H_{eddy}';
                     end
 
-                    diags(ff) = hdiag ./ run.eddy.Lgauss(tind);
+                    diags(ff) = hdiag ./ run.eddy.Lgauss(1);
 
                     % name points with run names on summary plot
                     name_points = 1;
