@@ -168,26 +168,31 @@ function [] = bottom_torque(runs)
     maskstr = [maskstr];
 
     % depth-integrate density anomaly field from surface to bottom
-    tic;
-    disp('integrating vertically');
-    irho = nan(size(rho));
-    frho = flipdim(rho, 3); % flipped to integrate from _surface_
-                            % to bottom
-    fzrmat = flipdim(zrmat, 1);
-    for ii=1:size(rho, 1)
-        for jj=1:size(rho,2)
-            irho(ii,jj,:,:) = cumtrapz(fzrmat(:, jj, ii), ...
-                                       frho(ii, jj, :, :), 3);
-        end
-    end
-    toc;
-    irho = flipdim(irho, 3);
-    clear frho fzrmat
+    % tic;
+    % disp('integrating vertically');
+    % irho = nan(size(rho));
+    % frho = flipdim(rho, 3); % flipped to integrate from _surface_
+    %                         % to bottom
+    % fzrmat = flipdim(zrmat, 1);
+    % for ii=1:size(rho, 1)
+    %     for jj=1:size(rho,2)
+    %         irho(ii,jj,:,:) = cumtrapz(fzrmat(:, jj, ii), ...
+    %                                    frho(ii, jj, :, :), 3);
+    %     end
+    % end
+    % toc;
+    % irho = flipdim(irho, 3);
+    % clear frho fzrmat
 
     % calculate bottom pressure (x,y,t)
     % note that in Flierl (1987) the 1/ρ0 is absorbed into the
     % pressure variable
-    pres = bsxfun(@plus, g./rho0 .* irho, g.*permute(zeta,[1 2 4 3]));
+    %pres = bsxfun(@plus, g./rho0 .* irho, g.*permute(zeta,[1 2 4
+    %3]));
+    % pres = -g/ρ0 ∫_{z}^{ζ} ρ dz
+    % -1*dzmat to integrate from _surface_ to bottom cumulatively
+    irho = flipdim(cumsum(flipdim(bsxfun(@times, rho, -1*dzmat),3),3),3);
+    pres = -g./rho0 .* irho;
     % remove some more background signal
     pres = bsxfun(@minus, pres, pres(end,:,:,1));
     pbot = squeeze(pres(:,:,1,:));
