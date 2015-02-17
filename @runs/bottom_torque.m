@@ -46,6 +46,8 @@ function [] = bottom_torque(runs)
         di = 40;
         imnx = min(ixmin(:)) - di; imny = min(iymin(:)) - di;
         imxx = max(ixmax(:)) + di; imxy = max(iymax(:)) + di;
+
+        mask = mask(imnx:imxx, imny:imxy, :);
     else
         sz = size(runs.rgrid.x_rho') - 4;
         imnx = 2; imxx = sz(1);
@@ -73,8 +75,7 @@ function [] = bottom_torque(runs)
     % zeta = runs.zeta(2:end-1,2:end-1, tind(1):tind(2));
     % zeta = zeta(imnx:imxx, imny:imxy, :);
 
-    % subsample mask and f
-    mask = mask(imnx:imxx, imny:imxy, :);
+    % subsample f
     f = runs.rgrid.f(2:end-1,2:end-1)';
     f = f(imnx:imxx, imny:imxy);
     % f - f @ center of eddy
@@ -158,13 +159,14 @@ function [] = bottom_torque(runs)
     irho = flipdim(cumsum(flipdim(bsxfun(@times, rho, -1*dzmat),3),3),3);
     pres = -g./rho0 .* irho;
     % remove some more background signal
-    pres = bsxfun(@minus, pres, pres(end,:,:,1));
+    pres = bsxfun(@minus, pres, pres(1,:,:,1));
     pbot = squeeze(pres(:,:,1,:));
 
     %%%%%%%%% now, angular momentum
+
     % depth averaged velocities (m/s)
-    use_davg = 0;
-    mom_budget = 1;
+    use_davg = 1;
+    mom_budget = 0;
     if use_davg
         ubar = dc_roms_read_data(runs.dir, 'ubar', tind, volumer, [], runs.rgrid, ...
                                  'his', 'single');
@@ -230,7 +232,7 @@ function [] = bottom_torque(runs)
             % bottom torque
             btq = integrate(xvec, yvec, pbot .* slbot);
 
-            total = 1; duvdx + dv2dy + fu + dpdy - btq;
+            total = duvdx + dv2dy + fu + dpdy - btq;
             figure; hold all;
             plot(-1*f0u./total);
             plot(-1*byu./total);
