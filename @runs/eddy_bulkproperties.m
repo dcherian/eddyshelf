@@ -228,17 +228,16 @@ function [] = eddy_bulkproperties(runs, slab)
     toc(ticstart);
 
     % save data to structure
-
-    runs.eddy.mass = cell2mat(masscell);
-    runs.eddy.vol = cell2mat(volcell);
+    runs.eddy.mass = cell2mat(masscell')';
+    runs.eddy.vol = cell2mat(volcell')';
     if dopv
-        runs.eddy.PV = cell2mat(intpv);
-        runs.eddy.RV = cell2mat(intrv);
+        runs.eddy.PV = cell2mat(intpv')';
+        runs.eddy.RV = cell2mat(intrv')';
     end
-    runs.eddy.KE = cell2mat(intke);
-    runs.eddy.PE = cell2mat(intpe);
+    runs.eddy.KE = cell2mat(intke')';
+    runs.eddy.PE = cell2mat(intpe')';
 
-    runs.eddy.threshes = threshes;
+    runs.eddy.threshes = rhothreshes;
     runs.eddy.hash = githash([mfilename('fullpath') '.m']);
 
     eddy = runs.eddy;
