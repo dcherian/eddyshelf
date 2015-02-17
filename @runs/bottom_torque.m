@@ -1,11 +1,9 @@
 function [] = bottom_torque(runs)
 
-    tind = length(runs.eddy.t);
-    tind = [tind-80 1 tind];
-    tind = [1 10 length(runs.eddy.t)];
+    tindices = [1 5 length(runs.eddy.t)];
 
     slab = Inf;
-    [iend,tind,dt,nt,~] = roms_tindices(tind, Inf, ...
+    [iend,tind,dt,nt,~] = roms_tindices(tindices, Inf, ...
                                         length(runs.eddy.t));
 
     rho0 = runs.params.phys.rho0;
@@ -56,6 +54,8 @@ function [] = bottom_torque(runs)
         sz = size(runs.rgrid.x_rho') - 4;
         imnx = 2; imxx = sz(1);
         imny = 2; imxy = sz(2);
+
+        maskstr = '';
     end
 
     volumer = {'x' imnx imxx; ...
@@ -110,7 +110,7 @@ function [] = bottom_torque(runs)
     end
 
     % now read density and eddye fields
-    rho = dc_roms_read_data(runs.dir, 'rho', tind, volumer, [], ...
+    rho = dc_roms_read_data(runs.dir, 'rho', tindices, volumer, [], ...
                             runs.rgrid, 'his', 'single');
     %eddye = dc_roms_read_data(runs.dir, runs.eddname, tind, volumer, [], ...
     %                        runs.rgrid, 'his', 'single') > runs.eddy_thresh;
@@ -169,25 +169,23 @@ function [] = bottom_torque(runs)
     use_davg = 1;
     mom_budget = 0;
     if use_davg
-        ubar = dc_roms_read_data(runs.dir, 'ubar', tind, volumer, [], runs.rgrid, ...
+        ubar = dc_roms_read_data(runs.dir, 'ubar', tindices, volumer, [], runs.rgrid, ...
                                  'his', 'single');
-        vbar = dc_roms_read_data(runs.dir, 'vbar', tind, volumer, [], runs.rgrid, ...
+        vbar = dc_roms_read_data(runs.dir, 'vbar', tindices, volumer, [], runs.rgrid, ...
                                  'his', 'single');
 
         % convert to depth integrated velocities (m^2/s)
         U = bsxfun(@times, H, ubar);
         V = bsxfun(@times, H, vbar);
 
-        % vertically integrated angular momentum
-        %iam = 1/2 * beta .* (V .* xrmat - U .* yrmat); % if ψ ~ O(1/r²)
-        iam = beta .* bsxfun(@times, U, yrmat); % if ψ ~ O(1/r)
-    else
+     else
         % read depth dependent velocity fields and integrate
-        u = avg1(dc_roms_read_data(runs.dir, 'u', tind, volumeu, [], ...
+        u = avg1(dc_roms_read_data(runs.dir, 'u', tindices, volumeu, [], ...
                               runs.rgrid, 'his', 'single'), 1);
         % read depth dependent velocity fields and integrate
-        v = avg1(dc_roms_read_data(runs.dir, 'v', tind, volumev, [], ...
-                              runs.rgrid, 'his', 'single'), 2);
+        v = avg1(dc_roms_read_data(runs.dir, 'v', tindices, volumev, [], ...
+                                   runs.rgrid, 'his', 'single'), 2);
+
 
         % depth-integrate quantities
         tic;
