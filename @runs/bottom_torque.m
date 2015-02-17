@@ -9,56 +9,48 @@ function [] = bottom_torque(runs)
     beta = runs.params.phys.beta;
     f0 = runs.params.phys.f0;
 
-    dx = 1000; dy = 1000;
+    % use some mask to determine edges of domain
+    % that I want to analyze?
+    use_mask = 0;
+    if use_mask
+        % eddy-based mask
+        mask = runs.eddy.mask(:,:,tind(1):tind(2));
+        maskstr = 'sshmask';
 
-    % eddy-based mask
-    mask = runs.eddy.mask(:,:,tind(1):tind(2));
-    maskstr = 'sshmask';
+        % vorticity mask
+        %mask = runs.eddy.vormask(:,:,tind(1):tind(2));
+        %maskstr = 'vormask';
 
-    % vorticity mask
-    %mask = runs.eddy.vormask(:,:,tind(1):tind(2));
-    %maskstr = 'vormask';
+        % topography based mask
+        %mask = (runs.rgrid.y_rho(2:end-1,2:end-1)' > runs.bathy.xsb) & ...
+        %       (runs.rgrid.y_rho(2:end-1,2:end-1)' < runs.bathy.xsl);
+        %mask = mask .* ~runs.sponge(2:end-1,2:end-1);
+        % mask = 'slopemask';
 
-    % topography based mask
-    %mask = (runs.rgrid.y_rho(2:end-1,2:end-1)' > runs.bathy.xsb) & ...
-    %       (runs.rgrid.y_rho(2:end-1,2:end-1)' < runs.bathy.xsl);
-    %mask = mask .* ~runs.sponge(2:end-1,2:end-1);
-    % mask = 'slopemask';
+        % indices of eddy extremes - based on mask
+        indx = repmat([1:size(mask, 1)]', [1 size(mask,2)]);
+        indy = repmat([1:size(mask, 2)], [size(mask,1) 1]);
 
-    % indices of eddy extremes - based on mask
-    indx = repmat([1:size(mask, 1)]', [1 size(mask,2)]);
-    indy = repmat([1:size(mask, 2)], [size(mask,1) 1]);
+        mask = fillnan(mask, 0);
 
-    mask = fillnan(mask, 0);
+        ixmax = squeeze(nanmax(nanmax(bsxfun(@times, mask, indx), [], ...
+                                      1), [], 2));
+        ixmin = squeeze(nanmin(nanmin(bsxfun(@times, mask, indx), [], ...
+                                      1), [], 2));
 
-    ixmax = squeeze(nanmax(nanmax(bsxfun(@times, mask, indx), [], ...
-                                  1), [], 2));
-    ixmin = squeeze(nanmin(nanmin(bsxfun(@times, mask, indx), [], ...
-                                  1), [], 2));
+        iymax = squeeze(nanmax(nanmax(bsxfun(@times, mask, indy), [], ...
+                                      1), [], 2));
+        iymin = squeeze(nanmin(nanmin(bsxfun(@times, mask, indy), [], ...
+                                      1), [], 2));
 
-    iymax = squeeze(nanmax(nanmax(bsxfun(@times, mask, indy), [], ...
-                                  1), [], 2));
-    iymin = squeeze(nanmin(nanmin(bsxfun(@times, mask, indy), [], ...
-                                  1), [], 2));
-
-    % check edge detection
-    %for ind = 1:size(mask, 3)
-    %    clf;
-    %    pcolorcen(mask(:,:,ind)');
-    %    linex([ixmin(ind) ixmax(ind)]);
-    %    liney([iymin(ind) iymax(ind)]);
-    %    title(num2str(ind));
-    %    pause(1);
-    %end
-
-    %%%%%%% first, bottom pressure
-    di = 40;
-    imnx = min(ixmin(:)) - di; imny = min(iymin(:)) - di;
-    imxx = max(ixmax(:)) + di; imxy = max(iymax(:)) + di;
-
-    sz = size(runs.rgrid.x_rho') - 4;
-    imnx = 2; imxx = sz(1);
-    imny = 2; imxy = sz(2);
+        di = 40;
+        imnx = min(ixmin(:)) - di; imny = min(iymin(:)) - di;
+        imxx = max(ixmax(:)) + di; imxy = max(iymax(:)) + di;
+    else
+        sz = size(runs.rgrid.x_rho') - 4;
+        imnx = 2; imxx = sz(1);
+        imny = 2; imxy = sz(2);
+    end
 
     volumer = {'x' imnx imxx; ...
                'y' imny imxy};
@@ -72,13 +64,14 @@ function [] = bottom_torque(runs)
     %my = runs.eddy.vor.cy(tind(1):tind(2));
     %imy = vecfind(runs.rgrid.yr(1,imny:imxy), my);
 
-    if isempty(runs.zeta)
-        runs.read_zeta;
-    end
-    % subsample to size(mask);
-    % then subsample to region I'm interested in.
-    zeta = runs.zeta(2:end-1,2:end-1, tind(1):tind(2));
-    zeta = zeta(imnx:imxx, imny:imxy, :);
+    % read free-surface
+    % if isempty(runs.zeta)
+    %     runs.read_zeta;
+    % end
+    % % subsample to size(mask);
+    % % then subsample to region I'm interested in.
+    % zeta = runs.zeta(2:end-1,2:end-1, tind(1):tind(2));
+    % zeta = zeta(imnx:imxx, imny:imxy, :);
 
     % subsample mask and f
     mask = mask(imnx:imxx, imny:imxy, :);
@@ -88,15 +81,15 @@ function [] = bottom_torque(runs)
     % f = bsxfun(@minus, f, permute(f(1,imy),[3 1 2]));
     f = repmat(f, [1 1 size(mask,3)]);
 
+    % subsample bathymetry
+    H = runs.bathy.h(2:end-1, 2:end-1);
+    H = H(imnx:imxx, imny:imxy);
+
     % subsample bottom slope
     slbot = diff(runs.rgrid.h',1,2)./diff(runs.rgrid.y_rho',1,2);
     slbot = repmat(slbot(imnx:imxx, imny:imxy), [1 1 size(mask,3)]);
 
-    % now read density and eddye fields
-    rho = dc_roms_read_data(runs.dir, 'rho', tind, volumer, [], ...
-                            runs.rgrid, 'his', 'single');
-    %eddye = dc_roms_read_data(runs.dir, runs.eddname, tind, volumer, [], ...
-    %                        runs.rgrid, 'his', 'single') > runs.eddy_thresh;
+    % get background density field for initial time instant
     if runs.bathy.axis == 'y'
         % (y,z)
         rback = dc_roms_read_data(runs.dir, 'rho', [1 1], {'x' 1 1}, [], ...
@@ -111,44 +104,13 @@ function [] = bottom_torque(runs)
         error('not implemented for NS isobaths yet');
     end
 
-    % bathymetry
-    H = runs.bathy.h(2:end-1, 2:end-1);
-    H = H(imnx:imxx, imny:imxy);
+    % now read density and eddye fields
+    rho = dc_roms_read_data(runs.dir, 'rho', tind, volumer, [], ...
+                            runs.rgrid, 'his', 'single');
+    %eddye = dc_roms_read_data(runs.dir, runs.eddname, tind, volumer, [], ...
+    %                        runs.rgrid, 'his', 'single') > runs.eddy_thresh;
 
-    % looks like (eddy.mx, eddy.my) isn't totally accurate, so
-    % re-detect that.
-    xrmat = runs.rgrid.xr(imnx:imxx, imny:imxy);
-    yrmat = runs.rgrid.yr(imnx:imxx, imny:imxy);
-
-    %clear mx my
-    %for tt=1:size(zeta, 3)
-    %    mzeta = mask(:,:,tt) .* zeta(:,:,tt);
-    %    maxz = nanmax(nanmax(mzeta, [], 1), [], 2);
-    %    ind = find(mzeta == maxz);
-    %    [a,b] = ind2sub([size(mzeta,1) size(mzeta,2)], ind);
-    %    mx(tt) = xrmat(a,b);
-    %    my(tt) = yrmat(a,b);
-    %end
-    % debug plots
-    %tt = 20;
-    %mzeta = mask .* zeta;
-    %for tt =1:size(mzeta,3)
-    %    clf;
-    %    contourf(xrmat(:,:,tt), yrmat(:,:,tt), mzeta(:,:,tt), 60);
-    %    hold on;
-    %    plot(runs.eddy.cx(tind(1)+tt) - mx(tt), ...
-    %         runs.eddy.cy(tind(1)+tt) - my(tt), 'k*', 'MarkerSize', 16);
-    %    shading flat;
-    %    linex(0); liney(0);
-    %    pause(0.5);
-    %end
-
-    % grid vectors - referenced at each time level to location of
-    % eddy center
-    %xrmat = bsxfun(@minus, runs.rgrid.xr(imnx:imxx, imny:imxy), ...
-    %               permute(mx, [3 1 2]));
-    %yrmat = bsxfun(@minus, runs.rgrid.yr(imnx:imxx, imny:imxy), ...
-    %               permute(my, [3 1 2]));
+    % grid vectors and matrices
     xrmat = repmat(runs.rgrid.x_rho(imny:imxy, imnx:imxx)', [1 1 ...
                         size(mask,3)]);
     yrmat = repmat(runs.rgrid.y_rho(imny:imxy, imnx:imxx)', [1 1 ...
@@ -161,6 +123,8 @@ function [] = bottom_torque(runs)
     dzmat = diff(permute(zwmat, [3 2 1]), 1, 3);
     xvec = runs.rgrid.x_rho(1,imnx:imxx);
     yvec = runs.rgrid.y_rho(imny:imxy);
+
+    %%%%%%% first, bottom pressure
 
     % subtract out background density to get anomaly
     % see Flierl (1987)
@@ -348,3 +312,49 @@ function [out] = integrate(xvec, yvec, in)
     out = squeeze(trapz(yvec, ...
                         trapz(xvec, in, 1), 2));
 end
+
+
+    % looks like (eddy.mx, eddy.my) isn't totally accurate, so
+    % re-detect that.
+    %xrmat = runs.rgrid.xr(imnx:imxx, imny:imxy);
+    %yrmat = runs.rgrid.yr(imnx:imxx, imny:imxy);
+    %clear mx my
+    %for tt=1:size(zeta, 3)
+    %    mzeta = mask(:,:,tt) .* zeta(:,:,tt);
+    %    maxz = nanmax(nanmax(mzeta, [], 1), [], 2);
+    %    ind = find(mzeta == maxz);
+    %    [a,b] = ind2sub([size(mzeta,1) size(mzeta,2)], ind);
+    %    mx(tt) = xrmat(a,b);
+    %    my(tt) = yrmat(a,b);
+    %end
+    % debug plots
+    %tt = 20;
+    %mzeta = mask .* zeta;
+    %for tt =1:size(mzeta,3)
+    %    clf;
+    %    contourf(xrmat(:,:,tt), yrmat(:,:,tt), mzeta(:,:,tt), 60);
+    %    hold on;
+    %    plot(runs.eddy.cx(tind(1)+tt) - mx(tt), ...
+    %         runs.eddy.cy(tind(1)+tt) - my(tt), 'k*', 'MarkerSize', 16);
+    %    shading flat;
+    %    linex(0); liney(0);
+    %    pause(0.5);
+    %end
+
+
+        % check edge detection
+        %for ind = 1:size(mask, 3)
+        %    clf;
+        %    pcolorcen(mask(:,:,ind)');
+        %    linex([ixmin(ind) ixmax(ind)]);
+        %    liney([iymin(ind) iymax(ind)]);
+        %    title(num2str(ind));
+        %    pause(1);
+        %end
+
+        % grid vectors - referenced at each time level to location of
+    % eddy center
+    %xrmat = bsxfun(@minus, runs.rgrid.xr(imnx:imxx, imny:imxy), ...
+    %               permute(mx, [3 1 2]));
+    %yrmat = bsxfun(@minus, runs.rgrid.yr(imnx:imxx, imny:imxy), ...
+    %               permute(my, [3 1 2]));
