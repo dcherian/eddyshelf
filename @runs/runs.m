@@ -499,7 +499,29 @@ methods
 
     function [] = plot_test1(runs)
 
-        figure;
+        it = 1:20:length(runs.time);
+
+        ix = vecfind(runs.rgrid.x_rho(1,:), runs.eddy.mx(it));
+        iy = vecfind(runs.rgrid.y_rho(:,1), runs.eddy.my(it) - runs.eddy.vor.lmin(it)/2);
+
+        corder_backup = get(0, 'DefaultAxesColorOrder');
+        set(0, 'DefaultAxesLineStyleorder','-');
+        set(0, 'DefaultAxesColorOrder', brighten(cbrewer('seq','Reds',length(it)), ...
+                                                 -0.5));
+        figure; hold all
+        for tt=1:length(it)
+            u = dc_roms_read_data(runs.dir, 'u', it(tt), {'x' ix(tt) ...
+                                ix(tt); 'y' iy(tt) iy(tt)}, [], ...
+                                  runs.rgrid, 'his');
+            plot(u./u(end), runs.rgrid.z_u(:,iy(tt),ix(tt)) ./ ...
+                 runs.eddy.Lgauss(it(tt)));
+        end
+
+        z = [-3:0.01:0];
+        plot(erf(z) + 1, z, 'b-');
+
+        set(0, 'DefaultAxesColorOrder', corder_backup);
+        set(0,'DefaultAxesLineStyleOrder',{'-','--','-.'});
     end
 
     function [] = plot_dEdt(runs)
@@ -743,7 +765,24 @@ methods
 
         for ii=1:length(asindex)
             subplot(1,n,ii);
-            pcolorcen(tmat, ymat, runs.asflux.ikefluxyt(:,:,asindex(ii))./hmat);
+            pcolorcen(tmat, ymat, runs.asflux.ipefluxyt(:,:,asindex(ii))./hmat);
+            center_colorbar; clim = caxis;
+            title(['x = ' num2str(runs.asflux.x(asindex(ii))/1000) ...
+                   ' km']);
+            liney(ymat(runs.bathy.isl-sy1 + 1,1), 'slopebreak');
+            liney(ymat(runs.bathy.isb-sy1 + 1,1), 'shelfbreak');
+            ylabel('Y (km)');
+            xlabel('Time (days)');
+            beautify;
+        end
+
+
+        figure; maximize(); pause(0.1);
+        insertAnnotation([runs.name '.plot_asflux()']);
+
+        for ii=1:length(asindex)
+            subplot(1,n,ii);
+            pcolorcen(tmat, ymat, runs.asflux.eddy.ipefluxyt(:,:,asindex(ii))./hmat);
             center_colorbar; clim = caxis;
             title(['x = ' num2str(runs.asflux.x(asindex(ii))/1000) ...
                    ' km']);
