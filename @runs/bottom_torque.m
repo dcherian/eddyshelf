@@ -264,7 +264,7 @@ function [] = bottom_torque(runs)
     %%%%%%%%% mask?
     botmask = pbot > 0.1*max(pbot(:));
     mask_rho = 1; botmask; %irho < -1;
-    mpbot = mask_rho .* pbot;
+    mpbot = mask_rho .* pbot .* slbot;
     miv = mask_rho .* iv;
     miam = mask_rho .* iam;
 
@@ -285,7 +285,7 @@ function [] = bottom_torque(runs)
     %%%%%%%%% Summarize
     bottom.pressure = P;
     bottom.angmom = AM;
-    bottom.pbtorque = P .* runs.bathy.sl_slope;
+    bottom.pbtorque = P;
     bottom.betatorque = AM;
     bottom.transtorque = V;
     bottom.time = runs.eddy.t(tind(1):tind(2):tind(3))*86400;
