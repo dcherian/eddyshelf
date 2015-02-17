@@ -617,14 +617,25 @@ methods
                             sy2 sy2; 'z' 10 10}, [], runs.rgrid);
         t = runs.time/86400;
 
+        r1 = dc_roms_read_data(runs.dir, 'rho', [], {'x' sx1 sx1; 'y' ...
+                            sy2 sy2; 'z' 10 10}, [], runs.rgrid);
+        r2 = dc_roms_read_data(runs.dir, 'rho', [], {'x' sx2 sx2; 'y' ...
+                            sy2 sy2; 'z' 10 10}, [], runs.rgrid);
+
+        subplot(211)
         plot(t,v1,t,v2);
         linex([runs.eddy.edgtscale runs.eddy.tscale]./ ...
               runs.eddy.turnover);
+        ylabel('v (m/s)');
         title(runs.name);
         legend(['(' num2str(sx1) ',' num2str(sy2) ')'], ...
                ['(' num2str(sx2) ',' num2str(sy2) ')']);
+        beautify;
+
+        subplot(212)
+        plot(t,r1,t,r2);
+        ylabel('\rho - 1000 (kg/m^3)');
         xlabel('Time (days)');
-        ylabel('v (m/s)');
         beautify;
     end
 
