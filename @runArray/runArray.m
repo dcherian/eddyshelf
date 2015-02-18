@@ -324,29 +324,64 @@ classdef runArray < handle
                 %%%%% Flierl (1987) bottom torque hypothesis.
                 if strcmpi(name, 'bottom torque')
 
+                    Ro = run.eddy.Ro(1);
+                    Sa = run.bathy.S_sl;
                     beta = run.params.phys.beta;
                     f0 = run.params.phys.f0;
+                    Lx = run.eddy.vor.dia(1)/2;
                     Lz = run.eddy.Lgauss(1);
                     H0 = run.eddy.hcen(1);
                     alpha = run.bathy.sl_slope;
+                    Tamp = run.params.eddy.tamp;
+                    TCOEF = run.params.phys.TCOEF;
                     V = run.eddy.V;
 
-                    expfitflag = 0;
+                    expfitflag = 1;
                     if expfitflag
-                        hcen = smooth(run.eddy.hcen, 5);
                         ndtime = run.eddy.t*86400./run.eddy.turnover;
-                        ind = find((hcen - hcen(1)) ~= 0, 1, 'first');
-                        [h0, T] = exp_fit(ndtime(ind:end), hcen(ind:end)'./hcen(ind), 1);
-                        tind = find_approx(ndtime, T, 1);
+
+                        yvec = run.eddy.my;
+                        tvec = ndtime;
+
+                        % get unique timesteps
+                        [ut,uind,~] = unique(tvec);
+                        yvec = yvec(uind);
+                        tvec = tvec(uind);
+
+                        % locate origin in the middle of the
+                        % straight line section.
+                        iref = find_approx(yvec, ...
+                                           (yvec(1)+yvec(end))/2, 1);
+
+                        yref = yvec(iref); tref = tvec(iref);
+
+                        [y0,T] = runArray.tanh_fit(tvec-tref, yvec-yref, 0);
+                        title(runName);
+                        if T < 0, continue; end
+
+                        % y,t scales
+                        yscl = y0 + yref;
+                        tscl = tref + T;
+                        tind = find_approx(ndtime, tscl, 1);
                     else
                         [~,~,tind] = run.locate_resistance;
                     end
                     if isempty(tind), continue; end
 
                     H = run.eddy.hcen(tind);
+                    Y = run.eddy.my(tind) - run.bathy.xsb; run.eddy.my(tind);
 
-                    diags(ff) = (H./Lz);
-                    plotx(ff) = (beta * Lz / alpha / f0);
+                    %figure(200); hold all
+                    %hplt = plot(ndtime, run.eddy.my./Lx);
+                    %addlegend(hplt, runName);
+                    %plot(ndtime(tind), run.eddy.my(tind)./Lx, 'k*');
+                    %liney(yscl); linex([1 2 3]*tscl);
+
+                    diags(ff) = (H./run.bathy.hsl);
+                    %plotx(ff) = (beta*Lx)/alpha * V(1)/(Tamp*TCOEF);
+                    %diags(ff) = Y./(run.rrdeep);
+                    %plotx(ff) = Ro./Sa;
+                    plotx(ff) = beta*Lz/alpha/f0;
                     name_points = 1;
                     laby = 'H_{cen}/L_z^0';
                     labx = '\beta L_z^0 / (\alpha f_0)';
