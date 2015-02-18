@@ -234,7 +234,6 @@ function [] = bottom_torque(runs)
                              bsxfun(@rdivide, diff(P,1,2), diff(yvec)));
 
             % coriolis terms
-
             fv = integrate(xvec, yvec, f .* V);
             fu = integrate(xvec, yvec, f .* U);
             f0u = integrate(xvec, yvec, f0 .* U);
