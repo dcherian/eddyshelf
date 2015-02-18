@@ -496,8 +496,21 @@ methods
         roms_info(runs.dir);
     end
 
-
     function [] = plot_test1(runs)
+
+        figure;
+        f0 = runs.params.phys.f0;
+        rho0 = runs.params.phys.rho0;
+        g = runs.params.phys.g;
+        alpha = runs.bathy.sl_slope;
+        U = runs.eddy.V;
+
+        rhobar = runs.eddy.mass./runs.eddy.vol - 1000;
+
+        plot(f0/alpha/g*rho0 * bsxfun(@times, rhobar, U'));
+    end
+
+    function [] = plot_velprofiles(runs)
 
         it = 1:20:length(runs.time);
 
