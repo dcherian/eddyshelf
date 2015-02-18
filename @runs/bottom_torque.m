@@ -85,6 +85,9 @@ function [] = bottom_torque(runs)
     % f - f @ center of eddy
     % f = bsxfun(@minus, f, permute(f(1,imy),[3 1 2]));
     f = repmat(f, [1 1 nt]);
+    % This is so that I don't have trouble finding out the
+    % reference latitude
+    bymat = f - f0;
 
     % subsample bathymetry
     H = runs.bathy.h(2:end-1, 2:end-1);
@@ -227,12 +230,13 @@ function [] = bottom_torque(runs)
                              bsxfun(@rdivide, diff(P,1,2), diff(yvec)));
 
             % coriolis terms
+
             fv = integrate(xvec, yvec, f .* V);
             fu = integrate(xvec, yvec, f .* U);
             f0u = integrate(xvec, yvec, f0 .* U);
-            byu = integrate(xvec, yvec, beta .* (yrmat-Y/2) .* U);
+            byu = integrate(xvec, yvec, bymat .* U);
             f0v = integrate(xvec, yvec, f0 .* V);
-            byv = integrate(xvec, yvec, beta .* (yrmat-Y/2) .* V);
+            byv = integrate(xvec, yvec, bymat .* V);
 
             % non-linear terms
             dv2dy = integrate(xvec, avg1(yvec), ...
@@ -264,7 +268,8 @@ function [] = bottom_torque(runs)
 
     % vertically integrated angular momentum
     %iam = 1/2 * beta .* (V .* xrmat - U .* yrmat); % if ψ ~ O(1/r²)
-    iam = f0 .* U + beta .* U .* yrmat; % if ψ ~ O(1/r)
+    %iam = (f-f0) .* U; % if ψ ~ O(1/r)
+    iam = f .* U;
 
     %%%%%%%%% Translation term
     %c = runs.eddy.cvx(tind(1):dt:tind(2)) .* 1000/86400; % convert to m/s
