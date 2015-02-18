@@ -214,7 +214,7 @@ function [] = bottom_torque(runs)
         tic;
         U = squeeze(sum(bsxfun(@times, u, dzmat), 3));
         if mom_budget
-             V = squeeze(sum(bsxfun(@times, v, dzmat), 3));
+             V = squeeze(sum(bsxfun(@times,    v, dzmat), 3));
             UV = squeeze(sum(bsxfun(@times, u.*v, dzmat), 3));
             U2 = squeeze(sum(bsxfun(@times, u.^2, dzmat), 3));
             V2 = squeeze(sum(bsxfun(@times, v.^2, dzmat), 3));
