@@ -92,12 +92,39 @@ methods
                         zeta0',1);
         runs.rgrid.xr = runs.rgrid.x_rho';
         runs.rgrid.yr = runs.rgrid.y_rho';
-        runs.rgrid.zr = permute(runs.rgrid.z_r,[3 2 1]);
+        runs.rgrid.z_r = single(runs.rgrid.z_r);
+        runs.rgrid.z_u = single(runs.rgrid.z_u);
+        runs.rgrid.z_v = single(runs.rgrid.z_v);
+        runs.rgrid.z_w = single(runs.rgrid.z_w);
+        %runs.rgrid.zr = permute(runs.rgrid.z_r,[3 2 1]);
         runs.rgrid.z_uw = [];
         runs.rgrid.z_vw = [];
         runs.rgrid.zeta = [];
         runs.rgrid.dx = mean(1./runs.rgrid.pm(:));
         runs.rgrid.dy = mean(1./runs.rgrid.pn(:));
+
+        % remove needless rgrid matrices
+        runs.rgrid.angle = [];
+        runs.rgrid.x_psi = [];
+        runs.rgrid.y_psi = [];
+        if runs.rgrid.nomask
+            runs.rgrid.mask_rho = [];
+                runs.rgrid.mask_rho_nan = [];
+            runs.rgrid.mask_psi = [];
+            runs.rgrid.mask_u = [];
+            runs.rgrid.mask_v = [];
+        end
+        if runs.rgrid.nolatlon
+            runs.rgrid.lon_rho = [];
+            runs.rgrid.lon_psi = [];
+            runs.rgrid.lon_u = [];
+            runs.rgrid.lon_v = [];
+
+            runs.rgrid.lat_rho = [];
+            runs.rgrid.lat_psi = [];
+            runs.rgrid.lat_u = [];
+            runs.rgrid.lat_v = [];
+        end
 
         runs.rbacksurf = ncread(runs.out_file, 'rho', [1 1 runs.rgrid.N ...
                             1], [1 1 1 1]);
