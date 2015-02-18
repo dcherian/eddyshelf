@@ -383,11 +383,19 @@ methods
 %                                        *1/2 * 1/run3.eddy.amp(1) * ...
 %                                sqrt(run3.params.phys.N2)/run3.params.phys.g*max(run3.bathy.h(:))
 
-          %  % water depth at eddy center
+            % water depth at eddy center
             h = runs.bathy.h(2:end-1,2:end-1);
             ix = vecfind(runs.eddy.xr(:,1), runs.eddy.mx);
             iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.my);
             runs.eddy.hcen = h(sub2ind(size(runs.eddy.xr),ix,iy))';
+
+            if runs.bathy.axis == 'y'
+                iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.vor.se);
+                runs.eddy.hedge = h(1,iy)';
+            end
+
+            % remove needless h-matrix
+            runs.eddy.h = [];
         end
 
         if do_all == 1
