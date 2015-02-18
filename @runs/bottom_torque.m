@@ -189,22 +189,26 @@ function [] = bottom_torque(runs)
         v = avg1(dc_roms_read_data(runs.dir, 'v', tindices, volumev, [], ...
                                    runs.rgrid, 'his', 'single'), 2);
 
-        vormask = runs.eddy.vormask(imnx:imxx, imny:imxy, :);
-        sshmask = runs.eddy.mask(imnx:imxx, imny:imxy, :);
+        use_masked = 0;
+        if use_masked
+            disp('Using rho based eddy mask.');
+            vormask = runs.eddy.vormask(imnx:imxx, imny:imxy, :);
+            sshmask = runs.eddy.mask(imnx:imxx, imny:imxy, :);
 
-        % find what density corresponds to 0 vorticity contour
-        rhothreshvor = squeeze(nanmax(nanmax(rho(:,:,1) .* ...
-                                             fillnan(vormask(:,:,1),0), ...
-                                             [], 1), [], 2));
-        rhothreshssh = squeeze(nanmax(nanmax(rho(:,:,1) .* ...
-                                             fillnan(sshmask(:,:,1),0), ...
-                                             [], 1), [], 2));
+            % find what density corresponds to 0 vorticity contour
+            rhothreshvor = squeeze(nanmax(nanmax(rho(:,:,1) .* ...
+                                                 fillnan(vormask(:,:,1),0), ...
+                                                 [], 1), [], 2));
+            rhothreshssh = squeeze(nanmax(nanmax(rho(:,:,1) .* ...
+                                                 fillnan(sshmask(:,:,1),0), ...
+                                                 [], 1), [], 2));
 
-        % mask out velocities
-        masked = bsxfun(@times, rho < rhothreshssh, ...
-                        permute(sshmask(:,:,tind(1):dt:tind(2)), [1 2 4 3]));
-        u = u .* masked;
-        v = v .* masked;
+            % mask out velocities
+            masked = bsxfun(@times, rho < rhothreshssh, ...
+                            permute(sshmask(:,:,tind(1):dt:tind(2)), [1 2 4 3]));
+            u = u .* masked;
+            v = v .* masked;
+        end
 
         % depth-integrate quantities
         tic;
