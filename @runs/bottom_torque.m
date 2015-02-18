@@ -252,7 +252,7 @@ function [] = bottom_torque(runs)
             % bottom torque
             btq = integrate(xvec, yvec, pbot .* slbot);
 
-            total = duvdx + dv2dy + fu + dpdy - btq;
+            total = duvdx + dv2dy + fu + dpdy + btq;
             figure; hold all;
             plot(-1*f0u./total);
             plot(-1*byu./total);
