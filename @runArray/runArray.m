@@ -147,8 +147,26 @@ classdef runArray < handle
                 run = runArray.array(ii);
                 runName = runArray.getname(ii);
 
+                % some commonly used variables
                 tind = run.tscaleind;
+                ndtime = run.eddy.t * 86400 / run.eddy.turnover;
+                Lz = run.eddy.Lgauss;
+                Ro = run.eddy.Ro;
+                V = run.eddy.V;
+                hcen = run.eddy.hcen;
 
+                A = run.eddy.amp(1);
+
+                Lr = run.rrdeep;
+                beta = run.params.phys.beta;
+                f0 = run.params.phys.f0;
+
+                alpha = run.bathy.sl_slope;
+                hsb = run.bathy.hsb;
+                hsl = run.bathy.hsl;
+                xsb = runs.bathy.xsb;
+                xsl = run.bathy.xsl;
+                Sa = run.bathy.S_sl;
                 diagstr = [];
 
                 %%%%% dummy
@@ -183,12 +201,7 @@ classdef runArray < handle
                         end
                     end
 
-                    beta = run.params.phys.beta;
-                    f0 = run.params.phys.f0;
-                    Lr = run.params.eddy.Ldef;
-                    Ro = run.eddy.Ro(1);
-                    Sa = run.bathy.S_sl;
-                    A = run.eddy.amp(1);
+                    Ro = Ro(1);
 
                     % convert to m/s
                     mvy = smooth(run.eddy.mvy, 28) * 1000/86400;
@@ -218,7 +231,7 @@ classdef runArray < handle
                 %%%%% slope parameter
                 if strcmpi(name, 'slope param')
                     plots = 0;
-                    diags(ff) = run.eddy.Ro(1) ./ run.bathy.S_sl;
+                    diags(ff) = Ro(1)./Sa;
                 end
 
                 %%%% resistance
@@ -235,7 +248,7 @@ classdef runArray < handle
                     run.eddy.res.comment = ['(xx,yy) = center ' ...
                                         'location | tind = time index'];
 
-                    plotx(ff) = run.eddy.Ro(1)./run.bathy.S_sl;
+                    plotx(ff) = Ro(1)./Sa;
                     %diags(ff) = yy./run.rrdeep;
                     if strcmpi(loc, 'cen')
                         hdiag = run.eddy.hcen(tind);
@@ -255,7 +268,7 @@ classdef runArray < handle
                         laby = 'H_{edge}./H_{eddy}';
                     end
 
-                    diags(ff) = hdiag ./ run.eddy.Lgauss(1);
+                    diags(ff) = hdiag ./ Lz(1);
 
                     % name points with run names on summary plot
                     name_points = 1;
@@ -316,25 +329,19 @@ classdef runArray < handle
 
                 %%%%% topography parameter - taylor column
                 if strcmpi(name, 'hogg')
-                    diags(ff) = 1./(run.eddy.Ro(1)) ./ ...
-                           (1+ run.bathy.hsb/run.eddy.Lgauss(1) * ...
-                            1./run.bathy.S_sl);
+                    diags(ff) = 1./Ro(1) ./ ...
+                           (1+hsb/Lz(1) * 1/Sa);
                 end
 
                 %%%%% Flierl (1987) bottom torque hypothesis.
                 if strcmpi(name, 'bottom torque')
 
-                    Ro = run.eddy.Ro(1);
-                    Sa = run.bathy.S_sl;
-                    beta = run.params.phys.beta;
-                    f0 = run.params.phys.f0;
+                    Ro = Ro(1);
                     Lx = run.eddy.vor.dia(1)/2;
-                    Lz = run.eddy.Lgauss(1);
-                    H0 = run.eddy.hcen(1);
-                    alpha = run.bathy.sl_slope;
+                    Lz = Lz(1);
+                    H0 = hcen(1);
                     Tamp = run.params.eddy.tamp;
                     TCOEF = run.params.phys.TCOEF;
-                    V = run.eddy.V;
 
                     expfitflag = 1;
                     if expfitflag
@@ -483,11 +490,10 @@ classdef runArray < handle
                 %%%%% beta v/s beta_t
                 if strcmpi(name, 'betas')
                     plots = 0;
-                    betat = run.bathy.sl_slope .* run.params.phys.f0 ...
-                            ./ max(run.bathy.h(:));
+                    betat = Sa .* f0 ./ max(run.bathy.h(:));
                     diagstr = [num2str( ...
-                        run.params.phys.beta ./ betat  ...
-                        ) ' | ' num2str(mean(run.eddy.hcen(run.tscaleind:end)))];
+                        betabeta ./ betat  ...
+                        ) ' | ' num2str(mean(hcen(run.tscaleind:end)))];
                 end
 
                 %%%%% shelf flux
@@ -501,8 +507,7 @@ classdef runArray < handle
                     end
 
                     ind = run.eddy.tscaleind;
-                    transscl = 0.075 * 9.81/run.params.phys.f0 .* ...
-                               run.eddy.amp(ind).* run.bathy.hsb/1000;
+                    transscl = 0.075 * 9.81/f0 .* run.eddy.amp(ind).* hsb/1000;
 
                     % flux vector for applicable time
                     % convert everything to double since I'm
