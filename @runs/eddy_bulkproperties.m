@@ -1,4 +1,5 @@
-% eddy bulk properties - integrated PV, RV, volume, energy
+% eddy bulk properties - integrated PV, RV, volume, energy,
+% bottom pressure torque, volume transport, mass transport
 function [] = eddy_bulkproperties(runs, slab)
 %%
     if ~exist('slab', 'var') || isempty(slab)
@@ -32,7 +33,16 @@ function [] = eddy_bulkproperties(runs, slab)
     dirname = runs.dir;
     thresh = runs.eddy_thresh;
     N = runs.rgrid.N;
+    g = runs.params.phys.g;
     zr = permute(runs.rgrid.z_r(:, 2:end-1, 2:end-1), [3 2 1]);
+    % bottom slope
+    if runs.bathy.axis == 'y'
+        slbot = avg1(diff(runs.bathy.h, 1, 2)./diff(runs.rgrid.yr,1,2), 2);
+        slbot = slbot(2:end-1,:);
+    else
+        slbot = avg1(diff(runs.bathy.h, 1, 1)./diff(runs.rgrid.xr,1,1), 1);
+        slbot = slbot(:,2:end-1);
+    end
 
     pvname = [runs.dir '/ocean_vor.nc'];
     if exist(pvname,'file')
@@ -122,6 +132,14 @@ function [] = eddy_bulkproperties(runs, slab)
     % initial time instant works well - see plot_eddye
     rhothreshes = [runs.eddy.drhothresh(1) ...
                    runs.eddy.drhothreshssh(1)];
+
+    % allocate variables
+    intpe = cell(ceil(nt/slab), length(rhothreshes));
+    intke = intpe;
+    volcell = intpe; masscell = intpe;
+    voltrans = intpe; masstrans = intpe;
+    btrq = intpe;
+
     ticstart = tic;
     for mm=1:ceil(nt/slab)
         tt = (mm-1)*slab + 1;
@@ -170,13 +188,13 @@ function [] = eddy_bulkproperties(runs, slab)
 
             pe = double(- runs.params.phys.TCOEF* bsxfun(@times, ...
                                                          bsxfun(@minus, temp, tback), zr)  ...
-                        .* runs.params.phys.g .* runs.params.phys.R0);
+                        .* g .* runs.params.phys.R0);
         else
             rho  = dc_roms_read_data(dirname, 'rho', ...
                                      [tt tend],{'x' 2 sz4dfull(1)+1; 'y' 2 sz4dfull(2)+1}, ...
                                      [], rgrid, ftype, 'single');
 
-            pe = -1 * double(bsxfun(@times, rho+1000, zr) .* runs.params.phys.g);
+            pe = -1 * double(bsxfun(@times, rho+1000, zr) .* g);
         end
 
         for nnn = 1:length(rhothreshes)
@@ -195,6 +213,21 @@ function [] = eddy_bulkproperties(runs, slab)
                                                  reshape(0.5 * ...
                                                          double((rho+1000) .* ...
                                                               (u.^2 + v.^2)), sz), dVsp)));
+
+            % bottom pressure
+            btrq{mm, nnn} = full(nansum(bsxfun(@times, masked .* maskvor .* ...
+                                        reshape(bsxfun(@times, double(rho).*g, ...
+                                                  slbot), sz), ...
+                                               dVsp)));
+
+            % transport
+            voltrans{mm, nnn} = full(nansum(bsxfun(@times, ...
+                                                 masked.*maskvor.* ...
+                                                 reshape(abs(double(u)), sz), dVsp)));
+            masstrans{mm, nnn} = full(nansum(bsxfun(@times, ...
+                                                 masked.*maskvor.* ...
+                                                    reshape(double((rho+1000).*abs(u)), ...
+                                                            sz), dVsp)));
 
             %vol{tt} = runs.domain_integratesp(masked.*maskvor, dVsp);
             % calculate total volume
@@ -232,6 +265,9 @@ function [] = eddy_bulkproperties(runs, slab)
     % save data to structure
     runs.eddy.mass = cell2mat(masscell')';
     runs.eddy.vol = cell2mat(volcell')';
+    runs.eddy.voltrans = cell2mat(voltrans')';
+    runs.eddy.masstrans = cell2mat(masstrans')';
+    runs.eddy.btrq = cell2mat(btrq')';
     if dopv
         runs.eddy.PV = cell2mat(intpv')';
         runs.eddy.RV = cell2mat(intrv')';
