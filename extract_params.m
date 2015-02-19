@@ -39,8 +39,8 @@ function [S] = extract_params(run)
     for ii = 1:length(names)
         S.(names{ii}) = grd.(names{ii});
     end
-    S.Lm =  size(grd.mask_rho, 2) - 2;
-    S.Mm = size(grd.mask_rho, 1) - 2;
+    S.Lm = size(grd.x_rho, 2) - 2;
+    S.Mm = size(grd.x_rho, 1) - 2;
 
     ncid = netcdf.open(fname);
     [~, S.NT] = netcdf.inqDim(ncid, netcdf.inqDimID(ncid, 'tracer'));
