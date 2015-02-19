@@ -164,7 +164,7 @@ classdef runArray < handle
                 alpha = run.bathy.sl_slope;
                 hsb = run.bathy.hsb;
                 hsl = run.bathy.hsl;
-                xsb = runs.bathy.xsb;
+                xsb = run.bathy.xsb;
                 xsl = run.bathy.xsl;
                 Sa = run.bathy.S_sl;
                 diagstr = [];
