@@ -872,8 +872,14 @@ if flags.eddy
                 if flags.flat_bottom
                     eddy.cy = Y/5 + xtra;
                 else
-                    base = S.y_rho(1, find_approx(bathy.h(1,:), ...
-                                                  1.5*eddy.depth, 1));
+                    if flags.eddy_in_deep_water == 0
+                        base = S.y_rho(1, find_approx(bathy.h(1,:), ...
+                                                      1.5*eddy.depth, ...
+                                                      1));
+                    else
+                        base = bathy.xsl;
+                    end
+
                     eddy.cy = base + eddy.buffer+xtra; %597000;
                 end
             end
