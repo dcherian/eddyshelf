@@ -90,30 +90,32 @@ function [] = eddy_bulkproperties(runs, slab)
                                                               0), 1), 2));
 
             % debugging plots
-            tt = 1;
-            var = pv; %drhosurf;
-            hplt = pcolorcen(runs.rgrid.x_rho(2:end-1, 2:end-1)/1000, ...
-                             runs.rgrid.y_rho(2:end-1, 2:end-1)/1000, ...
-                             var(:,:,tt)');
-            clim = caxis;
-            hedd = runs.plot_eddy_contour('contour',tt);
-            hssh = runs.plot_eddy_sshcontour('contour',tt);
-            [~,hpv] = contour(runs.rgrid.x_rho(2:end-1, 2:end-1)/1000, ...
-                              runs.rgrid.y_rho(2:end-1, 2:end-1)/1000, ...
-                              pv(:,:,tt)', [1 1] * runs.eddy.pvthresh(1), ...
-                              'g', 'LineWidth', 2);
-            %vend = var(:,:,end);
-            %caxis([min(vend(:)) max(vend(:))]);
-            caxis(clim);
+            debug = 0;
+            if debug
+                tt = 1;
+                var = pv; %drhosurf;
+                hplt = pcolorcen(runs.rgrid.x_rho(2:end-1, 2:end-1)/1000, ...
+                                 runs.rgrid.y_rho(2:end-1, 2:end-1)/1000, ...
+                                 var(:,:,tt)');
+                clim = caxis;
+                hedd = runs.plot_eddy_contour('contour',tt);
+                hssh = runs.plot_eddy_sshcontour('contour',tt);
+                [~,hpv] = contour(runs.rgrid.x_rho(2:end-1, 2:end-1)/1000, ...
+                                  runs.rgrid.y_rho(2:end-1, 2:end-1)/1000, ...
+                                  pv(:,:,tt)', [1 1] * runs.eddy.pvthresh(1), ...
+                                  'g', 'LineWidth', 2);
+                %vend = var(:,:,end);
+                %caxis([min(vend(:)) max(vend(:))]);
+                caxis(clim);
 
-            for tt=1:2:size(var, 3)
-                set(hplt, 'CData', double(var(:,:,tt)'));
-                runs.update_eddy_contour(hedd, tt);
-                runs.update_eddy_sshcontour(hssh, tt);
-                set(hpv, 'zdata', pv(:,:,tt)');
-                pause(0.1);
+                for tt=1:2:size(var, 3)
+                    set(hplt, 'CData', double(var(:,:,tt)'));
+                    runs.update_eddy_contour(hedd, tt);
+                    runs.update_eddy_sshcontour(hssh, tt);
+                    set(hpv, 'zdata', pv(:,:,tt)');
+                    pause(0.1);
+                end
             end
-
         end
     end
 
