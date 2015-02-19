@@ -345,46 +345,90 @@ classdef runArray < handle
 
                     expfitflag = 1;
                     if expfitflag
-                        ndtime = run.eddy.t*86400./run.eddy.turnover;
-
-                        yvec = run.eddy.my;
                         tvec = ndtime;
-
                         % get unique timesteps
                         [ut,uind,~] = unique(tvec);
-                        yvec = yvec(uind);
                         tvec = tvec(uind);
 
-                        % locate origin in the middle of the
-                        % straight line section.
-                        iref = find_approx(yvec, ...
-                                           (yvec(1)+yvec(end))/2, 1);
+                        use_my = 0;
+                        if use_my
+                            yvec = run.eddy.my(uind);
+
+                            % locate origin in the middle of the
+                            % straight line section.
+                            iref = find_approx(yvec, ...
+                                               (yvec(1)+min(yvec))/2, 1);
+                        else
+                            yvec = run.eddy.hcen(uind)';
+                            i0 = find(yvec == yvec(1), 1, 'last');
+
+                            % locate origin in the middle of the
+                            % straight line section.
+                            iref = find_approx(yvec, ...
+                                               (yvec(i0)+min(yvec))/2, 1);
+                        end
 
                         yref = yvec(iref); tref = tvec(iref);
 
-                        [y0,T] = runArray.tanh_fit(tvec-tref, yvec-yref, 0);
-                        title(runName);
-                        if T < 0, continue; end
+                        tfit = tvec - tref;
+                        yfit = yvec - yref;
+                        [y0,T,y1] = runArray.tanh_fit(tfit, yfit, 0);
 
-                        % y,t scales
+                        % location and water depth along idealized
+                        % trajectory.
+                        if use_my
+                            ytraj = y0*tanh(tfit./T) + y1*(tfit./T) + ...
+                                    yref;
+                            itraj = vecfind(run.rgrid.y_rho(:,1), ...
+                                            ytraj);
+                            htraj = run.bathy.h(1,itraj);
+                        else
+                            % clamp to max water depth
+                            htraj = min(y0*tanh(tfit./T) + y1*(tfit./T) + ...
+                                    yref, max(run.bathy.h(:)));
+                            itraj = vecfind(run.bathy.h(1,:), ...
+                                            htraj);
+                            ytraj = run.eddy.my(uind);
+                        end
+
+                        % sometimes T comes out as negative. not
+                        % sure why
+                        tind = find_approx(tfit, 1.5*abs(T), 1);
+
+                        H = htraj(tind);
+                        Y = ytraj(tind);
+
+                        figure;
+                        subplot(211);
+                        plot(tvec, run.eddy.my(uind), '*', tvec, ytraj);
+                        liney(Y); title(runName);
+                        subplot(212);
+                        plot(tvec, run.eddy.hcen(uind), '*', tvec, ...
+                             htraj);
+                        liney(H);
+
+                        % y,t scales (corrected for earlier
+                        % reference shift)
                         yscl = y0 + yref;
                         tscl = tref + T;
-                        tind = find_approx(ndtime, tscl, 1);
                     else
                         [~,~,tind] = run.locate_resistance;
+                        H = (run.eddy.hcen(tind));
+                        Y = run.eddy.my(tind) - run.bathy.xsb; run.eddy.my(tind);
                     end
                     if isempty(tind), continue; end
+                    %if H./run.bathy.hsl > 0.9
+                    %    H = (run.eddy.hedge(tind));
+                    %    disp(runName);
+                    %end
 
-                    H = run.eddy.hcen(tind);
-                    Y = run.eddy.my(tind) - run.bathy.xsb; run.eddy.my(tind);
-
-                    %figure(200); hold all
-                    %hplt = plot(ndtime, run.eddy.my./Lx);
+                    %figure;
+                    %hplt = plot(ndtime, run.eddy.hcen); hold on
                     %addlegend(hplt, runName);
-                    %plot(ndtime(tind), run.eddy.my(tind)./Lx, 'k*');
-                    %liney(yscl); linex([1 2 3]*tscl);
+                    %plot(ndtime(tind), run.eddy.hcen(tind), 'k*');
+                    %%liney(yscl); linex([1 2 3]*tscl);
 
-                    diags(ff) = (H./run.bathy.hsl);
+                    diags(ff) = (H./Lz);
                     %plotx(ff) = (beta*Lx)/alpha * V(1)/(Tamp*TCOEF);
                     %diags(ff) = Y./(run.rrdeep);
                     %plotx(ff) = Ro./Sa;
@@ -475,13 +519,13 @@ classdef runArray < handle
 
                 % penetration
                 if strcmpi(name, 'hcen')
-                    hfinal = mean(run.eddy.hcen(tind:end));
-                    hinit = run.eddy.hcen(1);
+                    hfinal = mean(hcen(tind:end));
+                    hinit = hcen(1);
 
-                    diag_h = (hinit - hfinal)./run.eddy.Lgauss(tind);
+                    diag_h = (hinit - hfinal)./Lz(tind);
 
                     diag_l = (mean(run.eddy.my(tind:end) - ...
-                                   run.bathy.xsb))./(run.eddy.vor.dia(tind)/2);
+                                   xsb))./(run.eddy.vor.dia(tind)/2);
 
                     diagstr = ['h = ' num2str(diag_h) ...
                                ' | L = ' num2str(diag_l)];
