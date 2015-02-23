@@ -150,6 +150,8 @@ classdef runArray < handle
                 % some commonly used variables
                 tind = run.tscaleind;
                 ndtime = run.eddy.t * 86400 / run.eddy.turnover;
+                Lx = run.eddy.vor.lmaj;
+                Ly = run.eddy.vor.lmin;
                 Lz = run.eddy.Lgauss;
                 Ro = run.eddy.Ro;
                 V = run.eddy.V;
@@ -159,7 +161,7 @@ classdef runArray < handle
 
                 Lr = run.rrdeep;
                 beta = run.params.phys.beta;
-                f0 = run.params.phys.f0;
+                use run.params.phys
 
                 alpha = run.bathy.sl_slope;
                 hsb = run.bathy.hsb;
@@ -336,8 +338,20 @@ classdef runArray < handle
                 %%%%% Flierl (1987) bottom torque hypothesis.
                 %% estimate ∫∫ψ
                 if strcmpi(name, 'btrq est')
-                    plot(run.eddy.btrq(:,1)/1025);
+                    %plot(run.eddy.btrq(:,1)/1025);
 
+                    rhoamp = rho0 * TCOEF * run.eddy.T(:,end)';
+                    %plot((run.eddy.mass-1000*run.eddy.vol) .* g .* alpha./rho0)
+                    %uvec = f0 .* bsxfun(@times, run.eddy.vol, V');
+                    %plot(uvec);
+
+                    subplot(211)
+                    hold all
+                    plot(ndtime, g*alpha*rhoamp/rho0);
+                    plot(ndtime, beta.*run.eddy.Ls.*V);
+
+                    subplot(212)
+                    plot(ndtime, run.eddy.hcen);
                     %subplot(211);
                     %plot(beta .* run.eddy.voltrans)
                     %hold all
