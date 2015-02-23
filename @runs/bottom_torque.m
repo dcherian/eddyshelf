@@ -182,6 +182,23 @@ function [] = bottom_torque(runs)
             end
         end
 
+        % estimate velocity field associated with rho
+        sz = flip(size(zrmat));
+        grd.xmat = repmat(xvec', [1 sz(2) sz(3)]);
+        grd.ymat = repmat(yvec , [sz(1) 1 sz(3)]);
+        grd.zmat = permute(zrmat, [3 2 1]);
+        dRdx = diff_cgrid(grd, rho, 1);
+        dRdy = diff_cgrid(grd, rho, 2);
+        uzest = -g./rho0 .* dRdy / f0;
+        vzest = g./rho0 .* dRdx / f0;
+        % geostrophic velocity
+        ugest = cumsum(bsxfun(@times,uzest, avg1(avg1(dzmat,2),3)), ...
+                      3);
+        vgest = cumsum(bsxfun(@times,vzest, avg1(avg1(dzmat,1),3)), ...
+                      3);
+        % gradient wind
+
+
         % depth-integrate quantities
         tic;
         U = squeeze(sum(bsxfun(@times, u, dzmat), 3));
