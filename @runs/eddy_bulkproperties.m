@@ -139,8 +139,11 @@ function [] = eddy_bulkproperties(runs, slab)
     % allocate variables
     %intpe = cell(ceil(nt/slab), length(rhothreshes));
     %intke = intpe;
-    volcell = intpe; fullmasscell = intpe; anommasscell = intpe;
-    voltrans = intpe; masstrans = intpe;
+    volcell = cell(ceil(nt/slab), length(rhothreshes));
+    fullmasscell = cell(ceil(nt/slab), length(rhothreshes));
+    anommasscell = cell(ceil(nt/slab), length(rhothreshes));
+    voltrans = cell(ceil(nt/slab), length(rhothreshes));
+    masstrans = cell(ceil(nt/slab), length(rhothreshes));
     btrq = cell(ceil(nt/slab), length(rhothreshes));
     %cor = cell(ceil(nt/slab), length(rhothreshes));
 
@@ -294,10 +297,10 @@ function [] = eddy_bulkproperties(runs, slab)
     runs.eddy.threshes = rhothreshes;
     runs.eddy.hash = githash([mfilename('fullpath') '.m']);
 
-    runs.eddy.comment = [runs.eddy.comment [' | btrq has 1/ρ0 in it ' ...
+    runs.eddy.comment = [runs.eddy.comment ' | btrq has 1/ρ0 in it ' ...
                         '| full mass = (1000+ρ) | anommass = mass ' ...
                         'of eddy anomaly | energies are calculated ' ...
-                        'used (1000+ρ)']
+                        'used (1000+ρ)'];
     eddy = runs.eddy;
     save([runs.dir '/eddytrack.mat'],'eddy');
 end
