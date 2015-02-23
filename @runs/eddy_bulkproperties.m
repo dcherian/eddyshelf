@@ -34,6 +34,7 @@ function [] = eddy_bulkproperties(runs, slab)
     thresh = runs.eddy_thresh;
     N = runs.rgrid.N;
     g = runs.params.phys.g;
+    rho0 = runs.params.phys.rho0;
     zr = permute(runs.rgrid.z_r(:, 2:end-1, 2:end-1), [3 2 1]);
     % bottom slope
     if runs.bathy.axis == 'y'
@@ -43,6 +44,8 @@ function [] = eddy_bulkproperties(runs, slab)
         slbot = avg1(diff(runs.bathy.h, 1, 1)./diff(runs.rgrid.xr,1,1), 1);
         slbot = slbot(:,2:end-1);
     end
+
+    f = runs.rgrid.f(2:end-1,2:end-1)';
 
     pvname = [runs.dir '/ocean_vor.nc'];
     if exist(pvname,'file')
@@ -134,11 +137,12 @@ function [] = eddy_bulkproperties(runs, slab)
                    runs.eddy.drhothreshssh(1)];
 
     % allocate variables
-    intpe = cell(ceil(nt/slab), length(rhothreshes));
-    intke = intpe;
-    volcell = intpe; masscell = intpe;
+    %intpe = cell(ceil(nt/slab), length(rhothreshes));
+    %intke = intpe;
+    volcell = intpe; fullmasscell = intpe; anommasscell = intpe;
     voltrans = intpe; masstrans = intpe;
-    btrq = intpe;
+    btrq = cell(ceil(nt/slab), length(rhothreshes));
+    %cor = cell(ceil(nt/slab), length(rhothreshes));
 
     ticstart = tic;
     for mm=1:ceil(nt/slab)
@@ -203,7 +207,8 @@ function [] = eddy_bulkproperties(runs, slab)
             disp(['rho threshold ' num2str(nnn) '/' ...
                   num2str(length(rhothreshes))]);
 
-            masked = sparse(reshape(bsxfun(@minus, rho, rback) < drhothresh, sz));
+            ranom = bsxfun(@minus, rho, rback);
+            masked = sparse(reshape(ranom < drhothresh, sz));
 
             intpe{mm, nnn} = full(nansum( bsxfun(@times, ...
                                                  masked.*maskvor.*reshape(pe, sz), dVsp)));
@@ -216,27 +221,36 @@ function [] = eddy_bulkproperties(runs, slab)
 
             % bottom pressure
             btrq{mm, nnn} = full(nansum(bsxfun(@times, masked .* maskvor .* ...
-                                        reshape(bsxfun(@times, double(rho).*g, ...
+                                        reshape(bsxfun(@times, double(ranom./rho0).*g, ...
                                                   slbot), sz), ...
                                                dVsp)));
+            % coriolis term
+            %cor{mm, nnn} = full(nansum(bsxfun(@times, masked.*maskvor.* ...
+            %                         reshape(bsxfun(@times, double(u), ...
+            %                                        f), sz), dVsp)));
 
             % transport
             voltrans{mm, nnn} = full(nansum(bsxfun(@times, ...
-                                                 masked.*maskvor.* ...
-                                                 reshape(abs(double(u)), sz), dVsp)));
+                                                   masked.*maskvor.* ...
+                                                   reshape(abs(double(u)), sz), dVsp)));
             masstrans{mm, nnn} = full(nansum(bsxfun(@times, ...
-                                                 masked.*maskvor.* ...
+                                                    masked.*maskvor.* ...
                                                     reshape(double((rho+1000).*abs(u)), ...
                                                             sz), dVsp)));
 
-            %vol{tt} = runs.domain_integratesp(masked.*maskvor, dVsp);
             % calculate total volume
             volcell{mm, nnn} = full(nansum( bsxfun(@times, masked.*maskvor, ...
                                                    dVsp)));
-            masscell{mm, nnn} = full(nansum( bsxfun(@times, ...
-                                                    masked .* maskvor .* ...
-                                                    reshape(double(rho+1000), ...
-                                                            sz), dVsp)));
+            fullmasscell{mm, nnn} = full(nansum( bsxfun(@times, ...
+                                                     masked .* maskvor .* ...
+                                                     reshape(double(rho+1000), ...
+                                                             sz), ...
+                                                        dVsp)));
+            % eddy anomaly mass
+            anommasscell{mm, nnn} = full(nansum( bsxfun(@times, ...
+                                                        masked .* maskvor .* ...
+                                                        reshape(double(ranom), ...
+                                                              sz), dVsp)));
         end
 
         % integrated PV, RV
@@ -263,11 +277,13 @@ function [] = eddy_bulkproperties(runs, slab)
     toc(ticstart);
 
     % save data to structure
-    runs.eddy.mass = cell2mat(masscell')';
+    runs.eddy.fullmass = cell2mat(fullmasscell')';
     runs.eddy.vol = cell2mat(volcell')';
     runs.eddy.voltrans = cell2mat(voltrans')';
     runs.eddy.masstrans = cell2mat(masstrans')';
+    runs.eddy.mass = cell2mat(anommasscell')';
     runs.eddy.btrq = cell2mat(btrq')';
+    % runs.eddy.cor = cell2mat(cor')';
     if dopv
         runs.eddy.PV = cell2mat(intpv')';
         runs.eddy.RV = cell2mat(intrv')';
@@ -278,6 +294,10 @@ function [] = eddy_bulkproperties(runs, slab)
     runs.eddy.threshes = rhothreshes;
     runs.eddy.hash = githash([mfilename('fullpath') '.m']);
 
+    runs.eddy.comment = [runs.eddy.comment [' | btrq has 1/ρ0 in it ' ...
+                        '| full mass = (1000+ρ) | anommass = mass ' ...
+                        'of eddy anomaly | energies are calculated ' ...
+                        'used (1000+ρ)']
     eddy = runs.eddy;
     save([runs.dir '/eddytrack.mat'],'eddy');
 end
