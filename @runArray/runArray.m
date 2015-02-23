@@ -334,6 +334,20 @@ classdef runArray < handle
                 end
 
                 %%%%% Flierl (1987) bottom torque hypothesis.
+                %% estimate ∫∫ψ
+                if strcmpi(name, 'btrq est')
+                    plot(run.eddy.btrq(:,1)/1025);
+
+                    %subplot(211);
+                    %plot(beta .* run.eddy.voltrans)
+                    %hold all
+                    %subplot(212);
+                    %plot(run.eddy.btrq/1025); hold all
+                    %legend('Transport 1', 'Transport 2', ...
+                    %       'bottom torque 1', 'bottom torque 2');
+                    continue;
+                end
+                %%%%% Flierl (1987) bottom torque hypothesis.
                 if strcmpi(name, 'bottom torque')
 
                     Ro = Ro(1);
