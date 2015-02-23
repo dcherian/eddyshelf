@@ -115,6 +115,10 @@ function [] = bottom_torque(runs)
     % now read density and eddye fields
     rho = dc_roms_read_data(runs.dir, 'rho', tindices, volumer, [], ...
                             runs.rgrid, 'his', 'single');
+    % subtract out background density to get anomaly
+    % see Flierl (1987)
+    rho = bsxfun(@minus, rho, rback);
+
     %eddye = dc_roms_read_data(runs.dir, runs.eddname, tind, volumer, [], ...
     %                        runs.rgrid, 'his', 'single') > runs.eddy_thresh;
 
@@ -130,46 +134,8 @@ function [] = bottom_torque(runs)
     xvec = runs.rgrid.x_rho(1,imnx:imxx);
     yvec = runs.rgrid.y_rho(imny:imxy);
 
-    %%%%%%% first, bottom pressure
-
-    % subtract out background density to get anomaly
-    % see Flierl (1987)
-    rho = bsxfun(@minus, rho, rback);
-
-    % depth-integrate density anomaly field from surface to bottom
-    % tic;
-    % disp('integrating vertically');
-    % irho = nan(size(rho));
-    % frho = flipdim(rho, 3); % flipped to integrate from _surface_
-    %                         % to bottom
-    % fzrmat = flipdim(zrmat, 1);
-    % for ii=1:size(rho, 1)
-    %     for jj=1:size(rho,2)
-    %         irho(ii,jj,:,:) = cumtrapz(fzrmat(:, jj, ii), ...
-    %                                    frho(ii, jj, :, :), 3);
-    %     end
-    % end
-    % toc;
-    % irho = flipdim(irho, 3);
-    % clear frho fzrmat
-
-    % calculate bottom pressure (x,y,t)
-    % note that in Flierl (1987) the 1/ρ0 is absorbed into the
-    % pressure variable
-    %pres = bsxfun(@plus, g./rho0 .* irho, g.*permute(zeta,[1 2 4
-    %3]));
-    % pres = -g/ρ0 ∫_{z}^{ζ} ρ dz
-    % -1*dzmat to integrate from _surface_ to bottom cumulatively
-    irho = flipdim(cumsum(flipdim(bsxfun(@times, rho, -1*dzmat),3),3),3);
-    pres = -g./rho0 .* irho;
-    % remove some more background signal
-    pres = bsxfun(@minus, pres, pres(1,:,:,1));
-    pbot = squeeze(pres(:,:,1,:));
-
-    %%%%%%%%% now, angular momentum
-
     % depth averaged velocities (m/s)
-    use_davg = 1;
+    use_davg = 0;
     mom_budget = 0;
     if use_davg
         ubar = dc_roms_read_data(runs.dir, 'ubar', tindices, volumer, [], runs.rgrid, ...
@@ -185,11 +151,12 @@ function [] = bottom_torque(runs)
         % read depth dependent velocity fields and integrate
         u = avg1(dc_roms_read_data(runs.dir, 'u', tindices, volumeu, [], ...
                               runs.rgrid, 'his', 'single'), 1);
-        % read depth dependent velocity fields and integrate
-        v = avg1(dc_roms_read_data(runs.dir, 'v', tindices, volumev, [], ...
-                                   runs.rgrid, 'his', 'single'), 2);
+        if mom_budget
+            v = avg1(dc_roms_read_data(runs.dir, 'v', tindices, volumev, [], ...
+                                       runs.rgrid, 'his', 'single'), 2);
+        end
 
-        use_masked = 0;
+        use_masked = 1;
         if use_masked
             disp('Using rho based eddy mask.');
             vormask = runs.eddy.vormask(imnx:imxx, imny:imxy, :);
@@ -204,10 +171,15 @@ function [] = bottom_torque(runs)
                                                  [], 1), [], 2));
 
             % mask out velocities
-            masked = bsxfun(@times, rho < rhothreshssh, ...
-                            permute(sshmask(:,:,tind(1):dt:tind(2)), [1 2 4 3]));
+            %masked = bsxfun(@times, rho < rhothreshssh, ...
+            %                permute(sshmask(:,:,tind(1):dt:tind(2)), [1 2 4 3]));
+            masked = rho < rhothreshssh;
+
             u = u .* masked;
-            v = v .* masked;
+            rho = rho .* masked;
+            if mom_budget
+                v = v .* masked;
+            end
         end
 
         % depth-integrate quantities
@@ -269,10 +241,18 @@ function [] = bottom_torque(runs)
         end
     end
 
-    % vertically integrated angular momentum
+    %%%%%%% first, bottom pressure
+    irho = flipdim(cumsum(flipdim(bsxfun(@times, rho, -1*dzmat),3),3),3);
+    pres = -g./rho0 .* irho;
+    % remove some more background signal
+    pres = bsxfun(@minus, pres, pres(1,:,:,1));
+    pbot = squeeze(pres(:,:,1,:));
+
+    %%%%%%%%% now, angular momentum
     %iam = 1/2 * beta .* (V .* xrmat - U .* yrmat); % if ψ ~ O(1/r²)
     %iam = (f-f0) .* U; % if ψ ~ O(1/r)
     iam = f .* U;
+    iam2 = bymat .* U;
 
     %%%%%%%%% Translation term
     %c = runs.eddy.cvx(tind(1):dt:tind(2)) .* 1000/86400; % convert to m/s
@@ -287,7 +267,7 @@ function [] = bottom_torque(runs)
 
     %%%%%%%%% mask?
     botmask = pbot < 0.1*min(pbot(:));
-    mask_rho = botmask; %irho < -1;
+    mask_rho = 1; botmask; %irho < -1;
     mpbot = mask_rho .* pbot .* slbot;
     miv = mask_rho .* iv;
     miam = mask_rho .* iam;
@@ -384,3 +364,28 @@ end
     %               permute(mx, [3 1 2]));
     %yrmat = bsxfun(@minus, runs.rgrid.yr(imnx:imxx, imny:imxy), ...
     %               permute(my, [3 1 2]));
+
+    % depth-integrate density anomaly field from surface to bottom
+    % tic;
+    % disp('integrating vertically');
+    % irho = nan(size(rho));
+    % frho = flipdim(rho, 3); % flipped to integrate from _surface_
+    %                         % to bottom
+    % fzrmat = flipdim(zrmat, 1);
+    % for ii=1:size(rho, 1)
+    %     for jj=1:size(rho,2)
+    %         irho(ii,jj,:,:) = cumtrapz(fzrmat(:, jj, ii), ...
+    %                                    frho(ii, jj, :, :), 3);
+    %     end
+    % end
+    % toc;
+    % irho = flipdim(irho, 3);
+    % clear frho fzrmat
+
+    % calculate bottom pressure (x,y,t)
+    % note that in Flierl (1987) the 1/ρ0 is absorbed into the
+    % pressure variable
+    %pres = bsxfun(@plus, g./rho0 .* irho, g.*permute(zeta,[1 2 4
+    %3]));
+    % pres = -g/ρ0 ∫_{z}^{ζ} ρ dz
+    % -1*dzmat to integrate from _surface_ to bottom cumulatively
