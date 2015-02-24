@@ -1,5 +1,5 @@
 % I want to fit y = y_0 tanh(x/X)
-function [y0, X,y1] = tanh_fit(runArray, x, y, plot_flag, test)
+function [y0, X,y1] = tanh_fit(runs, x, y, plot_flag, test)
 
     if ~exist('test', 'var'), test = 0; end
     if ~exist('plot_flag', 'var'), plot_flag = 0; end
