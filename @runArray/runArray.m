@@ -155,6 +155,7 @@ classdef runArray < handle
                 Lz = run.eddy.Lgauss;
                 Ro = run.eddy.Ro;
                 V = run.eddy.V;
+                if isfield(run.eddy, 'Vb'), Vb = run.eddy.Vb; end
                 hcen = run.eddy.hcen;
 
                 A = run.eddy.amp(1);
@@ -250,7 +251,7 @@ classdef runArray < handle
                     run.eddy.res.comment = ['(xx,yy) = center ' ...
                                         'location | tind = time index'];
 
-                    plotx(ff) = Ro(1)./Sa;
+                    plotx(ff) = 1./(1+Ro(1));
                     %diags(ff) = yy./run.rrdeep;
                     if strcmpi(loc, 'cen')
                         hdiag = run.eddy.hcen(tind);
@@ -335,22 +336,37 @@ classdef runArray < handle
                            (1+hsb/Lz(1) * 1/Sa);
                 end
 
+                %%%%% rest latitude hypothesis?
+                if strcmpi(name, 'rest')
+
+                end
+
                 %%%%% Flierl (1987) bottom torque hypothesis.
                 %% estimate ∫∫ψ
                 if strcmpi(name, 'btrq est')
                     %plot(run.eddy.btrq(:,1)/1025);
 
-                    rhoamp = rho0 * TCOEF * run.eddy.T(:,end)';
-                    %plot((run.eddy.mass-1000*run.eddy.vol) .* g .* alpha./rho0)
-                    %uvec = f0 .* bsxfun(@times, run.eddy.vol, V');
-                    %plot(uvec);
+                    figure;
+                    subplot(211); hold all
+                    hplt = plot(ndtime, beta .* Lz ./ alpha ./f0);
+                    addlegend(hplt, runName);
+                    try
+                        plot(ndtime, Vb./V /6);
+                    catch ME
+                        plot(ndtime, Vb./V'/6);
+                    end
 
-                    subplot(211)
-                    hold all
-                    plot(ndtime, g*alpha*rhoamp/rho0);
-                    plot(ndtime, beta.*run.eddy.Ls.*V);
+                    title(runName);
+                    % rhoamp = rho0 * TCOEF * run.eddy.T(:,end)';
+                    % %plot((run.eddy.mass-1000*run.eddy.vol) .* g .* alpha./rho0)
+                    % %uvec = f0 .* bsxfun(@times, run.eddy.vol, V');
+                    % %plot(uvec);
 
-                    subplot(212)
+                    %hold all
+                    %plot(ndtime, g*alpha*rhoamp/rho0);
+                    %plot(ndtime, beta.*run.eddy.Ls.*V);
+
+                    subplot(212); hold all;
                     plot(ndtime, run.eddy.hcen);
                     %subplot(211);
                     %plot(beta .* run.eddy.voltrans)
