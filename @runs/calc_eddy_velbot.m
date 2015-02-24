@@ -19,7 +19,7 @@ function [] = calc_eddy_velbot(runs)
     %Vb2 = squeeze(max(max(vel .* eddbot(2:end-1,2:end-1,:),[], 1), ...
     %                           [], 2))';
 
-    runs.eddy.hash = githash;
+    runs.eddy.hash = githash([mfilename('fullpath') '.m']);
 
     eddy = runs.eddy;
     save([runs.dir '/eddytrack.mat'], 'eddy');
