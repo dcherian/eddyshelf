@@ -371,13 +371,13 @@ classdef runArray < handle
                     Tamp = run.params.eddy.tamp;
                     TCOEF = run.params.phys.TCOEF;
 
-                    expfitflag = 1;
-                    if expfitflag
-                        [] = run.fit_traj;
+                    tanhfitflag = 1;
+                    if tanhfitflag
+                        run.fit_traj;
 
-                        H = runs.traj.H;
-                        Y = runs.traj.Y;
-                        tind = runs.traj.tind;
+                        H = run.traj.H;
+                        Y = run.traj.Y;
+                        tind = run.traj.tind;
                     else
                         [~,~,tind] = run.locate_resistance;
                         H = (run.eddy.hcen(tind));
