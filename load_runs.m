@@ -121,8 +121,8 @@ folders = { ...
           };
 sl = runArray(folders);
 for ii=1:sl.len
-    if ~isfield(sl.array(ii).eddy, 'KE')
-        sl.array(ii).eddy_bulkproperties(20);
+    if ~isfield(sl.array(ii).eddy, 'Vb')
+        sl.array(ii).calc_eddy_velbot;
     end
 end
 
