@@ -74,10 +74,13 @@ function [] = fit_traj(runs)
     runs.traj.yscl = yscl;
     runs.traj.tscl = tscl;
     runs.traj.tcrit = tcrit;
+    runs.traj.tind = tind;
     runs.traj.y0 = y0;
     runs.traj.y1 = y1;
     runs.traj.H = H;
     runs.traj.Y = Y;
+    runs.traj.htraj = htraj;
+    runs.traj.ytraj = ytraj;
     runs.traj.comment = ['Fit y = y0*tanh(t/T) + y1*(t/T) | ' ...
                         'Use y = water depth (hcen) if use_my =0, ' ...
                         'y = eddy.my otherwise | ' ...
@@ -85,6 +88,11 @@ function [] = fit_traj(runs)
                         'at t = tcrit | (y0,y1,T) are parameters of ' ...
                         'the fit in a different reference frame | ' ...
                         '(yscl,tscl) are (y0,T) corrected for ' ...
-                        'reference shift.'];
+                        'reference shift. | (htraj,ytraj) are actual ' ...
+                        'fits. ytraj is meaningless when fitting to ' ...
+                        'hcen i.e., with use_my = 0'];
     runs.traj.hash = githash([mfilename('fullpath') '.m']);
+
+    traj = runs.traj;
+    save([runs.dir '/traj.mat'], 'traj');
 end
