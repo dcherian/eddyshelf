@@ -1,3 +1,5 @@
+% tanh fit to eddy.my or eddy.hcen
+% save output in runs.traj
 function [] = fit_traj(runs)
 
     debug = 0;
@@ -39,6 +41,7 @@ function [] = fit_traj(runs)
         itraj = vecfind(runs.rgrid.y_rho(:,1), ...
                         ytraj);
         htraj = runs.bathy.h(1,itraj);
+        str = 'y = eddy.my';
     else
         % clamp to max water depth
         htraj = min(y0*tanh(tfit./T) + y1*(tfit./T) + ...
@@ -46,6 +49,7 @@ function [] = fit_traj(runs)
         itraj = vecfind(runs.bathy.h(1,:), ...
                         htraj);
         ytraj = runs.eddy.my(uind);
+        str = 'y = hcen';
     end
 
     % sometimes T comes out as negative. not
@@ -81,6 +85,7 @@ function [] = fit_traj(runs)
     runs.traj.Y = Y;
     runs.traj.htraj = htraj;
     runs.traj.ytraj = ytraj;
+    runs.traj.str = str;
     runs.traj.comment = ['Fit y = y0*tanh(t/T) + y1*(t/T) | ' ...
                         'Use y = water depth (hcen) if use_my =0, ' ...
                         'y = eddy.my otherwise | ' ...
