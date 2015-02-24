@@ -30,6 +30,8 @@ properties
     eddy; noeddy;
     % bottom torque calculations
     bottom;
+    % tanh trajectory fit
+    traj;
     % wnoise metric
     wmetric;
     % along-shore jet properties
@@ -504,6 +506,14 @@ methods
             disp('Loading bottom torque diagnostics');
             data = load([dir '/bottom.mat']);
             runs.bottom = data.bottom;
+            clear data
+        end
+
+        % load trajectory fit
+        if exist([dir '/traj.mat'],'file') && reset ~= 1
+            disp('Loading trajectory');
+            data = load([dir '/traj.mat']);
+            runs.traj = data.traj;
             clear data
         end
 
