@@ -1,5 +1,7 @@
 function [] = fit_traj(runs)
 
+    debug = 0;
+
     tvec = runs.ndtime;
     % get unique timesteps
     [ut,uind,~] = unique(tvec);
@@ -54,15 +56,16 @@ function [] = fit_traj(runs)
     H = htraj(tind);
     Y = ytraj(tind);
 
-    % figure;
-    % subplot(211);
-    % plot(tvec, run.eddy.my(uind), '*', tvec, ytraj);
-    % liney(Y); title(runName);
-    % subplot(212);
-    % plot(tvec, run.eddy.hcen(uind), '*', tvec, ...
-    %      htraj);
-    % liney(H);
-
+    if debug
+        figure;
+        subplot(211);
+        plot(tvec, run.eddy.my(uind), '*', tvec, ytraj);
+        liney(Y); title(runName);
+        subplot(212);
+        plot(tvec, run.eddy.hcen(uind), '*', tvec, ...
+             htraj);
+        liney(H);
+    end
     % y,t scales (corrected for earlier reference shift)
     yscl = y0 + yref;
     tscl = tref + T;
