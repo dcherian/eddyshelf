@@ -180,6 +180,9 @@ function [] = bottom_torque(runs)
         tstart = read_start(end);
         tend   = read_start(end) + read_count(end) -1;
 
+        % indices for saving variables between loops
+        tsave = (tstart:dt:tend)-tindices(1)+1;
+
         % now read density and eddye fields
         rho = dc_roms_read_data(runs.dir, 'rho', [tstart tend], volumer, [], ...
                                 runs.rgrid, 'his', 'single');
@@ -260,7 +263,7 @@ function [] = bottom_torque(runs)
 
             % depth-integrate quantities
             tic;
-            U(:,:,tstart:tend) = squeeze(sum(bsxfun(@times, u, dzmat), 3));
+            U(:,:,tsave) = squeeze(sum(bsxfun(@times, u, dzmat), 3));
             if mom_budget
                 V = squeeze(sum(bsxfun(@times,    v, dzmat), 3));
                 UV = squeeze(sum(bsxfun(@times, u.*v, dzmat), 3));
@@ -312,7 +315,7 @@ function [] = bottom_torque(runs)
                      'fv', 'f0u', 'byu', 'dv2dy', 'duvdx', 'btq', 'total', ...
                      'time');
             end
-        end
+        end % U is provided by here
 
         %%%%%%% first, bottom pressure
         if mom_budget
@@ -320,11 +323,11 @@ function [] = bottom_torque(runs)
             pres = -g./rho0 .* irho;
             % remove some more background signal
             pres = bsxfun(@minus, pres, pres(1,:,:,1));
-            pbot(:,:,tstart:tend) = squeeze(pres(:,:,1,:));
+            pbot(:,:,tsave) = squeeze(pres(:,:,1,:));
         else
             irho = squeeze(sum(bsxfun(@times, rho, dzmat), 3));
-            pbot = g/rho0 * irho;
-            pbot(:,:,tstart:tend) = bsxfun(@minus, pbot, pbot(1,:,:));
+            pbot1 = g/rho0 * irho;
+            pbot(:,:,tsave) = bsxfun(@minus, pbot1, pbot1(1,:,:));
         end
     end
 
