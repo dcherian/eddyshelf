@@ -1,7 +1,7 @@
 function [] = bottom_torque(runs)
 
     ticstart = tic;
-    tindices = [300 length(runs.eddy.t)];
+    tindices = [1 length(runs.eddy.t)];
 
     % use some mask to determine edges of domain
     % that I want to analyze?
@@ -15,7 +15,7 @@ function [] = bottom_torque(runs)
 
     flags.use_time_varying_dz = 0;
 
-    slab = 60; % 5 at a time
+    slab = 80; % 5 at a time
     [iend,tind,dt,nt,~] = roms_tindices(tindices, slab, ...
                                         length(runs.eddy.t));
 
