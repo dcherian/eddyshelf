@@ -1,9 +1,21 @@
 function [] = bottom_torque(runs)
 
-    tindices = [1 5 length(runs.eddy.t)];
+    tindices = [1 length(runs.eddy.t)];
 
-    slab = Inf;
-    [iend,tind,dt,nt,~] = roms_tindices(tindices, Inf, ...
+    % use some mask to determine edges of domain
+    % that I want to analyze?
+    flags.use_mask = 0;
+    flags.use_masked = 1;
+
+    flags.use_davg = 0;
+    mom_budget = 0;
+
+    flags.use_thermal_wind = 0;
+
+    flags.use_time_varying_dz = 0;
+
+    slab = 60; % 5 at a time
+    [iend,tind,dt,nt,~] = roms_tindices(tindices, slab, ...
                                         length(runs.eddy.t));
 
     rho0 = runs.params.phys.rho0;
@@ -11,10 +23,7 @@ function [] = bottom_torque(runs)
     beta = runs.params.phys.beta;
     f0 = runs.params.phys.f0;
 
-    % use some mask to determine edges of domain
-    % that I want to analyze?
-    use_mask = 0;
-    if use_mask
+    if flags.use_mask
         % eddy-based mask
         mask = runs.eddy.mask(:,:,tind(1):dt:tind(2));
         maskstr = 'sshmask';
@@ -65,6 +74,18 @@ function [] = bottom_torque(runs)
     volumev = {'x' imnx imxx; ...
                'y' imny imxy+1};
 
+    % grid vectors and matrices
+    xrmat = repmat(runs.rgrid.x_rho(imny:imxy, imnx:imxx)', [1 1 nt]);
+    yrmat = repmat(runs.rgrid.y_rho(imny:imxy, imnx:imxx)', [1 1 nt]);
+
+    zrmat = runs.rgrid.z_r(:,2:end-1,2:end-1);
+    zrmat = zrmat(:,imny:imxy, imnx:imxx);
+    zwmat = runs.rgrid.z_w(:,2:end-1,2:end-1);
+    zwmat = zwmat(:,imny:imxy, imnx:imxx);
+
+    xvec = runs.rgrid.x_rho(1,imnx:imxx);
+    yvec = runs.rgrid.y_rho(imny:imxy);
+
     % eddy center
     %mx = runs.eddy.vor.cx(tind(1):dt:tind(2));
     %my = runs.eddy.vor.cy(tind(1):dt:tind(2));
@@ -97,6 +118,25 @@ function [] = bottom_torque(runs)
     slbot = diff(runs.rgrid.h',1,2)./diff(runs.rgrid.y_rho',1,2);
     slbot = repmat(slbot(imnx:imxx, imny:imxy), [1 1 nt]);
 
+    if flags.use_masked
+        vormask = runs.eddy.vormask(imnx:imxx, imny:imxy, 1);
+        sshmask = runs.eddy.mask(imnx:imxx, imny:imxy, :);
+
+        if ~isfield(runs.eddy, 'drhothreshssh')
+            % find what density corresponds to 0 vorticity contour
+            rhothreshvor = squeeze(nanmax(nanmax(rho(:,:,1) .* ...
+                                                 fillnan(vormask(:,:,1),0), ...
+                                                 [], 1), [], 2));
+            rhothreshssh = squeeze(nanmax(nanmax(rho(:,:,1) .* ...
+                                                 fillnan(sshmask(:,:,1),0), ...
+                                                 [], 1), [], ...
+                                          2));
+        else
+            rhothreshssh = runs.eddy.drhothreshssh;
+            rhothreshvor = runs.eddy.drhothresh(1);
+        end
+    end
+
     % get background density field for initial time instant
     if runs.bathy.axis == 'y'
         % (y,z)
@@ -112,160 +152,175 @@ function [] = bottom_torque(runs)
         error('not implemented for NS isobaths yet');
     end
 
-    % now read density and eddye fields
-    rho = dc_roms_read_data(runs.dir, 'rho', tindices, volumer, [], ...
-                            runs.rgrid, 'his', 'single');
-    % subtract out background density to get anomaly
-    % see Flierl (1987)
-    rho = bsxfun(@minus, rho, rback);
-
-    %eddye = dc_roms_read_data(runs.dir, runs.eddname, tind, volumer, [], ...
-    %                        runs.rgrid, 'his', 'single') > runs.eddy_thresh;
-
-    % grid vectors and matrices
-    xrmat = repmat(runs.rgrid.x_rho(imny:imxy, imnx:imxx)', [1 1 nt]);
-    yrmat = repmat(runs.rgrid.y_rho(imny:imxy, imnx:imxx)', [1 1 nt]);
-
-    zrmat = runs.rgrid.z_r(:,2:end-1,2:end-1);
-    zrmat = zrmat(:,imny:imxy, imnx:imxx);
-    zwmat = runs.rgrid.z_w(:,2:end-1,2:end-1);
-    zwmat = zwmat(:,imny:imxy, imnx:imxx);
+    % figure out initial error.
+    u1 = avg1(dc_roms_read_data(runs.dir, 'u', 1, volumeu, [], ...
+                                runs.rgrid, 'his', 'single'), 1);
+    rho1 = dc_roms_read_data(runs.dir, 'rho', 1, volumer, [], ...
+                             runs.rgrid, 'his', 'single');
+    rho1 = bsxfun(@minus, rho1, rback);
+    masked = bsxfun(@and, rho1 < rhothreshvor, ...
+                    permute(sshmask(:,:,1), [1 2 4 3]));
     dzmat = diff(permute(zwmat, [3 2 1]), 1, 3);
-    xvec = runs.rgrid.x_rho(1,imnx:imxx);
-    yvec = runs.rgrid.y_rho(imny:imxy);
+    U1full = sum(bsxfun(@times, u1, dzmat(:,:,:,1)), 3);
+    U1ed = sum(bsxfun(@times, u1.*masked, dzmat(:,:,:,1)), 3);
+    factor =  integrate(xvec, yvec, bymat(:,:,1) .* U1full) ...
+              ./ integrate(xvec, yvec, bymat(:,:,1) .* U1ed);
+    clear u1 rho1 masked U1full U1ed dzmat
 
-    % depth averaged velocities (m/s)
-    use_davg = 0;
-    mom_budget = 0;
-    if use_davg
-        ubar = dc_roms_read_data(runs.dir, 'ubar', tindices, volumer, [], runs.rgrid, ...
-                                 'his', 'single');
-        vbar = dc_roms_read_data(runs.dir, 'vbar', tindices, volumer, [], runs.rgrid, ...
-                                 'his', 'single');
+    for i=0:iend-1
+        disp(['==== Iteration : ' num2str(i+1) '/' num2str(iend)  ...
+                   ' ====']);
+        [read_start,read_count] = roms_ncread_params(4,i,iend,slab,tindices,dt);
+        tstart = read_start(end);
+        tend   = read_start(end) + read_count(end) -1;
 
-        % convert to depth integrated velocities (m^2/s)
-        U = bsxfun(@times, H, ubar);
-        V = bsxfun(@times, H, vbar);
+        % now read density and eddye fields
+        rho = dc_roms_read_data(runs.dir, 'rho', [tstart tend], volumer, [], ...
+                                runs.rgrid, 'his', 'single');
+        % subtract out background density to get anomaly
+        % see Flierl (1987)
+        rho = bsxfun(@minus, rho, rback);
 
-     else
-        % read depth dependent velocity fields and integrate
-        u = avg1(dc_roms_read_data(runs.dir, 'u', tindices, volumeu, [], ...
-                              runs.rgrid, 'his', 'single'), 1);
-        if mom_budget
-            v = avg1(dc_roms_read_data(runs.dir, 'v', tindices, volumev, [], ...
-                                       runs.rgrid, 'his', 'single'), 2);
-        end
+        %eddye = dc_roms_read_data(runs.dir, runs.eddname, tind, volumer, [], ...
+        %                        runs.rgrid, 'his', 'single') > runs.eddy_thresh;
 
-        use_masked = 1;
-        if use_masked
-            disp('Using rho based eddy mask.');
-            vormask = runs.eddy.vormask(imnx:imxx, imny:imxy, :);
-            sshmask = runs.eddy.mask(imnx:imxx, imny:imxy, :);
+        if flags.use_davg
+            % depth averaged velocities (m/s)
+            ubar = dc_roms_read_data(runs.dir, 'ubar', [tstart tend], ...
+                                     volumer, [], runs.rgrid, 'his', 'single');
+            vbar = dc_roms_read_data(runs.dir, 'vbar', [tstart tend], ...
+                                     volumer, [], runs.rgrid, 'his', 'single');
 
-            % find what density corresponds to 0 vorticity contour
-            rhothreshvor = squeeze(nanmax(nanmax(rho(:,:,1) .* ...
-                                                 fillnan(vormask(:,:,1),0), ...
-                                                 [], 1), [], 2));
-            rhothreshssh = squeeze(nanmax(nanmax(rho(:,:,1) .* ...
-                                                 fillnan(sshmask(:,:,1),0), ...
-                                                 [], 1), [], 2));
-
-            % mask out velocities
-            %masked = bsxfun(@times, rho < rhothreshssh, ...
-            %                permute(sshmask(:,:,tind(1):dt:tind(2)), [1 2 4 3]));
-            masked = rho < rhothreshssh;
-
-            u = u .* masked;
-            rho = rho .* masked;
+            % convert to depth integrated velocities (m^2/s)
+            U = bsxfun(@times, H, ubar);
+            V = bsxfun(@times, H, vbar);
+        else
+            % read depth dependent velocity fields and integrate
+            u = avg1(dc_roms_read_data(runs.dir, 'u', [tstart tend], volumeu, [], ...
+                                       runs.rgrid, 'his', 'single'), 1);
             if mom_budget
-                v = v .* masked;
+                v = avg1(dc_roms_read_data(runs.dir, 'v', [tstart tend], volumev, [], ...
+                                           runs.rgrid, 'his', 'single'), 2);
+            end
+
+            if flags.use_masked
+                disp('Using rho based eddy mask.');
+
+                % mask out velocities
+                tic;
+                masked = bsxfun(@and, rho < rhothreshvor, ...
+                                        permute(sshmask(:,:,tstart:dt:tend), ...
+                                                [1 2 4 3]));
+                toc;
+                %masked = rho > rhothreshssh;
+
+                u = u .* masked;
+                rho = rho .* masked;
+                if mom_budget
+                    v = v .* masked;
+                end
+            end
+
+            if flags.use_thermal_wind
+                % estimate velocity field associated with rho
+                sz = flip(size(zrmat));
+                grd.xmat = repmat(xvec', [1 sz(2) sz(3)]);
+                grd.ymat = repmat(yvec , [sz(1) 1 sz(3)]);
+                grd.zmat = permute(zrmat, [3 2 1]);
+                dRdx = diff_cgrid(grd, rho, 1);
+                dRdy = diff_cgrid(grd, rho, 2);
+                uzest = -g./rho0 .* dRdy / f0;
+                vzest = g./rho0 .* dRdx / f0;
+                % geostrophic velocity
+                ugest = cumsum(bsxfun(@times,uzest, avg1(avg1(dzmat,2),3)), ...
+                               3);
+                vgest = cumsum(bsxfun(@times,vzest, avg1(avg1(dzmat,1),3)), ...
+                               3);
+                % gradient wind
+            end
+
+            if flags.use_time_varying_dz
+                tic;
+                disp('Calculating time varying dz');
+                dzmat = single(nan(size(rho)));
+                for tt=1:size(rho,3)
+                    dzmat(:,:,:,tt) = single(diff(set_depth(2,4,3,1.5,1200,72,5,H, ...
+                                                              zeta(:,:,tt), 0),1,3));
+                end
+                toc;
+            else
+                dzmat = diff(permute(zwmat, [3 2 1]), 1, 3);
+            end
+
+            % depth-integrate quantities
+            tic;
+            U(:,:,tstart:tend) = squeeze(sum(bsxfun(@times, u, dzmat), 3));
+            if mom_budget
+                V = squeeze(sum(bsxfun(@times,    v, dzmat), 3));
+                UV = squeeze(sum(bsxfun(@times, u.*v, dzmat), 3));
+                U2 = squeeze(sum(bsxfun(@times, u.^2, dzmat), 3));
+                V2 = squeeze(sum(bsxfun(@times, v.^2, dzmat), 3));
+                P = squeeze(sum(bsxfun(@times, pres, dzmat), 3));
+            end
+            toc;
+
+            % try depth integrated momentum budget
+            if mom_budget
+                % pressure gradients
+                dpdx = integrate(avg1(xvec), yvec, ...
+                                 bsxfun(@rdivide, diff(P,1,1), diff(xvec')));
+                dpdy = integrate(xvec, avg1(yvec), ...
+                                 bsxfun(@rdivide, diff(P,1,2), diff(yvec)));
+
+                % coriolis terms
+                fv = integrate(xvec, yvec, f .* V);
+                fu = integrate(xvec, yvec, f .* U);
+                f0u = integrate(xvec, yvec, f0 .* U);
+                byu = integrate(xvec, yvec, bymat .* U);
+                f0v = integrate(xvec, yvec, f0 .* V);
+                byv = integrate(xvec, yvec, bymat .* V);
+
+                % non-linear terms
+                dv2dy = integrate(xvec, avg1(yvec), ...
+                                  bsxfun(@rdivide, diff(V2,1,2), diff(yvec)));
+                duvdx = integrate(avg1(xvec), yvec, ...
+                                  bsxfun(@rdivide, diff(UV,1,1), diff(xvec')));
+                % tendency term - THIS IS A BAD ESTIMATE
+                %dvdt = squeeze(trapz(trapz(diff(V,1,3)./86400,1),2));
+                % bottom torque
+                btq = integrate(xvec, yvec, pbot .* slbot);
+
+                total = duvdx + dv2dy + fu + dpdy + btq;
+                figure; hold all;
+                plot(-1*f0u./total);
+                plot(-1*byu./total);
+                plot(dpdy./total);
+                plot(duvdx./total);
+                plot(dv2dy./total);
+                plot(btq./total);
+                legend('-f_0u','\beta yu', 'dpdy','duvdx','dv2dy', ...
+                       'btq');
+
+                time = runs.eddy.t(tind);
+                save([runs.dir '/mombudget.mat'], 'dpdx', 'dpdy', 'fu', ...
+                     'fv', 'f0u', 'byu', 'dv2dy', 'duvdx', 'btq', 'total', ...
+                     'time');
             end
         end
 
-        use_thermal_wind = 0;
-        if use_thermal_wind
-            % estimate velocity field associated with rho
-            sz = flip(size(zrmat));
-            grd.xmat = repmat(xvec', [1 sz(2) sz(3)]);
-            grd.ymat = repmat(yvec , [sz(1) 1 sz(3)]);
-            grd.zmat = permute(zrmat, [3 2 1]);
-            dRdx = diff_cgrid(grd, rho, 1);
-            dRdy = diff_cgrid(grd, rho, 2);
-            uzest = -g./rho0 .* dRdy / f0;
-            vzest = g./rho0 .* dRdx / f0;
-            % geostrophic velocity
-            ugest = cumsum(bsxfun(@times,uzest, avg1(avg1(dzmat,2),3)), ...
-                           3);
-            vgest = cumsum(bsxfun(@times,vzest, avg1(avg1(dzmat,1),3)), ...
-                           3);
-            % gradient wind
-        end
-
-        % depth-integrate quantities
-        tic;
-        U = squeeze(sum(bsxfun(@times, u, dzmat), 3));
+        %%%%%%% first, bottom pressure
         if mom_budget
-             V = squeeze(sum(bsxfun(@times,    v, dzmat), 3));
-            UV = squeeze(sum(bsxfun(@times, u.*v, dzmat), 3));
-            U2 = squeeze(sum(bsxfun(@times, u.^2, dzmat), 3));
-            V2 = squeeze(sum(bsxfun(@times, v.^2, dzmat), 3));
-             P = squeeze(sum(bsxfun(@times, pres, dzmat), 3));
-        end
-        toc;
-
-        Y = max(runs.rgrid.y_rho(:));
-
-        % try depth integrated momentum budget
-        if mom_budget
-
-            % pressure gradients
-            dpdx = integrate(avg1(xvec), yvec, ...
-                             bsxfun(@rdivide, diff(P,1,1), diff(xvec')));
-            dpdy = integrate(xvec, avg1(yvec), ...
-                             bsxfun(@rdivide, diff(P,1,2), diff(yvec)));
-
-            % coriolis terms
-            fv = integrate(xvec, yvec, f .* V);
-            fu = integrate(xvec, yvec, f .* U);
-            f0u = integrate(xvec, yvec, f0 .* U);
-            byu = integrate(xvec, yvec, bymat .* U);
-            f0v = integrate(xvec, yvec, f0 .* V);
-            byv = integrate(xvec, yvec, bymat .* V);
-
-            % non-linear terms
-            dv2dy = integrate(xvec, avg1(yvec), ...
-                              bsxfun(@rdivide, diff(V2,1,2), diff(yvec)));
-            duvdx = integrate(avg1(xvec), yvec, ...
-                              bsxfun(@rdivide, diff(UV,1,1), diff(xvec')));
-            % tendency term - THIS IS A BAD ESTIMATE
-            %dvdt = squeeze(trapz(trapz(diff(V,1,3)./86400,1),2));
-            % bottom torque
-            btq = integrate(xvec, yvec, pbot .* slbot);
-
-            total = duvdx + dv2dy + fu + dpdy + btq;
-            figure; hold all;
-            plot(-1*f0u./total);
-            plot(-1*byu./total);
-            plot(dpdy./total);
-            plot(duvdx./total);
-            plot(dv2dy./total);
-            plot(btq./total);
-            legend('-f_0u','\beta yu', 'dpdy','duvdx','dv2dy', ...
-                   'btq');
-
-            time = runs.eddy.t(tind);
-            save([runs.dir '/mombudget.mat'], 'dpdx', 'dpdy', 'fu', ...
-                 'fv', 'f0u', 'byu', 'dv2dy', 'duvdx', 'btq', 'total', ...
-                 'time');
+            irho = flipdim(cumsum(flipdim(bsxfun(@times, rho, -1*dzmat),3),3),3);
+            pres = -g./rho0 .* irho;
+            % remove some more background signal
+            pres = bsxfun(@minus, pres, pres(1,:,:,1));
+            pbot(:,:,tstart:tend) = squeeze(pres(:,:,1,:));
+        else
+            irho = squeeze(sum(bsxfun(@times, rho, dzmat), 3));
+            pbot = g/rho0 * irho;
+            pbot(:,:,tstart:tend) = bsxfun(@minus, pbot, pbot(1,:,:));
         end
     end
-
-    %%%%%%% first, bottom pressure
-    irho = flipdim(cumsum(flipdim(bsxfun(@times, rho, -1*dzmat),3),3),3);
-    pres = -g./rho0 .* irho;
-    % remove some more background signal
-    pres = bsxfun(@minus, pres, pres(1,:,:,1));
-    pbot = squeeze(pres(:,:,1,:));
 
     %%%%%%%%% now, angular momentum
     %iam = 1/2 * beta .* (V .* xrmat - U .* yrmat); % if ψ ~ O(1/r²)
@@ -286,10 +341,10 @@ function [] = bottom_torque(runs)
 
     %%%%%%%%% mask?
     botmask = pbot < 0.1*min(pbot(:));
-    mask_rho = 1; botmask; %irho < -1;
+    mask_rho =  1; botmask; %irho < -1;
     mpbot = mask_rho .* pbot .* slbot;
     miv = mask_rho .* iv;
-    miam = mask_rho .* iam;
+    miam = mask_rho .* iam2;
 
     clear V P AM
     %%%%%%%%% area-integrate
@@ -299,20 +354,22 @@ function [] = bottom_torque(runs)
                                     1), 2));
         AM(tt) = squeeze(trapz(yrmat(1,:,tt), ...
                                trapz(xrmat(:,1,tt), repnan(miam(:,:,tt),0), ...
-                                                    1), 2));
+                                     1), 2));
         V(tt) = squeeze(trapz(yrmat(1,:,tt), ...
                               trapz(xrmat(:,1,tt), repnan(miv(:,:,tt),0), ...
-                                             1), 2));
+                                    1), 2));
     end
 
     %%%%%%%%% Summarize
     bottom.pressure = P;
     bottom.angmom = AM;
     bottom.pbtorque = P;
-    bottom.betatorque = AM;
+    bottom.betatorque = factor*AM;
     bottom.transtorque = V;
     bottom.time = runs.eddy.t(tind(1):dt:tind(2))*86400;
     bottom.maskstr = maskstr;
+    bottom.flags = flags;
+    bottom.factor = factor;
 
     % plots
     figure; hold all
