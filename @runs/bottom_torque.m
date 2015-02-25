@@ -378,7 +378,8 @@ function [] = bottom_torque(runs)
     bottom.time = runs.eddy.t(tind(1):dt:tind(2))*86400;
     bottom.maskstr = maskstr;
     bottom.flags = flags;
-    bottom.factor = factor;
+    bottom.pbfactor = pbfactor;
+    bottom.amfactor = amfactor;
 
     % plots
     figure; hold all
