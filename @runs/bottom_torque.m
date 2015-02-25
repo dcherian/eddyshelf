@@ -1,6 +1,7 @@
 function [] = bottom_torque(runs)
 
-    tindices = [1 length(runs.eddy.t)];
+    ticstart = tic;
+    tindices = [300 length(runs.eddy.t)];
 
     % use some mask to determine edges of domain
     % that I want to analyze?
@@ -161,12 +162,17 @@ function [] = bottom_torque(runs)
     masked = bsxfun(@and, rho1 < rhothreshvor, ...
                     permute(sshmask(:,:,1), [1 2 4 3]));
     dzmat = diff(permute(zwmat, [3 2 1]), 1, 3);
+    % angular momentum correction
     U1full = sum(bsxfun(@times, u1, dzmat(:,:,:,1)), 3);
     U1ed = sum(bsxfun(@times, u1.*masked, dzmat(:,:,:,1)), 3);
-    factor =  integrate(xvec, yvec, bymat(:,:,1) .* U1full) ...
-              ./ integrate(xvec, yvec, bymat(:,:,1) .* U1ed);
+    amfactor =  integrate(xvec, yvec, bymat(:,:,1) .* U1full) ...
+        ./ integrate(xvec, yvec, bymat(:,:,1) .* U1ed);
+    % bottom pressure correction
+    pbfactor = integrate(xvec,yvec, sum(rho1 .* dzmat, 3)) ./ ...
+        integrate(xvec,yvec, sum(rho1 .* masked .* dzmat, 3));
     clear u1 rho1 masked U1full U1ed dzmat
 
+    % read data from start
     for i=0:iend-1
         disp(['==== Iteration : ' num2str(i+1) '/' num2str(iend)  ...
                    ' ====']);
@@ -361,10 +367,10 @@ function [] = bottom_torque(runs)
     end
 
     %%%%%%%%% Summarize
-    bottom.pressure = P;
+    bottom.pressure = integrate(xvec, yvec, pbot);
     bottom.angmom = AM;
-    bottom.pbtorque = P;
-    bottom.betatorque = factor*AM;
+    bottom.pbtorque = pbfactor * P;
+    bottom.betatorque = amfactor*AM;
     bottom.transtorque = V;
     bottom.time = runs.eddy.t(tind(1):dt:tind(2))*86400;
     bottom.maskstr = maskstr;
@@ -388,6 +394,7 @@ function [] = bottom_torque(runs)
 
     runs.bottom = bottom;
     save([runs.dir '/bottom.mat'], 'bottom', '-v7.3');
+    toc(ticstart);
 end
 
 function [out] = integrate(xvec, yvec, in)
