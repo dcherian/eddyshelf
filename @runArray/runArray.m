@@ -341,6 +341,20 @@ classdef runArray < handle
 
                 end
 
+                %%%%% estimate slope for bottom torque balance
+                if strcmpi(name, 'slope est')
+
+                    factor = exp(-1)*(exp(1) + pi^(1/2)*exp(1) - ...
+                                     pi^(1/2)*erf(1)*exp(1) - ...
+                                      1)/(pi^(1/2)*erf(1));
+
+                    run.fit_traj;
+                    tind = run.traj.tind;
+                    diags(ff) = factor * beta * Lz(tind) ./ ...
+                        fcen(tind);
+                    plotx(ff) = Sa./Ro(1);
+                end
+
                 %%%%% Flierl (1987) bottom torque hypothesis.
                 %% estimate ∫∫ψ
                 if strcmpi(name, 'btrq est')
@@ -348,13 +362,13 @@ classdef runArray < handle
 
                     figure;
                     subplot(211); hold all
-                    hplt = plot(ndtime, beta .* Lz ./ alpha ./f0);
+                    hplt = plot(ndtime, beta .* Lz ./f0 .* (V/Vb)*1./alpha);
                     addlegend(hplt, runName);
-                    try
-                        plot(ndtime, Vb./V /6);
-                    catch ME
-                        plot(ndtime, Vb./V'/6);
-                    end
+                    %try
+                    %    plot(ndtime, Vb./V /6);
+                    %catch ME
+                    %    plot(ndtime, Vb./V'/6);
+                    %end
 
                     title(runName);
                     % rhoamp = rho0 * TCOEF * run.eddy.T(:,end)';
@@ -968,6 +982,25 @@ classdef runArray < handle
         end
 
         function [] = plot_test3(runArray)
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            figure; hold all
+
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
+                run = runArray.array(ii);
+                name = runArray.getname(ii);
+
+                hplt = plot(run.ndtime, ...
+                            (run.eddy.Ro));
+
+                addlegend(hplt, name);
+            end
+        end
+
+        function [] = plot_spectra(runArray)
             if isempty(runArray.filter)
                 runArray.filter = 1:runArray.len;
             end
