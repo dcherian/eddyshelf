@@ -382,12 +382,11 @@ classdef runArray < handle
 
                     Ro = Ro(1);
                     Lx = run.eddy.vor.dia(1)/2;
-                    Lz = Lz(1);
                     H0 = hcen(1);
                     Tamp = run.params.eddy.tamp;
                     TCOEF = run.params.phys.TCOEF;
 
-                    tanhfitflag = 1;
+                    tanhfitflag = 0;
                     if tanhfitflag
                         run.fit_traj;
 
@@ -400,6 +399,7 @@ classdef runArray < handle
                         Y = run.eddy.my(tind) - run.bathy.xsb; run.eddy.my(tind);
                     end
                     if isempty(tind), continue; end
+
                     %if H./run.bathy.hsl > 0.9
                     %    H = (run.eddy.hedge(tind));
                     %    disp(runName);
@@ -411,11 +411,11 @@ classdef runArray < handle
                     %plot(ndtime(tind), run.eddy.hcen(tind), 'k*');
                     %%liney(yscl); linex([1 2 3]*tscl);
 
-                    diags(ff) = (H./Lz);
+                    diags(ff) = H./Lz(1);
                     %plotx(ff) = (beta*Lx)/alpha * V(1)/(Tamp*TCOEF);
                     %diags(ff) = Y./(run.rrdeep);
                     %plotx(ff) = Ro./Sa;
-                    plotx(ff) = beta*Lz/alpha/f0;
+                    plotx(ff) = beta*Lz(1)/alpha/f0;
                     name_points = 1;
                     laby = 'H_{cen}/L_z^0';
                     labx = '\beta L_z^0 / (\alpha f_0)';
