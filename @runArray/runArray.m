@@ -679,7 +679,8 @@ classdef runArray < handle
                     title(name);
                 end
 
-                disp([run.name ' | ' name ' = ' diagstr])
+                disp([run.name ' | ' name ' = ' diagstr ' | plotx ' ...
+                                    '= ' num2str(plotx(ff))]);
             end
 
             if exist('sortedflag', 'var') & sortedflag
