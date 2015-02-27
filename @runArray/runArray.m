@@ -351,6 +351,9 @@ classdef runArray < handle
 
                     diags(ff) = run.traj.H;
                     plotx(ff) = run.eddy.hcen(sltind);
+
+                    name_points = 0;
+                    line_45 = 1;
                 end
 
                 %%%%% Flierl (1987) bottom torque hypothesis.
