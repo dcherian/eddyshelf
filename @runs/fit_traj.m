@@ -62,13 +62,17 @@ function [] = fit_traj(runs)
 
     if debug
         figure;
-        subplot(211);
-        plot(tvec, run.eddy.my(uind), '*', tvec, ytraj);
-        liney(Y); title(runName);
-        subplot(212);
-        plot(tvec, run.eddy.hcen(uind), '*', tvec, ...
+        if use_my
+            subplot(211);
+            plot(tvec, runs.eddy.my(uind), '*', tvec, ytraj);
+            liney(Y);
+            subplot(212);
+        end
+        plot(tvec, runs.eddy.hcen(uind), '*', tvec, ...
              htraj);
         liney(H);
+        linex(tvec(tind));
+        title(runs.name);
     end
     % y,t scales (corrected for earlier reference shift)
     yscl = y0 + yref;
@@ -96,7 +100,7 @@ function [] = fit_traj(runs)
                         'reference shift. | (htraj,ytraj) are actual ' ...
                         'fits. ytraj is meaningless when fitting to ' ...
                         'hcen i.e., with use_my = 0'];
-    runs.traj.hash = githash([mfilename('fullpath') '.m']);
+    %runs.traj.hash = githash([mfilename('fullpath') '.m']);
 
     traj = runs.traj;
     save([runs.dir '/traj.mat'], 'traj');
