@@ -313,7 +313,9 @@ methods
                 runs.eddy.tend = length(runs.eddy.dia);
             else
                 % truncate time vector just in case
-                runs.eddy.t = runs.eddy.t(1:runs.eddy.tend);
+                if runs.eddy.tend == length(runs.eddy.dia)
+                    runs.eddy.t = runs.eddy.t(1:runs.eddy.tend);
+                end
             end
 
             runs.eddy.Bu = runs.params.phys.N2 .* runs.eddy.Lgauss.^2 ...
@@ -390,6 +392,10 @@ methods
             ix = vecfind(runs.eddy.xr(:,1), runs.eddy.mx);
             iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.my);
             runs.eddy.hcen = h(sub2ind(size(runs.eddy.xr),ix,iy))';
+
+            % f at eddy center
+            f = runs.rgrid.f(2:end-1,2:end-1)';
+            runs.eddy.fcen = f(sub2ind(size(runs.eddy.xr),ix,iy))';
 
             if runs.bathy.axis == 'y'
                 iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.vor.se);
