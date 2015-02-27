@@ -30,6 +30,11 @@ function [] = plot_eddytrack(runs)
     linex((runs.rgrid.x_rho(1, [ix1 ix2]) - runs.eddy.mx(1))/runs.rrdeep, ...
           'sponge');
 
+    liney((runs.bathy.xsl - runs.bathy.xsb)/runs.rrdeep, ...
+          'slopebreak');
+
     [~,~,tind] = runs.locate_resistance;
     plot(plotx(tind), ploty(tind), 'x', 'MarkerSize', 12);
+
+    liney(0);
 end
