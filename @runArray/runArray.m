@@ -139,6 +139,7 @@ classdef runArray < handle
                 hfig = figure;
                 hold all;
                 name_points = 1; % name points by default
+                line_45 = 0; %no 45° line by default
                 labx = ' '; laby = ' ';
                 plotx = [];
             end
@@ -676,7 +677,7 @@ classdef runArray < handle
 
                 if plots
                     figure(hfig);
-                    plot(plotx(ff), diags(ff), '*');
+                    plot(plotx(ff), diags(ff), 'k*');
 
                     % add function call as annotation
                     insertAnnotation(['runArray.print_diag(' name ')']);
@@ -701,6 +702,8 @@ classdef runArray < handle
             if plots
                 figure(hfig)
                 beautify([18 18 20]);
+
+                if line_45, line45; end
             end
 
             if exist('hfig_flux', 'var')
