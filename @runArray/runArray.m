@@ -117,7 +117,8 @@ classdef runArray < handle
 
         function [] = print_params(runArray, command)
             for ii=1:runArray.len
-                out = eval(['runArray.array(ii).' command]);
+                run = runArray.array(ii);
+                out = eval(['run.' command]);
                 if ~ischar(out)
                     out = num2str(out);
                 end
