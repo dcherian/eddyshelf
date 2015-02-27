@@ -344,16 +344,12 @@ classdef runArray < handle
 
                 %%%%% estimate slope for bottom torque balance
                 if strcmpi(name, 'slope est')
+                    slope = syms_angmom(run);
 
-                    factor = exp(-1)*(exp(1) + pi^(1/2)*exp(1) - ...
-                                     pi^(1/2)*erf(1)*exp(1) - ...
-                                      1)/(pi^(1/2)*erf(1));
+                    sltind = find_approx(2*pi*slope, alpha);
 
-                    run.fit_traj;
-                    tind = run.traj.tind;
-                    diags(ff) = factor * beta * Lz(tind) ./ ...
-                        fcen(tind);
-                    plotx(ff) = Sa./Ro(1);
+                    diags(ff) = run.traj.H;
+                    plotx(ff) = run.eddy.hcen(sltind);
                 end
 
                 %%%%% Flierl (1987) bottom torque hypothesis.
