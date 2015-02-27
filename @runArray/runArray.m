@@ -965,12 +965,15 @@ classdef runArray < handle
 
                 ndtime = run.eddy.t*86400 / run.eddy.turnover;
 
-                [~,~,tind] = run.locate_resistance;
+                tind = run.traj.tind;
+                slope = syms_angmom(run);
+                alpha = run.bathy.sl_slope;
 
-                Ro = run.eddy.Ro(1);
-                Sa = run.bathy.S_sl;
-                hgplt = plot(Ro./Sa, (run.eddy.hcen(tind))./ ...
-                             run.eddy.Lgauss(tind), 'k*');
+                hplt = plot(ndtime, slope);
+                addlegend(hplt, run.name);
+                ind = find_approx(slope, alpha);
+                plot(ndtime(ind), slope(ind), 'k*');
+                plot(ndtime(tind), slope(tind), 'ko');
                 %addlegend(hgplt, run.name);
                 %plot(ndtime(run.tscaleind), run.eddy.vol(run.tscaleind), 'k*');
             end
