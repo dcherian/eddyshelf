@@ -6,7 +6,7 @@ function [] = plot_penetration(runArray)
     corder_backup = runArray.sorted_colors;
 
     hfig1 = figure; subplot(2,1,1); hold all; subplot(2,1,2);
-            hold all; insertAnnotation('runArray.plot_penetration');
+    hold all; insertAnnotation('runArray.plot_penetration');
 
     hfig2 = figure;
     insertAnnotation('runArray.plot_penetration');
@@ -39,7 +39,7 @@ function [] = plot_penetration(runArray)
 
         % normalization for axes
         xnorm = run.rrdeep; run.eddy.vor.dia(1)/2;
-        ynorm = run.rrdeep; run.eddy.vor.dia(1)/2; run.eddy.my(1) - run.bathy.xsb;
+        ynorm = run.eddy.vor.dia(1)/2; run.eddy.my(1) - run.bathy.xsb;
 
         % reference location
         x0 = run.eddy.mx(1);
@@ -66,10 +66,13 @@ function [] = plot_penetration(runArray)
         addlegend(hgplt, name, 'NorthWest');
 
         % mark start of resistance
-        if isfield(run.eddy, 'res')
-            plot(x(run.eddy.res.tind), y(run.eddy.res.tind), '.', ...
-                 'Color', get(hgplt, 'Color'), 'Markersize', 22);
-        end
+        [~,~,tind] = run.locate_resistance;
+        plot(x(tind), y(tind), '.', ...
+             'Color', get(hgplt, 'Color'), 'Markersize', 22);
+        run.fit_traj;
+        plot(x(run.traj.tind), y(run.traj.tind), 'x', ...
+             'Color', get(hgplt, 'Color'), 'Markersize', 18);
+
          
         % mark timestamps
         if mark_timestamp
