@@ -41,11 +41,6 @@ function [slope, pbot, angmom] = syms_angmom(runs)
     %    bta0 = 1; ra0 = -1; Lr0 = 1; Lz0 = 1; H0 = Inf; vb0 = 0; f0 = ...
     %       1; g = 1; r0 = 1;
 
-    rvec = -3:0.1:3;
-    zvec = -3:0.1:0;
-
-    [rmat,zmat] = ndgrid(rvec, zvec);
-
     % profile shapes
     R(r,Lr) = exp(-(r/Lr)^2);
     F(z,Lz) = exp(-(z/Lz)^2);
@@ -55,6 +50,8 @@ function [slope, pbot, angmom] = syms_angmom(runs)
     % geostrophic azimuthal velocity shear
     uz = g/r0/f * diff(rho,r);
     ugeo(ra,r,Lr,z,Lz,f,H) = int(uz, z, -H, z);
+
+    usurf = double(ugeo(ra0,Lr0,Lr0,0,Lz0,f0,H0));
 
     vbr(vb,r,Lr) = vb * diff(R,r);
     %zeta(r,Lr,Lz,f,vb,ra,H) =  (f/g * vb * R(r,Lr) - 1/r0 * int(rho,z,-H,0));
@@ -96,4 +93,53 @@ function [out] = integrate_r(in)
     syms H
 
     out = int(int(int(in,r,-Inf,Inf),theta,0,2*pi),z,-H,0);
+end
+
+% I want to fit y = y_0 tanh(x/X)
+function [y0, X] = exp_fit(x, y, plot_flag, test)
+
+    if ~exist('test', 'var'), test = 0; end
+    if ~exist('plot_flag', 'var'), plot_flag = 0; end
+
+    if test
+        test_fit();
+        return;
+    end
+
+    initGuess(1) = max(y(:));
+    initGuess(2) = max(x(:))/2;
+
+    opts = optimset('MaxFunEvals',1e7);
+    [fit2,~,exitflag] = fminsearch(@(fit) fiterror(fit,x,y), ...
+                                   initGuess,opts);
+
+    y0 = fit2(1);
+    X = fit2(2);
+
+    if plot_flag
+        figure;
+        plot(x,y,'k*'); hold all
+        plot(x, y0*(2*x/X) .* exp( -(x/X).^2));
+        liney([-1 1]* y0);
+        linex([-1 1]*X);
+    end
+end
+
+function [E] = fiterror(fit,x,y)
+% x = (T0,H,a)
+    y0 = fit(1); X = fit(2);
+
+    E = sum((y - y0 .* (2*x/X) .* exp(-(x/X).^2)).^2);
+end
+
+function [] = test_fit()
+    x = [-4:0.05:4];
+    X = 1;
+    y0 = 1;
+    y = y0 * (2*x/X) .* exp(-(x/X).^2);
+
+    [yy,xx] = exp_fit(x,y,1);
+
+    disp(['y0 = ' num2str(yy) ' | Original = ' num2str(y0)]);
+    disp(['X = ' num2str(xx) ' | Original = ' num2str(X)]);
 end
