@@ -10,8 +10,27 @@ function [slope, pbot, angmom] = syms_angmom(runs)
     g = runs.params.phys.g;
     r0 = runs.params.phys.rho0;
 
+    if isempty(runs.usurf), runs.read_velsurf; end
+    % fit gaussian to surface velocity
+    tic;
+    for tt=1:length(runs.eddy.cy)
+        ix = find_approx(runs.rgrid.x_rho(1,:), runs.eddy.mx(tt));
+        uvec = double(runs.usurf(ix,:,tt)');
+        zvec = double(runs.zeta(ix,2:end-1,tt)'.*runs.eddy.mask(ix,:,tt)');
+        yuvec = runs.rgrid.y_u(:,ix) - runs.eddy.my(tt);
+        yzvec = runs.rgrid.y_rho(2:end-1,ix) - runs.eddy.my(tt);
+
+        %hold off; plot(yvec, uvec);
+        %ylim([-1 1]* 0.2); xlim([-3 3]*1e5);
+        %linex(0); liney(0);
+        %pause(0.1);
+        [V0(tt), Lfit(tt)] = exp_fit(yuvec, uvec,0);
+        [z0(tt), Lfitz(tt)] = gauss_fit(yzvec, zvec-min(zvec(:)), 1);
+    end
+    toc;
+
     ra0 = -r0 * runs.params.phys.TCOEF * runs.eddy.T(:,end)';
-    Lr0 = runs.eddy.vor.dia/2;
+    Lr0 = Lfit; %runs.eddy.vor.dia/2;
     Lz0 = runs.eddy.Lgauss;
     H0 = runs.eddy.hcen';
     f0 = runs.eddy.fcen';
