@@ -59,8 +59,9 @@ function [slope, pbot, angmom] = syms_angmom(runs)
     vbr(vb,r,Lr) = vb * diff(R,r);
     %zeta(r,Lr,Lz,f,vb,ra,H) =  (f/g * vb * R(r,Lr) - 1/r0 * int(rho,z,-H,0));
 
-    amgeo(Lr,Lz,f,ra,H) = bta0 * integrate_r(r*ugeo);
-    ambot(vb,Lr) = bta0 * 2*pi * int(r*vbr, r, -Inf, Inf);
+    amgeo(Lr,Lz,f,ra,H) = bta0 * integrate_r(r*sin(theta)*ugeo*-sin(theta));
+    ambot(vb,Lr) = bta0 * int(int(r*sin(theta)*vbr*-sin(theta), r, ...
+                                  -Inf, Inf), theta, 0, 2*pi);
 
     % for some reason, it doesn't do the cancellation in pbc+pbt correctly.
     %pbc(ra,Lr,Lz,H) = integrate_r(g/r0 * rho);
