@@ -302,14 +302,14 @@ function [] = bottom_torque(runs)
     %%%%%%%%% Summarize
     bottom.pressure = integrate(xvec, yvec, pbot);
     bottom.angmom = AM;
-    bottom.pbtorque = pbfactor * P;
-    bottom.betatorque = amfactor*AM;
+    bottom.pbtorque = P;
+    bottom.betatorque = AM;
     bottom.transtorque = V;
     bottom.time = runs.eddy.t(tind(1):dt:tind(2))*86400;
     bottom.maskstr = maskstr;
     bottom.flags = flags;
-    bottom.pbfactor = pbfactor;
-    bottom.amfactor = amfactor;
+    %    bottom.pbfactor = pbfactor;
+    %bottom.amfactor = amfactor;
 
     % plots
     figure; hold all
