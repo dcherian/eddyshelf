@@ -79,13 +79,14 @@ function [] = bottom_torque(runs)
     xrmat = repmat(runs.rgrid.x_rho(imny:imxy, imnx:imxx)', [1 1 nt]);
     yrmat = repmat(runs.rgrid.y_rho(imny:imxy, imnx:imxx)', [1 1 nt]);
 
-    zrmat = runs.rgrid.z_r(:,2:end-1,2:end-1);
-    zrmat = zrmat(:,imny:imxy, imnx:imxx);
-    zwmat = runs.rgrid.z_w(:,2:end-1,2:end-1);
-    zwmat = zwmat(:,imny:imxy, imnx:imxx);
+    xrmat = bsxfun(@minus, xrmat, permute(runs.eddy.mx, [3 1 2]));
+    yrmat = bsxfun(@minus, yrmat, permute(runs.eddy.my, [3 1 2]));
 
-    xvec = runs.rgrid.x_rho(1,imnx:imxx);
-    yvec = runs.rgrid.y_rho(imny:imxy);
+    zrmat = runs.rgrid.z_r(:,imny:imxy, imnx:imxx);
+    zwmat = runs.rgrid.z_w(:,imny:imxy, imnx:imxx);
+
+    xvec = xrmat(:,1,1);
+    yvec = yrmat(1,:,1);
 
     % eddy center
     %mx = runs.eddy.vor.cx(tind(1):dt:tind(2));
@@ -98,30 +99,25 @@ function [] = bottom_torque(runs)
     end
     % subsample to size(mask);
     % then subsample to region I'm interested in.
-    zeta = runs.zeta(2:end-1,2:end-1, tind(1):dt:tind(2));
-    zeta = zeta(imnx:imxx, imny:imxy, :);
+    zeta = runs.zeta(imnx:imxx, imny:imxy, tind(1):dt:tind(2));
 
     % subsample f
-    f = runs.rgrid.f(2:end-1,2:end-1)';
-    f = f(imnx:imxx, imny:imxy);
+    f = repmat(runs.rgrid.f(imny:imxy, imnx:imxx), [1 1 nt]);
     % f - f @ center of eddy
     % f = bsxfun(@minus, f, permute(f(1,imy),[3 1 2]));
-    f = repmat(f, [1 1 nt]);
     % This is so that I don't have trouble finding out the
     % reference latitude
     bymat = f - f0;
 
     % subsample bathymetry
-    H = runs.bathy.h(2:end-1, 2:end-1);
-    H = H(imnx:imxx, imny:imxy);
+    H = runs.bathy.h(imnx:imxx, imny:imxy);
 
     % subsample bottom slope
     slbot = diff(runs.rgrid.h',1,2)./diff(runs.rgrid.y_rho',1,2);
     slbot = repmat(slbot(imnx:imxx, imny:imxy), [1 1 nt]);
 
-    if flags.use_masked
-        vormask = runs.eddy.vormask(imnx:imxx, imny:imxy, 1);
-        sshmask = runs.eddy.mask(imnx:imxx, imny:imxy, :);
+    vormask = runs.eddy.vormask(imnx-1:imxx-1, imny-1:imxy-1, :);
+    sshmask = runs.eddy.mask(imnx-1:imxx-1, imny-1:imxy-1, :);
 
         if ~isfield(runs.eddy, 'drhothreshssh')
             % find what density corresponds to 0 vorticity contour
