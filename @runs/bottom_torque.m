@@ -134,39 +134,26 @@ function [] = bottom_torque(runs)
         end
     end
 
-    % get background density field for initial time instant
-    if runs.bathy.axis == 'y'
-        % (y,z)
-        rback = dc_roms_read_data(runs.dir, 'rho', [1 1], {'x' 1 1}, [], ...
-                                  runs.rgrid, 'his', 'single');
-        rback = rback(2:end-1, :);
+    % % get background density field for initial time instant
+    % if runs.bathy.axis == 'y'
+    %     % (y,z)
+    %     rback = dc_roms_read_data(runs.dir, 'rho', [1 1], {'x' 1 1}, [], ...
+    %                               runs.rgrid, 'his', 'single') + 1000;
+    %     rback = rback(2:end-1, :);
 
-        % subsample and make (x,y,z)
-        rback = permute(rback(imny:imxy,:), [3 1 2]);
-    else
-        rback = dc_roms_read_data(runs.dir, 'rho', [1 1], {'y' Inf Inf}, [], ...
-                                  runs.rgrid, 'his', 'single');
-        error('not implemented for NS isobaths yet');
-    end
+    %     % subsample and make (x,y,z)
+    %     rback = permute(rback(imny:imxy,:), [3 1 2]);
+    % else
+    %     rback = dc_roms_read_data(runs.dir, 'rho', [1 1], {'y' Inf Inf}, [], ...
+    %                               runs.rgrid, 'his', 'single');
+    %     error('not implemented for NS isobaths yet');
+    % end
 
-    % figure out initial error.
-    u1 = avg1(dc_roms_read_data(runs.dir, 'u', 1, volumeu, [], ...
-                                runs.rgrid, 'his', 'single'), 1);
-    rho1 = dc_roms_read_data(runs.dir, 'rho', 1, volumer, [], ...
-                             runs.rgrid, 'his', 'single');
-    rho1 = bsxfun(@minus, rho1, rback);
-    masked = bsxfun(@and, rho1 < rhothreshvor, ...
-                    permute(sshmask(:,:,1), [1 2 4 3]));
-    dzmat = diff(permute(zwmat, [3 2 1]), 1, 3);
-    % angular momentum correction
-    U1full = sum(bsxfun(@times, u1, dzmat(:,:,:,1)), 3);
-    U1ed = sum(bsxfun(@times, u1.*masked, dzmat(:,:,:,1)), 3);
-    amfactor =  integrate(xvec, yvec, bymat(:,:,1) .* U1full) ...
-        ./ integrate(xvec, yvec, bymat(:,:,1) .* U1ed);
-    % bottom pressure correction
-    pbfactor = integrate(xvec,yvec, sum(rho1 .* dzmat, 3)) ./ ...
-        integrate(xvec,yvec, sum(rho1 .* masked .* dzmat, 3));
-    clear u1 rho1 masked U1full U1ed dzmat
+    % dzmat0 = (diff(set_depth(2,4,3,1.5,1200,72,5,H, ...
+    %                                           0, 0),1,3));
+    % % pressure due to background stratification = pstrat(y)
+    % pstrat = g./rho0 .* sum(rback .* dzmat0(1,:,:), 3);
+    % dzmat = dzmat0;
 
     % read data from start
     for i=0:iend-1
@@ -322,16 +309,62 @@ function [] = bottom_torque(runs)
             pbot(:,:,tsave) = squeeze(pres(:,:,1,:));
         else
             irho = squeeze(sum(bsxfun(@times, rho, dzmat), 3));
-            pbot1 = g/rho0 * irho;
-            pbot(:,:,tsave) = bsxfun(@minus, pbot1, pbot1(1,:,:));
+            if i == 0
+                irback = irho(1,:,1);
+            end
+
+            % baroclinic pressure at bottom
+            % subtract pressure due to background density field
+            pbot(:,:,tsave) = g/rho0 .* bsxfun(@minus, irho, irback);
+            % barotropic pressure at bottom
+            %pbt = g/rho0 * squeeze(rho(:,:,end,:)) .* zeta(:,:,tsave);
+
+            %pbot(:,:,tsave) = pbc + pbt;
+            % remove more background contribution
+            %pbot = bsxfun(@minus, pbot, pbot(1,:,:));
+
+            % check balance
+            if flags.use_thermal_wind
+                ranom = bsxfun(@minus, rho, rback);
+                ranom = bsxfun(@minus, ranom, ranom(1,:,:,:));
+
+                % iranom = squeeze(sum(bsxfun(@times, ranom, dzmat0),3));
+                % %diRdy = bsxfun(@rdivide, diff(iranom,1,2), diff(yvec));
+                % %dizdy = -1/rho0 * diRdy;
+                % %dRdy = bsxfun(@rdivide, diff(ranom, 1, 2), diff(yvec));
+                % %dzdy = -1 * squeeze(sum(bsxfun(@times, dRdy, avg1(dzmat,2)), ...
+                % %                   3))/rho0;
+                % %dzetady = (bsxfun(@rdivide, diff(zeta(:,:,tsave),1,2), ...
+                % %                       diff(yvec)));
+                % %error = dzdy - dzetady;
+
+                % pbc1 = g/rho0 * iranom;
+                % pbt1 = g * zeta(:,:,tsave);
+
+                % pbot1(:,:,tsave) = pbc1+pbt1;
+
+                % THIS IS NOT HOW YOU DIFFERENTIATE ON A C-GRID
+                drady = bsxfun(@rdivide, diff(ranom,1,2), diff(yvec));
+                U(:,:,tsave) = -g./f0/rho0 .* squeeze(sum( bsxfun(@times, ...
+                            cumsum( bsxfun(@times, drady, avg1(dzmat,2)), 3), ...
+                                                 avg1(dzmat,2)), 3));
+                %ubot = bsxfun(@rdivide, diff(pbot,1,2), diff(yvec))./f0;
+            end
         end
     end
+
+    %pbot = bsxfun(@minus, pbot, pbot(1,:,:));
+    %pbot1 = bsxfun(@minus, pbot1, pbot1(1,:,:));
 
     %%%%%%%%% now, angular momentum
     %iam = 1/2 * beta .* (V .* xrmat - U .* yrmat); % if ψ ~ O(1/r²)
     %iam = (f-f0) .* U; % if ψ ~ O(1/r)
     iam = f .* U;
     iam2 = bymat .* U;
+
+    %save([runs.dir '/btrqinterim.mat'],
+    %'pbot','U','f','bymat','slbot','pbot1');
+    save([runs.dir '/pbot.mat'], 'pbot');
 
     %%%%%%%%% Translation term
     %c = runs.eddy.cvx(tind(1):dt:tind(2)) .* 1000/86400; % convert to m/s
