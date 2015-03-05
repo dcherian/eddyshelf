@@ -118,6 +118,7 @@ function [] = bottom_torque(runs)
     % subsample bottom slope
     slbot = diff(runs.rgrid.h',1,2)./diff(runs.rgrid.y_rho',1,2);
     slbot = repmat(slbot(imnx:imxx, imny:imxy), [1 1 nt]);
+    slbot = slbot .* (slbot > 0.95 * runs.bathy.sl_slope);
 
     vormask = runs.eddy.vormask(imnx-1:imxx-1, imny-1:imxy-1, :);
     sshmask = runs.eddy.mask(imnx-1:imxx-1, imny-1:imxy-1, :);
