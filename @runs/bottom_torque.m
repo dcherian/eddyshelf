@@ -218,20 +218,26 @@ function [] = bottom_torque(runs)
          % U is provided by here
         %%%%%%% first, bottom pressure
         if mom_budget
-            irho = flipdim(cumsum(flipdim(bsxfun(@times, rho, -1*dzmat),3),3),3);
-            pres = -g./rho0 .* irho;
+            irho = flipdim(cumsum(flipdim(bsxfun(@times, rho, ...
+                                                 diff(zwmat,1,3)),3),3),3);
+            pres = g./rho0 .* irho;
             % remove some more background signal
             pres = bsxfun(@minus, pres, pres(1,:,:,1));
             pbot(:,:,tsave) = squeeze(pres(:,:,1,:));
+
         else
-            irho = squeeze(sum(bsxfun(@times, rho, dzmat), 3));
-            if i == 0
-                irback = irho(1,:,1);
-            end
+
+            %irho = squeeze(sum(bsxfun(@times, rho, diff(zwmat,1,3)), 3));
+            % avoid some roundoff errors?
+            irho = rho0 .* double(zeta(:,:,tsave)) + ...
+                              squeeze(sum(bsxfun(@times, rho-rho0, diff(zwmat,1,3)), 3));
+
+            % trapezoidal integration makes no difference
+            %irhotrap = squeeze(sum(dzmat .* avg1(rho,3),3));
 
             % baroclinic pressure at bottom
             % subtract pressure due to background density field
-            pbot(:,:,tsave) = g/rho0 .* bsxfun(@minus, irho, irback);
+            pbot(:,:,tsave) = g/rho0 .* bsxfun(@minus, irho, irho(1,:,:));
 
             %keyboard;
             % prsgrd32.h
