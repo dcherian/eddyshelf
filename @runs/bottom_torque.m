@@ -359,7 +359,6 @@ function [] = bottom_torque(runs)
     end
     %save([runs.dir '/btrqinterim.mat'],
     %'pbot','U','f','bymat','slbot','pbot1');
-    save([runs.dir '/pbot.mat'], 'pbot');
 
     %%%%%%%%% Translation term
     %c = runs.eddy.cvx(tind(1):dt:tind(2)) .* 1000/86400; % convert to m/s
@@ -372,25 +371,60 @@ function [] = bottom_torque(runs)
     %iv2 = bsxfun(@times, bsxfun(@times, irho, f), permute(c, [3 1 2]));
     %iv = runs.params.phys.f0 .* U;
 
-    %%%%%%%%% mask?
-    botmask = pbot < 0.1*min(pbot(:));
-    mask_rho =  1; botmask; %irho < -1;
+
+%%%%%%%%% mask?
+    % changing this mask threshold gives me larger pressures
+    pcrit = 0.1;
+    botmask = pbot < pcrit*min(pbot(:));
+    mask_rho = vormask; %botmask; %irho < -1;
     mpbot = mask_rho .* pbot .* slbot;
+    mpbotneg = mpbot .* (mpbot < 0);
     miv = mask_rho .* iv;
-    miam = mask_rho .* iam2;
+    if flags.calc_angmom
+        miam = mask_rho .* iam2;
+    end
 
     clear V P AM
-    %%%%%%%%% area-integrate
-    for tt=1:size(iam,3)
+    %%%%%%%%% area-integrate - axes referenced to center
+    for tt=1:size(pbot,3)
         P(tt) = squeeze(trapz(yrmat(1,:,tt), ...
                               trapz(xrmat(:,1,tt), repnan(mpbot(:,:,tt),0), ...
                                     1), 2));
-        AM(tt) = squeeze(trapz(yrmat(1,:,tt), ...
-                               trapz(xrmat(:,1,tt), repnan(miam(:,:,tt),0), ...
-                                     1), 2));
-        V(tt) = squeeze(trapz(yrmat(1,:,tt), ...
-                              trapz(xrmat(:,1,tt), repnan(miv(:,:,tt),0), ...
+        Pneg(tt) = squeeze(trapz(yrmat(1,:,tt), ...
+                              trapz(xrmat(:,1,tt), repnan(mpbotneg(:,:,tt),0), ...
                                     1), 2));
+        if flags.calc_angmom
+            AM(tt) = squeeze(trapz(yrmat(1,:,tt), ...
+                                   trapz(xrmat(:,1,tt), repnan(miam(:,:,tt),0), ...
+                                         1), 2));
+        end
+        V(tt) = squeeze(trapz(yrmat(1,:,tt), ...
+                             trapz(xrmat(:,1,tt), repnan(miv(:,:,tt),0), ...
+                                   1), 2));
+    end
+
+    figure;
+    hold all
+    plot(P);
+    plot(Pneg);
+    title(runs.name);
+
+    animation = 0;
+    if animation
+        t0 = 20;
+        tt = t0;
+        hp = pcolor(xvec, yvec, double(pbot(:,:,tt)'));
+        cbfreeze;center_colorbar; shading flat; hold all;
+        plot(runs.eddy.mx, runs.eddy.my, 'k');
+        hc = plot(runs.eddy.mx(tt), runs.eddy.my(tt), 'k*');
+        plot(runs.eddy.mx, runs.eddy.my - runs.eddy.Lfit, 'k');
+        liney(runs.bathy.xsb);
+        for tt=t0+1:4:size(mpbot,3)
+            set(hp,'CData', double(pbot(:,:,tt)'));
+            set(hc,'XData', runs.eddy.mx(tt), ...
+                   'YData', runs.eddy.my(tt));
+            pause(0.5);
+        end
     end
 
     %%%%%%%%% Summarize
