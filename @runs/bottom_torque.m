@@ -323,10 +323,23 @@ function [] = bottom_torque(runs)
                                                  avg1(dzmat,2)), 3));
                 %ubot = bsxfun(@rdivide, diff(pbot,1,2), diff(yvec))./f0;
             end
+
         end
     end
 
     %pbot = bsxfun(@minus, pbot, pbot(1,:,:));
+
+    % compare pbot to ubot
+    % dzbot  = zwmat(:,:,2,:)-zwmat(:,:,1,:);
+    % dpdy_s = bsxfun(@rdivide, diff(pres(:,:,1,:),1,2), diff(yvec));
+    % dzdy_s = bsxfun(@rdivide, diff( (zwmat(:,:,1,:)+zwmat(:,:,2,:))/2, 1, 2), diff(yvec));
+    %     dp = pres(:,:,2,:)-pres(:,:,1,:);
+
+    % dpdy_z = squeeze(dpdy_s - dzdy_s .* avg1(1./dzbot .* dp, 2));
+    %   ubot = avg1(1./f(:,:,tsave),2) .* dpdy_z;
+
+    save([runs.dir '/pbot.mat'], 'pbot', 'slbot');
+
     %pbot1 = bsxfun(@minus, pbot1, pbot1(1,:,:));
 
     %%%%%%%%% now, angular momentum
