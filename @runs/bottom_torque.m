@@ -173,16 +173,26 @@ function [] = bottom_torque(runs)
 
         % now read density and eddye fields
         rho = dc_roms_read_data(runs.dir, 'rho', [tstart tend], volumer, [], ...
-                                runs.rgrid, 'his', 'single') + 1000;
+                                runs.rgrid, 'his') + 1000;
 
         if flags.use_time_varying_dz
             tic;
             disp('Calculating time varying dz');
-            dzmat = single(nan(size(rho)));
+            zwmat = (nan(size(rho) + [0 0 1 0]));
+            if flags.use_prsgrd
+                zrmat = (nan(size(rho)));
+            end
             for tt=1:size(rho,4)
-                dzmat(:,:,:,tt) = single(diff( ...
-                    set_depth(2,4,3,1.5,runs.rgrid.Tcline,runs.rgrid.N,5,H,...
-                                zeta(:,:,tsave(tt)), 0),1,3));
+                zwmat(:,:,:,tt) = (( ...
+                    set_depth(2,4,runs.rgrid.theta_s,runs.rgrid.theta_b, ...
+                                runs.rgrid.Tcline,runs.rgrid.N,5,H,...
+                                zeta(:,:,tsave(tt)), 0)));
+                if flags.use_prsgrd
+                    zrmat(:,:,:,tt) = (( ...
+                        set_depth(2,4,runs.rgrid.theta_s,runs.rgrid.theta_b, ...
+                                    runs.rgrid.Tcline,runs.rgrid.N,1,H,...
+                                    zeta(:,:,tsave(tt)), 0)));
+                end
             end
             toc;
         end
@@ -222,6 +232,57 @@ function [] = bottom_torque(runs)
             % baroclinic pressure at bottom
             % subtract pressure due to background density field
             pbot(:,:,tsave) = g/rho0 .* bsxfun(@minus, irho, irback);
+
+            %keyboard;
+            % prsgrd32.h
+            if flags.use_prsgrd
+
+                dR = nan(size(zwmat)); dZ = nan(size(zwmat));
+                dR(:,:,2:end-1,:) = diff(rho,1,3);
+                dZ(:,:,2:end-1,:) = diff(zrmat,1,3);
+
+                dR(:,:,end,:) = dR(:,:,end-1,:);
+                dZ(:,:,end,:) = dZ(:,:,end-1,:);
+
+                dR(:,:,1,:) = dR(:,:,2,:);
+                dZ(:,:,1,:) = dZ(:,:,2,:);
+
+                N = runs.rgrid.N; tic;
+                for kk=N+1:-1:2
+                    dZ(:,:,kk,:) = 2 * dZ(:,:,kk,:) .* dZ(:,:,kk-1,:) ...
+                        ./ (dZ(:,:,kk,:) + dZ(:,:,kk-1,:));
+                    cff = 2*dR(:,:,kk,:) .* dR(:,:,kk-1,:);
+                    cff(cff < 1e-10) = 0;
+                    dR(:,:,kk,:) = cff ./ (dR(:,:,kk,:) + dR(:,:,kk-1,:));
+                end
+                toc;
+
+                tic;
+                P = nan(size(rho));
+                P(:,:,end,:) = 1000 * g./rho0 .* zwmat(:,:,end,:) + ...
+                    g/rho0 * (zwmat(:,:,end,:)-zrmat(:,:,end,:)) .* ...
+                    ( -1000 + rho(:,:,end,:) + ...
+                      1./(zrmat(:,:,end,:)-zrmat(:,:,end-1,:)) .* ...
+                      (rho(:,:,end,:)-rho(:,:,end-1,:)) .* ...
+                      (zwmat(:,:,end,:) - zrmat(:,:,end,:)));
+
+                for kk=N-1:-1:1
+                    P(:,:,kk,:) = P(:,:,kk+1,:) + ...
+                        1/2*g/rho0 .* ( ...
+                            (-2000 + rho(:,:,kk+1,:) + rho(:,:,kk,:)) ...
+                            .* (zrmat(:,:,kk+1,:) - zrmat(:,:,kk,:)) ...
+                            - 1/5 * ( (dR(:,:,kk+1,:) - dR(:,:,kk,:)) .* ...
+                                      (zrmat(:,:,kk+1,:) - zrmat(:,:,kk,:) - ...
+                                       1/12 * (dZ(:,:,kk+1,:) + dZ(:,:,kk,:))) ...
+                                      - (dZ(:,:,kk+1,:)-dZ(:,:,kk,:)) ...
+                                      .* ( rho(:,:,kk+1,:) - rho(:,:,kk,:) ...
+                                           - 1/12 * (dR(:,:,kk+1,:) + dR(:,:,kk,:)))));
+                end
+                P = bsxfun(@minus, P, P(1,:,:,:));
+                pbot1(:,:,tsave) = squeeze(P(:,:,1,:));
+                toc;
+            end
+
             % barotropic pressure at bottom
             %pbt = g/rho0 * squeeze(rho(:,:,end,:)) .* zeta(:,:,tsave);
 
