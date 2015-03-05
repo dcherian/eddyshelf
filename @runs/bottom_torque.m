@@ -6,16 +6,19 @@ function [] = bottom_torque(runs)
     % use some mask to determine edges of domain
     % that I want to analyze?
     flags.use_mask = 0;
-    flags.use_masked = 1;
+    flags.use_masked = 0;
 
+    flags.use_prsgrd = 0;
+
+    flags.calc_angmom = 0;
     flags.use_davg = 0;
     mom_budget = 0;
 
     flags.use_thermal_wind = 0;
 
-    flags.use_time_varying_dz = 0;
+    flags.use_time_varying_dz = 1;
 
-    slab = 80; % 5 at a time
+    slab = 40; % 5 at a time
     [iend,tind,dt,nt,~] = roms_tindices(tindices, slab, ...
                                         length(runs.eddy.t));
 
@@ -79,14 +82,14 @@ function [] = bottom_torque(runs)
     xrmat = repmat(runs.rgrid.x_rho(imny:imxy, imnx:imxx)', [1 1 nt]);
     yrmat = repmat(runs.rgrid.y_rho(imny:imxy, imnx:imxx)', [1 1 nt]);
 
-    xrmat = bsxfun(@minus, xrmat, permute(runs.eddy.mx, [3 1 2]));
-    yrmat = bsxfun(@minus, yrmat, permute(runs.eddy.my, [3 1 2]));
-
-    zrmat = runs.rgrid.z_r(:,imny:imxy, imnx:imxx);
-    zwmat = runs.rgrid.z_w(:,imny:imxy, imnx:imxx);
+    %zrmat = runs.rgrid.z_r(:,imny:imxy, imnx:imxx);
+    %zwmat = runs.rgrid.z_w(:,imny:imxy, imnx:imxx);
 
     xvec = xrmat(:,1,1);
     yvec = yrmat(1,:,1);
+
+    xrmat = bsxfun(@minus, xrmat, permute(runs.eddy.mx, [3 1 2]));
+    yrmat = bsxfun(@minus, yrmat, permute(runs.eddy.my, [3 1 2]));
 
     % eddy center
     %mx = runs.eddy.vor.cx(tind(1):dt:tind(2));
@@ -102,7 +105,7 @@ function [] = bottom_torque(runs)
     zeta = runs.zeta(imnx:imxx, imny:imxy, tind(1):dt:tind(2));
 
     % subsample f
-    f = repmat(runs.rgrid.f(imny:imxy, imnx:imxx), [1 1 nt]);
+    f = repmat(runs.rgrid.f(imny:imxy, imnx:imxx)', [1 1 nt]);
     % f - f @ center of eddy
     % f = bsxfun(@minus, f, permute(f(1,imy),[3 1 2]));
     % This is so that I don't have trouble finding out the
@@ -119,6 +122,7 @@ function [] = bottom_torque(runs)
     vormask = runs.eddy.vormask(imnx-1:imxx-1, imny-1:imxy-1, :);
     sshmask = runs.eddy.mask(imnx-1:imxx-1, imny-1:imxy-1, :);
 
+    if flags.use_masked
         if ~isfield(runs.eddy, 'drhothreshssh')
             % find what density corresponds to 0 vorticity contour
             rhothreshvor = squeeze(nanmax(nanmax(rho(:,:,1) .* ...
@@ -258,11 +262,20 @@ function [] = bottom_torque(runs)
     %pbot1 = bsxfun(@minus, pbot1, pbot1(1,:,:));
 
     %%%%%%%%% now, angular momentum
-    %iam = 1/2 * beta .* (V .* xrmat - U .* yrmat); % if ψ ~ O(1/r²)
-    %iam = (f-f0) .* U; % if ψ ~ O(1/r)
-    iam = f .* U;
-    iam2 = bymat .* U;
+    if flags.calc_angmom
+        if flags.use_davg
+            % depth averaged velocities (m/s)
+            ubar = dc_roms_read_data(runs.dir, 'ubar', [], ...
+                                     volumer, [], runs.rgrid, 'his', 'single');
 
+            % convert to depth integrated velocities (m^2/s)
+            U = bsxfun(@times, H, ubar);
+        end
+        %iam = 1/2 * beta .* (V .* xrmat - U .* yrmat); % if ψ ~ O(1/r²)
+        %iam = (f-f0) .* U; % if ψ ~ O(1/r)
+        iam = f .* U;
+        iam2 = bymat .* U;
+    end
     %save([runs.dir '/btrqinterim.mat'],
     %'pbot','U','f','bymat','slbot','pbot1');
     save([runs.dir '/pbot.mat'], 'pbot');
@@ -301,24 +314,27 @@ function [] = bottom_torque(runs)
 
     %%%%%%%%% Summarize
     bottom.pressure = integrate(xvec, yvec, pbot);
-    bottom.angmom = AM;
+    if flags.calc_angmom
+        bottom.angmom = AM;
+        bottom.betatorque = AM;
+    end
     bottom.pbtorque = P;
-    bottom.betatorque = AM;
-    bottom.transtorque = V;
+    bottom.pcrit = pcrit;
+    %bottom.transtorque = V;
     bottom.time = runs.eddy.t(tind(1):dt:tind(2))*86400;
     bottom.maskstr = maskstr;
     bottom.flags = flags;
-    %    bottom.pbfactor = pbfactor;
-    %bottom.amfactor = amfactor;
 
-    % plots
-    figure; hold all
-    plot(bottom.time/86400, bottom.pbtorque);
-    plot(bottom.time/86400, bottom.betatorque);
-    plot(bottom.time/86400, bottom.transtorque);
-    legend('\alpha \int\int P_{bot}', '\beta \int\int \Psi', ['c\' ...
-                        'int\int fh'], 'Location', 'NorthWest');
-    beautify;
+    % % plots
+    % figure; hold all
+    % plot(bottom.time/86400, bottom.pbtorque);
+    % % plot(bottom.time/86400, bottom.transtorque);
+    % if flags.calc_angmom
+    %     plot(bottom.time/86400, bottom.betatorque);
+    % end
+    % legend('\alpha \int\int P_{bot}', '\beta \int\int \Psi', ['c\' ...
+    %                     'int\int fh'], 'Location', 'NorthWest');
+    % beautify;
 
     bottom.comment = ['(pressure, angmom) = volume integrated ' ...
                       'pressure, angular momentum | pbtorque = slope ' ...
@@ -333,7 +349,7 @@ end
 
 function [out] = integrate(xvec, yvec, in)
     out = squeeze(trapz(yvec, ...
-                        trapz(xvec, in, 1), 2));
+                        trapz(xvec, double(in), 1), 2));
 end
 
 
