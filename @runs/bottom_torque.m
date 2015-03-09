@@ -389,6 +389,7 @@ function [] = bottom_torque(runs)
     parea = integrate(xvec, yvec, maskp);
 
     dipdy = avg1(maskp,2) .* bsxfun(@rdivide, -diff(ipres,1,2), diff(yvec));
+    % d/dx ∫P ~ d/dy ∫P ~ 1e3
     %dipdx = avg1(maskp,1) .* bsxfun(@rdivide, -diff(ipres,1,1), diff(xvec));
     %dipresdx = integrate(avg1(xvec), yvec, dipdx);
     dipresdy = integrate(xvec, avg1(yvec), dipdy);
@@ -396,9 +397,9 @@ function [] = bottom_torque(runs)
     btrq = integrate(xvec, yvec, pbot .* slbot .* maskp);
 
     f0u = integrate(xvec, avg1(yvec), ...
-                    f0 .* bsxfun(@rdivide, diff(psi,1,2), diff(yvec)) ...
+                    f0 .* bsxfun(@rdivide, diff(AM,1,2), diff(yvec)) ...
                     .* avg1(masku,2));
-    byu = integrate(xvec, yvec, beta .* psi .* masku);
+    byu = integrate(xvec, yvec, beta .* AM .* masku);
 
     figure; maximize(); pause(0.2);
     insertAnnotation([runs.name '.bottom_torque']);
