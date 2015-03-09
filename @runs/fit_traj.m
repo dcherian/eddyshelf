@@ -72,6 +72,8 @@ function [] = fit_traj(runs)
              htraj);
         liney(H);
         linex(tvec(tind));
+        xlabel('Non-dimensional time');
+        ylabel('Water depth');
         title(runs.name);
     end
     % y,t scales (corrected for earlier reference shift)
