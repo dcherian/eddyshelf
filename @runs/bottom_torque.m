@@ -328,50 +328,61 @@ function [] = bottom_torque(runs)
         end
     end
 
-    %pbot = bsxfun(@minus, pbot, pbot(1,:,:));
-
-    % compare pbot to ubot
-    % dzbot  = zwmat(:,:,2,:)-zwmat(:,:,1,:);
-    % dpdy_s = bsxfun(@rdivide, diff(pres(:,:,1,:),1,2), diff(yvec));
-    % dzdy_s = bsxfun(@rdivide, diff( (zwmat(:,:,1,:)+zwmat(:,:,2,:))/2, 1, 2), diff(yvec));
-    %     dp = pres(:,:,2,:)-pres(:,:,1,:);
-
-    % dpdy_z = squeeze(dpdy_s - dzdy_s .* avg1(1./dzbot .* dp, 2));
-    %   ubot = avg1(1./f(:,:,tsave),2) .* dpdy_z;
-
-    save([runs.dir '/pbot.mat'], 'pbot', 'slbot');
-
-    %pbot1 = bsxfun(@minus, pbot1, pbot1(1,:,:));
-
     %%%%%%%%% now, angular momentum
-    if flags.calc_angmom
-        if flags.use_davg
-            % depth averaged velocities (m/s)
-            ubar = dc_roms_read_data(runs.dir, 'ubar', [], ...
-                                     volumer, [], runs.rgrid, 'his', 'single');
+    ubar = dc_roms_read_data(runs.dir, 'ubar', [], volumer, [], runs.rgrid, ...
+                             'his', 'single');
+    U = bsxfun(@times, ubar, H);
+    iU = cumtrapz(yvec, U, 2); % crude streamfunction estimate
 
-            % convert to depth integrated velocities (m^2/s)
-            U = bsxfun(@times, H, ubar);
+    % get proper pressure & velocity regions
+    pcrit = 0.05;
+    ucrit = 0.05;
+    for tt=[tind(1):tind(end)]
+        % mask for pressure terms
+        masktemp = ipres(:,:,tt) > pcrit * ...
+            max(max(ipres(:,:,tt),[],1),[],2);
+
+        % first find simply connected regions
+        regions = bwconncomp(masktemp, 8);
+
+        for rr = 1:regions.NumObjects
+            maskreg = zeros(regions.ImageSize);
+            maskreg(regions.PixelIdxList{rr}) = 1;
+
+            % center location
+            if maskreg(imx(tt), imy(tt)) == 1
+                maskp(:,:,tt) = maskreg;
+                break;
+            end
         end
-        %iam = 1/2 * beta .* (V .* xrmat - U .* yrmat); % if ψ ~ O(1/r²)
-        %iam = (f-f0) .* U; % if ψ ~ O(1/r)
-        iam = f .* U;
-        iam2 = bymat .* U;
+
+        % mask for angular momentum terms
+        % use crude estimate of streamfunction.
+        masktemp = iU(:,:,tt) < ucrit * ...
+            min(min(iU(:,:,tt),[],1),[],2);
+
+        % first find simply connected regions
+        regions = bwconncomp(masktemp, 8);
+
+        for rr = 1:regions.NumObjects
+            maskreg = zeros(regions.ImageSize);
+            maskreg(regions.PixelIdxList{rr}) = 1;
+
+            % center location
+            if maskreg(imx(tt), imy(tt)) == 1
+                masku(:,:,tt) = maskreg;
+                break;
+            end
+        end
     end
-    %save([runs.dir '/btrqinterim.mat'],
-    %'pbot','U','f','bymat','slbot','pbot1');
 
-    %%%%%%%%% Translation term
-    %c = runs.eddy.cvx(tind(1):dt:tind(2)) .* 1000/86400; % convert to m/s
-    c = smooth(runs.eddy.mvx(tind(1):dt:tind(2)), 10) .* 1000/86400; % convert to m/s
 
-    % height anomaly for eddy is zeta
-    h = bsxfun(@minus, zeta, mean(zeta, 2));
+    dipdy = avg1(maskp,2) .* bsxfun(@rdivide, -diff(ipres,1,2), diff(yvec));
+    dipresdy = integrate(xvec, avg1(yvec), dipdy);
+    btrq = integrate(xvec, yvec, pbot .* slbot .* maskp);
 
-    iv = bsxfun(@times, bsxfun(@times, h, f), permute(c, [3 2 1]));
-    %iv2 = bsxfun(@times, bsxfun(@times, irho, f), permute(c, [3 1 2]));
-    %iv = runs.params.phys.f0 .* U;
-
+    f0u = f0 .* integrate(xvec, yvec, U .* masku);
+    byu = integrate(xvec, yvec, bymat .* U .* masku);
 
 %%%%%%%%% mask?
     % changing this mask threshold gives me larger pressures
