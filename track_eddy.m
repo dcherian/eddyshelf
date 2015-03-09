@@ -155,7 +155,7 @@ function [eddy] = track_eddy(dir1)
             cy0 = nan;
         else
             if tt == 546,
-                disp('debug time!');
+                keyboard; % for debugging
             end
             mask = nan(sz);
             lx = eddy.dia(tt-1)/2 + limit_x;
