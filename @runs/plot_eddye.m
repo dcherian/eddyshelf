@@ -4,10 +4,10 @@
 function [] = plot_eddye(runs, days)
 
     % hack for when I'm trying to provide non-dimensional times
-    if all(days < 10)
-        tindices = vecfind(runs.time./runs.tscale, days);
+    if all(days < 1)
+        tindices = vecfind(runs.ndtime, days);
     else
-        tindices = vecfind(runs.time/86400, days)
+        tindices = days; vecfind(runs.time/86400, days)
     end
 
     nt = length(tindices);
@@ -15,9 +15,9 @@ function [] = plot_eddye(runs, days)
 
     %hf1 = figure; maximize();% - eddye
     hf2 = figure; maximize();% - rho
-    %hf3 = figure; maximize(); - zdye
-    %hf4 = figure; maximize(); - u
-    %hf5 = figure; maximize(); - v
+    %hf3 = figure; maximize();% - zdye
+    %hf4 = figure; maximize();% - u
+                             %hf5 = figure; maximize();% - v
 
     tback = double(squeeze(ncread(runs.out_file, 'rho', [1 1 1 1], ...
                                   [1 Inf Inf 1])));
@@ -95,7 +95,7 @@ function [] = plot_eddye(runs, days)
             u = dc_roms_read_data(runs.dir, 'u', tindices(ii), ...
                                   {'x' num2str(runs.eddy.cx(tindices(ii))) ...
                                 num2str(runs.eddy.cx(tindices(ii)))}, [], ...
-                                  runs.rgrid, 'avg');
+                                  runs.rgrid, 'his');
 
             ax4(ii) = subplot(1, nt, ii);
             contourf(yz/1000, runs.rgrid.z_r(:,:,1)', u);
@@ -103,6 +103,9 @@ function [] = plot_eddye(runs, days)
             hold on
             contour(yz/1000, runs.rgrid.z_r(:,:,1)', ed, 1, 'k', ...
                     'LineWidth', 2);
+            contour(yz, runs.rgrid.z_r(:,:,1)', drho, ...
+                    [runs.eddy.drhothresh(1) runs.eddy.drhothreshssh(1)], ...
+                    'Color', [1 1 1]*0.3, 'LineWidth', 2);
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
             colorbar;
             caxis( [-1 1] * max(abs(u(:))));
@@ -157,7 +160,7 @@ function [] = plot_eddye(runs, days)
     if exist('hf4', 'var')
         figure(hf4)
         suplabel('u - along-shore', 't');
-        spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
+        %spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
         linkaxes(ax4, 'xy');
         insertAnnotation([runs.name '.plot_eddye']);
     end
