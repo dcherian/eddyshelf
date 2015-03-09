@@ -96,20 +96,35 @@ function [pbot,angmom] = num_angmom(runs)
         % drho / dr
         drhodr = bsxfun(@times, rho, -2* rmat./Lr(tt)/Lr(tt));
         % thermal wind shear
-        vgeo = cumsum(dzmat .* (-9.81./rho0./f0(tt) * drhodr), 3);
+        % the problems here are:
+        %   1. velocity should be referenced to the surface. This
+        %   tends to kill gradient wind balance
+        %   2. integrated mass transport is NOT zero!
+        %      Correcting for this should be the same as
+        %      integrating for a flat bottom, shouldn't it? In
+        %      which case, syms_angmom is what I want.
+        vgeoshear = cumsum(dzmat .* (-9.81./rho0./f0(tt) * drhodr), 3);
+        reference = -runs.eddy.V(tt) - vgeoshear(:,:,end);
+        vgeo = bsxfun(@plus, vgeoshear, reference);
+
+        rut = vgeo;
+        u = -1 * bsxfun(@times, rut, sin(thmat));
         % gradient wind
         rfb2 = rmat.*f0(tt) ./ 2;
         sdisc = sqrt(1 + bsxfun(@times,vgeo,2./rfb2));% sqrt(discriminant)
         if isreal(sdisc) % gradient wind doesn't always work with anticyclones
             rut = bsxfun(@times,(-1 + sdisc), rfb2);
+
         else
             error(['gradient wind calculated complex v! - ' ...
                    'Ro > 0.25']);
         end
-        u = -1 * bsxfun(@times, rut, sin(thmat));
+
+        % this should be zero or close to it
+        integrate(xv,yv, sum(u.*dzmat,3))
 
         % angular momentum
-        betatrq(tt) = integrate(xv, yv, beta .* ...
+        temp = integrate(xv, yv, beta .* ...
                                bsxfun(@times, sum(u.*dzmat, 3), ...
                                       yv));
 
