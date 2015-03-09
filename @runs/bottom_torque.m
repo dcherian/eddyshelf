@@ -18,7 +18,7 @@ function [] = bottom_torque(runs)
 
     flags.use_time_varying_dz = 1;
 
-    slab = 40; % 5 at a time
+    slab = 20; % 5 at a time
     [iend,tind,dt,nt,~] = roms_tindices(tindices, slab, ...
                                         length(runs.eddy.t));
 
@@ -376,7 +376,6 @@ function [] = bottom_torque(runs)
         end
     end
 
-
     dipdy = avg1(maskp,2) .* bsxfun(@rdivide, -diff(ipres,1,2), diff(yvec));
     dipresdy = integrate(xvec, avg1(yvec), dipdy);
     btrq = integrate(xvec, yvec, pbot .* slbot .* maskp);
@@ -582,13 +581,13 @@ end
         % if ~flags.use_thermal_wind
         %     if flags.use_davg
         %         % depth averaged velocities (m/s)
-        %         ubar = dc_roms_read_data(runs.dir, 'ubar', [tstart tend], ...
+        %ubar = dc_roms_read_data(runs.dir, 'ubar', [], ...
         %                                  volumer, [], runs.rgrid, 'his', 'single');
         %         vbar = dc_roms_read_data(runs.dir, 'vbar', [tstart tend], ...
         %                                  volumer, [], runs.rgrid, 'his', 'single');
 
         %         % convert to depth integrated velocities (m^2/s)
-        %         U(:,:,tsave) = bsxfun(@times, H, ubar);
+        %        U = bsxfun(@times, H, ubar);
         %         V = bsxfun(@times, H, vbar);
         %     else
         %         % read depth dependent velocity fields and integrate
