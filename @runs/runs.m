@@ -29,7 +29,7 @@ properties
     % eddy track data
     eddy; noeddy;
     % bottom torque calculations
-    bottom;
+    bottom; angmom;
     % tanh trajectory fit
     traj;
     % wnoise metric
@@ -339,7 +339,14 @@ methods
                 runs.eddy.drhothreshssh = squeeze(nanmax(nanmax(rs .* ...
                                          fillnan(runs.eddy.mask(:,:,1),0), [], 1), [], 2));
             end
-
+            % drhothresh based on ssh mask if it doesn't exist
+            if ~isfield(runs.eddy, 'drhothresh')
+                rs = ncread(runs.out_file, 'rho', [1 1 runs.rgrid.N ...
+                                    1], [Inf Inf 1 1]);
+                rs = rs(2:end-1,2:end-1) - rs(1,1);
+                runs.eddy.drhothresh = squeeze(nanmax(nanmax(rs .* ...
+                                         fillnan(runs.eddy.vormask(:,:,1),0), [], 1), [], 2));
+            end
             if isfield(runs.eddy,'cvx')
                 if runs.eddy.cvx(1) == 0 || runs.eddy.cvy(1) == 0
                     runs.eddy.cvx(1) = NaN;
@@ -512,6 +519,14 @@ methods
             disp('Loading bottom torque diagnostics');
             data = load([dir '/bottom.mat']);
             runs.bottom = data.bottom;
+            clear data
+        end
+
+        % load angular momentum diagnostics if the file exists
+        if exist([dir '/angmom.mat'],'file') && reset ~= 1
+            disp('Loading angular momentum diagnostics');
+            data = load([dir '/angmom.mat']);
+            runs.angmom = data.angmom;
             clear data
         end
 
