@@ -227,7 +227,6 @@ function [] = bottom_torque(runs)
             pbot(:,:,tsave) = squeeze(pres(:,:,1,:));
 
         else
-            %keyboard;
             %irho = squeeze(sum(bsxfun(@times, rho, diff(zwmat,1,3)), 3));
             % avoid some roundoff errors?
             irhofull = bsxfun(@plus, rho0 .* permute(double(zeta(:,:,tsave)), [1 2 4 3]), ...
@@ -295,7 +294,6 @@ function [] = bottom_torque(runs)
                 pbot1(:,:,tsave) = squeeze(P(:,:,1,:));
                 toc;
             end
-
 
             % check balance
             if flags.use_thermal_wind
@@ -396,14 +394,14 @@ function [] = bottom_torque(runs)
     if animation
         t0 = 20;
         tt = t0;
-        hp = pcolor(xvec, yvec, double(pbot(:,:,tt)'));
+        hp = pcolor(xvec, yvec, double(pmask(:,:,tt)'));
         cbfreeze;center_colorbar; shading flat; hold all;
         plot(runs.eddy.mx, runs.eddy.my, 'k');
         hc = plot(runs.eddy.mx(tt), runs.eddy.my(tt), 'k*');
         plot(runs.eddy.mx, runs.eddy.my - runs.eddy.Lfit, 'k');
         liney(runs.bathy.xsb);
-        for tt=t0+1:4:size(mpbot,3)
-            set(hp,'CData', double(pbot(:,:,tt)'));
+        for tt=t0+1:4:size(pbot,3)
+            set(hp,'CData', double(pmask(:,:,tt)'));
             set(hc,'XData', runs.eddy.mx(tt), ...
                    'YData', runs.eddy.my(tt));
             pause(0.5);
