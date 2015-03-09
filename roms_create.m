@@ -1250,7 +1250,7 @@ if flags.eddy
     %%
 
     % clear variables to save space
-%    clear rut rutz dTdr strat r rnorm rfb2 sdisc
+    clear rut rutz dTdr strat r rnorm rfb2 sdisc vgeo
     %eddy.tz = []; eddy.temp = []; eddy.u = []; eddy.v = [];
 
     fprintf('\n Eddy - %4.1f MB \n\n', monitor_memory_whos);
