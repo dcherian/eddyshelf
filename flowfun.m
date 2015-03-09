@@ -1,5 +1,4 @@
-%==================================  save as   flowfun.m  =========
-function  [phi,psi] = flowfun(u,v,flag)
+function  [phi,psi] = flowfun(xv, yv, u,v,flag)
 
 % FLOWFUN  Computes the potential PHI and the streamfunction PSI
 %     of a 2-dimensional flow defined by the matrices of velocity
@@ -63,30 +62,24 @@ if isflag
   if ~isempty(fnd), if fnd<4, ispsi=0; else isphi=0; end, end
 end
 
-phi = [];        % Create output
-psi = [];
-
-lx = size(u,2);  % Size of the velocity matrices
-ly = size(u,1);
-
 % Now the main computations .........................................
 % Integrate velocity fields to get potential and streamfunction
 % Use Simpson rule summation (function CUMSIMP)
 
  % Compute potential PHI (potential, non-rotating part)
 if isphi
-  cx = cumsimp(u(1,:));  % Compute x-integration constant
-  cy = cumsimp(v(:,1));  % Compute y-integration constant
-  phi = cumsimp(v)+cx(ones(ly,1),:);
-  phi = (phi+cumsimp(u')'+cy(:,ones(1,lx)))/2;
+  cx = cumtrapz(u(:,1,:),1);  % Compute x-integration constant
+  cy = cumtrapz(v(1,:,:),2);  % Compute y-integration constant
+  phi = bsxfun(@plus, cumtrapz(yv, v, 2), cx);
+  phi = bsxfun(@plus, phi+cumtrapz(xv, u, 1), cy)/2;
 end
 
  % Compute streamfunction PSI (solenoidal part)
 if ispsi
-  cx = cumsimp(v(1,:));  % Compute x-integration constant
-  cy = cumsimp(u(:,1));  % Compute y-integration constant
-  psi = -cumsimp(u)+cx(ones(ly,1),:);
-  psi = (psi+cumsimp(v')'-cy(:,ones(1,lx)))/2;
+  cx = cumtrapz(xv, v(:,1,:),1);  % Compute x-integration constant
+  cy = cumtrapz(yv, u(1,:,:),2);  % Compute y-integration constant
+  psi = bsxfun(@plus, -cumtrapz(yv, u,2), cx);
+  psi = bsxfun(@plus, psi+cumtrapz(xv, v,1), -cy)/2;
 end
 
  % Rename output if need only PSI
