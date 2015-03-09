@@ -329,13 +329,21 @@ function [] = bottom_torque(runs)
     %%%%%%%%% now, angular momentum
     ubar = dc_roms_read_data(runs.dir, 'ubar', [], volumer, [], runs.rgrid, ...
                              'his', 'single');
-    U = bsxfun(@times, ubar, H);
-    iU = cumtrapz(yvec, U, 2); % crude streamfunction estimate
+    vbar = dc_roms_read_data(runs.dir, 'vbar', [], volumer, [], runs.rgrid, ...
+                              'his', 'single');
+
+    U = ubar .* bsxfun(@plus, zeta, H);
+    V = vbar .* bsxfun(@plus, zeta, H);
+
+    [~, AM] = flowfun(xvec, yvec, U, V);
+
+    %iU = cumtrapz(yvec, U, 2); % crude streamfunction estimate
+    %iV = cumtrapz(xvec, V, 1); % crude streamfunction estimate
 
     % get proper pressure & velocity regions
     pcrit = 0.05;
-    ucrit = 0.05;
-    for tt=[tind(1):tind(end)]
+    amcrit = 0.05;
+    for tt=1:size(U,3)
         % mask for pressure terms
         masktemp = ipres(:,:,tt) > pcrit * ...
             max(max(ipres(:,:,tt),[],1),[],2);
@@ -356,8 +364,8 @@ function [] = bottom_torque(runs)
 
         % mask for angular momentum terms
         % use crude estimate of streamfunction.
-        masktemp = iU(:,:,tt) < ucrit * ...
-            min(min(iU(:,:,tt),[],1),[],2);
+        masktemp = AM(:,:,tt) > amcrit * ...
+            max(max(AM(:,:,tt),[],1),[],2);
 
         % first find simply connected regions
         regions = bwconncomp(masktemp, 8);
