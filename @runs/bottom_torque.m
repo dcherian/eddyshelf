@@ -92,9 +92,10 @@ function [] = bottom_torque(runs)
     yrmat = bsxfun(@minus, yrmat, permute(runs.eddy.my, [3 1 2]));
 
     % eddy center
-    %mx = runs.eddy.vor.cx(tind(1):dt:tind(2));
-    %my = runs.eddy.vor.cy(tind(1):dt:tind(2));
-    %imy = vecfind(runs.rgrid.yr(1,imny:imxy), my);
+    mx = runs.eddy.vor.cx(tind(1):dt:tind(2));
+    my = runs.eddy.vor.cy(tind(1):dt:tind(2));
+    imx = vecfind(runs.rgrid.xr(imnx:imxx,1), mx);
+    imy = vecfind(runs.rgrid.yr(1,imny:imxy), my);
 
     % read free-surface
     if isempty(runs.zeta)
