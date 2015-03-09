@@ -384,37 +384,6 @@ function [] = bottom_torque(runs)
     f0u = f0 .* integrate(xvec, yvec, U .* masku);
     byu = integrate(xvec, yvec, bymat .* U .* masku);
 
-%%%%%%%%% mask?
-    % changing this mask threshold gives me larger pressures
-    pcrit = 0.1;
-    botmask = pbot < pcrit*min(pbot(:));
-    mask_rho = vormask; %botmask; %irho < -1;
-    mpbot = mask_rho .* pbot .* slbot;
-    mpbotneg = mpbot .* (mpbot < 0);
-    miv = mask_rho .* iv;
-    if flags.calc_angmom
-        miam = mask_rho .* iam2;
-    end
-
-    clear V P AM
-    %%%%%%%%% area-integrate - axes referenced to center
-    for tt=1:size(pbot,3)
-        P(tt) = squeeze(trapz(yrmat(1,:,tt), ...
-                              trapz(xrmat(:,1,tt), repnan(mpbot(:,:,tt),0), ...
-                                    1), 2));
-        Pneg(tt) = squeeze(trapz(yrmat(1,:,tt), ...
-                              trapz(xrmat(:,1,tt), repnan(mpbotneg(:,:,tt),0), ...
-                                    1), 2));
-        if flags.calc_angmom
-            AM(tt) = squeeze(trapz(yrmat(1,:,tt), ...
-                                   trapz(xrmat(:,1,tt), repnan(miam(:,:,tt),0), ...
-                                         1), 2));
-        end
-        V(tt) = squeeze(trapz(yrmat(1,:,tt), ...
-                             trapz(xrmat(:,1,tt), repnan(miv(:,:,tt),0), ...
-                                   1), 2));
-    end
-
     figure;
     hold all
     plot(P);
@@ -508,6 +477,17 @@ end
     %end
 
 
+    %%%%%%%%% Translation term
+    %c = runs.eddy.cvx(tind(1):dt:tind(2)) .* 1000/86400; % convert to m/s
+    % c = smooth(runs.eddy.mvx(tind(1):dt:tind(2)), 10) .* 1000/86400; % convert to m/s
+
+    % % height anomaly for eddy is zeta
+    % h = bsxfun(@minus, zeta, mean(zeta, 2));
+
+    % iv = bsxfun(@times, bsxfun(@times, h, f), permute(c, [3 2 1]));
+    % %iv2 = bsxfun(@times, bsxfun(@times, irho, f), permute(c, [3 1 2]));
+    % %iv = runs.params.phys.f0 .* U;
+
         % check edge detection
         %for ind = 1:size(mask, 3)
         %    clf;
@@ -541,6 +521,45 @@ end
     % toc;
     % irho = flipdim(irho, 3);
     % clear frho fzrmat
+
+
+%%%%%%%%% mask?
+    % changing this mask threshold gives me larger pressures
+    % pcrit = 0.1;
+    % botmask = pbot < pcrit*min(pbot(:));
+    % mask_rho = sshmask; %botmask; %irho < -1;
+    % mpbot = mask_rho .* pbot .* slbot;
+    % mpbotneg = mpbot .* (mpbot < 0);
+    % miv = mask_rho .* iv;
+    % if flags.calc_angmom
+    %     miam = mask_rho .* iam2;
+    % end
+
+    % clear V P AM
+    % %%%%%%%%% area-integrate - axes referenced to center
+    % for tt=1:size(pbot,3)
+    %     P(tt) = squeeze(trapz(yrmat(1,:,tt), ...
+    %                           trapz(xrmat(:,1,tt), repnan(mpbot(:,:,tt),0), ...
+    %                                 1), 2));
+    %     Pneg(tt) = squeeze(trapz(yrmat(1,:,tt), ...
+    %                           trapz(xrmat(:,1,tt), repnan(mpbotneg(:,:,tt),0), ...
+    %                                 1), 2));
+    %     if flags.calc_angmom
+    %         AM(tt) = squeeze(trapz(yrmat(1,:,tt), ...
+    %                                trapz(xrmat(:,1,tt), repnan(miam(:,:,tt),0), ...
+    %                                      1), 2));
+    %     end
+    %     %V(tt) = squeeze(trapz(yrmat(1,:,tt), ...
+    %     %                     trapz(xrmat(:,1,tt), repnan(miv(:,:,tt),0), ...
+    %     %                           1), 2));
+    % end
+
+    % figure;
+    % hold all
+    % plot(P);
+    % plot(Pneg);
+    % plot(runs.angmom.sym_betatrq);
+    % title(runs.name);
 
     % calculate bottom pressure (x,y,t)
     % note that in Flierl (1987) the 1/ρ0 is absorbed into the
