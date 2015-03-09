@@ -412,32 +412,19 @@ function [] = bottom_torque(runs)
     end
 
     %%%%%%%%% Summarize
-    bottom.pressure = integrate(xvec, yvec, pbot);
-    if flags.calc_angmom
-        bottom.angmom = AM;
-        bottom.betatorque = AM;
-    end
-    bottom.pbtorque = P;
+    bottom.f0u = f0u;
+    bottom.byu = byu;
+    bottom.dipresdy = dipresdy;
+    bottom.btrq = btrq;
     bottom.pcrit = pcrit;
-    %bottom.transtorque = V;
+    bottom.ucrit = ucrit;
     bottom.time = runs.eddy.t(tind(1):dt:tind(2))*86400;
     bottom.maskstr = maskstr;
     bottom.flags = flags;
 
-    % % plots
-    % figure; hold all
-    % plot(bottom.time/86400, bottom.pbtorque);
-    % % plot(bottom.time/86400, bottom.transtorque);
-    % if flags.calc_angmom
-    %     plot(bottom.time/86400, bottom.betatorque);
-    % end
-    % legend('\alpha \int\int P_{bot}', '\beta \int\int \Psi', ['c\' ...
-    %                     'int\int fh'], 'Location', 'NorthWest');
-    % beautify;
-
     bottom.comment = ['(pressure, angmom) = volume integrated ' ...
-                      'pressure, angular momentum | pbtorque = slope ' ...
-                      '* pressure | betatorque = beta .* angmom'];
+                      'pressure, angular momentum | btrq = slope ' ...
+                      '* pressure | byu = beta .* angmom'];
 
     bottom.hash = githash([mfilename('fullpath') '.m']);
 
