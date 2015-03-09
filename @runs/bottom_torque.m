@@ -227,20 +227,26 @@ function [] = bottom_torque(runs)
             pbot(:,:,tsave) = squeeze(pres(:,:,1,:));
 
         else
-
+            %keyboard;
             %irho = squeeze(sum(bsxfun(@times, rho, diff(zwmat,1,3)), 3));
             % avoid some roundoff errors?
-            irho = rho0 .* double(zeta(:,:,tsave)) + ...
-                              squeeze(sum(bsxfun(@times, rho-rho0, diff(zwmat,1,3)), 3));
+            irhofull = bsxfun(@plus, rho0 .* permute(double(zeta(:,:,tsave)), [1 2 4 3]), ...
+                flipdim(cumsum(flipdim(bsxfun(@times, rho-rho0, ...
+                                                 diff(zwmat,1,3)), ...
+                                       3),3),3));
+            % full pressure field
+            pres = g./rho0 .* bsxfun(@minus, irhofull, irhofull(1,: ...
+                                                              ,:,:));
+            % bottom pressure
+            pbot(:,:,tsave) = squeeze(pres(:,:,1,:));
+            % interated pressure
+            ipres(:,:,tsave) = squeeze(sum(pres .* diff(zwmat,1,3), 3));
 
+            % removing mean zeta changes pbot by 1e-9 only.
+            % using p_η = gη -> p_η η_y = gη η_y ~ O(1e-8), so not
+            % much difference.
             % trapezoidal integration makes no difference
             %irhotrap = squeeze(sum(dzmat .* avg1(rho,3),3));
-
-            % baroclinic pressure at bottom
-            % subtract pressure due to background density field
-            pbot(:,:,tsave) = g/rho0 .* bsxfun(@minus, irho, irho(1,:,:));
-
-            %keyboard;
             % prsgrd32.h
             if flags.use_prsgrd
 
@@ -290,12 +296,6 @@ function [] = bottom_torque(runs)
                 toc;
             end
 
-            % barotropic pressure at bottom
-            %pbt = g/rho0 * squeeze(rho(:,:,end,:)) .* zeta(:,:,tsave);
-
-            %pbot(:,:,tsave) = pbc + pbt;
-            % remove more background contribution
-            %pbot = bsxfun(@minus, pbot, pbot(1,:,:));
 
             % check balance
             if flags.use_thermal_wind
