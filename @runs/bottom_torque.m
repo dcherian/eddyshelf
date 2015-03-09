@@ -382,17 +382,30 @@ function [] = bottom_torque(runs)
         end
     end
 
+    umask = AM .* masku;
+    pmask = pbot .* slbot .* maskp;
+
+    uarea = integrate(xvec, yvec, masku);
+    parea = integrate(xvec, yvec, maskp);
+
     dipdy = avg1(maskp,2) .* bsxfun(@rdivide, -diff(ipres,1,2), diff(yvec));
+    %dipdx = avg1(maskp,1) .* bsxfun(@rdivide, -diff(ipres,1,1), diff(xvec));
+    %dipresdx = integrate(avg1(xvec), yvec, dipdx);
     dipresdy = integrate(xvec, avg1(yvec), dipdy);
+
     btrq = integrate(xvec, yvec, pbot .* slbot .* maskp);
 
-    f0u = f0 .* integrate(xvec, yvec, U .* masku);
-    byu = integrate(xvec, yvec, bymat .* U .* masku);
+    f0u = integrate(xvec, avg1(yvec), ...
+                    f0 .* bsxfun(@rdivide, diff(psi,1,2), diff(yvec)) ...
+                    .* avg1(masku,2));
+    byu = integrate(xvec, yvec, beta .* psi .* masku);
 
-    figure; maximize(); pause(1);
+    figure; maximize(); pause(0.2);
+    insertAnnotation([runs.name '.bottom_torque']);
     hold all
-    plot(f0u); plot(byu);
-    plot(dipresdy); plot(btrq);
+    plot(f0u./uarea); plot((f0u + byu)./uarea);
+    plot(dipresdy./parea); plot(btrq./parea);
+    %plot(runs.angmom.sym_betatrq./uarea'*-1);
     legend('f_0 u', '\beta yu', 'dP/dy', 'p_{bot}');
     linex(runs.traj.tind); liney(0);
     title(runs.name);
