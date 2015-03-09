@@ -384,11 +384,14 @@ function [] = bottom_torque(runs)
     f0u = f0 .* integrate(xvec, yvec, U .* masku);
     byu = integrate(xvec, yvec, bymat .* U .* masku);
 
-    figure;
+    figure; maximize(); pause(1);
     hold all
-    plot(P);
-    plot(Pneg);
+    plot(f0u); plot(byu);
+    plot(dipresdy); plot(btrq);
+    legend('f_0 u', '\beta yu', 'dP/dy', 'p_{bot}');
+    linex(runs.traj.tind); liney(0);
     title(runs.name);
+    export_fig('-painters', ['images/angmom-' runs.name '.png']);
 
     animation = 0;
     if animation
