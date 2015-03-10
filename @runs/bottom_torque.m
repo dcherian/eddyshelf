@@ -108,7 +108,7 @@ function [] = bottom_torque(runs)
     % f = bsxfun(@minus, f, permute(f(1,imy),[3 1 2]));
     % This is so that I don't have trouble finding out the
     % reference latitude
-    bymat = single(f - f0);
+    %bymat = single(f - f0);
 
     % subsample bathymetry
     H = runs.bathy.h(imnx:imxx, imny:imxy);
@@ -425,7 +425,8 @@ function [] = bottom_torque(runs)
     %iU = cumtrapz(yvec, U, 2); % crude streamfunction estimate
     %iV = cumtrapz(xvec, V, 1); % crude streamfunction estimate
 
-    keyboard;
+    save([runs.dir '/pbot.mat'], 'pbot', 'slbot', 'masku', 'maskp', ...
+         'AM');
 
     figure; maximize(); pause(0.2);
     insertAnnotation([runs.name '.bottom_torque']);
@@ -440,9 +441,9 @@ function [] = bottom_torque(runs)
 
     export_fig('-painters', ['images/angmom-' runs.name '.png']);
 
-    keyboard;
+    %keyboard;
 
-    animation = 1;
+    animation = 0;
     if animation
         %umask = AM .* masku;
         %pmask = pbot .* maskp;
