@@ -94,13 +94,9 @@ function [] = bottom_torque(runs)
     imx = vecfind(runs.rgrid.xr(imnx:imxx,1), mx);
     imy = vecfind(runs.rgrid.yr(1,imny:imxy), my);
 
-    % read free-surface
-    if isempty(runs.zeta)
-        runs.read_zeta;
-    end
-    % subsample to size(mask);
-    % then subsample to region I'm interested in.
-    zeta = runs.zeta(imnx:imxx, imny:imxy, tind(1):dt:tind(2));
+    % read free-surface to be sure I'm not screwing up.
+    zeta = dc_roms_read_data(runs.dir, 'zeta', [tind(1) tind(2)], ...
+                             volumer, [], runs.rgrid);
 
     % subsample f
     f = single(repmat(runs.rgrid.f(imny:imxy, imnx:imxx)', [1 1]));
