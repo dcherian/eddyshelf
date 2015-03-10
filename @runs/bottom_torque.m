@@ -136,23 +136,26 @@ function [] = bottom_torque(runs)
     % % get background density field for initial time instant
     % if runs.bathy.axis == 'y'
     %     % (y,z)
-    %     rback = dc_roms_read_data(runs.dir, 'rho', [1 1], {'x' 1 1}, [], ...
-    %                               runs.rgrid, 'his', 'single') + 1000;
-    %     rback = rback(2:end-1, :);
+    %     rback = dc_roms_read_data(runs.dir, 'rho', [1 1], ...
+    %                               {'x' 1 1; 'y' imny imxy}, [], ...
+    %                               runs.rgrid, 'his') + 1000;
 
-    %     % subsample and make (x,y,z)
-    %     rback = permute(rback(imny:imxy,:), [3 1 2]);
+    %     % make (x,y,z)
+    %     rback = permute(rback, [3 1 2]);
     % else
     %     rback = dc_roms_read_data(runs.dir, 'rho', [1 1], {'y' Inf Inf}, [], ...
     %                               runs.rgrid, 'his', 'single');
     %     error('not implemented for NS isobaths yet');
     % end
 
-    % dzmat0 = (diff(set_depth(2,4,3,1.5,1200,72,5,H, ...
-    %                                           0, 0),1,3));
+    % dzmat0 = diff(set_depth(2,4,runs.rgrid.theta_s,runs.rgrid.theta_b, ...
+    %                      runs.rgrid.Tcline,runs.rgrid.N,5,H,...
+    %                      zeta(:,:,1), 0), 1, 3);
     % % pressure due to background stratification = pstrat(y)
-    % pstrat = g./rho0 .* sum(rback .* dzmat0(1,:,:), 3);
-    % dzmat = dzmat0;
+    % irback = bsxfun(@plus, rho0 .* zeta(1,:,1), ...
+    %                 sum( (rback-rho0) .* dzmat0(1,:,:), 3));
+    % pstrat = g./rho0 .* irback;
+    % clear dzmat0;
 
     % read data from start
     pbot = single(nan(size(zeta)));
