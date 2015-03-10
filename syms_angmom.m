@@ -87,7 +87,7 @@ function [slope, pbot, angmom] = syms_angmom(runs)
     rho(ra, r,Lr,z,Lz) = ra .* R(r,Lr) .* F(z,Lz);
 
     % geostrophic azimuthal velocity shear
-    uz = g/r0/f * diff(rho,r);
+    uz = -g/r0/f * diff(rho,r);
     ugeo(ra,r,Lr,z,Lz,f,H) = int(uz, z, -H, z);
 
     % agrees well with ubar
