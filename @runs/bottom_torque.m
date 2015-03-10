@@ -241,11 +241,14 @@ function [] = bottom_torque(runs)
         else
             %irho = squeeze(sum(bsxfun(@times, rho, diff(zwmat,1,3)), 3));
             % avoid some roundoff errors?
-            irhofull = bsxfun(@plus, rho0 .* permute(double(zeta(:,:,tsave)), [1 2 4 3]), ...
-                flipdim(cumsum(flipdim(bsxfun(@times, rho-rho0, ...
-                                                 diff(zwmat,1,3)), 3),3),3));
+            irhofull = bsxfun(@plus, rho0 .* permute(zeta(:,:,tsave), [1 2 4 3]), ...
+                              flipdim(cumsum(flipdim(bsxfun(@times, rho-rho0, ...
+                                                            diff(zwmat,1,3)), 3),3),3));
             % full pressure field
-            pres = g./rho0 .* bsxfun(@minus, irhofull, irhofull(1,:,:,:));
+            %pres = g./rho0 .* bsxfun(@minus, irhofull,
+            %irhofull(1,:,:,1));
+            pres = g./rho0 .* irhofull;
+            pres = bsxfun(@minus, pres, mean(pres,1));
 
             % bottom pressure
             pbot(:,:,tsave) = single(squeeze(pres(:,:,1,:)));
