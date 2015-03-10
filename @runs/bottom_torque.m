@@ -457,10 +457,11 @@ function [] = bottom_torque(runs)
     figure; maximize(); pause(0.2);
     insertAnnotation([runs.name '.bottom_torque']);
     hold all
-    plot(f0u./uarea); plot((byu)./uarea);
-    plot(dipresdy./parea); plot(smooth(btrq./parea,24));
-    plot(runs.angmom.sym_betatrq./uarea*-1);
-    legend('f_0 u', '\beta yu', 'dP/dy', 'p_{bot}', 'sym_angmom');
+    plot((byu)./uarea);
+    plot(smooth(btrq./parea,1));
+    plot(abs(runs.angmom.sym_betatrq)./uarea');
+    plot(f0u./uarea); plot(dipresdy./parea);
+    legend('\beta yu', 'p_{bot}', 'sym_angmom', 'f_0 u', 'dP/dy');
     linex(runs.traj.tind); liney(0);
     title(runs.name);
     beautify;
@@ -469,13 +470,13 @@ function [] = bottom_torque(runs)
 
     %keyboard;
 
-    animation = 0;
+    animation = 1;
     if animation
         %umask = AM .* masku;
         %pmask = pbot .* maskp;
         %var = avg1(runs.ubot(volumeu{1,2}:volumeu{1,3}, ...
         %                volumeu{2,2}:volumeu{2,3}, :),1);
-        var = AM .* masku;
+        var = bsxfun(@times, pbot .* maskp, slbot);
         t0 = 20;
         tt = t0;
         hp = pcolor(xvec, yvec, double(var(:,:,tt)'));
@@ -491,27 +492,8 @@ function [] = bottom_torque(runs)
             pause(0.5);
         end
     end
-
-    %%%%%%%%% Summarize
-    bottom.f0u = f0u;
-    bottom.byu = byu;
-    bottom.dipresdy = dipresdy;
-    bottom.btrq = btrq;
-    bottom.pcrit = pcrit;
-    bottom.ucrit = ucrit;
-    bottom.time = runs.eddy.t(tind(1):dt:tind(2))*86400;
-    bottom.maskstr = maskstr;
-    bottom.flags = flags;
-
-    bottom.comment = ['(pressure, angmom) = volume integrated ' ...
-                      'pressure, angular momentum | btrq = slope ' ...
-                      '* pressure | byu = beta .* angmom'];
-
-    bottom.hash = githash([mfilename('fullpath') '.m']);
-
-    runs.bottom = bottom;
-    save([runs.dir '/bottom.mat'], 'bottom', '-v7.3');
     toc(ticstart);
+
 end
 
 function [out] = integrate(xvec, yvec, in)
