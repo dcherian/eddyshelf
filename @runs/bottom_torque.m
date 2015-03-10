@@ -186,6 +186,8 @@ function [] = bottom_torque(runs)
 
         assert(size(rho,4) == length(tsave));
 
+        % pretty certain that this is correct. zwmat equals zeta at
+        % surface and H at bottom.
         if flags.use_time_varying_dz
             tic;
             disp('Calculating time varying dz');
@@ -248,7 +250,7 @@ function [] = bottom_torque(runs)
             % bottom pressure
             pbot(:,:,tsave) = single(squeeze(pres(:,:,1,:)));
             % integrated pressure
-            ipres = squeeze(sum(pres .* diff(zwmat,1,3), 3));
+            ipres(:,:,tsave) = squeeze(sum(pres .* diff(zwmat,1,3), 3));
             clear pres;
 
             % removing mean zeta changes pbot by 1e-9 only.
@@ -358,8 +360,8 @@ function [] = bottom_torque(runs)
         for kk=1:length(tsave)
             tt = tsave(kk);
             % mask for pressure terms
-            masktemp = ipres(:,:,kk) > pcrit * ...
-                max(max(ipres(:,:,kk),[],1),[],2);
+            masktemp = ipres(:,:,tt) > pcrit * ...
+                max(max(ipres(:,:,tt),[],1),[],2);
 
             % first find simply connected regions
             regions = bwconncomp(masktemp, 8);
@@ -400,33 +402,55 @@ function [] = bottom_torque(runs)
         end
         clear maskreg
 
-        uarea(tsave) = integrate(xvec, yvec, masku(:,:,tsave));
-        parea(tsave) = integrate(xvec, yvec, maskp(:,:,tsave));
-
         dipdy = avg1(maskp(:,:,tsave),2) .* ...
-                bsxfun(@rdivide, -diff(ipres,1,2), diff(yvec));
+                bsxfun(@rdivide, -diff(ipres(:,:,tsave),1,2), diff(yvec));
         % d/dx ∫P ~ d/dy ∫P ~ 1e3
         %dipdx = avg1(maskp,1) .* bsxfun(@rdivide, -diff(ipres,1,1), diff(xvec));
         %dipresdx(tsave) = integrate(avg1(xvec), yvec, dipdx);
         dipresdy(tsave) = integrate(xvec, avg1(yvec), dipdy);
-
-        btrq(tsave) = integrate(xvec, yvec, ...
-                                bsxfun(@times, pbot(:,:,tsave) .* ...
-                                       maskp(:,:,tsave), slbot));
-
-        f0u(tsave) = integrate(xvec, avg1(yvec), ...
-                        f0 .* bsxfun(@rdivide, diff(AM(:,:,tsave),1,2), diff(yvec)) ...
-                        .* avg1(masku(:,:,tsave),2));
-        byu(tsave) = integrate(xvec, yvec, beta .* AM(:,:,tsave) .* masku(:,:,tsave));
     end
 
-    clear rho zwmat
+    clear rho zwmat dipdy
     %iU = cumtrapz(yvec, U, 2); % crude streamfunction estimate
     %iV = cumtrapz(xvec, V, 1); % crude streamfunction estimate
 
-    save([runs.dir '/pbot.mat'], 'pbot', 'slbot', 'masku', 'maskp', ...
-         'AM');
+    uarea = integrate(xvec, yvec, masku);
+    parea = integrate(xvec, yvec, maskp);
 
+    btrq = integrate(xvec, yvec, ...
+                     bsxfun(@times, pbot .* maskp, slbot));
+
+    f0u = integrate(xvec, avg1(yvec), ...
+                    f0 .* bsxfun(@rdivide, diff(AM,1,2), diff(yvec)) ...
+                    .* avg1(masku,2));
+    byu = integrate(xvec, yvec, beta .* AM .* masku);
+
+    %%%%%%%%% Summarize
+    save([runs.dir '/pbot.mat'], 'pbot', 'slbot', 'masku', 'maskp', ...
+         'AM', 'xvec', 'yvec');
+
+    bottom.f0u = f0u;
+    bottom.byu = byu;
+    bottom.dipresdy = dipresdy;
+    bottom.btrq = btrq;
+    bottom.pcrit = pcrit;
+    bottom.amcrit = amcrit;
+    bottom.time = runs.eddy.t(tind(1):dt:tind(2))*86400;
+    bottom.maskstr = maskstr;
+    bottom.flags = flags;
+
+    bottom.comment = ['(pressure, angmom) = volume integrated ' ...
+                      'pressure, angular momentum | btrq = slope ' ...
+                      '* pressure | byu = beta .* angmom'];
+
+    bottom.hash = githash([mfilename('fullpath') '.m']);
+
+    runs.bottom = bottom;
+    save([runs.dir '/bottom.mat'], 'bottom', '-v7.3');
+
+    keyboard;
+
+    %%%%%%%%%% plots
     figure; maximize(); pause(0.2);
     insertAnnotation([runs.name '.bottom_torque']);
     hold all
