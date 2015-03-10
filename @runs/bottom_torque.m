@@ -79,17 +79,14 @@ function [] = bottom_torque(runs)
                'y' imny imxy+1};
 
     % grid vectors and matrices
-    xrmat = repmat(runs.rgrid.x_rho(imny:imxy, imnx:imxx)', [1 1 nt]);
-    yrmat = repmat(runs.rgrid.y_rho(imny:imxy, imnx:imxx)', [1 1 nt]);
-
-    %zrmat = runs.rgrid.z_r(:,imny:imxy, imnx:imxx);
-    %zwmat = runs.rgrid.z_w(:,imny:imxy, imnx:imxx);
+    xrmat = repmat(runs.rgrid.x_rho(imny:imxy, imnx:imxx)', [1 1]);
+    yrmat = repmat(runs.rgrid.y_rho(imny:imxy, imnx:imxx)', [1 1]);
 
     xvec = xrmat(:,1,1);
     yvec = yrmat(1,:,1);
 
-    xrmat = bsxfun(@minus, xrmat, permute(runs.eddy.mx, [3 1 2]));
-    yrmat = bsxfun(@minus, yrmat, permute(runs.eddy.my, [3 1 2]));
+    %xrmat = bsxfun(@minus, xrmat, permute(runs.eddy.mx, [3 1 2]));
+    %yrmat = bsxfun(@minus, yrmat, permute(runs.eddy.my, [3 1 2]));
 
     % eddy center
     mx = runs.eddy.vor.cx(tind(1):dt:tind(2));
@@ -106,23 +103,23 @@ function [] = bottom_torque(runs)
     zeta = runs.zeta(imnx:imxx, imny:imxy, tind(1):dt:tind(2));
 
     % subsample f
-    f = repmat(runs.rgrid.f(imny:imxy, imnx:imxx)', [1 1 nt]);
+    f = single(repmat(runs.rgrid.f(imny:imxy, imnx:imxx)', [1 1]));
     % f - f @ center of eddy
     % f = bsxfun(@minus, f, permute(f(1,imy),[3 1 2]));
     % This is so that I don't have trouble finding out the
     % reference latitude
-    bymat = f - f0;
+    bymat = single(f - f0);
 
     % subsample bathymetry
     H = runs.bathy.h(imnx:imxx, imny:imxy);
 
     % subsample bottom slope
     slbot = diff(runs.rgrid.h',1,2)./diff(runs.rgrid.y_rho',1,2);
-    slbot = repmat(slbot(imnx:imxx, imny:imxy), [1 1 nt]);
-    slbot = slbot .* (slbot > 0.95 * runs.bathy.sl_slope);
+    slbot = single(slbot .* (slbot > 0.95 * runs.bathy.sl_slope));
+    slbot = slbot(imnx:imxx, imny:imxy);
 
-    vormask = runs.eddy.vormask(imnx-1:imxx-1, imny-1:imxy-1, :);
-    sshmask = runs.eddy.mask(imnx-1:imxx-1, imny-1:imxy-1, :);
+    %vormask = runs.eddy.vormask(imnx-1:imxx-1, imny-1:imxy-1, :);
+    %sshmask = runs.eddy.mask(imnx-1:imxx-1, imny-1:imxy-1, :);
 
     if flags.use_masked
         if ~isfield(runs.eddy, 'drhothreshssh')
@@ -162,6 +159,11 @@ function [] = bottom_torque(runs)
     % dzmat = dzmat0;
 
     % read data from start
+    pbot = single(nan(size(zeta)));
+    AM = pbot;
+    masku = logical(zeros(size(zeta)));
+    maskp = masku;
+
     for i=0:iend-1
         disp(['==== Iteration : ' num2str(i+1) '/' num2str(iend)  ...
                    ' ====']);
@@ -231,15 +233,15 @@ function [] = bottom_torque(runs)
             % avoid some roundoff errors?
             irhofull = bsxfun(@plus, rho0 .* permute(double(zeta(:,:,tsave)), [1 2 4 3]), ...
                 flipdim(cumsum(flipdim(bsxfun(@times, rho-rho0, ...
-                                                 diff(zwmat,1,3)), ...
-                                       3),3),3));
+                                                 diff(zwmat,1,3)), 3),3),3));
             % full pressure field
-            pres = g./rho0 .* bsxfun(@minus, irhofull, irhofull(1,: ...
-                                                              ,:,:));
+            pres = g./rho0 .* bsxfun(@minus, irhofull, irhofull(1,:,:,:));
+
             % bottom pressure
-            pbot(:,:,tsave) = squeeze(pres(:,:,1,:));
-            % interated pressure
-            ipres(:,:,tsave) = squeeze(sum(pres .* diff(zwmat,1,3), 3));
+            pbot(:,:,tsave) = single(squeeze(pres(:,:,1,:)));
+            % integrated pressure
+            ipres = squeeze(sum(pres .* diff(zwmat,1,3), 3));
+            clear pres;
 
             % removing mean zeta changes pbot by 1e-9 only.
             % using p_η = gη -> p_η η_y = gη η_y ~ O(1e-8), so not
@@ -322,84 +324,99 @@ function [] = bottom_torque(runs)
                                                  avg1(dzmat,2)), 3));
                 %ubot = bsxfun(@rdivide, diff(pbot,1,2), diff(yvec))./f0;
             end
-
         end
+        %%%%%%%%% now, angular momentum
+        ubar = dc_roms_read_data(runs.dir, 'ubar', [tstart tend], ...
+                                 volumer, [], runs.rgrid, 'his', 'single');
+
+        vbar = dc_roms_read_data(runs.dir, 'vbar', [tstart tend], ...
+                                 volumer, [], runs.rgrid, 'his', 'single');
+
+        % decimate
+        ubar = ubar(:,:,1:dt:end);
+        vbar = vbar(:,:,1:dt:end);
+        U = ubar .* bsxfun(@plus, zeta(:,:,tsave), H);
+        V = vbar .* bsxfun(@plus, zeta(:,:,tsave), H);
+
+        clear ubar vbar
+
+        [~, AM(:,:,tsave)] = flowfun(xvec, yvec, U, V);
+
+        AM = single(AM);
+
+        % get proper pressure & velocity regions
+        pcrit = 0.1;
+        amcrit = 0.1;
+        for kk=1:length(tsave)
+            tt = tsave(kk);
+            % mask for pressure terms
+            masktemp = ipres(:,:,kk) > pcrit * ...
+                max(max(ipres(:,:,kk),[],1),[],2);
+
+            % first find simply connected regions
+            regions = bwconncomp(masktemp, 8);
+
+            clear masktemp;
+
+            for rr = 1:regions.NumObjects
+                maskreg = logical(zeros(regions.ImageSize));
+                maskreg(regions.PixelIdxList{rr}) = 1;
+
+                % center location
+                if maskreg(imx(tt), imy(tt)) == 1
+                    maskp(:,:,tt) = maskreg;
+                    break;
+                end
+            end
+
+            % mask for angular momentum terms
+            % use crude estimate of streamfunction.
+            masktemp = AM(:,:,tt) > amcrit * ...
+                max(max(AM(:,:,tt),[],1),[],2);
+
+            % first find simply connected regions
+            regions = bwconncomp(masktemp, 8);
+
+            clear masktemp;
+
+            for rr = 1:regions.NumObjects
+                maskreg = logical(zeros(regions.ImageSize));
+                maskreg(regions.PixelIdxList{rr}) = 1;
+
+                % center location
+                if maskreg(imx(tt), imy(tt)) == 1
+                    masku(:,:,tt) = maskreg;
+                    break;
+                end
+            end
+        end
+        clear maskreg
+
+        uarea(tsave) = integrate(xvec, yvec, masku(:,:,tsave));
+        parea(tsave) = integrate(xvec, yvec, maskp(:,:,tsave));
+
+        dipdy = avg1(maskp(:,:,tsave),2) .* ...
+                bsxfun(@rdivide, -diff(ipres,1,2), diff(yvec));
+        % d/dx ∫P ~ d/dy ∫P ~ 1e3
+        %dipdx = avg1(maskp,1) .* bsxfun(@rdivide, -diff(ipres,1,1), diff(xvec));
+        %dipresdx(tsave) = integrate(avg1(xvec), yvec, dipdx);
+        dipresdy(tsave) = integrate(xvec, avg1(yvec), dipdy);
+
+        btrq(tsave) = integrate(xvec, yvec, ...
+                                bsxfun(@times, pbot(:,:,tsave) .* ...
+                                       maskp(:,:,tsave), slbot));
+
+        f0u(tsave) = integrate(xvec, avg1(yvec), ...
+                        f0 .* bsxfun(@rdivide, diff(AM(:,:,tsave),1,2), diff(yvec)) ...
+                        .* avg1(masku(:,:,tsave),2));
+        byu(tsave) = integrate(xvec, yvec, beta .* AM(:,:,tsave) .* masku(:,:,tsave));
     end
 
-    %%%%%%%%% now, angular momentum
-    ubar = dc_roms_read_data(runs.dir, 'ubar', [], volumer, [], runs.rgrid, ...
-                             'his', 'single');
-    vbar = dc_roms_read_data(runs.dir, 'vbar', [], volumer, [], runs.rgrid, ...
-                              'his', 'single');
-
-    U = ubar .* bsxfun(@plus, zeta, H);
-    V = vbar .* bsxfun(@plus, zeta, H);
-
-    [~, AM] = flowfun(xvec, yvec, U, V);
-
+    clear rho zwmat
     %iU = cumtrapz(yvec, U, 2); % crude streamfunction estimate
     %iV = cumtrapz(xvec, V, 1); % crude streamfunction estimate
 
-    % get proper pressure & velocity regions
-    pcrit = 0.05;
-    amcrit = 0.05;
-    for tt=1:size(U,3)
-        % mask for pressure terms
-        masktemp = ipres(:,:,tt) > pcrit * ...
-            max(max(ipres(:,:,tt),[],1),[],2);
-
-        % first find simply connected regions
-        regions = bwconncomp(masktemp, 8);
-
-        for rr = 1:regions.NumObjects
-            maskreg = zeros(regions.ImageSize);
-            maskreg(regions.PixelIdxList{rr}) = 1;
-
-            % center location
-            if maskreg(imx(tt), imy(tt)) == 1
-                maskp(:,:,tt) = maskreg;
-                break;
-            end
-        end
-
-        % mask for angular momentum terms
-        % use crude estimate of streamfunction.
-        masktemp = AM(:,:,tt) > amcrit * ...
-            max(max(AM(:,:,tt),[],1),[],2);
-
-        % first find simply connected regions
-        regions = bwconncomp(masktemp, 8);
-
-        for rr = 1:regions.NumObjects
-            maskreg = zeros(regions.ImageSize);
-            maskreg(regions.PixelIdxList{rr}) = 1;
-
-            % center location
-            if maskreg(imx(tt), imy(tt)) == 1
-                masku(:,:,tt) = maskreg;
-                break;
-            end
-        end
-    end
-
-    umask = AM .* masku;
-    pmask = pbot .* slbot .* maskp;
-
-    uarea = integrate(xvec, yvec, masku);
-    parea = integrate(xvec, yvec, maskp);
-
-    dipdy = avg1(maskp,2) .* bsxfun(@rdivide, -diff(ipres,1,2), diff(yvec));
-    % d/dx ∫P ~ d/dy ∫P ~ 1e3
-    %dipdx = avg1(maskp,1) .* bsxfun(@rdivide, -diff(ipres,1,1), diff(xvec));
-    %dipresdx = integrate(avg1(xvec), yvec, dipdx);
-    dipresdy = integrate(xvec, avg1(yvec), dipdy);
-
-    btrq = integrate(xvec, yvec, pbot .* slbot .* maskp);
-
-    f0u = integrate(xvec, avg1(yvec), ...
-                    f0 .* bsxfun(@rdivide, diff(AM,1,2), diff(yvec)) ...
-                    .* avg1(masku,2));
-    byu = integrate(xvec, yvec, beta .* AM .* masku);
+    keyboard;
 
     figure; maximize(); pause(0.2);
     insertAnnotation([runs.name '.bottom_torque']);
