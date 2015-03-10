@@ -167,16 +167,25 @@ function [] = bottom_torque(runs)
     for i=0:iend-1
         disp(['==== Iteration : ' num2str(i+1) '/' num2str(iend)  ...
                    ' ====']);
-        [read_start,read_count] = roms_ncread_params(4,i,iend,slab,tindices,dt);
-        tstart = read_start(end);
-        tend   = read_start(end) + read_count(end) -1;
 
-        % indices for saving variables between loops
-        tsave = (tstart:dt:tend)-tindices(1)+1;
+        tstart = 1 + i*slab*dt;
+        tend = (i+1)*slab*dt;
+
+        tsave = (1+i*slab):((i+1)*slab);
+        % [read_start,read_count] = roms_ncread_params(4,i,iend,slab,tindices,dt);
+        % tstart = read_start(end);
+        % tend   = read_start(end) + dt*read_count(end) -1;
+
+        % % indices for saving variables between loops
+        % tsave = tstart + (0:read_count(end)-1)-tindices(1)+1;
 
         % now read density and eddye fields
         rho = dc_roms_read_data(runs.dir, 'rho', [tstart tend], volumer, [], ...
                                 runs.rgrid, 'his') + 1000;
+        % decimate
+        rho = rho(:,:,:,1:dt:end);
+
+        assert(size(rho,4) == length(tsave));
 
         if flags.use_time_varying_dz
             tic;
