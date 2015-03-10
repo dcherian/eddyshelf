@@ -430,26 +430,35 @@ function [] = bottom_torque(runs)
     figure; maximize(); pause(0.2);
     insertAnnotation([runs.name '.bottom_torque']);
     hold all
-    plot(f0u./uarea); plot((f0u + byu)./uarea);
-    plot(dipresdy./parea); plot(btrq./parea);
-    %plot(runs.angmom.sym_betatrq./uarea'*-1);
-    legend('f_0 u', '\beta yu', 'dP/dy', 'p_{bot}');
+    plot(f0u./uarea); plot((byu)./uarea);
+    plot(dipresdy./parea); plot(smooth(btrq./parea,24));
+    plot(runs.angmom.sym_betatrq./uarea*-1);
+    legend('f_0 u', '\beta yu', 'dP/dy', 'p_{bot}', 'sym_angmom');
     linex(runs.traj.tind); liney(0);
     title(runs.name);
+    beautify;
+
     export_fig('-painters', ['images/angmom-' runs.name '.png']);
 
-    animation = 0;
+    keyboard;
+
+    animation = 1;
     if animation
+        %umask = AM .* masku;
+        %pmask = pbot .* maskp;
+        %var = avg1(runs.ubot(volumeu{1,2}:volumeu{1,3}, ...
+        %                volumeu{2,2}:volumeu{2,3}, :),1);
+        var = AM .* masku;
         t0 = 20;
         tt = t0;
-        hp = pcolor(xvec, yvec, double(pmask(:,:,tt)'));
+        hp = pcolor(xvec, yvec, double(var(:,:,tt)'));
         cbfreeze;center_colorbar; shading flat; hold all;
         plot(runs.eddy.mx, runs.eddy.my, 'k');
         hc = plot(runs.eddy.mx(tt), runs.eddy.my(tt), 'k*');
-        plot(runs.eddy.mx, runs.eddy.my - runs.eddy.Lfit, 'k');
+        plot(runs.eddy.mx, runs.eddy.my - runs.eddy.vor.dia/2, 'k');
         liney(runs.bathy.xsb);
-        for tt=t0+1:4:size(pbot,3)
-            set(hp,'CData', double(pmask(:,:,tt)'));
+        for tt=t0+1:4:size(var,3)
+            set(hp,'CData', double(var(:,:,tt)'));
             set(hc,'XData', runs.eddy.mx(tt), ...
                    'YData', runs.eddy.my(tt));
             pause(0.5);
