@@ -54,7 +54,7 @@ function [] = fit_traj(runs)
 
     % sometimes T comes out as negative. not
     % sure why
-    tcrit = 1.5;
+    tcrit = 1;
     tind = find_approx(tfit, tcrit*abs(T), 1);
 
     H = htraj(tind);
