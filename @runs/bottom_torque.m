@@ -402,7 +402,7 @@ end
 
 function [out] = find_mask(in,crit,imx,imy)
 
-    out = nan(size(in));
+    out = logical(zeros(size(in)));
     for kk=1:size(in,3)
         masktemp = in(:,:,kk) > (crit * ...
             max(max(in(:,:,kk),[],1),[],2));
