@@ -64,9 +64,8 @@ function [] = bottom_torque(runs)
 
         mask = mask(imnx:imxx, imny:imxy, :);
     else
-        sz = size(runs.rgrid.x_rho') - 4;
-        imnx = 2; imxx = sz(1);
-        imny = 2; imxy = sz(2);
+        imnx = runs.spng.sx1+2; imxx = runs.spng.sx2-2;
+        imny = 2; imxy = runs.spng.sy2-2;
 
         maskstr = '';
     end
