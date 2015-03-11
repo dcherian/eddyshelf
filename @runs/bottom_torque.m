@@ -3,8 +3,8 @@ function [] = bottom_torque(runs)
     ticstart = tic;
     tindices = [1 length(runs.eddy.t)];
 
-    pcrit = 0.1;
-    amcrit = 0.1;
+    pcrit = 0.2;
+    amcrit = 0.2;
 
     flags.subtract_edge = 1;
     flags.subtract_mean = 0;
@@ -163,7 +163,7 @@ function [] = bottom_torque(runs)
 
     % read data from start
     pbot = single(nan(size(zeta)));
-    AM = pbot;
+    AM = pbot; ipres = pbot;
     masku = logical(zeros(size(zeta)));
     maskp = masku;
 
@@ -277,7 +277,7 @@ function [] = bottom_torque(runs)
     %iV = cumtrapz(xvec, V, 1); % crude streamfunction estimate
 
     uarea = integrate(xvec, yvec, masku);
-    parea = integrate(xvec, yvec, maskp);
+    parea = integrate(xvec, yvec, bsxfun(@times, maskp, slbot > 0));
 
     btrq = integrate(xvec, yvec, ...
                      bsxfun(@times, pbot .* maskp, slbot));
@@ -289,7 +289,7 @@ function [] = bottom_torque(runs)
 
     %%%%%%%%% Summarize
     save([runs.dir '/pbot.mat'], 'pbot', 'slbot', 'masku', 'maskp', ...
-         'AM', 'xvec', 'yvec');
+         'AM', 'ipres', 'xvec', 'yvec');
 
     bottom.f0u = f0u;
     bottom.byu = byu;
@@ -318,8 +318,8 @@ function [] = bottom_torque(runs)
     hold all
     plot((byu)./uarea);
     plot(smooth(btrq./parea,1));
-    plot(abs(runs.angmom.sym_betatrq)./uarea');
-    plot(f0u./uarea); plot(dipresdy./parea);
+    plot(abs(runs.angmom.sym_betatrq)./(pi*runs.eddy.Lfit.^2));
+    plot(f0u./uarea); %plot(dipresdy'./parea(1:end-1,:));
     legend('\beta yu', 'p_{bot}', 'sym_angmom', 'f_0 u', 'dP/dy');
     linex(runs.traj.tind); liney(0);
     title(runs.name);
