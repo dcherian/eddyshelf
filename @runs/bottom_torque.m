@@ -249,7 +249,8 @@ function [] = bottom_torque(runs)
         end
         if flags.subtract_mean
             % determine mean outside the AM contour
-            keyboard;
+            pmean = nanmean(fillnan(bsxfun(@times, pres, ...
+                                           permute(~masku(:,:,tsave), [1 2 4 3])), 0), 1);
             pres = bsxfun(@minus, pres, pmean);
         end
 
