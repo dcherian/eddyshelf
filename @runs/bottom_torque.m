@@ -211,7 +211,32 @@ function [] = bottom_torque(runs)
 
          % U is provided by here
         %%%%%%% first, bottom pressure
+        %irho = squeeze(sum(bsxfun(@times, rho, diff(zwmat,1,3)), 3));
+        % avoid some roundoff errors?
+        irhofull = bsxfun(@plus, rho0 .* permute(zeta(:,:,tsave), [1 2 4 3]), ...
+                          flipdim(cumsum(flipdim(bsxfun(@times, rho-rho0, ...
+                                                        diff(zwmat,1,3)), 3),3),3));
+        % full pressure field
+        %pres = g./rho0 .* bsxfun(@minus, irhofull,
+        %irhofull(1,:,:,1));
+        pres = g./rho0 .* irhofull;
+
+        % somehow remove background gradient post-boundary layer adjustment
+        if flags.subtract_edge
+            pres = bsxfun(@minus, pres, pres(1,:,:,:));
         end
+
+        % bottom pressure
+        pbot(:,:,tsave) = single(squeeze(pres(:,:,1,:)));
+        % integrated pressure
+        ipres(:,:,tsave) = squeeze(sum(pres .* diff(zwmat,1,3), 3));
+        clear pres;
+
+        % removing mean zeta changes pbot by 1e-9 only.
+        % using p_η = gη -> p_η η_y = gη η_y ~ O(1e-8), so not
+        % much difference.
+        % trapezoidal integration makes no difference
+        %irhotrap = squeeze(sum(dzmat .* avg1(rho,3),3));
         %%%%%%%%% now, angular momentum
         ubar = dc_roms_read_data(runs.dir, 'ubar', [tstart tend], ...
                                  volumer, [], runs.rgrid, 'his', 'single');
