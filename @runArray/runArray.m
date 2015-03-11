@@ -345,14 +345,19 @@ classdef runArray < handle
 
                 %%%%% estimate slope for bottom torque balance
                 if strcmpi(name, 'slope est')
-                    slope = syms_angmom(run);
+                    [slope,pbot,angmom] = syms_angmom(run);
 
-                    sltind = find_approx(2*pi*slope, alpha);
+                    sltind = find_approx(beta*angmom - pbot* alpha, 0);
 
+                    figure;
+                    plot(ndtime, hcen);
+                    hold on; plot(ndtime(sltind), hcen(sltind), 'k*');
                     diags(ff) = run.traj.H;
                     plotx(ff) = run.eddy.hcen(sltind);
 
-                    name_points = 0;
+                    laby = 'Actual water depth';
+                    labx = 'Water depth where angmom/pbot = \alpha';
+                    name_points = 1;
                     line_45 = 1;
                 end
 
@@ -956,8 +961,8 @@ classdef runArray < handle
 
         function [] = plot_test2(runArray)
 
-            figure;
-            hold all;
+            % figure;
+            % hold all;
 
             %corder_backup = runArray.sorted_colors;
 
@@ -968,20 +973,19 @@ classdef runArray < handle
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
-
+                name = runArray.name{ii};
                 ndtime = run.eddy.t*86400 / run.eddy.turnover;
 
-                tind = run.traj.tind;
-                slope = syms_angmom(run);
-                alpha = run.bathy.sl_slope;
-
-                hplt = plot(ndtime, slope);
-                addlegend(hplt, run.name);
-                ind = find_approx(slope, alpha);
-                plot(ndtime(ind), slope(ind), 'k*');
-                plot(ndtime(tind), slope(tind), 'ko');
-                %addlegend(hgplt, run.name);
-                %plot(ndtime(run.tscaleind), run.eddy.vol(run.tscaleind), 'k*');
+                figure;
+                subplot(211); hold all
+                plot(ndtime, run.bottom.pbtorque);
+                plot(ndtime, run.angmom.sym_betatrq);
+                title(name);
+                legend('pbot','\beta');
+                subplot(212)
+                plot(ndtime, run.eddy.cvy*1000/86400);
+                liney(0);
+                linex(ndtime(run.traj.tind));
             end
 
             %runArray.reset_colors(corder_backup);
