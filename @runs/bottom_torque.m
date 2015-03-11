@@ -3,6 +3,8 @@ function [] = bottom_torque(runs)
     ticstart = tic;
     tindices = [1 length(runs.eddy.t)];
 
+    pcrit = 0.1;
+    amcrit = 0.1;
 
     flags.subtract_edge = 1;
     flags.subtract_mean = 0;
@@ -215,17 +217,6 @@ function [] = bottom_torque(runs)
         %irhofull(1,:,:,1));
         pres = g./rho0 .* irhofull;
 
-        % somehow remove background gradient post-boundary layer adjustment
-        if flags.subtract_edge
-            pres = bsxfun(@minus, pres, pres(1,:,:,:));
-        end
-
-        % bottom pressure
-        pbot(:,:,tsave) = single(squeeze(pres(:,:,1,:)));
-        % integrated pressure
-        ipres(:,:,tsave) = squeeze(sum(pres .* diff(zwmat,1,3), 3));
-        clear pres;
-
         % removing mean zeta changes pbot by 1e-9 only.
         % using p_η = gη -> p_η η_y = gη η_y ~ O(1e-8), so not
         % much difference.
@@ -248,52 +239,29 @@ function [] = bottom_torque(runs)
         AM = single(AM);
 
         % get proper pressure & velocity regions
-        pcrit = 0.1;
-        amcrit = 0.1;
-        for kk=1:length(tsave)
-            tt = tsave(kk);
-            % mask for pressure terms
-            masktemp = ipres(:,:,tt) > pcrit * ...
-                max(max(ipres(:,:,tt),[],1),[],2);
+        masku(:,:,tsave) = find_mask(AM(:,:,tsave), amcrit, imx(tsave), ...
+                                     imy(tsave));
 
-            % first find simply connected regions
-            regions = bwconncomp(masktemp, 8);
-
-            clear masktemp;
-
-            for rr = 1:regions.NumObjects
-                maskreg = logical(zeros(regions.ImageSize));
-                maskreg(regions.PixelIdxList{rr}) = 1;
-
-                % center location
-                if maskreg(imx(tt), imy(tt)) == 1
-                    maskp(:,:,tt) = maskreg;
-                    break;
-                end
-            end
-
-            % mask for angular momentum terms
-            % use crude estimate of streamfunction.
-            masktemp = AM(:,:,tt) > amcrit * ...
-                max(max(AM(:,:,tt),[],1),[],2);
-
-            % first find simply connected regions
-            regions = bwconncomp(masktemp, 8);
-
-            clear masktemp;
-
-            for rr = 1:regions.NumObjects
-                maskreg = logical(zeros(regions.ImageSize));
-                maskreg(regions.PixelIdxList{rr}) = 1;
-
-                % center location
-                if maskreg(imx(tt), imy(tt)) == 1
-                    masku(:,:,tt) = maskreg;
-                    break;
-                end
-            end
+        % somehow remove background gradient post-boundary layer adjustment
+        if flags.subtract_edge % remove western / eastern edge signal
+            pres = bsxfun(@minus, pres, ...
+                          (pres(1,:,:,:) + pres(end,:,:,:))/2);
         end
-        clear maskreg
+        if flags.subtract_mean
+            % determine mean outside the AM contour
+            keyboard;
+            pres = bsxfun(@minus, pres, pmean);
+        end
+
+        % bottom pressure
+        pbot(:,:,tsave) = single(squeeze(pres(:,:,1,:)));
+        % integrated pressure
+        ipres(:,:,tsave) = squeeze(sum(pres .* diff(zwmat,1,3), ...
+                                       3));
+
+        % get proper pressure & velocity regions
+        maskp(:,:,tsave) = find_mask(ipres(:,:,tsave), pcrit, imx(tsave), ...
+                                     imy(tsave));
 
         dipdy = avg1(maskp(:,:,tsave),2) .* ...
                 bsxfun(@rdivide, -diff(ipres(:,:,tsave),1,2), diff(yvec));
@@ -303,7 +271,7 @@ function [] = bottom_torque(runs)
         dipresdy(tsave) = integrate(xvec, avg1(yvec), dipdy);
     end
 
-    clear rho zwmat dipdy
+    clear rho zwmat dipdy pres
     %iU = cumtrapz(yvec, U, 2); % crude streamfunction estimate
     %iV = cumtrapz(xvec, V, 1); % crude streamfunction estimate
 
@@ -389,6 +357,31 @@ end
 function [out] = integrate(xvec, yvec, in)
     out = squeeze(trapz(yvec, ...
                         trapz(xvec, double(in), 1), 2));
+end
+
+function [out] = find_mask(in,crit,imx,imy)
+
+    out = nan(size(in));
+    for kk=1:size(in,3)
+        masktemp = in(:,:,kk) > (crit * ...
+            max(max(in(:,:,kk),[],1),[],2));
+
+        % first find simply connected regions
+        regions = bwconncomp(masktemp, 8);
+
+        clear masktemp;
+
+        for rr = 1:regions.NumObjects
+            maskreg = logical(zeros(regions.ImageSize));
+            maskreg(regions.PixelIdxList{rr}) = 1;
+
+            % center location
+            if maskreg(imx(kk), imy(kk)) == 1
+                out(:,:,kk) = maskreg;
+                break;
+            end
+        end
+    end
 end
 
 
