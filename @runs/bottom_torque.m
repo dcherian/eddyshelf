@@ -171,8 +171,8 @@ function [] = bottom_torque(runs)
         disp(['==== Iteration : ' num2str(i+1) '/' num2str(iend)  ...
                    ' ====']);
 
-        tstart = 1 + i*slab*dt;
-        tend = (i+1)*slab*dt;
+        tstart = tindices(1) + i*slab*dt;
+        tend = tindices(1) -1 + (i+1)*slab*dt;
 
         % now read density and eddye fields
         rho = dc_roms_read_data(runs.dir, 'rho', [tstart tend], volumer, [], ...
