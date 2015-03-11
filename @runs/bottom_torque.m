@@ -169,7 +169,6 @@ function [] = bottom_torque(runs)
         tstart = 1 + i*slab*dt;
         tend = (i+1)*slab*dt;
 
-        tsave = (1+i*slab):((i+1)*slab);
         % [read_start,read_count] = roms_ncread_params(4,i,iend,slab,tindices,dt);
         % tstart = read_start(end);
         % tend   = read_start(end) + dt*read_count(end) -1;
@@ -183,6 +182,7 @@ function [] = bottom_torque(runs)
         % decimate
         rho = rho(:,:,:,1:dt:end);
 
+        tsave = (1+i*slab) + (0:size(rho,4)-1);
         assert(size(rho,4) == length(tsave));
 
         % pretty certain that this is correct. zwmat equals zeta at
