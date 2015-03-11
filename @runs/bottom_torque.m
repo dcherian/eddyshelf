@@ -172,18 +172,9 @@ function [] = bottom_torque(runs)
         tstart = 1 + i*slab*dt;
         tend = (i+1)*slab*dt;
 
-        % [read_start,read_count] = roms_ncread_params(4,i,iend,slab,tindices,dt);
-        % tstart = read_start(end);
-        % tend   = read_start(end) + dt*read_count(end) -1;
-
-        % % indices for saving variables between loops
-        % tsave = tstart + (0:read_count(end)-1)-tindices(1)+1;
-
         % now read density and eddye fields
         rho = dc_roms_read_data(runs.dir, 'rho', [tstart tend], volumer, [], ...
                                 runs.rgrid, 'his') + 1000;
-        % decimate
-        rho = rho(:,:,:,1:dt:end);
 
         tsave = (1+i*slab) + (0:size(rho,4)-1);
         assert(size(rho,4) == length(tsave));
@@ -247,9 +238,6 @@ function [] = bottom_torque(runs)
         vbar = dc_roms_read_data(runs.dir, 'vbar', [tstart tend], ...
                                  volumer, [], runs.rgrid, 'his', 'single');
 
-        % decimate
-        ubar = ubar(:,:,1:dt:end);
-        vbar = vbar(:,:,1:dt:end);
         U = ubar .* bsxfun(@plus, zeta(:,:,tsave), H);
         V = vbar .* bsxfun(@plus, zeta(:,:,tsave), H);
 
