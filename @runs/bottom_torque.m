@@ -311,20 +311,44 @@ function [] = bottom_torque(runs)
     parea = integrate(xvec, yvec, bsxfun(@times, maskp, slbot > 0));
 
     btrq = integrate(xvec, yvec, ...
-                     bsxfun(@times, pbot .* maskp, slbot));
+                     bsxfun(@times, pbot .* maskp, slbot))./parea;
 
     f0u = integrate(xvec, avg1(yvec), ...
                     f0 .* bsxfun(@rdivide, diff(AM,1,2), diff(yvec)) ...
-                    .* avg1(masku,2));
-    byu = integrate(xvec, yvec, beta .* AM .* masku);
+                    .* avg1(masku,2))./uarea;
+
+    f0v = integrate(avg1(xvec), yvec, ...
+                    f0 .* bsxfun(@rdivide, diff(AM,1,1), diff(xvec)) ...
+                    .* avg1(masku,1))./uarea;
+
+    byu = integrate(xvec, yvec, beta .* AM .* masku)./uarea;
+
+    %%%%%%%%%% plots
+    figure; maximize(); pause(0.2);
+    insertAnnotation([runs.name '.bottom_torque']);
+    hold all
+    plot(byu);
+    plot(smooth(btrq,1));
+    %plot(abs(runs.angmom.sym_betatrq)./(pi*runs.eddy.Lfit.^2));
+    plot(f0u);plot(f0v); %plot(dipresdy'./parea(1:end-1,:));
+    legend('\beta yu', 'p_{bot}', 'f_0 u', 'f_0 v');
+    linex(runs.traj.tind); liney(0);
+    ylim([-0.5 1]*max(byu(:)));
+    title([runs.name ' |  subtract\_mean = ' num2str(flags.subtract_mean) ...
+          ' | subtract\_edge = ' num2str(flags.subtract_edge)]);
+    beautify;
+
+    export_fig('-painters', ['images/angmom-' runs.name '-2.png']);
 
     %%%%%%%%% Summarize
     save([runs.dir '/pbot.mat'], 'pbot', 'slbot', 'masku', 'maskp', ...
          'AM', 'ipres', 'xvec', 'yvec');
 
+    bottom.uarea = uarea;
+    bottom.parea = parea;
     bottom.f0u = f0u;
     bottom.byu = byu;
-    bottom.dipresdy = dipresdy;
+    bottom.dipresdy = dipresdy./parea(1:end-1)';
     bottom.btrq = btrq;
     bottom.pcrit = pcrit;
     bottom.amcrit = amcrit;
@@ -341,22 +365,7 @@ function [] = bottom_torque(runs)
     runs.bottom = bottom;
     save([runs.dir '/bottom.mat'], 'bottom', '-v7.3');
 
-    keyboard;
-
-    %%%%%%%%%% plots
-    figure; maximize(); pause(0.2);
-    insertAnnotation([runs.name '.bottom_torque']);
-    hold all
-    plot((byu)./uarea);
-    plot(smooth(btrq./parea,1));
-    plot(abs(runs.angmom.sym_betatrq)./(pi*runs.eddy.Lfit.^2));
-    plot(f0u./uarea); %plot(dipresdy'./parea(1:end-1,:));
-    legend('\beta yu', 'p_{bot}', 'sym_angmom', 'f_0 u', 'dP/dy');
-    linex(runs.traj.tind); liney(0);
-    title(runs.name);
-    beautify;
-
-    export_fig('-painters', ['images/angmom-' runs.name '.png']);
+    %keyboard;
 
     %keyboard;
 
