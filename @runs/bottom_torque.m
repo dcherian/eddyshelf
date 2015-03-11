@@ -5,7 +5,10 @@ function [] = bottom_torque(runs)
 
 
     flags.subtract_edge = 1;
+    flags.subtract_mean = 0;
     flags.use_time_varying_dz = 1;
+
+    assert(flags.subtract_edge ~= flags.subtract_mean);
 
     % deprecated
     flags.use_prsgrd = 0;
