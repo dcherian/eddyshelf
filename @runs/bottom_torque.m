@@ -3,22 +3,22 @@ function [] = bottom_torque(runs)
     ticstart = tic;
     tindices = [1 length(runs.eddy.t)];
 
+
+    flags.subtract_edge = 1;
+    flags.use_time_varying_dz = 1;
+
+    % deprecated
+    flags.use_prsgrd = 0;
+    flags.calc_angmom = 0;
+    flags.use_davg = 0;
+    flags.mom_budget = 0;
+    flags.use_thermal_wind = 0;
     % use some mask to determine edges of domain
     % that I want to analyze?
     flags.use_mask = 0;
     flags.use_masked = 0;
 
-    flags.use_prsgrd = 0;
-
-    flags.calc_angmom = 0;
-    flags.use_davg = 0;
-    mom_budget = 0;
-
-    flags.use_thermal_wind = 0;
-
-    flags.use_time_varying_dz = 1;
-
-    slab = 20; % 5 at a time
+    slab = 10; % 5 at a time
     [iend,tind,dt,nt,~] = roms_tindices(tindices, slab, ...
                                         length(runs.eddy.t));
 
@@ -210,133 +210,8 @@ function [] = bottom_torque(runs)
             toc;
         end
 
-        % if flags.use_thermal_wind
-        %     % estimate velocity field associated with rho
-        %     sz = flip(size(zrmat));
-        %     grd.xmat = repmat(xvec', [1 sz(2) sz(3)]);
-        %     grd.ymat = repmat(yvec , [sz(1) 1 sz(3)]);
-        %     grd.zmat = permute(zrmat, [3 2 1]);
-        %     dRdx = diff_cgrid(grd, rho, 1);
-        %     dRdy = diff_cgrid(grd, rho, 2);
-        %     uzest = -g./rho0 .* dRdy / f0;
-        %     vzest = g./rho0 .* dRdx / f0;
-        %     % geostrophic velocity
-        %     ugest = cumsum(bsxfun(@times,uzest, avg1(avg1(dzmat,2),3)), ...
-        %                    3);
-        %     vgest = cumsum(bsxfun(@times,vzest, avg1(avg1(dzmat,1),3)), ...
-        %                    3);
-        %     % gradient wind
-        % end
-
          % U is provided by here
         %%%%%%% first, bottom pressure
-        if mom_budget
-            irho = flipdim(cumsum(flipdim(bsxfun(@times, rho, ...
-                                                 diff(zwmat,1,3)),3),3),3);
-            pres = g./rho0 .* irho;
-            % remove some more background signal
-            pres = bsxfun(@minus, pres, pres(1,:,:,1));
-            pbot(:,:,tsave) = squeeze(pres(:,:,1,:));
-
-        else
-            %irho = squeeze(sum(bsxfun(@times, rho, diff(zwmat,1,3)), 3));
-            % avoid some roundoff errors?
-            irhofull = bsxfun(@plus, rho0 .* permute(zeta(:,:,tsave), [1 2 4 3]), ...
-                              flipdim(cumsum(flipdim(bsxfun(@times, rho-rho0, ...
-                                                            diff(zwmat,1,3)), 3),3),3));
-            % full pressure field
-            %pres = g./rho0 .* bsxfun(@minus, irhofull,
-            %irhofull(1,:,:,1));
-            pres = g./rho0 .* irhofull;
-            pres = bsxfun(@minus, pres, mean(pres,1));
-
-            % bottom pressure
-            pbot(:,:,tsave) = single(squeeze(pres(:,:,1,:)));
-            % integrated pressure
-            ipres(:,:,tsave) = squeeze(sum(pres .* diff(zwmat,1,3), 3));
-            clear pres;
-
-            % removing mean zeta changes pbot by 1e-9 only.
-            % using p_η = gη -> p_η η_y = gη η_y ~ O(1e-8), so not
-            % much difference.
-            % trapezoidal integration makes no difference
-            %irhotrap = squeeze(sum(dzmat .* avg1(rho,3),3));
-            % prsgrd32.h
-            if flags.use_prsgrd
-
-                dR = nan(size(zwmat)); dZ = nan(size(zwmat));
-                dR(:,:,2:end-1,:) = diff(rho,1,3);
-                dZ(:,:,2:end-1,:) = diff(zrmat,1,3);
-
-                dR(:,:,end,:) = dR(:,:,end-1,:);
-                dZ(:,:,end,:) = dZ(:,:,end-1,:);
-
-                dR(:,:,1,:) = dR(:,:,2,:);
-                dZ(:,:,1,:) = dZ(:,:,2,:);
-
-                N = runs.rgrid.N; tic;
-                for kk=N+1:-1:2
-                    dZ(:,:,kk,:) = 2 * dZ(:,:,kk,:) .* dZ(:,:,kk-1,:) ...
-                        ./ (dZ(:,:,kk,:) + dZ(:,:,kk-1,:));
-                    cff = 2*dR(:,:,kk,:) .* dR(:,:,kk-1,:);
-                    cff(cff < 1e-10) = 0;
-                    dR(:,:,kk,:) = cff ./ (dR(:,:,kk,:) + dR(:,:,kk-1,:));
-                end
-                toc;
-
-                tic;
-                P = nan(size(rho));
-                P(:,:,end,:) = 1000 * g./rho0 .* zwmat(:,:,end,:) + ...
-                    g/rho0 * (zwmat(:,:,end,:)-zrmat(:,:,end,:)) .* ...
-                    ( -1000 + rho(:,:,end,:) + ...
-                      1./(zrmat(:,:,end,:)-zrmat(:,:,end-1,:)) .* ...
-                      (rho(:,:,end,:)-rho(:,:,end-1,:)) .* ...
-                      (zwmat(:,:,end,:) - zrmat(:,:,end,:)));
-
-                for kk=N-1:-1:1
-                    P(:,:,kk,:) = P(:,:,kk+1,:) + ...
-                        1/2*g/rho0 .* ( ...
-                            (-2000 + rho(:,:,kk+1,:) + rho(:,:,kk,:)) ...
-                            .* (zrmat(:,:,kk+1,:) - zrmat(:,:,kk,:)) ...
-                            - 1/5 * ( (dR(:,:,kk+1,:) - dR(:,:,kk,:)) .* ...
-                                      (zrmat(:,:,kk+1,:) - zrmat(:,:,kk,:) - ...
-                                       1/12 * (dZ(:,:,kk+1,:) + dZ(:,:,kk,:))) ...
-                                      - (dZ(:,:,kk+1,:)-dZ(:,:,kk,:)) ...
-                                      .* ( rho(:,:,kk+1,:) - rho(:,:,kk,:) ...
-                                           - 1/12 * (dR(:,:,kk+1,:) + dR(:,:,kk,:)))));
-                end
-                P = bsxfun(@minus, P, P(1,:,:,:));
-                pbot1(:,:,tsave) = squeeze(P(:,:,1,:));
-                toc;
-            end
-
-            % check balance
-            if flags.use_thermal_wind
-                ranom = bsxfun(@minus, rho, rback);
-                ranom = bsxfun(@minus, ranom, ranom(1,:,:,:));
-
-                % iranom = squeeze(sum(bsxfun(@times, ranom, dzmat0),3));
-                % %diRdy = bsxfun(@rdivide, diff(iranom,1,2), diff(yvec));
-                % %dizdy = -1/rho0 * diRdy;
-                % %dRdy = bsxfun(@rdivide, diff(ranom, 1, 2), diff(yvec));
-                % %dzdy = -1 * squeeze(sum(bsxfun(@times, dRdy, avg1(dzmat,2)), ...
-                % %                   3))/rho0;
-                % %dzetady = (bsxfun(@rdivide, diff(zeta(:,:,tsave),1,2), ...
-                % %                       diff(yvec)));
-                % %error = dzdy - dzetady;
-
-                % pbc1 = g/rho0 * iranom;
-                % pbt1 = g * zeta(:,:,tsave);
-
-                % pbot1(:,:,tsave) = pbc1+pbt1;
-
-                % THIS IS NOT HOW YOU DIFFERENTIATE ON A C-GRID
-                drady = bsxfun(@rdivide, diff(ranom,1,2), diff(yvec));
-                U(:,:,tsave) = -g./f0/rho0 .* squeeze(sum( bsxfun(@times, ...
-                            cumsum( bsxfun(@times, drady, avg1(dzmat,2)), 3), ...
-                                                 avg1(dzmat,2)), 3));
-                %ubot = bsxfun(@rdivide, diff(pbot,1,2), diff(yvec))./f0;
-            end
         end
         %%%%%%%%% now, angular momentum
         ubar = dc_roms_read_data(runs.dir, 'ubar', [tstart tend], ...
@@ -735,4 +610,97 @@ end
         %                  'time');
         %         end
         %     end
+        % end
+
+        % if flags.use_thermal_wind
+        %     % estimate velocity field associated with rho
+        %     sz = flip(size(zrmat));
+        %     grd.xmat = repmat(xvec', [1 sz(2) sz(3)]);
+        %     grd.ymat = repmat(yvec , [sz(1) 1 sz(3)]);
+        %     grd.zmat = permute(zrmat, [3 2 1]);
+        %     dRdx = diff_cgrid(grd, rho, 1);
+        %     dRdy = diff_cgrid(grd, rho, 2);
+        %     uzest = -g./rho0 .* dRdy / f0;
+        %     vzest = g./rho0 .* dRdx / f0;
+        %     % geostrophic velocity
+        %     ugest = cumsum(bsxfun(@times,uzest, avg1(avg1(dzmat,2),3)), ...
+        %                    3);
+        %     vgest = cumsum(bsxfun(@times,vzest, avg1(avg1(dzmat,1),3)), ...
+        %                    3);
+        %     % gradient wind
+        % end
+        % % prsgrd32.h
+        % if flags.use_prsgrd
+
+        %     dR = nan(size(zwmat)); dZ = nan(size(zwmat));
+        %     dR(:,:,2:end-1,:) = diff(rho,1,3);
+        %     dZ(:,:,2:end-1,:) = diff(zrmat,1,3);
+
+        %     dR(:,:,end,:) = dR(:,:,end-1,:);
+        %     dZ(:,:,end,:) = dZ(:,:,end-1,:);
+
+        %     dR(:,:,1,:) = dR(:,:,2,:);
+        %     dZ(:,:,1,:) = dZ(:,:,2,:);
+
+        %     N = runs.rgrid.N; tic;
+        %     for kk=N+1:-1:2
+        %         dZ(:,:,kk,:) = 2 * dZ(:,:,kk,:) .* dZ(:,:,kk-1,:) ...
+        %             ./ (dZ(:,:,kk,:) + dZ(:,:,kk-1,:));
+        %         cff = 2*dR(:,:,kk,:) .* dR(:,:,kk-1,:);
+        %         cff(cff < 1e-10) = 0;
+        %         dR(:,:,kk,:) = cff ./ (dR(:,:,kk,:) + dR(:,:,kk-1,:));
+        %     end
+        %     toc;
+
+        %     tic;
+        %     P = nan(size(rho));
+        %     P(:,:,end,:) = 1000 * g./rho0 .* zwmat(:,:,end,:) + ...
+        %         g/rho0 * (zwmat(:,:,end,:)-zrmat(:,:,end,:)) .* ...
+        %         ( -1000 + rho(:,:,end,:) + ...
+        %           1./(zrmat(:,:,end,:)-zrmat(:,:,end-1,:)) .* ...
+        %           (rho(:,:,end,:)-rho(:,:,end-1,:)) .* ...
+        %           (zwmat(:,:,end,:) - zrmat(:,:,end,:)));
+
+        %     for kk=N-1:-1:1
+        %         P(:,:,kk,:) = P(:,:,kk+1,:) + ...
+        %             1/2*g/rho0 .* ( ...
+        %                 (-2000 + rho(:,:,kk+1,:) + rho(:,:,kk,:)) ...
+        %                 .* (zrmat(:,:,kk+1,:) - zrmat(:,:,kk,:)) ...
+        %                 - 1/5 * ( (dR(:,:,kk+1,:) - dR(:,:,kk,:)) .* ...
+        %                           (zrmat(:,:,kk+1,:) - zrmat(:,:,kk,:) - ...
+        %                            1/12 * (dZ(:,:,kk+1,:) + dZ(:,:,kk,:))) ...
+        %                           - (dZ(:,:,kk+1,:)-dZ(:,:,kk,:)) ...
+        %                           .* ( rho(:,:,kk+1,:) - rho(:,:,kk,:) ...
+        %                                - 1/12 * (dR(:,:,kk+1,:) + dR(:,:,kk,:)))));
+        %     end
+        %     P = bsxfun(@minus, P, P(1,:,:,:));
+        %     pbot1(:,:,tsave) = squeeze(P(:,:,1,:));
+        %     toc;
+        % end
+        % % check balance
+        % if flags.use_thermal_wind
+        %     ranom = bsxfun(@minus, rho, rback);
+        %     ranom = bsxfun(@minus, ranom, ranom(1,:,:,:));
+
+        %     % iranom = squeeze(sum(bsxfun(@times, ranom, dzmat0),3));
+        %     % %diRdy = bsxfun(@rdivide, diff(iranom,1,2), diff(yvec));
+        %     % %dizdy = -1/rho0 * diRdy;
+        %     % %dRdy = bsxfun(@rdivide, diff(ranom, 1, 2), diff(yvec));
+        %     % %dzdy = -1 * squeeze(sum(bsxfun(@times, dRdy, avg1(dzmat,2)), ...
+        %     % %                   3))/rho0;
+        %     % %dzetady = (bsxfun(@rdivide, diff(zeta(:,:,tsave),1,2), ...
+        %     % %                       diff(yvec)));
+        %     % %error = dzdy - dzetady;
+
+        %     % pbc1 = g/rho0 * iranom;
+        %     % pbt1 = g * zeta(:,:,tsave);
+
+        %     % pbot1(:,:,tsave) = pbc1+pbt1;
+
+        %     % THIS IS NOT HOW YOU DIFFERENTIATE ON A C-GRID
+        %     drady = bsxfun(@rdivide, diff(ranom,1,2), diff(yvec));
+        %     U(:,:,tsave) = -g./f0/rho0 .* squeeze(sum( bsxfun(@times, ...
+        %                                                       cumsum( bsxfun(@times, drady, avg1(dzmat,2)), 3), ...
+        %                                                       avg1(dzmat,2)), 3));
+        %     %ubot = bsxfun(@rdivide, diff(pbot,1,2), diff(yvec))./f0;
         % end
