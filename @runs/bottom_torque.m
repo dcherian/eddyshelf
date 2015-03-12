@@ -248,6 +248,10 @@ function [] = bottom_torque(runs)
         [~, AM(:,:,tsave)] = flowfun(xvec, yvec, U, V);
 
         AM = single(AM);
+        if i == 0
+            amcrit = amcrit .* squeeze(max(max(AM(:,:,1),[],1),[], ...
+                                           2));
+        end
 
         % get proper pressure & velocity regions
         masku(:,:,tsave) = find_mask(AM(:,:,tsave), amcrit, imx(tsave), ...
@@ -290,6 +294,11 @@ function [] = bottom_torque(runs)
         % integrated pressure
         ipres(:,:,tsave) = squeeze(sum(pres .* diff(zwmat,1,3), ...
                                        3));
+
+        if i == 0
+            pcrit = pcrit .* squeeze(max(max(ipres(:,:,1),[],1),[], ...
+                                           2));
+        end
 
         % get proper pressure & velocity regions
         maskp(:,:,tsave) = find_mask(ipres(:,:,tsave), pcrit, imx(tsave), ...
@@ -404,8 +413,7 @@ function [out] = find_mask(in,crit,imx,imy)
 
     out = logical(zeros(size(in)));
     for kk=1:size(in,3)
-        masktemp = in(:,:,kk) > (crit * ...
-            max(max(in(:,:,kk),[],1),[],2));
+        masktemp = in(:,:,kk) > crit;
 
         % first find simply connected regions
         regions = bwconncomp(masktemp, 8);
