@@ -333,13 +333,14 @@ function [] = bottom_torque(runs)
     byu = integrate(xvec, yvec, beta .* AM .* masku)./uarea;
 
     %%%%%%%%%% plots
+    nsmooth = runs.eddy.turnover./mean(diff(runs.time));
     figure; maximize(); pause(0.2);
     insertAnnotation([runs.name '.bottom_torque']);
     hold all
-    plot(byu);
-    plot(smooth(btrq,1));
+    plot(smooth(byu, nsmooth));
+    plot(smooth(btrq, nsmooth));
     %plot(abs(runs.angmom.sym_betatrq)./(pi*runs.eddy.Lfit.^2));
-    plot(f0u);plot(f0v); %plot(dipresdy'./parea(1:end-1,:));
+    plot(smooth(f0u, nsmooth)); %plot(f0v); %plot(dipresdy'./parea(1:end-1,:));
     legend('\beta yu', 'p_{bot}', 'f_0 u', 'f_0 v');
     linex(runs.traj.tind); liney(0);
     ylim([-0.5 1]*max(byu(:)));
