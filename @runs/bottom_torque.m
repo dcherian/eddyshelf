@@ -80,7 +80,7 @@ function [] = bottom_torque(runs)
     volumeu = {'x' imnx-1 imxx; ...
                'y' imny imxy};
     volumev = {'x' imnx imxx; ...
-               'y' imny imxy+1};
+               'y' imny-1 imxy};
 
     % grid vectors and matrices
     xrmat = repmat(runs.rgrid.x_rho(imny:imxy, imnx:imxx)', [1 1]);
