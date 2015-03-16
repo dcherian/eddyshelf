@@ -111,18 +111,18 @@ function [] = bottom_torque(runs)
     % f = bsxfun(@minus, f, permute(f(1,imy),[3 1 2]));
     % This is so that I don't have trouble finding out the
     % reference latitude
-    %bymat = single(f - f0);
+    bymat = single(f - f0);
 
     % subsample bathymetry
     H = runs.bathy.h(imnx:imxx, imny:imxy);
 
-    % subsample bottom slope
+    % bottom slope on V-points!
     slbot = diff(runs.rgrid.h',1,2)./diff(runs.rgrid.y_rho',1,2);
-    slbot = single(slbot .* (slbot > 0.95 * runs.bathy.sl_slope));
-    slbot = slbot(imnx:imxx, imny:imxy);
+    %slbot = single(slbot .* (slbot > 0.95 * runs.bathy.sl_slope));
+    slbot = avg1(slbot(imnx:imxx, imny-1:imxy),2);
 
-    %vormask = runs.eddy.vormask(imnx-1:imxx-1, imny-1:imxy-1, :);
-    %sshmask = runs.eddy.mask(imnx-1:imxx-1, imny-1:imxy-1, :);
+    vormask = runs.eddy.vormask(imnx-1:imxx-1, imny-1:imxy-1, :);
+    sshmask = runs.eddy.mask(imnx-1:imxx-1, imny-1:imxy-1, :);
 
     if flags.use_masked
         if ~isfield(runs.eddy, 'drhothreshssh')
@@ -140,29 +140,33 @@ function [] = bottom_torque(runs)
         end
     end
 
-    % % get background density field for initial time instant
-    % if runs.bathy.axis == 'y'
-    %     % (y,z)
-    %     rback = dc_roms_read_data(runs.dir, 'rho', [1 1], ...
-    %                               {'x' 1 1; 'y' imny imxy}, [], ...
-    %                               runs.rgrid, 'his') + 1000;
+    % get background density field for initial time instant
+    if runs.bathy.axis == 'y'
+        % (y,z)
+        rback = dc_roms_read_data(runs.dir, 'rho', 2, ...
+                                  {'x' imnx imnx; 'y' imny imxy}, [], ...
+                                  runs.rgrid, 'his') + 1000;
+        zetaback = dc_roms_read_data(runs.dir, 'zeta', 2, ...
+                                  {'x' imnx imnx; 'y' imny imxy}, [], ...
+                                  runs.rgrid, 'his');
+        % make (x,y,z)
+        rback = permute(rback, [3 1 2]);
+    else
+        rback = dc_roms_read_data(runs.dir, 'rho', [1 1], {'y' Inf Inf}, [], ...
+                                  runs.rgrid, 'his', 'single');
+        error('not implemented for NS isobaths yet');
+    end
 
-    %     % make (x,y,z)
-    %     rback = permute(rback, [3 1 2]);
-    % else
-    %     rback = dc_roms_read_data(runs.dir, 'rho', [1 1], {'y' Inf Inf}, [], ...
-    %                               runs.rgrid, 'his', 'single');
-    %     error('not implemented for NS isobaths yet');
-    % end
-
-    % dzmat0 = diff(set_depth(2,4,runs.rgrid.theta_s,runs.rgrid.theta_b, ...
-    %                      runs.rgrid.Tcline,runs.rgrid.N,5,H,...
-    %                      zeta(:,:,1), 0), 1, 3);
-    % % pressure due to background stratification = pstrat(y)
-    % irback = bsxfun(@plus, rho0 .* zeta(1,:,1), ...
-    %                 sum( (rback-rho0) .* dzmat0(1,:,:), 3));
-    % pstrat = g./rho0 .* irback;
-    % clear dzmat0;
+    dzmat0 = diff(set_depth(2,4,runs.rgrid.theta_s,runs.rgrid.theta_b, ...
+                         runs.rgrid.Tcline,runs.rgrid.N,5,H(1,:),...
+                         zetaback, 0), 1, 3);
+    % pressure due to background stratification = pstrat(y)
+    irback = bsxfun(@plus, rho0 .* zetaback, ...
+                    flipdim(cumsum(flipdim( (rback-rho0) .* dzmat0, 3),3),3));
+    pstrat = g./rho0 .* irback;
+    pstrat(:,:,end+1) = 0;
+    ipstrat = squeeze(sum(avg1(pstrat,3) .* dzmat0, 3));
+    clear dzmat0;
 
     % read data from start
     pbot = single(nan(size(zeta)));
