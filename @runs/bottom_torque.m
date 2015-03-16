@@ -247,11 +247,43 @@ function [] = bottom_torque(runs)
         %                        g./rho0 .* sum( (rho-rho0).* ...
         %                                        diff(zwmat,1,3), 3));
 
+        % drho = bsxfun(@minus, rho, mean(rho,1));
+        % dpres = bsxfun(@minus, pres, pres(end,:,:,:));
+        % ix = 1; (tsave(tt)) + 0;
+        % tt = 5; figure;
+        % ax(1) = subplot(121);
+        % zmat = squeeze(avg1(zwmat(ix,:,:,tt), 3));
+        % ymat = repmat(yvec',[1 size(zmat,2)])/1000;
+        % contourf(ymat, zmat, squeeze(rho(ix,:,:,tt)), 30);
+        % %caxis([min(drho(:)) max(drho(:))]);
+        % %center_colorbar;
+        % ax(2) = subplot(122);
+        % contourf(ymat, zmat, squeeze(eddye(ix,:,:,tt)), 30);
+        % center_colorbar;
+        % linkaxes(ax,'xy');
+
+        % figure;
+        % % interpolate to depths
+        % zint = flip(-400:20:-100);
+        % for kk=1:length(zint)
+        %     for jj=1:size(pres,2)
+        %         zvec = avg1(squeeze(zwmat(imx(tsave(tt))+dx,jj,:,tt)));
+        %         pvec = squeeze(pres(imx(tsave(tt))+dx,jj,:,tt));
+        %         pint(jj,kk) = interp1(zvec, pvec, zint(kk));
+        %     end
+        % end
+        % plot(yvec/1000, bsxfun(@minus, pint, pint(end,:)));
+        % %plot(yvec/1000, squeeze(dpres(imx(tsave(tt))+dx,:,1:15, ...
+        % %                             tt)));
+        % liney(0);linex([runs.bathy.xsb runs.bathy.xsl]/1000);
+        % linex(runs.eddy.my(tsave(tt))/1000);
+
         % removing mean zeta changes pbot by 1e-9 only.
         % using p_η = gη -> p_η η_y = gη η_y ~ O(1e-8), so not
         % much difference.
         % trapezoidal integration makes no difference
         %irhotrap = squeeze(sum(dzmat .* avg1(rho,3),3));
+
         %%%%%%%%% now, angular momentum
         ubar = dc_roms_read_data(hisname, 'ubar', [tstart tend], ...
                                  volumer, [], runs.rgrid, 'his', 'single');
