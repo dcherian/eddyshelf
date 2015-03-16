@@ -212,17 +212,40 @@ function [] = bottom_torque(runs)
             toc;
         end
 
-         % U is provided by here
         %%%%%%% first, bottom pressure
-        %irho = squeeze(sum(bsxfun(@times, rho, diff(zwmat,1,3)), 3));
+        % this version is crappy.
+        %irhofull = flipdim(cumsum(flipdim( (rho) .* diff(zwmat,1,3), ...
+        %                                         3),3),3);
+
         % avoid some roundoff errors?
-        irhofull = bsxfun(@plus, rho0 .* permute(zeta(:,:,tsave), [1 2 4 3]), ...
-                          flipdim(cumsum(flipdim(bsxfun(@times, rho-rho0, ...
-                                                        diff(zwmat,1,3)), 3),3),3));
+        % p = g/ρ0 * (ρ0 *(η-z) + ∫ (ρ-ρ0) dz from z to η)
+        irhoanom = flipdim(cumsum(flipdim( (rho-rho0) .* diff(zwmat,1,3), ...
+                                           3),3),3);
+        irhofull = bsxfun(@plus, rho0 .* permute(zeta(:,:,tsave), ...
+                                                 [1 2 4 3]), irhoanom);
         % full pressure field
-        %pres = g./rho0 .* bsxfun(@minus, irhofull,
-        %irhofull(1,:,:,1));
         pres = g./rho0 .* irhofull;
+
+        % bottom pressure anomaly
+        pbot(:,:,tsave) = (bsxfun(@minus, squeeze(pres(:,:,1,:)), ...
+                                        pstrat(:,:,1,:)));
+        % integrated pressure anomaly
+        pres(:,:,end+1,:) = 0;
+        ipres(:,:,tsave) = bsxfun(@minus, ...
+                                  squeeze(sum(avg1(pres,3) .* diff(zwmat,1,3), 3)), ...
+                                  ipstrat);
+        pres(:,:,end,:) = [];
+
+        % agrees with above!
+        %irhoanom(:,:,end+1,:) = 0;
+        %IRp = g./rho0 .* squeeze(sum(avg1(irhoanom,3) .* diff(zwmat,1,3), 3));
+        %ipres2(:,:,tsave) = g*zeta(:,:,tsave) .* ...
+        %    bsxfun(@plus, zeta(:,:,tsave), H) + bsxfun(@minus, IRp , 0);
+        %irhoanom(:,:,end,:) = [];
+        % agrees well with pres(:,:,1,:)
+        %pbot2(:,:,tsave) = bsxfun(@plus, g.*permute(zeta(:,:,tsave), [1 2 4 3]), ...
+        %                        g./rho0 .* sum( (rho-rho0).* ...
+        %                                        diff(zwmat,1,3), 3));
 
         % removing mean zeta changes pbot by 1e-9 only.
         % using p_η = gη -> p_η η_y = gη η_y ~ O(1e-8), so not
