@@ -3,12 +3,15 @@ function [] = bottom_torque(runs)
     ticstart = tic;
     tindices = [1 length(runs.eddy.t)];
 
-    pcrit = 0.2;
-    amcrit = 0.2;
+    hisname = [runs.dir '/ocean_his.nc.new02'];
+
+    pcrit = 0.1;
+    amcrit = 0.1;
 
     flags.subtract_edge = 1;
     flags.subtract_mean = 0;
     flags.use_time_varying_dz = 1;
+    flags.mom_budget = 1;
 
     assert(flags.subtract_edge ~= flags.subtract_mean);
 
@@ -99,7 +102,7 @@ function [] = bottom_torque(runs)
     imy = vecfind(runs.rgrid.yr(1,imny:imxy), my);
 
     % read free-surface to be sure I'm not screwing up.
-    zeta = dc_roms_read_data(runs.dir, 'zeta', [tind(1) tind(2)], ...
+    zeta = dc_roms_read_data(hisname, 'zeta', [tind(1) tind(2)], ...
                              volumer, [], runs.rgrid);
 
     % subsample f
@@ -175,7 +178,7 @@ function [] = bottom_torque(runs)
         tend = tindices(1) -1 + (i+1)*slab*dt;
 
         % now read density and eddye fields
-        rho = dc_roms_read_data(runs.dir, 'rho', [tstart tend], volumer, [], ...
+        rho = dc_roms_read_data(hisname, 'rho', [tstart tend], volumer, [], ...
                                 runs.rgrid, 'his') + 1000;
 
         tsave = (1+i*slab) + (0:size(rho,4)-1);
@@ -223,27 +226,29 @@ function [] = bottom_torque(runs)
         % trapezoidal integration makes no difference
         %irhotrap = squeeze(sum(dzmat .* avg1(rho,3),3));
         %%%%%%%%% now, angular momentum
-        ubar = dc_roms_read_data(runs.dir, 'ubar', [tstart tend], ...
+        ubar = dc_roms_read_data(hisname, 'ubar', [tstart tend], ...
                                  volumer, [], runs.rgrid, 'his', 'single');
 
-        vbar = dc_roms_read_data(runs.dir, 'vbar', [tstart tend], ...
+        vbar = dc_roms_read_data(hisname, 'vbar', [tstart tend], ...
                                  volumer, [], runs.rgrid, 'his', 'single');
 
         U = ubar .* bsxfun(@plus, zeta(:,:,tsave), H);
         V = vbar .* bsxfun(@plus, zeta(:,:,tsave), H);
 
-        % u = avg1(dc_roms_read_data(runs.dir, 'u', [tstart tend], ...
-        %                       volumeu, [], runs.rgrid, 'his', ...
-        %                       'single'),1);
-        % v = avg1(dc_roms_read_data(runs.dir, 'v', [tstart tend], ...
-        %                       volumev, [], runs.rgrid, 'his', ...
-        %                       'single'),2);
+        if flags.mom_budget
+            u = avg1(dc_roms_read_data(hisname, 'u', [tstart tend], ...
+                                       volumeu, [], runs.rgrid, 'his', ...
+                                       'double'),1);
+            v = avg1(dc_roms_read_data(hisname, 'v', [tstart tend], ...
+                                       volumev, [], runs.rgrid, 'his', ...
+                                       'double'),2);
 
-        % U2 = squeeze(sum(u.*u.*diff(zwmat,1,3),3));
-        % V2 = squeeze(sum(v.*v.*diff(zwmat,1,3),3));
-        % UV = squeeze(sum(u.*v.*diff(zwmat,1,3),3));
+            U2 = squeeze(sum(u.*u.*diff(zwmat,1,3),3));
+            V2 = squeeze(sum(v.*v.*diff(zwmat,1,3),3));
+            UV = squeeze(sum(u.*v.*diff(zwmat,1,3),3));
 
-        clear ubar vbar u v
+            clear ubar vbar u v
+        end
 
         [~, AM(:,:,tsave)] = flowfun(xvec, yvec, U, V);
 
