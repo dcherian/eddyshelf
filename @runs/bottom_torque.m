@@ -873,55 +873,7 @@ end
         %                    3);
         %     % gradient wind
         % end
-        % % prsgrd32.h
-        % if flags.use_prsgrd
-
-        %     dR = nan(size(zwmat)); dZ = nan(size(zwmat));
-        %     dR(:,:,2:end-1,:) = diff(rho,1,3);
-        %     dZ(:,:,2:end-1,:) = diff(zrmat,1,3);
-
-        %     dR(:,:,end,:) = dR(:,:,end-1,:);
-        %     dZ(:,:,end,:) = dZ(:,:,end-1,:);
-
-        %     dR(:,:,1,:) = dR(:,:,2,:);
-        %     dZ(:,:,1,:) = dZ(:,:,2,:);
-
-        %     N = runs.rgrid.N; tic;
-        %     for kk=N+1:-1:2
-        %         dZ(:,:,kk,:) = 2 * dZ(:,:,kk,:) .* dZ(:,:,kk-1,:) ...
-        %             ./ (dZ(:,:,kk,:) + dZ(:,:,kk-1,:));
-        %         cff = 2*dR(:,:,kk,:) .* dR(:,:,kk-1,:);
-        %         cff(cff < 1e-10) = 0;
-        %         dR(:,:,kk,:) = cff ./ (dR(:,:,kk,:) + dR(:,:,kk-1,:));
-        %     end
-        %     toc;
-
-        %     tic;
-        %     P = nan(size(rho));
-        %     P(:,:,end,:) = 1000 * g./rho0 .* zwmat(:,:,end,:) + ...
-        %         g/rho0 * (zwmat(:,:,end,:)-zrmat(:,:,end,:)) .* ...
-        %         ( -1000 + rho(:,:,end,:) + ...
-        %           1./(zrmat(:,:,end,:)-zrmat(:,:,end-1,:)) .* ...
-        %           (rho(:,:,end,:)-rho(:,:,end-1,:)) .* ...
-        %           (zwmat(:,:,end,:) - zrmat(:,:,end,:)));
-
-        %     for kk=N-1:-1:1
-        %         P(:,:,kk,:) = P(:,:,kk+1,:) + ...
-        %             1/2*g/rho0 .* ( ...
-        %                 (-2000 + rho(:,:,kk+1,:) + rho(:,:,kk,:)) ...
-        %                 .* (zrmat(:,:,kk+1,:) - zrmat(:,:,kk,:)) ...
-        %                 - 1/5 * ( (dR(:,:,kk+1,:) - dR(:,:,kk,:)) .* ...
-        %                           (zrmat(:,:,kk+1,:) - zrmat(:,:,kk,:) - ...
-        %                            1/12 * (dZ(:,:,kk+1,:) + dZ(:,:,kk,:))) ...
-        %                           - (dZ(:,:,kk+1,:)-dZ(:,:,kk,:)) ...
-        %                           .* ( rho(:,:,kk+1,:) - rho(:,:,kk,:) ...
-        %                                - 1/12 * (dR(:,:,kk+1,:) + dR(:,:,kk,:)))));
-        %     end
-        %     P = bsxfun(@minus, P, P(1,:,:,:));
-        %     pbot1(:,:,tsave) = squeeze(P(:,:,1,:));
-        %     toc;
-        % end
-        % % check balance
+                % % check balance
         % if flags.use_thermal_wind
         %     ranom = bsxfun(@minus, rho, rback);
         %     ranom = bsxfun(@minus, ranom, ranom(1,:,:,:));
@@ -948,3 +900,100 @@ end
         %                                                       avg1(dzmat,2)), 3));
         %     %ubot = bsxfun(@rdivide, diff(pbot,1,2), diff(yvec))./f0;
         % end
+
+        % prsgrd32.h
+        % if flags.use_prsgrd
+        %     GRho = g/rho0;
+        %     GRho0 = 1000*GRho;
+        %     HalfGRho = 0.5*GRho;
+
+        %     dR = nan(size(zwmat)); dZ = nan(size(zwmat));
+        %     dR(:,:,2:end-1,:) = diff(rho-1000,1,3);
+        %     dZ(:,:,2:end-1,:) = diff(zrmat,1,3);
+
+        %     dR(:,:,end,:) = dR(:,:,end-1,:);
+        %     dZ(:,:,end,:) = dZ(:,:,end-1,:);
+
+        %     dR(:,:,1,:) = dR(:,:,2,:);
+        %     dZ(:,:,1,:) = dZ(:,:,2,:);
+
+        %     N = runs.rgrid.N; tic;
+        %     for kk=N+1:-1:2
+        %         dZ(:,:,kk,:) = 2 * dZ(:,:,kk,:) .* dZ(:,:,kk-1,:) ...
+        %             ./ (dZ(:,:,kk,:) + dZ(:,:,kk-1,:));
+        %         cff = 2*dR(:,:,kk,:) .* dR(:,:,kk-1,:);
+        %         dR(:,:,kk,:) = cff ./ (dR(:,:,kk,:) + dR(:,:,kk-1,:));
+        %         dR(:,:,kk,:) = dR(:,:,kk,:) .* (cff > 1e-10);
+        %     end
+        %     dR(isnan(dR)) = 0;
+        %     toc;
+
+        %     tic;
+        %     P = nan(size(rho));
+        %     P(:,:,end,:) = GRho0 .* zwmat(:,:,end,:) + ...
+        %         GRho * (zwmat(:,:,end,:)-zrmat(:,:,end,:)) .* ...
+        %         ( -1000 + rho(:,:,end,:) + ...
+        %           1./(zrmat(:,:,end,:)-zrmat(:,:,end-1,:)) .* ...
+        %           (rho(:,:,end,:)-rho(:,:,end-1,:)) .* ...
+        %           (zwmat(:,:,end,:) - zrmat(:,:,end,:)));
+
+        %     for kk=N-1:-1:1
+        %         P(:,:,kk,:) = P(:,:,kk+1,:) + ...
+        %             HalfGRho .* ( ...
+        %                 (-2000 + rho(:,:,kk+1,:) + rho(:,:,kk,:)) ...
+        %                 .* (zrmat(:,:,kk+1,:) - zrmat(:,:,kk,:)) ...
+        %                 - 1/5 * ( (dR(:,:,kk+1,:) - dR(:,:,kk,:)) .* ...
+        %                           (zrmat(:,:,kk+1,:) - zrmat(:,:,kk,:) - ...
+        %                            1/12 * (dZ(:,:,kk+1,:) + dZ(:,:,kk,:))) ...
+        %                           - (dZ(:,:,kk+1,:)-dZ(:,:,kk,:)) ...
+        %                           .* ( rho(:,:,kk+1,:) - rho(:,:,kk,:) ...
+        %                                - 1/12 * (dR(:,:,kk+1,:) + dR(:,:,kk,:)))));
+        %     end
+        %     %P = bsxfun(@minus, P, P(1,:,:,:));
+        %     pbot1(:,:,tsave) = squeeze(P(:,:,1,:));
+        %     iP(:,:,tsave) = squeeze(sum(P.*diff(zwmat,1,3), 3));
+        %     toc;
+        % end
+
+
+    %dianame = ([runs.dir '/ocean_dia.nc.new02']);
+    %v_prsgrd = ncread(dianame, 'v_prsgrd');
+    %vbar_prsgrd = ncread(dianame, 'vbar_prsgrd');
+    % vbar_xadv = ncread(dianame, 'vbar_xadv');
+    % vbar_yadv = ncread(dianame, 'vbar_yadv');
+    % vbar_cor = ncread(dianame, 'vbar_cor');
+    % vbar_cor = avg1(vbar_cor(imnx:imxx, imny-1:imxy,:),2) .* ...
+    %     bsxfun(@plus, zeta, H);
+    % vbar_xadv = avg1(vbar_xadv(imnx:imxx, imny-1:imxy,:),2) .* ...
+    %     bsxfun(@plus, zeta, H);
+    % vbar_yadv = avg1(vbar_yadv(imnx:imxx, imny-1:imxy,:),2) .* ...
+    %     bsxfun(@plus, zeta, H);
+    % integrate(xvec, yvec, vbar_xadv)
+    % integrate(xvec, yvec, vbar_yadv)
+    % Vbarprsgrd = avg1(vbar_prsgrd(imnx:imxx, imny-1:imxy,end),2) ...
+    %                         .* bsxfun(@plus, zeta(:,:,end), H);
+    % vprsgrd = integrate(xvec, yvec, squeeze(sum(avg1(v_prsgrd(imnx: ...
+    %                                                   imxx,imny-1: ...
+    %                                                   imxy,:,3),2) ...
+    %                                             .*diff(zwmat(:,:,:,end),1,3),3)))
+
+    % vbarprsgrd = integrate(xvec, yvec, Vbarprsgrd)
+    % Vprsgrd = squeeze(sum(avg1(v_prsgrd(imnx:imxx,imny-1:imxy,:,3),2) ...
+    %                                             .*diff(zwmat(:,:,:,end),1,3),3));
+    % ipresgrd = bsxfun(@rdivide, -diff(ipres(:,:,end),1,2), ...
+    %                    diff(yvec));
+    % psl = avg1( bsxfun(@times, pbot(:,:,end), slbot), 2);
+
+    % myprsgrd = integrate(xvec, avg1(yvec,2), ipresgrd + psl)
+
+    % gHey = g.*bsxfun(@times, bsxfun(@rdivide, diff(zeta,1,2), diff(yvec)), ...
+    %                                 avg1(H,2));
+    % geey = g.*bsxfun(@times, bsxfun(@rdivide, diff(zeta,1,2), diff(yvec)), ...
+    %                  avg1(zeta,2));
+    %geHy = g.*bsxfun(@times, zeta, slbot);
+    %geHyvec = integrate(xvec, yvec, geHy)';
+    % gHHy = g.*bsxfun(@times, H, slbot);
+
+    % dprsgrd = ipresgrd + psl + geey(:,:,end) - avg1(Vprsgrd,2);
+    % %figure; animate(Vprsgrd); clim = caxis;
+    % figure; animate(dprsgrd, 'contour');
