@@ -385,8 +385,9 @@ function [] = bottom_torque(runs)
 
     clear rho zwmat dipdy pres
 
+    hash = githash([mfilename('fullpath') '.m']);
     save([runs.dir '/mombudget.mat'], 'f0U', 'byU', 'pbot', 'ipres', 'duvdx', ...
-         'dv2dy', 'AM', 'dvdt');
+         'dv2dy', 'AM', 'dvdt', 'hash');
 
     ipresfull = ipres;
     AMfull = AM;
@@ -402,7 +403,8 @@ function [] = bottom_torque(runs)
 
     keyboard;
 
-    masku = find_mask(ipresfull,0.25,imx,imy);
+    pcrit = 0.25; amcrit = NaN;
+    masku = find_mask(ipresfull,pcrit,imx,imy);
     maskp = masku;
 
     % AManom = -1 * (ipres-f0*AM);
@@ -415,7 +417,8 @@ function [] = bottom_torque(runs)
     % end
 
     uarea = integrate(xvec, yvec, masku)';
-    plot(uarea); %parea = integrate(xvec, yvec, maskp)';
+    parea = integrate(xvec, yvec, maskp)';
+    plot(uarea);
 
     %iU = cumtrapz(yvec, U, 2); % crude streamfunction estimate
     %iV = cumtrapz(xvec, V, 1); % crude streamfunction estimate
@@ -434,92 +437,49 @@ function [] = bottom_torque(runs)
     btrq = maskintegrate(xvec, yvec, ...
                      bsxfun(@times, pbot, slbot), maskp)';
 
+    tvec = runs.eddy.t(tind(1):dt:tind(2))*86400;
+    ndt = runs.eddy.turnover;
+    tvec = tvec./ndt;
+
     if flags.mom_budget
         figure; hold all
+        insertAnnotation([runs.name '.bottom_torque']);
         %plot(dvdtvec);
-        plot(duvdxvec + dv2dyvec);
-        plot(f0Uvec-dipdy);
-        plot(byUvec);
-        plot(btrq);
-        %plot(dipdy);
-        liney(0); linex(runs.traj.tind);
+        plot(tvec, duvdxvec + dv2dyvec);
+        plot(tvec, f0Uvec-dipdy);
+        plot(tvec, byUvec);
+        plot(tvec, btrq);
+        %plot(tvec, dipdy);
+        liney(0); linex(tvec(runs.traj.tind));
+        xlim([0.5 max(xlim)]);
         legend('d/dx(uv) + d/dy(v^2)', 'f_0U + d/dy(\int P)', '\beta y U', ...
                'dH/dy p_{bot}');
+        ylabel('m^2/s^2');
+        xlabel('Time / Turnover time');
+        beautify;
     end
-    % d/dx ∫P ~ d/dy ∫P ~ 1e3
-    %dipdx = avg1(maskp,1) .* bsxfun(@rdivide, -diff(ipres,1,1), diff(xvec));
-    %dipresdx(tsave) = integrate(avg1(xvec), yvec, dipdx);
-
-    posmask = bsxfun(@times, ~maskp .* (pbot > 0), (slbot > 0));
-    ppos = bsxfun(@times, pbot .* posmask, slbot);
-    btrqpos = integrate(xvec, yvec, ppos)./integrate(xvec, yvec, posmask);
-
-    if ~flags.mom_budget
-        f0u = integrate(xvec, avg1(yvec), ...
-                        f0 .* bsxfun(@rdivide, diff(AM,1,2), diff(yvec)) ...
-                        .* avg1(masku,2))./uarea;
-
-        f0v = integrate(avg1(xvec), yvec, ...
-                        f0 .* bsxfun(@rdivide, diff(AM,1,1), diff(xvec)) ...
-                        .* avg1(masku,1))./uarea;
-    end
-
-    % β∫∫ψ
-    byu = integrate(xvec, yvec, beta .* AM .* masku)./uarea;
-
-    % just do β ∫∫ y ψ_y
-    bypy = -1 * beta * integrate(xvec, avg1(yvec), ....
-                            bsxfun(@times, ...
-                                   bsxfun(@rdivide, diff(AM,1,2), ...
-                                          diff(yvec)), avg1(yvec)) ...
-                                 .* (avg1(masku,2)>0))./uarea;
-
-    % β∫(yψ)_perimeter dx - WRONG need to take sign of curve into account
-    for tt=1:size(masku,3)
-        maskperim = bwmorph(masku(:,:,tt), 'remove');
-        byperim = bsxfun(@times, beta * AM(:,:,tt) .* maskperim, yvec);
-        byp(tt) = -1 * sum(byperim(:).*1000)./uarea(tt);
-    end
-
-    %%%%%%%%%% plots
-    nsmooth = runs.eddy.turnover./mean(diff(runs.time));
-    figure; maximize(); pause(0.2);
-    insertAnnotation([runs.name '.bottom_torque']);
-    hold all
-    plot(smooth(byu, nsmooth));
-    plot(smooth(btrq, nsmooth));
-    %plot(abs(runs.angmom.sym_betatrq)./(pi*runs.eddy.Lfit.^2));
-    plot(smooth(f0u, nsmooth)); %plot(f0v); %plot(dipresdy'./parea(1:end-1,:));
-    legend('\beta yu', 'p_{bot}', 'f_0 u', 'f_0 v');
-    linex(runs.traj.tind); liney(0);
-    ylim([-0.5 1]*max(byu(:)));
-    title([runs.name ' |  subtract\_mean = ' num2str(flags.subtract_mean) ...
-          ' | subtract\_edge = ' num2str(flags.subtract_edge)]);
-    beautify;
-
-    export_fig('-painters', ['images/angmom-' runs.name '-2.png']);
 
     %%%%%%%%% Summarize
-    save([runs.dir '/pbot.mat'], 'pbot', 'slbot', 'masku', 'maskp', ...
-         'AM', 'ipres', 'xvec', 'yvec');
 
     bottom.uarea = uarea;
     bottom.parea = parea;
-    bottom.f0u = f0u;
-    bottom.byu = byu;
-    bottom.dipresdy = dipresdy./parea(1:end-1)';
+    bottom.f0u = f0Uvec;
+    bottom.byu = byUvec;
+    bottom.dipdy = dipdy;
     bottom.btrq = btrq;
+    bottom.duvdx = duvdxvec;
+    bottom.dv2dy = dv2dyvec;
+    bottom.dvdt = dvdtvec;
     bottom.pcrit = pcrit;
     bottom.amcrit = amcrit;
-    bottom.time = runs.eddy.t(tind(1):dt:tind(2))*86400;
-    bottom.maskstr = maskstr;
+    bottom.time = tvec .* ndt;
     bottom.flags = flags;
 
     bottom.comment = ['(pressure, angmom) = volume integrated ' ...
                       'pressure, angular momentum | btrq = slope ' ...
                       '* pressure | byu = beta .* angmom'];
 
-    bottom.hash = githash([mfilename('fullpath') '.m']);
+    bottom.hash = hash;
 
     runs.bottom = bottom;
     save([runs.dir '/bottom.mat'], 'bottom', '-v7.3');
@@ -534,7 +494,7 @@ function [] = bottom_torque(runs)
         %var = bsxfun(@times, bsxfun(@minus, pbot, mean(pbot,1)), slbot);
         % var = AM .* (runs.eddsurf(imnx:imxx,imny:imxy,:) >
         % runs.eddy_thresh);
-        var = bsxfun(@times, pbot, slbot);
+        var = bsxfun(@times, pbot .* maskp, slbot);
         %var = ipres - f0 .* AM;
         %var = bsxfun(@minus, var, mean(var,1));
         %maskvar = find_mask(-1*var, 0.1, imx, imy);
