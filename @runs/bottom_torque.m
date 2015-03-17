@@ -402,19 +402,86 @@ function [] = bottom_torque(runs)
         end
     end
 
+    keyboard;
 
-    btrq = integrate(xvec, yvec, ...
-                     bsxfun(@times, pbot .* maskp, slbot))./parea;
+    masku = find_mask(ipresfull,0.25,imx,imy);
+    maskp = masku;
 
-    f0u = integrate(xvec, avg1(yvec), ...
-                    f0 .* bsxfun(@rdivide, diff(AM,1,2), diff(yvec)) ...
-                    .* avg1(masku,2))./uarea;
+    % AManom = -1 * (ipres-f0*AM);
+    % amcrit = 0.1*max(max(AManom(:,:,1)));
+    % mask2 = find_mask(AManom, 0.2,imx,imy);
+    % masku = mask2; maskp = mask2;
 
-    f0v = integrate(avg1(xvec), yvec, ...
-                    f0 .* bsxfun(@rdivide, diff(AM,1,1), diff(xvec)) ...
-                    .* avg1(masku,1))./uarea;
+    % if flags.mom_budget
+    %     maskp = masku;
+    % end
 
+    uarea = integrate(xvec, yvec, masku)';
+    plot(uarea); %parea = integrate(xvec, yvec, maskp)';
+
+    %iU = cumtrapz(yvec, U, 2); % crude streamfunction estimate
+    %iV = cumtrapz(xvec, V, 1); % crude streamfunction estimate
+
+    if flags.mom_budget
+        dvdtvec = maskintegrate(xvec, yvec, dvdt, (avg1(masku,3)>0))';
+        duvdxvec = maskintegrate(avg1(xvec), yvec, duvdx, (avg1(masku,1)>0))';
+        dv2dyvec = maskintegrate(xvec, avg1(yvec), dv2dy, (avg1(masku,2)>0))';
+        f0Uvec = maskintegrate(xvec, yvec, f0U, masku)';
+        byUvec = maskintegrate(xvec, yvec, byU, masku)';
+    end
+
+    dipdy = maskintegrate(xvec, avg1(yvec), ...
+                      bsxfun(@rdivide, -diff(ipres,1,2), diff(yvec)), ...
+                      (avg1(maskp,2) > 0))';
+    btrq = maskintegrate(xvec, yvec, ...
+                     bsxfun(@times, pbot, slbot), maskp)';
+
+    if flags.mom_budget
+        figure; hold all
+        %plot(dvdtvec);
+        plot(duvdxvec + dv2dyvec);
+        plot(f0Uvec-dipdy);
+        plot(byUvec);
+        plot(btrq);
+        %plot(dipdy);
+        liney(0); linex(runs.traj.tind);
+        legend('d/dx(uv) + d/dy(v^2)', 'f_0U + d/dy(\int P)', '\beta y U', ...
+               'dH/dy p_{bot}');
+    end
+    % d/dx ∫P ~ d/dy ∫P ~ 1e3
+    %dipdx = avg1(maskp,1) .* bsxfun(@rdivide, -diff(ipres,1,1), diff(xvec));
+    %dipresdx(tsave) = integrate(avg1(xvec), yvec, dipdx);
+
+    posmask = bsxfun(@times, ~maskp .* (pbot > 0), (slbot > 0));
+    ppos = bsxfun(@times, pbot .* posmask, slbot);
+    btrqpos = integrate(xvec, yvec, ppos)./integrate(xvec, yvec, posmask);
+
+    if ~flags.mom_budget
+        f0u = integrate(xvec, avg1(yvec), ...
+                        f0 .* bsxfun(@rdivide, diff(AM,1,2), diff(yvec)) ...
+                        .* avg1(masku,2))./uarea;
+
+        f0v = integrate(avg1(xvec), yvec, ...
+                        f0 .* bsxfun(@rdivide, diff(AM,1,1), diff(xvec)) ...
+                        .* avg1(masku,1))./uarea;
+    end
+
+    % β∫∫ψ
     byu = integrate(xvec, yvec, beta .* AM .* masku)./uarea;
+
+    % just do β ∫∫ y ψ_y
+    bypy = -1 * beta * integrate(xvec, avg1(yvec), ....
+                            bsxfun(@times, ...
+                                   bsxfun(@rdivide, diff(AM,1,2), ...
+                                          diff(yvec)), avg1(yvec)) ...
+                                 .* (avg1(masku,2)>0))./uarea;
+
+    % β∫(yψ)_perimeter dx - WRONG need to take sign of curve into account
+    for tt=1:size(masku,3)
+        maskperim = bwmorph(masku(:,:,tt), 'remove');
+        byperim = bsxfun(@times, beta * AM(:,:,tt) .* maskperim, yvec);
+        byp(tt) = -1 * sum(byperim(:).*1000)./uarea(tt);
+    end
 
     %%%%%%%%%% plots
     nsmooth = runs.eddy.turnover./mean(diff(runs.time));
