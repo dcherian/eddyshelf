@@ -960,3 +960,60 @@ end
     % dprsgrd = ipresgrd + psl + geey(:,:,end) - avg1(Vprsgrd,2);
     % %figure; animate(Vprsgrd); clim = caxis;
     % figure; animate(dprsgrd, 'contour');
+    % d/dx ∫P ~ d/dy ∫P ~ 1e3
+    %dipdx = avg1(maskp,1) .* bsxfun(@rdivide, -diff(ipres,1,1), diff(xvec));
+    %dipresdx(tsave) = integrate(avg1(xvec), yvec, dipdx);
+
+    % posmask = bsxfun(@times, ~maskp .* (pbot > 0), (slbot > 0));
+    % ppos = bsxfun(@times, pbot .* posmask, slbot);
+    % btrqpos = integrate(xvec, yvec, ppos)./integrate(xvec, yvec, posmask);
+
+    % if ~flags.mom_budget
+    %     f0u = integrate(xvec, avg1(yvec), ...
+    %                     f0 .* bsxfun(@rdivide, diff(AM,1,2), diff(yvec)) ...
+    %                     .* avg1(masku,2))./uarea;
+
+    %     f0v = integrate(avg1(xvec), yvec, ...
+    %                     f0 .* bsxfun(@rdivide, diff(AM,1,1), diff(xvec)) ...
+    %                     .* avg1(masku,1))./uarea;
+    % end
+
+    % % β∫∫ψ
+    % byu = integrate(xvec, yvec, beta .* AM .* masku)./uarea;
+
+    % % just do β ∫∫ y ψ_y
+    % bypy = -1 * beta * integrate(xvec, avg1(yvec), ....
+    %                         bsxfun(@times, ...
+    %                                bsxfun(@rdivide, diff(AM,1,2), ...
+    %                                       diff(yvec)), avg1(yvec)) ...
+    %                              .* (avg1(masku,2)>0))./uarea;
+
+    % % β∫(yψ)_perimeter dx - WRONG need to take sign of curve into account
+    % for tt=1:size(masku,3)
+    %     maskperim = bwmorph(masku(:,:,tt), 'remove');
+    %     byperim = bsxfun(@times, beta * AM(:,:,tt) .* maskperim, yvec);
+    %     byp(tt) = -1 * sum(byperim(:).*1000)./uarea(tt);
+    % end
+
+    % %%%%%%%%%% plots
+    % nsmooth = runs.eddy.turnover./mean(diff(runs.time));
+    % figure; maximize(); pause(0.2);
+    % insertAnnotation([runs.name '.bottom_torque']);
+    % hold all
+    % plot(smooth(byUvec, nsmooth));
+    % plot(smooth(btrq, nsmooth));
+    % %plot(abs(runs.angmom.sym_betatrq)./(pi*runs.eddy.Lfit.^2));
+    % plot(smooth(f0u, nsmooth)); %plot(f0v); %plot(dipdy'./parea(1:end-1,:));
+    % TE = (runs.eddy.PE(:,1) + runs.eddy.KE(:,1))./abs(runs.eddy.vol(:,1));
+    % dEdt = smooth(bsxfun(@rdivide, diff(TE), diff(runs.time')), 3*nsmooth);
+    % plot(10^(orderofmagn(btrq)-orderofmagn(dEdt)-1).* dEdt);
+    % legend('\beta yu', 'p_{bot}', 'f_0 u', 'dE/dt');
+    % linex(runs.traj.tind); liney(0);
+    % %    ylim([-0.5 1]*max(byu(:)));
+    % title([runs.name ' |  subtract\_mean = ' num2str(flags.subtract_mean) ...
+    %       ' | subtract\_edge = ' num2str(flags.subtract_edge)]);
+    % beautify;
+
+    %export_fig('-painters', ['images/angmom-' runs.name '-2.png']);
+    %save([runs.dir '/pbot.mat'], 'pbot', 'slbot', 'masku', 'maskp', ...
+    %     'AM', 'ipres', 'xvec', 'yvec');
