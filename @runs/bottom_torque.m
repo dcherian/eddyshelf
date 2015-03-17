@@ -3,7 +3,7 @@ function [] = bottom_torque(runs)
     ticstart = tic;
     tindices = [1 length(runs.eddy.t)];
 
-    hisname = [runs.dir '/ocean_his.nc.new02'];
+    hisname = runs.dir; %[runs.dir '/ocean_his.nc.new02'];
 
     pcrit = 0.1;
     amcrit = 0.1;
@@ -18,15 +18,13 @@ function [] = bottom_torque(runs)
     % deprecated
     flags.use_prsgrd = 0;
     flags.calc_angmom = 0;
-    flags.use_davg = 0;
-    flags.mom_budget = 0;
     flags.use_thermal_wind = 0;
     % use some mask to determine edges of domain
     % that I want to analyze?
     flags.use_mask = 0;
     flags.use_masked = 0;
 
-    slab = 10; % 5 at a time
+    slab = 20; % 5 at a time
     [iend,tind,dt,nt,~] = roms_tindices(tindices, slab, ...
                                         length(runs.eddy.t));
 
@@ -526,32 +524,37 @@ function [] = bottom_torque(runs)
     runs.bottom = bottom;
     save([runs.dir '/bottom.mat'], 'bottom', '-v7.3');
 
-    %keyboard;
-
-    %keyboard;
-
     animation = 1;
     if animation
+        figure;
         %umask = AM .* masku;
         %pmask = pbot .* maskp;
         %var = avg1(runs.ubot(volumeu{1,2}:volumeu{1,3}, ...
         %                volumeu{2,2}:volumeu{2,3}, :),1);
-        var = bsxfun(@times, pbot .* maskp, slbot);
-        t0 = 20;
+        %var = bsxfun(@times, bsxfun(@minus, pbot, mean(pbot,1)), slbot);
+        % var = AM .* (runs.eddsurf(imnx:imxx,imny:imxy,:) >
+        % runs.eddy_thresh);
+        var = bsxfun(@times, pbot, slbot);
+        %var = ipres - f0 .* AM;
+        %var = bsxfun(@minus, var, mean(var,1));
+        %maskvar = find_mask(-1*var, 0.1, imx, imy);
+        t0 = 10;
         tt = t0;
         hp = pcolor(xvec, yvec, double(var(:,:,tt)'));
+        %caxis([-1 1]*1e-5);
         cbfreeze;center_colorbar; shading flat; hold all;
         plot(runs.eddy.mx, runs.eddy.my, 'k');
         hc = plot(runs.eddy.mx(tt), runs.eddy.my(tt), 'k*');
         plot(runs.eddy.mx, runs.eddy.my - runs.eddy.vor.dia/2, 'k');
         liney(runs.bathy.xsb);
-        for tt=t0+1:4:size(var,3)
+        for tt=t0+1:6:size(var,3)
             set(hp,'CData', double(var(:,:,tt)'));
             set(hc,'XData', runs.eddy.mx(tt), ...
                    'YData', runs.eddy.my(tt));
             pause(0.5);
         end
     end
+
     toc(ticstart);
 
 end
