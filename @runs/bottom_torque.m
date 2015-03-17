@@ -561,7 +561,42 @@ function [out] = integrate(xvec, yvec, in)
                         trapz(xvec, double(in), 1), 2));
 end
 
+function [out] = maskintegrate(xvec, yvec, in, mask)
+    area = integrate(xvec, yvec, mask);
+    out = integrate(xvec, yvec, in.*mask)./area;
+end
+
 function [out] = find_mask(in,crit,imx,imy)
+
+    out = logical(zeros(size(in)));
+    for kk=1:size(in,3)
+        masktemp = in(:,:,kk) > (crit .* ...
+                                 max(max(in(:,:,kk),[],1),[],2));
+
+        % first find simply connected regions
+        regions = bwconncomp(masktemp, 8);
+
+        clear masktemp;
+
+        for rr = 1:regions.NumObjects
+            maskreg = logical(zeros(regions.ImageSize));
+            maskreg(regions.PixelIdxList{rr}) = 1;
+
+            % center location
+            if maskreg(imx(kk), imy(kk)) == 1
+                out(:,:,kk) = maskreg;
+                break;
+            end
+        end
+    end
+end
+
+function [out] = find_mask_const(in,crit,imx,imy)
+
+    if crit < 1
+        crit = crit .* max(max(in(:,:,1)))
+    end
+    disp(crit);
 
     out = logical(zeros(size(in)));
     for kk=1:size(in,3)
