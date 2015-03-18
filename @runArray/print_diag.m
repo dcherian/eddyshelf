@@ -324,13 +324,12 @@ function [diags, plotx] = print_diag(runArray, name)
                 xvec = linspace(limx(1), limx(2), 100);
 
                 [y0, x1, x2, p] = fit_btrq(plotx, diags)
-                yvec = y0./(x1 + x2.*xvec.^p);
-                plot(xvec, yvec, 'k');
-                ylim([1 2]);
-
-                paramstr = ['$$\frac{' num2str(y0,2) '}{(' ...
+                paramstr1 = ['$$\frac{' num2str(y0,2) '}{(' ...
                             num2str(x1,2) ' + ' num2str(x2,2) ...
                             ' (\beta / \beta_t)^{' num2str(p,2) '})}$$'];
+                yvec = y0./(x1 + x2.*xvec.^p);
+                hplt1 = plot(xvec, yvec, 'k');
+                ylim([1 2]);
 
                 % plot residuals
                 % figure; hold all;
@@ -341,21 +340,38 @@ function [diags, plotx] = print_diag(runArray, name)
                 % 45° plot
                 subplot(122);
                 insertAnnotation(annostr);
-                plot(diags, y0./(x1+x2*plotx.^p), 'k*');
+                param1 = y0./(x1+x2*plotx.^p);
+                rmse1 = sum(diags-param1).^2;
+                plot(diags, param1, 'k*');
                 line45;
                 xlabel('Diagnostic $$\frac{H}{L_z^0}$$', 'interpreter', ...
                        'latex');
-                ylabel([ 'Parameterization = ' paramstr], 'interpreter', ...
+                ylabel('Parameterization', 'interpreter', ...
                        'latex');
                 beautify;
                 set(gcf, 'renderer', 'zbuffer');
 
                 %title(paramstr, 'interpreter', 'latex');
 
-                %[y0, x] = exp_fit(plotx, diags);
-                %yvec = y0.*exp(-(xvec/x));
-                %plot(xvec, yvec, 'k');
-                %ylim([1 2]);
+                [y0, x, y1] = exp_fit(plotx, diags);
+                yvec = y1+ y0.*exp(-(xvec/x));
+                param2 = y1 + y0 * exp(-plotx./x);
+                rmse2 = sum(diags-param2).^2;
+                paramstr2 = ['$$' num2str(y1,2) ' + ' ...
+                             num2str(y0,2) ' e^{(\beta / \beta_t)/' ...
+                             num2str(x,2) '}$$'];
+                subplot(121);
+                hplt2 = plot(xvec, yvec, 'b');
+                subplot(122);
+                plot(diags, param2, 'b*');
+
+                hleg = legend([hplt1, hplt2], ...
+                              sprintf('%s ; rmse = %.2e', paramstr1, rmse1), ...
+                              sprintf('%s ; rmse = %.2e', paramstr2, rmse2));
+                hleg.Interpreter = 'Latex';
+
+                disp(['rmse (1/1+x) = ' num2str(rmse1)]);
+                disp(['rmse (exp) = ' num2str(rmse2)]);
             end
 
             % there is an older version that didn't really work
