@@ -9,7 +9,10 @@ function [diags, plotx] = print_diag(runArray, name)
 
     if plots
         hfig = figure;
+        % add function call as annotation
+        insertAnnotation(['runArray.print_diag(' name ')']);
         hold all;
+        hax = gca; % default axes
         name_points = 1; % name points by default
         line_45 = 0; %no 45° line by default
         labx = ' '; laby = ' ';
@@ -308,9 +311,10 @@ function [diags, plotx] = print_diag(runArray, name)
             %diags(ff) = Y./(run.rrdeep);
             %plotx(ff) = Ro./Sa;
             plotx(ff) = beta*Lz(1)/alpha/f0;
-            name_points = 1;
-            laby = 'H_{cen}/L_z^0';
-            labx = '\beta L_z^0 / (\alpha f_0)';
+            name_points = 0;
+            laby = '$$\frac{H}{L_z^0}$$';
+            labx = '$$\beta/\beta_t$$';
+            if ff == 1, hax = subplot(121); hold all; end
 
             % parameterization
             if ff == length(runArray.filter)
@@ -333,15 +337,19 @@ function [diags, plotx] = print_diag(runArray, name)
                 % plot(plotx, diags - y0./(x1+x2.*plotx.^p), '*');
                 % ylabel('Residual'); xlabel('\beta/\beta_t');
                 % liney(0);
-                
+
                 % 45° plot
-                figure;
+                subplot(122);
                 insertAnnotation(annostr);
                 plot(diags, y0./(x1+x2*plotx.^p), 'k*');
                 line45;
                 xlabel('Diagnostic $$\frac{H}{L_z^0}$$', 'interpreter', ...
                        'latex');
-                ylabel([ 'Parameterization = ' paramstr], 'interpreter', 'latex');
+                ylabel([ 'Parameterization = ' paramstr], 'interpreter', ...
+                       'latex');
+                beautify;
+                set(gcf, 'renderer', 'zbuffer');
+
                 %title(paramstr, 'interpreter', 'latex');
 
                 %[y0, x] = exp_fit(plotx, diags);
@@ -595,17 +603,24 @@ function [diags, plotx] = print_diag(runArray, name)
 
         if plots
             figure(hfig);
+            axes(hax);
             plot(plotx(ff), diags(ff), 'k*');
 
-            % add function call as annotation
-            insertAnnotation(['runArray.print_diag(' name ')']);
             % add run names
             if name_points
                 text(plotx(ff), diags(ff), runName, 'FontSize', ...
                      12, 'Rotation', 90);
             end
-            xlabel(labx);
-            ylabel(laby);
+            if strfind(labx, '$$')
+                xlabel(labx, 'interpreter', 'latex');
+            else
+                xlabel(labx);
+            end
+            if strfind(laby, '$$')
+                ylabel(laby, 'interpreter', 'latex')
+            else
+                ylabel(laby);
+            end
             title(name);
         end
 
@@ -620,7 +635,7 @@ function [diags, plotx] = print_diag(runArray, name)
     if plots
         figure(hfig)
         beautify([18 18 20]);
-
+        set(gcf, 'renderer', 'zbuffer');
         if line_45, line45; end
     end
 
