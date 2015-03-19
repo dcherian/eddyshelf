@@ -570,16 +570,33 @@ methods
 
     function [] = plot_test1(runs)
 
+        if isempty(runs.zeta), runs.read_zeta; end
+
+        imx = vecfind(runs.rgrid.x_rho(1,:), runs.eddy.mx);
+        for tt=1:size(runs.zeta,3)
+            zetamat(:,tt) = runs.zeta(imx(tt),:,tt);
+        end
+        zy = (diff(zetamat,1,1));
+        animate(zetamat'); center_colorbar;
+        linex(runs.traj.tind);
+
         figure;
-        f0 = runs.params.phys.f0;
-        rho0 = runs.params.phys.rho0;
-        g = runs.params.phys.g;
-        alpha = runs.bathy.sl_slope;
-        U = runs.eddy.V;
+        plot(max(zy,[],1)); hold all;
+        plot(-1*min(zy,[],1));
+        linex(runs.traj.tind);
+    end
 
-        rhobar = runs.eddy.mass./runs.eddy.vol - 1000;
+    function [] = plot_btrq(runs)
 
-        plot(f0/alpha/g*rho0 * bsxfun(@times, rhobar, U'));
+        t0 = 5;
+
+        figure;
+        hold all;
+        plot(runs.ndtime(t0:end), runs.bottom.byu(t0:end));
+        plot(runs.ndtime(t0:end), runs.bottom.btrq(t0:end));
+        title(runs.name);
+        legend('\beta \psi', 'dH/dy * p_{bot}');
+        liney(0); linex(runs.ndtime(runs.traj.tind-t0));
     end
 
     function [] = plot_velprofiles(runs)
@@ -615,46 +632,47 @@ methods
 
         beta = runs.params.phys.beta;
         dt = diff(runs.eddy.t*86400);
-        TE = runs.eddy.KE + runs.eddy.PE;
-        dEdt = diff(TE)./dt;
-        dhdt = diff(runs.eddy.Lgauss)./dt;
+        TE = (runs.eddy.PE + runs.eddy.KE)./abs(runs.eddy.mass);
+        dEdt = bsxfun(@rdivide, diff(TE), dt');
+        dhdt = bsxfun(@rdivide, diff(runs.eddy.Lgauss), dt');
 
         % velocity
-        v = avg1(runs.eddy.cvy);
+        v = avg1(runs.eddy.mvy);
 
         tvec = avg1(runs.eddy.t*86400)./runs.eddy.turnover;
 
         nanmask = ~(dt == 0) &  ~isnan(v);
 
-
         figure;
         plot(tvec, avg1(TE));
 
         % mask out
-        dEdt = dEdt(nanmask);
+        dEdt = dEdt(nanmask,:);
         dhdt = dhdt(nanmask);
         tvec = tvec(nanmask);
         v = v(nanmask);
 
-        nsmooth = 3; tind = 1:ceil(50*runs.eddy.turnover/86400);
+        nsmooth = 20*dt(1)/runs.eddy.turnover;
+        tind = 1:ceil(50*runs.eddy.turnover/86400);
+
+        for ii=1:size(dEdt,2)
+            dEdtsmth(:,ii) = smooth(dEdt(:,ii), nsmooth);
+        end
 
         figure; insertAnnotation(annostr);
-        plot(tvec, smooth(dEdt./min(dEdt), nsmooth));
+        plot(tvec, -bsxfun(@rdivide, dEdtsmth(:,1), min(dEdtsmth(:,1))));
         hold all
-        plot(tvec, v./min(v));
+        plot(tvec, -v./min(v));
         %plot(tvec, smooth(dhdt./dhdt(1), 5));
+        legend('dE/dt','cvy','dh/dt');
         title(runs.name); liney(0);
         xlabel('Time / turnover time');
-        legend('dE/dt','cvy','dh/dt');
         beautify;
 
         %stop
 
         param = (runs.eddy.Lgauss)./abs(runs.eddy.hcen' - runs.eddy.Lgauss) ...
                 .* runs.params.phys.beta .* runs.eddy.V;
-
-        figure;
-        plot(param);
 
         figure; insertAnnotation(annostr);
         hold all;
@@ -5335,7 +5353,7 @@ methods
     function [hplot] = plot_rho_contour(runs,plottype,tt)
 
         mask = ((runs.rhosurf(2:end-1,2:end-1,tt) - runs.rbacksurf) < ...
-               runs.eddy.drhothresh(1)) .* runs.eddy.vormask(:,:,tt);
+               runs.eddy.drhothresh(1)); % .* runs.eddy.vormask(:,:,tt);
         hold on;
 
         [~,hplot] = contour(runs.eddy.xr/1000,runs.eddy.yr/1000, ...
@@ -5343,7 +5361,7 @@ methods
     end
     function update_rho_contour(runs,handle,tt)
         mask = ((runs.rhosurf(2:end-1,2:end-1,tt) - runs.rbacksurf) < ...
-               runs.eddy.drhothresh(1)) .* runs.eddy.vormask(:,:,tt);
+               runs.eddy.drhothresh(1)); % .* runs.eddy.vormask(:,:,tt);
 
         for ii=1:length(handle)
             try
