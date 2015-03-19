@@ -306,15 +306,16 @@ function [diags, plotx] = print_diag(runArray, name)
             %plot(ndtime(tind), run.eddy.hcen(tind), 'k*');
             %%liney(yscl); linex([1 2 3]*tscl);
 
-            diags(ff) = H./Lz(1);
+            t0 = 1;
+            diags(ff) = 1 - erf(H./Lz(t0));
             %plotx(ff) = (beta*Lx)/alpha * V(1)/(Tamp*TCOEF);
             %diags(ff) = Y./(run.rrdeep);
             %plotx(ff) = Ro./Sa;
-            plotx(ff) = beta*Lz(1)/alpha/f0;
-            name_points = 0;
-            laby = '$$\frac{H}{L_z^0}$$';
+            plotx(ff) = beta/(alpha*f0/Lz(t0));
+            name_points = 1; line_45 = 0;
+            laby = '$$1 - \mathrm{erf}(\frac{H}{L_z^0})$$';
             labx = '$$\beta/\beta_t$$';
-            if ff == 1, hax = subplot(121); hold all; end
+            %if ff == 1, hax = subplot(121); hold all; end
 
             % parameterization
             if ff == length(runArray.filter)
@@ -323,55 +324,62 @@ function [diags, plotx] = print_diag(runArray, name)
 
                 xvec = linspace(limx(1), limx(2), 100);
 
-                [y0, x1, x2, p] = fit_btrq(plotx, diags)
-                paramstr1 = ['$$\frac{' num2str(y0,2) '}{(' ...
-                            num2str(x1,2) ' + ' num2str(x2,2) ...
-                            ' (\beta / \beta_t)^{' num2str(p,2) '})}$$'];
-                yvec = y0./(x1 + x2.*xvec.^p);
-                hplt1 = plot(xvec, yvec, 'k');
-                ylim([1 2]);
+                c = plotx'\diags';
+                hplt = plot(xvec, c*xvec);
+                hleg = legend(hplt, ['$$1 - \mathrm{erf}(\frac{H}{L_z^0}) ' ...
+                                    '= ' num2str(c,2) ' \beta/\' ...
+                                    'beta_t $$'], 'Location', 'SouthEast');
+                set(hleg, 'interpreter', 'latex');
+                break;
+                % [y0, x1, x2, p] = fit_btrq(plotx, diags)
+                % paramstr1 = ['$$\frac{' num2str(y0,2) '}{(' ...
+                %             num2str(x1,2) ' + ' num2str(x2,2) ...
+                %             ' (\beta / \beta_t)^{' num2str(p,2) '})}$$'];
+                % yvec = y0./(x1 + x2.*xvec.^p);
+                % hplt1 = plot(xvec, yvec, 'k');
+                % ylim([1 2]);
 
-                % plot residuals
-                % figure; hold all;
-                % plot(plotx, diags - y0./(x1+x2.*plotx.^p), '*');
-                % ylabel('Residual'); xlabel('\beta/\beta_t');
-                % liney(0);
+                % % plot residuals
+                % % figure; hold all;
+                % % plot(plotx, diags - y0./(x1+x2.*plotx.^p), '*');
+                % % ylabel('Residual'); xlabel('\beta/\beta_t');
+                % % liney(0);
 
                 % 45° plot
                 subplot(122);
                 insertAnnotation(annostr);
-                param1 = y0./(x1+x2*plotx.^p);
+                param1 = c*plotx;
                 rmse1 = sum(diags-param1).^2;
                 plot(diags, param1, 'k*');
                 line45;
-                xlabel('Diagnostic $$\frac{H}{L_z^0}$$', 'interpreter', ...
-                       'latex');
+                xlabel(['Diagnostic $$1 - \mathrm{erf}(\frac{H}{L_z^0}) ' ...
+                        '$$'], 'interpreter', 'latex');
                 ylabel('Parameterization', 'interpreter', ...
                        'latex');
                 beautify;
                 set(gcf, 'renderer', 'zbuffer');
 
-                %title(paramstr, 'interpreter', 'latex');
+                % %title(paramstr, 'interpreter', 'latex');
 
-                [y0, x, y1] = exp_fit(plotx, diags);
-                yvec = y1+ y0.*exp(-(xvec/x));
-                param2 = y1 + y0 * exp(-plotx./x);
-                rmse2 = sum(diags-param2).^2;
-                paramstr2 = ['$$' num2str(y1,2) ' + ' ...
-                             num2str(y0,2) ' e^{(\beta / \beta_t)/' ...
-                             num2str(x,2) '}$$'];
-                subplot(121);
-                hplt2 = plot(xvec, yvec, 'b');
-                subplot(122);
-                plot(diags, param2, 'b*');
+                % [y0, x, y1] = exp_fit(plotx, diags);
+                % yvec = y1+ y0.*exp(-(xvec/x));
+                % param2 = y1 + y0 * exp(-plotx./x);
+                % rmse2 = sum(diags-param2).^2;
+                % paramstr2 = ['$$' num2str(y1,2) ' + ' ...
+                %              num2str(y0,2) ' e^{(\beta / \beta_t)/' ...
+                %              num2str(x,2) '}$$'];
+                % subplot(121);
+                % hplt2 = plot(xvec, yvec, 'b');
+                % subplot(122);
+                % plot(diags, param2, 'b*');
 
-                hleg = legend([hplt1, hplt2], ...
-                              sprintf('%s ; rmse = %.2e', paramstr1, rmse1), ...
-                              sprintf('%s ; rmse = %.2e', paramstr2, rmse2));
-                hleg.Interpreter = 'Latex';
+                % hleg = legend([hplt1, hplt2], ...
+                %               sprintf('%s ; rmse = %.2e', paramstr1, rmse1), ...
+                %               sprintf('%s ; rmse = %.2e', paramstr2, rmse2));
+                % hleg.Interpreter = 'Latex';
 
-                disp(['rmse (1/1+x) = ' num2str(rmse1)]);
-                disp(['rmse (exp) = ' num2str(rmse2)]);
+                % disp(['rmse (1/1+x) = ' num2str(rmse1)]);
+                % disp(['rmse (exp) = ' num2str(rmse2)]);
             end
 
             % there is an older version that didn't really work
