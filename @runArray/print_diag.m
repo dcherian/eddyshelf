@@ -355,6 +355,7 @@ function [diags, plotx] = print_diag(runArray, name)
                 c = P(1);
 
                 rmse = sqrt(mean((diags - c*plotx - P(2)).^2));
+
                 hplt = plot(xvec, c*xvec + P(2));
                 hleg = legend(hplt, ['$$1 - \mathrm{erf}(\frac{H}{L_z^0}) ' ...
                                     '= ' num2str(c,3) ' \beta/\' ...
