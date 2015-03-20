@@ -48,6 +48,7 @@ function [diags, plotx] = print_diag(runArray, name)
         xsb = run.bathy.xsb;
         xsl = run.bathy.xsl;
         Sa = run.bathy.S_sl;
+        beta_t = f0 * alpha./Lz(1);
         diagstr = [];
 
         %%%%% dummy
@@ -107,6 +108,24 @@ function [diags, plotx] = print_diag(runArray, name)
             % x,y axes labels
             labx = 'Parameterization';
             laby = 'max |cross-isobath velocity|';
+        end
+
+        %%%%% cross-shelf translation time scale
+        if strcmpi(name, 'timescale')
+            run.fit_traj;
+
+            vel = smooth(run.eddy.cvy, 20);
+
+            % stalling isobath
+            h0 = Lz(1) * erfinv(1 - beta/beta_t);
+            %figure;
+            %plot(vel);hold all
+            %plot(smooth(vel, 20));
+            diags(ff) = run.traj.tscl;
+            plotx(ff) = (hsl - h0)/alpha/V(1);
+            %name_points = 0;
+            %diags(ff) = -1 * min(vel)./run.eddy.V(1);
+            %plotx(ff) = run.params.nondim.eddy.Rh;
         end
 
         %%%%% slope parameter
@@ -171,7 +190,18 @@ function [diags, plotx] = print_diag(runArray, name)
             time =  run.eddy.t * 86400;
             ndtime = time ./ (run.eddy.vor.lmaj(1)./run.eddy.V(1));
 
-            vec = smooth(run.eddy.energy.intTE, 30);
+            try
+                if any(size(run.eddy.KE) == 1)
+                    TE = run.eddy.KE + run.eddy.PE;
+                else
+                    TE = run.eddy.KE(:,1) + run.eddy.PE(:,1);
+                end
+            catch ME
+                disp(run.name);
+                continue;
+            end
+
+            vec = smooth(TE, 30);
             [xmax, imax, xmin, imin] = extrema(vec);
 
             % find the first minima in the height time series
@@ -179,15 +209,9 @@ function [diags, plotx] = print_diag(runArray, name)
             imins = sort(imin, 'ascend');
             index = imins(find(imins > 30, 1, 'first'))
 
-            try
-                intTE = run.eddy.energy.intTE;
-            catch ME
-                intTE = run.eddy_energy_ideal;
-            end
-
             fig = 0;
             if fig
-                field = intTE; run.eddy.Lgauss;
+                field = run.eddy.Lgauss;
                 figure; plot(ndtime, field./field(1)); hold all
                 plot(ndtime, vec./vec(1));
                 linex(ndtime(index));
@@ -200,7 +224,7 @@ function [diags, plotx] = print_diag(runArray, name)
             dt = ndtime(index) - ndtime(1);
             dhdt = (run.eddy.Lgauss(1) - run.eddy.Lgauss(index))./dt;
 
-            dEdt = (intTE(1) - intTE(index))./intTE(1)./dt;
+            dEdt = (TE(1) - TE(index))./TE(1)./dt;
             diags(ff) = dEdt; dhdt;
 
             plotx(ff) = run.topowaves; labx = 'cg (m/s)';
