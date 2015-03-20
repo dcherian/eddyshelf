@@ -159,7 +159,7 @@ if ~flags.telescoping
     S.uniform = 1;
 
     dx0 = grid.dx0; dy0 = grid.dy0;
-    X = grid.X; Y = grid.Y;
+    X = dx0 .* S.Lm; Y = dy0 .* S.Mm;
     S.x_rho = repmat([-dx0/2:dx0:X+dx0/2]',[1 S.Mm+2]);
     S.y_rho = repmat(-dy0/2:dy0:Y+dy0/2 ,[S.Lm+2 1]);
 
@@ -1104,7 +1104,6 @@ if flags.eddy
                 nondim.eddy.Rovor,nondim.eddy.Bu,nondim.eddy.Bu_temp, ...
                 nondim.eddy.Ri,nondim.eddy.Rh, bathy.L_slope/eddy.R, ...
                 nondim.eddy.gamma);
-
 
         % calculate Ro using vorticity
         vor = avg1(diff(eddy.v(:,:,end),1,1)./diff(xrmat(:,:,end),1,1),2) - ...
