@@ -6,7 +6,7 @@ function [xx,yy,tind] = locate_resistance(runs)
     debug_plot = 0;
 
     % number of points to smooth over.
-    npts = (4*runs.eddy.turnover/86400);
+    npts = (6*runs.eddy.turnover/86400);
 
     % smooth velocity a lot!
     if runs.bathy.axis == 'y'
@@ -34,7 +34,7 @@ function [xx,yy,tind] = locate_resistance(runs)
     it = find_approx(ndtime, 60);
     [mn, imin] = min(vel(5:it));
 
-    vv = vel(imin:end) - mn * 1/2;
+    vv = vel(imin:end) - mn * 1/3;
     tind = find(vv > 0, 1, 'first');
     tind = tind + imin;
 
