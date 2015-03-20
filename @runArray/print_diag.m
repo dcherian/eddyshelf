@@ -314,7 +314,9 @@ function [diags, plotx] = print_diag(runArray, name)
                 H = run.eddy.hcen(tind); %run.traj.H;
                 Y = run.eddy.my(tind); %run.traj.Y;
             else
-                [~,~,tind] = run.locate_resistance(6,2/3);
+                nsmooth = 6;
+                factor = 1/3;
+                [~,~,tind] = run.locate_resistance(nsmooth, factor);
                 H = (run.eddy.hcen(tind));
                 Y = run.eddy.my(tind) - run.bathy.xsb; run.eddy.my(tind);
             end
@@ -341,7 +343,7 @@ function [diags, plotx] = print_diag(runArray, name)
             laby = '$$1 - \mathrm{erf}(\frac{H}{L_z^0})$$';
             labx = '$$\beta/\beta_t$$';
             titlestr = ['Water depth at which cross-isobath translation ' ...
-                        'velocity drops by (2/3)'];
+                        'velocity drops by ' num2str(1-factor,2)];
             %if ff == 1, hax = subplot(121); hold all; end
 
             % parameterization
