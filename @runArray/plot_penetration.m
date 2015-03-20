@@ -49,8 +49,8 @@ function [] = plot_penetration(runArray)
         if ~isempty(hfig1)
             figure(hfig1);
             subplot(2,1,1);
-            hgplt = plot(ndtime, (run.eddy.vor.ne - y0)./ynorm);
-            addlegend(hgplt, name);
+            hgplt1(ff) = plot(ndtime, (run.eddy.vor.ne - y0)./ynorm);
+            names{ff} = name;
 
             subplot(2,1,2);
             plot(ndtime, (run.eddy.vor.se - y0)./ynorm);
@@ -62,16 +62,16 @@ function [] = plot_penetration(runArray)
         y = (run.eddy.my - y0)/ynorm;
 
         % plot track
-        hgplt = plot(x, y);
-        addlegend(hgplt, name, 'NorthWest');
+        hgplt2(ff) = plot(x, y);
+        %addlegend(hgplt, name, 'NorthWest');
 
         % mark start of resistance
         [~,~,tind] = run.locate_resistance;
         plot(x(tind), y(tind), '.', ...
-             'Color', get(hgplt, 'Color'), 'Markersize', 22);
+             'Color', get(hgplt2(ff), 'Color'), 'Markersize', 22);
         run.fit_traj;
         plot(x(run.traj.tind), y(run.traj.tind), 'x', ...
-             'Color', get(hgplt, 'Color'), 'Markersize', 18);
+             'Color', get(hgplt2(ff), 'Color'), 'Markersize', 18);
 
          
         % mark timestamps
@@ -96,6 +96,7 @@ function [] = plot_penetration(runArray)
         figure(hfig1);
         subplot(2,1,1)
         ylabel('Northern edge - Y_{sb}');
+        legend(hgplt1, names);
         beautify(fontSize);
         subplot(2,1,2)
         ylabel('Southern edge - Y_{sb}');
@@ -133,10 +134,9 @@ function [] = plot_penetration(runArray)
     %axis image;
     %    ylim([-2 max(ylim)]);
 
+    hlegend = legend(hgplt2, names, 'Location', 'NorthWest', 'Box', ...
+                     'off');
     beautify(fontSize);
-
-    hlegend = legend;
-    set(hlegend, 'box', 'off');
 
     if ~isempty(ax2)
         axes(ax2)
