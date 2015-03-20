@@ -1,12 +1,14 @@
 % tanh fit to eddy.my or eddy.hcen
 % save output in runs.traj
-function [] = fit_traj(runs)
+function [] = fit_traj(runs, tcrit)
 
     debug = 0;
 
+    if ~exist('tcrit', 'var'), tcrit = 1; end
+
     tvec = runs.ndtime;
     % get unique timesteps
-    [ut,uind,~] = unique(tvec);
+    [ut,uind,~] = unique(tvec, 'stable');
     tvec = tvec(uind);
 
     use_my = 0;
@@ -54,7 +56,6 @@ function [] = fit_traj(runs)
 
     % sometimes T comes out as negative. not
     % sure why
-    tcrit = 1;
     tind = find_approx(tfit, tcrit*abs(T), 1);
 
     H = htraj(tind);
@@ -78,7 +79,8 @@ function [] = fit_traj(runs)
     end
     % y,t scales (corrected for earlier reference shift)
     yscl = y0 + yref;
-    tscl = tref + T;
+    % T is a timescale for the tanh. I can do corrections later.
+    tscl = T * runs.eddy.turnover;
 
     runs.traj.use_my = use_my;
     runs.traj.yscl = yscl;
@@ -89,6 +91,7 @@ function [] = fit_traj(runs)
     runs.traj.y1 = y1;
     runs.traj.H = H;
     runs.traj.Y = Y;
+    runs.traj.T = T;
     runs.traj.htraj = htraj;
     runs.traj.ytraj = ytraj;
     runs.traj.str = str;
