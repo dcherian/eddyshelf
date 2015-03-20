@@ -17,6 +17,7 @@ function [diags, plotx] = print_diag(runArray, name)
         line_45 = 0; %no 45° line by default
         labx = ' '; laby = ' ';
         plotx = [];
+        titlestr = name;
     end
 
     for ff=1:length(runArray.filter)
@@ -649,7 +650,7 @@ function [diags, plotx] = print_diag(runArray, name)
             else
                 ylabel(laby);
             end
-            title(name);
+            title(titlestr);
         end
 
         disp([run.name ' | ' name ' = ' diagstr ' | plotx ' ...
