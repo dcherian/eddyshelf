@@ -858,16 +858,18 @@ if flags.eddy
             if X-eddy.cx-xtra < eddy.buffer_sp
                 error('Eastern edge - eddy edge < buffer');
             end
-        case 'y'
-            if isnan(eddy.cx)
-                if ~flags.ubt_initial
-                    % add deformation radius buffer away from boundary
-                    % note there is no sponge at the inflow boundary
-                    eddy.cx = X-eddy.Ldef-xtra-eddy.buffer_sp; % center of eddy
-                else
-                    eddy.cx = eddy.buffer_sp + eddy.Ldef+xtra;
-                end
+      case 'y'
+        if isnan(eddy.cx)
+            if ~flags.ubt_initial
+                % add deformation radius buffer away from boundary
+                % note there is no sponge at the inflow boundary
+                eddy.cx = X-eddy.Ldef-xtra-eddy.buffer_sp; % center of eddy
+            else
+                eddy.cx = eddy.buffer_sp + eddy.Ldef + 2*xtra;
             end
+        end
+
+        if bathy.loc == 'l'
             if isnan(eddy.cy)
                 if flags.flat_bottom
                     eddy.cy = Y/5 + xtra;
@@ -888,6 +890,28 @@ if flags.eddy
             if Y-eddy.cy-xtra < eddy.buffer_sp
                 error('Northern edge - eddy edge < sponge buffer');
             end
+        else
+            if isnan(eddy.cy)
+                if flags.flat_bottom
+                    eddy.cy = Y/5 + xtra;
+                else
+                    if flags.eddy_in_deep_water == 0
+                        base = S.y_rho(1, find_approx(bathy.h(1,:), ...
+                                                      1.5*eddy.depth, ...
+                                                      1));
+                    else
+                        base = bathy.xsl;
+                    end
+
+                    eddy.cy = base - eddy.buffer-xtra; %597000;
+                end
+            end
+            fprintf('Distance from southern edge = %.2f km \n', ...
+                    (eddy.cy-xtra)/1000);
+            if eddy.cy-xtra < eddy.buffer_sp
+                error('Northern edge - eddy edge < sponge buffer');
+            end
+        end
     end
 
     % cylindrical co-ordinates
@@ -1043,7 +1067,7 @@ if flags.eddy
               avg1(diff(eddy.u(:,:,end),1,2)./diff(yrmat(:,:,end),1,2), 1);
 
         % get vorticity mask
-        vormask = vor < 0;
+        vormask = vor .* sign(eddy.tamp) <  0;
         % extract biggest region
         regions = bwconncomp(vormask, 8);
         nn = [];
