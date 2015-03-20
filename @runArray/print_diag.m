@@ -324,11 +324,15 @@ function [diags, plotx] = print_diag(runArray, name)
 
                 xvec = linspace(limx(1), limx(2), 100);
 
-                c = plotx'\diags';
-                hplt = plot(xvec, c*xvec);
+                P = polyfit(plotx, diags, 1);
+                c = P(1);
+
+                rmse = sqrt(sum((diags - c*plotx - P(2)).^2));
+                hplt = plot(xvec, c*xvec + P(2));
                 hleg = legend(hplt, ['$$1 - \mathrm{erf}(\frac{H}{L_z^0}) ' ...
-                                    '= ' num2str(c,2) ' \beta/\' ...
-                                    'beta_t $$'], 'Location', 'SouthEast');
+                                    '= ' num2str(c,3) ' \beta/\' ...
+                                    'beta_t + ' num2str(P(2),2) '$$ ; rmse = ' num2str(rmse,3)], ...
+                              'Location', 'SouthEast');
                 set(hleg, 'interpreter', 'latex');
                 break;
                 % [y0, x1, x2, p] = fit_btrq(plotx, diags)
