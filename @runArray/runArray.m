@@ -361,8 +361,7 @@ classdef runArray < handle
 
         function [] = plot_test2(runArray)
 
-            % figure;
-            % hold all;
+        figure; hold all
 
             %corder_backup = runArray.sorted_colors;
 
@@ -376,16 +375,15 @@ classdef runArray < handle
                 name = runArray.name{ii};
                 ndtime = run.eddy.t*86400 / run.eddy.turnover;
 
-                figure;
-                subplot(211); hold all
-                plot(ndtime, run.bottom.pbtorque);
-                plot(ndtime, run.angmom.sym_betatrq);
-                title(name);
-                legend('pbot','\beta');
-                subplot(212)
-                plot(ndtime, run.eddy.cvy*1000/86400);
-                liney(0);
-                linex(ndtime(run.traj.tind));
+                cvy = [0 diff(run.eddy.vor.cy)./diff(run.eddy.t*86400)];
+
+                delta = run.eddy.Lgauss./(run.eddy.hcen'-run.eddy.Lgauss);
+                %figure; hold all;
+                tind = run.traj.tind;
+                plot(ndtime, smooth(cvy, 6));
+                plot(ndtime(tind), cvy(tind), 'k*');
+                liney(-1 * delta(1) * run.eddy.V(1)/4);
+
             end
 
             %runArray.reset_colors(corder_backup);
@@ -396,17 +394,16 @@ classdef runArray < handle
                 runArray.filter = 1:runArray.len;
             end
 
-            figure; hold all
+            %figure; hold all
 
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
                 name = runArray.getname(ii);
 
-                hplt = plot(run.ndtime, ...
-                            (run.eddy.Ro));
-
-                addlegend(hplt, name);
+                vec  = log(run.eddy.hcen./run.eddy.Lgauss');
+                hold all; plot(vec);
+                title(name);
             end
         end
 
