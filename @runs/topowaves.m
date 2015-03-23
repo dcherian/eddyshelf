@@ -9,6 +9,8 @@ function [cgout] = topowaves(runs)
 %    hold all
 %    plot(cos((j+1/2)*pi*(z-1)));
 
+    plots = 0;
+
     cgx = nan(1,6);
     f0 = runs.params.phys.f0;
     beta = runs.params.phys.beta;
@@ -46,13 +48,15 @@ function [cgout] = topowaves(runs)
     options = optimset('MaxFunEvals', 1e5, 'MaxIter', 1e5);
     mu0 = fzero(f, 12, options)
 
-    figure; subplot(211); hold all
-    plot(mu, LHS, mu, RHS);
-    linex(mu0);
-    legend('LHS', 'RHS');
-    xlabel('\mu');
-    title('\Psi = A cosh m(z-1)');
-    beautify([16 18 20]);
+    if plots
+        figure; subplot(211); hold all
+        plot(mu, LHS, mu, RHS);
+        linex(mu0);
+        legend('LHS', 'RHS');
+        xlabel('\mu');
+        title('\Psi = A cosh m(z-1)');
+        beautify([16 18 20]);
+    end
 
     m = [0.5:0.01:20];
     LHS = tan(m);
@@ -62,13 +66,15 @@ function [cgout] = topowaves(runs)
     options = optimset('MaxFunEvals', 1e5, 'MaxIter', 1e5);
     m0 = fzero(f, 12, options)
 
-    subplot(212); hold all
-    plot(m, LHS, m, RHS);
-    linex(m0);
-    legend('LHS', 'RHS');
-    xlabel('m');
-    title('\Psi = A cos m(z-1)');
-    beautify([16 18 20]);
+    if plots
+        subplot(212); hold all
+        plot(m, LHS, m, RHS);
+        linex(m0);
+        legend('LHS', 'RHS');
+        xlabel('m');
+        title('\Psi = A cos m(z-1)');
+        beautify([16 18 20]);
+    end
 
     % 1./β in Pedlosky's notation
     Rh = U./beta./L^2;
@@ -90,6 +96,8 @@ function [cgout] = topowaves(runs)
     fprintf('\n Frequency = %.2e s^(-1)', omega);
     fprintf('\n Period = %f days', 2*pi/omega/86400);
     fprintf('\n Deep water wavelength = %.2f km \n\n', lambda_deep/1000);
+
+    cgout = cgx(1);
 
     %%%%%%%%% surface intensified modes
     % m = [0.5:0.01:20];
