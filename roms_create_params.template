@@ -1,30 +1,56 @@
 flags.extract_params = 1;
 
 if flags.extract_params
-    extract_from = ns35;
-    warning(['Extracting params from ' extract_from.name ' ! Hit ENTER to ' ...
-                        'continue.']);
-    pause;
-    extract_params(extract_from);
-    flags.extract_name = extract_from.name;
+    extract_from = '../topoeddy/runew-b360/';
+    %warning(['Extracting params from ' extract_from.name ' ! Hit ENTER to ' ...
+    %                    'continue.']);
+    %pause;
+    S = extract_params(extract_from);
+    flags.extract_name = S.name; % if provided with dir, I can't
+                                 % get name directly. So,
+                                 % extract_params saves name in
+                                 % returned structure, S. I then
+                                 % save that as extract_name and
+                                 % delete the original
+    S.name = [];
 
-    % add in custom options here
-    phys.beta = 4.2e-11;
-
-    eddy.dia = eddy.dia*2;
-    eddy.tamp = 0.95;
-    eddy.cy = NaN;
-    eddy.cx = NaN;
-
-    % if changing grid / bathy params then set to 1
+    flags.eddy_in_deep_water = 0;
     recalc_telescoping = 1;
-    %S.Lm = 520;
-    %S.Mm = 384;
-
-    %bathy.L_shelf = 150 * 1000;
-    %bathy.L_slope = 50 * 1000;
-
     grid.dx0 = 1000; grid.dy0 = 1000;
+
+    % % add in custom options here
+    % % if changing grid / bathy params then set to 1
+    % %flags.telescoping = 0;
+
+    %S.Lm = 480;
+    %S.Mm = 416;
+
+    %S.Lm = 200;
+
+    %bathy.loc = 'h';
+
+    % %flags.flat_bottom = 1;
+    % %grid.Z = max(extract_from.bathy.h(:));
+    % %bathy.H_sbreak = 50;
+    % bathy.S_sl = 0.75;
+    % bathy.sl_slope = bathy.S_sl * phys.f0/sqrt(phys.N2);
+    % %bathy.L_shelf = 80 * 1000;
+    % %bathy.L_slope = 120 * 1000;
+
+    % grid.X = S.Lm * grid.dx0;
+    % grid.Y = S.Mm * grid.dy0;
+
+    %phys.beta = 6e-11;
+
+    % ew-63641 with 5.5e-11 will get me β/βt = 0.08
+
+    %eddy.dia = 50*1000; %eddy.dia*2;
+    % %eddy.Bu = 2.5;
+
+    %eddy.tamp = -1*eddy.tamp;
+    %eddy.cy = NaN;
+    %eddy.cx = NaN;
+    %eddy.depth = 450;
 else
     flags.extract_name = [];
 
@@ -140,7 +166,7 @@ else
     bathy.axis = 'y'; % CROSS SHELF AXIS
     bathy.loc  = 'l'; % h - high end of axis; l - low end
     bathy.sl_shelf = bathy.S_sh * phys.f0/sqrt(phys.N2);
-    bathy.sl_slope = 0.01;bathy.S_sl * phys.f0/sqrt(phys.N2);
+    bathy.sl_slope = bathy.S_sl * phys.f0/sqrt(phys.N2);
     bathy.sl_deep = 0;
 
     % bathymetry smoothing options
@@ -303,13 +329,19 @@ if recalc_telescoping
     if bathy.axis == 'y'
         grid.dxmax = 3*grid.dx0;
         grid.dymax = 2*grid.dy0;
-
-        % telescope for ix > ixp & ix < ixn
-        % similarly for iy > iyp & iy < iyn
         grid.ixp = ceil(0.9*S.Lm);
         grid.ixn = floor(0.1*S.Lm);
-        grid.iyp = min([ceil((bathy.L_shelf + bathy.L_slope)*1.50/grid.dy0) S.Mm]);
-        grid.iyn = 1;
+
+        % telescope for ix > ixp & ix < ixn
+        if bathy.loc == 'l'
+            % similarly for iy > iyp & iy < iyn
+            grid.iyp = min([ceil((bathy.L_shelf + bathy.L_slope)*1.50/grid.dy0) S.Mm]);
+            grid.iyn = 1;
+        else
+            % similarly for iy > iyp & iy < iyn
+            grid.iyp = S.Mm;
+            grid.iyn = max([S.Mm-ceil((bathy.L_shelf + bathy.L_slope)*1.50/grid.dy0) 1]);
+        end
     else
         grid.dxmax = 2*grid.dx0;
         grid.dymax = 3*grid.dy0;

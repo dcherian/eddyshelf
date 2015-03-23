@@ -9,6 +9,8 @@ function [S] = extract_params(run)
         params = run.params;
 
         grd = run.rgrid;
+
+        S.name = run.name;
     else
         % if provided with folder (config/)
         dir = run;
@@ -21,6 +23,13 @@ function [S] = extract_params(run)
 
         % read other info from nc file
         fname = ininame;
+
+        % make run-name
+        ind1 = strfind(dir,'/run');
+        S.name = dir(ind1+4:end);
+        if S.name(end) == '/'
+            S.name(end) = [];
+        end
     end
 
     % at this points, I expect to have the following structures
