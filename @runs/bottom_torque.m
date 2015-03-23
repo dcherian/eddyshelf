@@ -407,18 +407,30 @@ function [] = bottom_torque(runs)
     masku = find_mask(ipresfull,pcrit,imx,imy);
     maskp = masku;
 
-    % AManom = -1 * (ipres-f0*AM);
-    % amcrit = 0.1*max(max(AManom(:,:,1)));
-    % mask2 = find_mask(AManom, 0.2,imx,imy);
-    % masku = mask2; maskp = mask2;
+    uarea = integrate(xvec, yvec, masku)';
+    parea = integrate(xvec, yvec, maskp)';
+    plot(uarea);
+
+    %AManom = -1 * (ipresfull - f0*AMfull);
+    %amcrit = 0.1*max(max(AManom(:,:,1)));
+    %mask2 = find_mask(AManom, 0.2,imx,imy);
+    %masku = mask2; maskp = mask2;
 
     % if flags.mom_budget
     %     maskp = masku;
     % end
 
-    uarea = integrate(xvec, yvec, masku)';
-    parea = integrate(xvec, yvec, maskp)';
-    plot(uarea);
+    vbar = avg1(dc_roms_read_data(runs.dir, 'vbar', [], volumev, [], ...
+                                  runs.rgrid, 'his', 'single'),2);
+    V = vbar .* bsxfun(@plus, zeta, H);
+
+    dpbdx = bsxfun(@times, bsxfun(@rdivide, diff(pbot,1,1), diff(xvec)), ...
+                   avg1(slbot,1));
+    dpbdxvec = maskintegrate(avg1(xvec), yvec, dpbdx, avg1(maskp,1)>0);
+    bV = maskintegrate(avg1(xvec), yvec, avg1(beta.*V,1), avg1(maskp,1)>0);
+    figure; hold all
+    plot(bV); plot(dpbdxvec);
+    legend('\beta V', 'dH/dy d/dx(p_{bot})');
 
     %iU = cumtrapz(yvec, U, 2); % crude streamfunction estimate
     %iV = cumtrapz(xvec, V, 1); % crude streamfunction estimate
@@ -458,6 +470,7 @@ function [] = bottom_torque(runs)
         xlabel('Time / Turnover time');
         beautify;
     end
+    export_fig('-painters', ['images/btrq-' runs.name '.png']);
 
     %%%%%%%%% Summarize
 
