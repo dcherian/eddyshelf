@@ -1,12 +1,16 @@
 % locate point of "resistance"
 % defined as start of half the maximum southward speed.
 % returns center locations and time index
-function [xx,yy,tind] = locate_resistance(runs)
+% nsmooth is number of turnover periods to smooth over
+% factor * v_min is what I'm looking for.
+function [xx,yy,tind] = locate_resistance(runs, nsmooth, factor)
 
     debug_plot = 0;
 
+    if ~exist('factor', 'var'), factor = 1/3; end
+    if ~exist('nsmooth', 'var'), nsmooth = 6; end
     % number of points to smooth over.
-    npts = (6*runs.eddy.turnover/86400);
+    npts = (nsmooth*runs.eddy.turnover/86400);
 
     % smooth velocity a lot!
     if runs.bathy.axis == 'y'
@@ -34,7 +38,7 @@ function [xx,yy,tind] = locate_resistance(runs)
     it = find_approx(ndtime, 60);
     [mn, imin] = min(vel(5:it));
 
-    vv = vel(imin:end) - mn * 1/3;
+    vv = vel(imin:end) - mn * factor;
     tind = find(vv > 0, 1, 'first');
     tind = tind + imin;
 
