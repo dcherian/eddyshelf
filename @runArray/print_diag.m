@@ -35,6 +35,7 @@ function [diags, plotx] = print_diag(runArray, name)
         V = run.eddy.V;
         if isfield(run.eddy, 'Vb'), Vb = run.eddy.Vb; end
         hcen = run.eddy.hcen;
+        fcen = run.eddy.fcen;
 
         A = run.eddy.amp(1);
 
@@ -119,7 +120,6 @@ function [diags, plotx] = print_diag(runArray, name)
             % stalling isobath
             h0 = Lz(1) * erfinv(1 - beta/beta_t);
 
-
             t0 = run.eddy.tscaleind;
 
             vel = smooth(run.eddy.mvy, 20);
@@ -129,7 +129,7 @@ function [diags, plotx] = print_diag(runArray, name)
             %plot(smooth(vel, 20));
             diags(ff) = run.traj.tscl;
             plotx(ff) = beta/f0 .* Lz(t0).^2 ./ alpha^2 .* ...
-                exp( (hcen(t0)/Lz(t0)) ^2) ./ max(-1*vel(1:100));
+                exp( (hcen(1)/Lz(1)) ^2) ./ max(-1*vel(1:100));
             %name_points = 0;
             %diags(ff) = -1 * min(vel)./run.eddy.V(1);
             %plotx(ff) = run.params.nondim.eddy.Rh;
