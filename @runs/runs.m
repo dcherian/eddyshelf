@@ -601,7 +601,7 @@ methods
 
     function [] = plot_velprofiles(runs)
 
-        it = 1:20:length(runs.time);
+        it = [1 runs.traj.tind];
 
         ix = vecfind(runs.rgrid.x_rho(1,:), runs.eddy.mx(it));
         iy = vecfind(runs.rgrid.y_rho(:,1), runs.eddy.my(it) - runs.eddy.vor.lmin(it)/2);
@@ -612,15 +612,18 @@ methods
                                                  -0.5));
         figure; hold all
         for tt=1:length(it)
+            tt
             u = dc_roms_read_data(runs.dir, 'u', it(tt), {'x' ix(tt) ...
                                 ix(tt); 'y' iy(tt) iy(tt)}, [], ...
                                   runs.rgrid, 'his');
             plot(u./u(end), runs.rgrid.z_u(:,iy(tt),ix(tt)) ./ ...
-                 runs.eddy.Lgauss(it(tt)));
+                 runs.eddy.Lgauss(1));
         end
 
         z = [-3:0.01:0];
-        plot(erf(z) + 1, z, 'b-');
+        hplt = plot((erf(z) + 1), z, 'b-');
+        legend(hplt, '1 + erf(z/Lz)', 'Location', 'SouthEast');
+        ylabel('z/L_z'); xlabel('U(z)/U(0)'); title(runs.name);
 
         set(0, 'DefaultAxesColorOrder', corder_backup);
         set(0,'DefaultAxesLineStyleOrder',{'-','--','-.'});
