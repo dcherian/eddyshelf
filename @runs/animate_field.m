@@ -15,7 +15,7 @@ function [] = animate_field(runs, name, t0, ntimes)
         asindex = [1 2];
     end
 
-    rhocontourplot = 0; % plot eddy drho contour too?
+    rhocontourplot = 1; % plot eddy drho contour too?
     enfluxplot = 0; % plot AS energy flux ?
     sshplot = 0; % plot ssh-contour too?
     dyeplot = 0; % plot eddye contour too?
@@ -83,8 +83,10 @@ function [] = animate_field(runs, name, t0, ntimes)
     % read rhosurf if required
     if strcmpi(name, 'rho') || rhocontourplot
         runs.read_rhosurf(t0, ntimes);
-        varname = 'rhosurf';
-        titlestr = 'Surface \rho';
+        if strcmpi(name, 'rho');
+            varname = 'rhosurf';
+            titlestr = 'Surface \rho';
+        end
     end
 
     if isempty(titlestr)
