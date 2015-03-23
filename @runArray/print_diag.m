@@ -183,7 +183,40 @@ function [diags, plotx] = print_diag(runArray, name)
         end
 
         %%%%% energy loss
-        if strcmpi(name, 'energy loss')
+        if strcmpi(name, 'dEdt')
+            PE = abs(run.eddy.PE(1:run.traj.tind,1));
+            KE = run.eddy.KE(1:run.traj.tind,1);
+
+            tvec = ndtime(1:run.traj.tind)';
+            %dPEdt = nanmean(fillnan(smooth(diff(PE./PE(1))./ ...
+            %                    diff(tvec), 30), Inf));
+            %dKEdt = nanmean(fillnan(smooth(diff(KE./KE(1))./ ...
+            %                    diff(tvec), 30), Inf));
+
+            [~,ind] = min(PE(5:end));
+            PEfit = polyfit(tvec(1:ind), PE(1:ind)./PE(1), 1);
+            [~,ind] = min(KE(5:end));
+            KEfit = polyfit(tvec(1:ind), KE(1:ind)./KE(1), 1);
+
+            dPEdt = PEfit(1);
+            dKEdt = KEfit(1);
+
+            en = 'KE';
+
+            % figure; hold all;
+            % plot(tvec, PE./PE(1)); plot(tvec, tvec*PEfit(1) + PEfit(2));
+            % plot(tvec, KE./KE(1)); plot(tvec, tvec*KEfit(1) + KEfit(2));
+
+            eval(['diags(ff) = d' en 'dt']);
+            plotx(ff) = beta .* Lx(1)./fcen(1);
+
+            name_points = 1;
+            laby = ['d' en '/dt'];
+            labx = '\beta L / f_0';
+            titlestr = '';
+        end
+
+        if strcmpi(name, 'energy loss old')
 
             % algorithm:
             %  1. Detect the minimum in vertical scale.
