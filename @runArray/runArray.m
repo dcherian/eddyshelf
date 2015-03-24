@@ -378,7 +378,7 @@ classdef runArray < handle
                 cvy = [0 diff(run.eddy.vor.cy)./diff(run.eddy.t*86400)];
 
                 delta = run.eddy.Lgauss./(run.eddy.hcen'-run.eddy.Lgauss);
-                %figure; hold all;
+                figure; hold all;
                 tind = run.traj.tind;
                 plot(ndtime, smooth(cvy, 6));
                 plot(ndtime(tind), cvy(tind), 'k*');
@@ -394,17 +394,69 @@ classdef runArray < handle
                 runArray.filter = 1:runArray.len;
             end
 
-            %figure; hold all
+            corder_backup = runArray.sorted_colors;
+
+            figure; hold all;
+            insertAnnotation('runArray.plot_test3');
 
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
-                name = runArray.getname(ii);
+                names{ff} = runArray.getname(ii);
+                tind = run.traj.tind;
+                tvec = run.time/run.eddy.turnover;
 
-                vec  = log(run.eddy.hcen./run.eddy.Lgauss');
-                hold all; plot(vec);
-                title(name);
+                vec = run.eddy.KE(:,1);
+                hplt(ff) = plot(tvec, vec./vec(1));
+                plot(tvec(tind), vec(tind)./vec(1), 'kx');
             end
+            legend(hplt, names);
+
+            runArray.reset_colors(corder_backup);
+        end
+
+        function [] = plot_dEdt(runArray)
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            corder_backup = runArray.sorted_colors;
+
+            figure; subplot(211); hold all; subplot(212); hold all;
+            insertAnnotation('runArray.plot_dEdt');
+
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
+                run = runArray.array(ii);
+                names{ff} = runArray.getname(ii);
+                tind = run.traj.tind;
+                tvec = run.time/run.eddy.turnover;
+
+                subplot(211)
+                vec = run.eddy.KE(:,1);
+                %hplt(ff) = plot(avg1(tvec), ...
+                %                smooth(diff(vec)./diff(tvec')./vec(1),30));
+                hplt(ff) = plot(tvec, vec./vec(1));
+                plot(tvec(tind), vec(tind)./vec(1), 'kx');
+
+                subplot(212)
+                vec = run.eddy.PE(:,1);
+                %hplt(ff) = plot(avg1(tvec), ...
+                %                smooth(diff(vec)./diff(tvec')./vec(1),30));
+                hplt(ff) = plot(tvec, vec./vec(1));
+                plot(tvec(tind), vec(tind)./vec(1), 'kx');
+            end
+            legend(hplt, names);
+            subplot(211);
+            ylabel('Integrated KE');
+            title(['Crosses at traj.tind. Values normalized by initial ' ...
+                   'value']);
+
+            subplot(212);
+            ylabel('Integrated PE');
+            xlabel('Time / Turnover time');
+
+            runArray.reset_colors(corder_backup);
         end
 
         function [] = plot_spectra(runArray)
