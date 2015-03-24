@@ -3,7 +3,7 @@
 function [] = eddy_bulkproperties(runs, slab)
 %%
     if ~exist('slab', 'var') || isempty(slab)
-        slab = 40; % read 'n' at a time
+        slab = 10; % read 'n' at a time
     end
 
     ftype = 'his';
@@ -167,9 +167,11 @@ function [] = eddy_bulkproperties(runs, slab)
         %                          [],rgrid, ftype, 'single'); %#ok<*PROP>
 
         %masked  = sparse(reshape(eddye > thresh, sz));
-        maskvor = sparse(reshape( repmat( ...
-            permute(logical(repnan(vormask(:,:,tt:tend), 0)), [1 2 4 3]), ...
-            [1 1 N 1]), sz));
+        %maskvor = sparse(reshape( repmat( ...
+        %    permute(logical(repnan(vormask(:,:,tt:tend), 0)), [1 2 4 3]), ...
+        %    [1 1 N 1]), sz));
+
+        maskvor = 1;
 
         % integrated energies
         % yes, using sz4dfull(1)+1 IS correct. sz4dfull has interior
@@ -200,8 +202,6 @@ function [] = eddy_bulkproperties(runs, slab)
             rho  = dc_roms_read_data(dirname, 'rho', ...
                                      [tt tend],{'x' 2 sz4dfull(1)+1; 'y' 2 sz4dfull(2)+1}, ...
                                      [], rgrid, ftype, 'single');
-
-            pe = -1 * double(bsxfun(@times, rho+1000, zr) .* g);
         end
 
         for nnn = 1:length(rhothreshes)
@@ -213,6 +213,8 @@ function [] = eddy_bulkproperties(runs, slab)
             ranom = bsxfun(@minus, rho, rback);
             masked = sparse(reshape(ranom < drhothresh, sz));
 
+            pe = -1 * double(bsxfun(@times, ranom, zr) .* g);
+
             intpe{mm, nnn} = full(nansum( bsxfun(@times, ...
                                                  masked.*maskvor.*reshape(pe, sz), dVsp)));
 
@@ -223,10 +225,10 @@ function [] = eddy_bulkproperties(runs, slab)
                                                               (u.^2 + v.^2)), sz), dVsp)));
 
             % bottom pressure
-            btrq{mm, nnn} = full(nansum(bsxfun(@times, masked .* maskvor .* ...
-                                        reshape(bsxfun(@times, double(ranom./rho0).*g, ...
-                                                  slbot), sz), ...
-                                               dVsp)));
+            %btrq{mm, nnn} = full(nansum(bsxfun(@times, masked .* maskvor .* ...
+            %                            reshape(bsxfun(@times, double(ranom./rho0).*g, ...
+            %                                      slbot), sz), ...
+            %                                   dVsp)));
             % coriolis term
             %cor{mm, nnn} = full(nansum(bsxfun(@times, masked.*maskvor.* ...
             %                         reshape(bsxfun(@times, double(u), ...
@@ -295,7 +297,7 @@ function [] = eddy_bulkproperties(runs, slab)
     runs.eddy.PE = cell2mat(intpe')';
 
     runs.eddy.threshes = rhothreshes;
-    runs.eddy.hash = githash([mfilename('fullpath') '.m']);
+    runs.eddy.bulkhash = githash([mfilename('fullpath') '.m']);
 
     runs.eddy.comment = [runs.eddy.comment ' | btrq has 1/ρ0 in it ' ...
                         '| full mass = (1000+ρ) | anommass = mass ' ...
