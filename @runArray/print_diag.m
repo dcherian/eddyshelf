@@ -15,8 +15,9 @@ function [diags, plotx] = print_diag(runArray, name)
         hax = gca; % default axes
         name_points = 1; % name points by default
         line_45 = 0; %no 45° line by default
+        errorbarflag = 0; % use errorbar() instead of plot()
         labx = ' '; laby = ' ';
-        plotx = [];
+        plotx = []; error = [];
         titlestr = name;
     end
 
@@ -702,7 +703,12 @@ function [diags, plotx] = print_diag(runArray, name)
         if plots
             figure(hfig);
             axes(hax);
-            plot(plotx(ff), diags(ff), 'k*');
+            if errorbarflag
+                errorbar(plotx(ff), diags(ff), error(ff), 'kx', ...
+                         'LineWidth', 2);
+            else
+                plot(plotx(ff), diags(ff), 'k*');
+            end
 
             % add run names
             if name_points
