@@ -32,9 +32,12 @@ function [diags, plotx] = print_diag(runArray, name)
         Lx = run.eddy.vor.lmaj;
         Ly = run.eddy.vor.lmin;
         Lz = run.eddy.Lgauss;
+        Ls = run.eddy.Ls;
         Ro = run.eddy.Ro;
         V = run.eddy.V;
         if isfield(run.eddy, 'Vb'), Vb = run.eddy.Vb; end
+
+        hedge = run.eddy.hedge;
         hcen = run.eddy.hcen;
         fcen = run.eddy.fcen;
 
