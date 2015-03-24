@@ -188,35 +188,59 @@ function [diags, plotx] = print_diag(runArray, name)
 
         %%%%% energy loss
         if strcmpi(name, 'dEdt')
-            PE = abs(run.eddy.PE(1:run.traj.tind,1));
-            KE = run.eddy.KE(1:run.traj.tind,1);
+            [~,~,tind] = run.locate_resistance;
+            PE = abs(run.eddy.PE(1:tind,1));
+            KE = run.eddy.KE(1:tind,1);
 
-            tvec = ndtime(1:run.traj.tind)';
+            tvec = ndtime(1:tind)';
             %dPEdt = nanmean(fillnan(smooth(diff(PE./PE(1))./ ...
             %                    diff(tvec), 30), Inf));
             %dKEdt = nanmean(fillnan(smooth(diff(KE./KE(1))./ ...
             %                    diff(tvec), 30), Inf));
 
-            [~,ind] = min(PE(5:end));
-            PEfit = polyfit(tvec(1:ind), PE(1:ind)./PE(1), 1);
-            [~,ind] = min(KE(5:end));
-            KEfit = polyfit(tvec(1:ind), KE(1:ind)./KE(1), 1);
 
-            dPEdt = PEfit(1);
-            dKEdt = KEfit(1);
+            [~,pind] = min(PE(5:end));
+            [~,kind] = min(KE(5:end));
 
-            en = 'KE';
+            use_polyfit = 0;
+            if use_polyfit
+                PEfit = polyfit(tvec(1:pind), PE(1:pind)./PE(1), 1);
+                KEfit = polyfit(tvec(1:kind), KE(1:kind)./KE(1), 1);
+            else
+                [PEfit,bint,r,rint,stats] = regress(PE(1:pind)./PE(1), ...
+                                                    [tvec(1:pind) ...
+                                    ones([pind 1])]);
+                error_PE = bint(1,2) - PEfit(1);
 
-            % figure; hold all;
-            % plot(tvec, PE./PE(1)); plot(tvec, tvec*PEfit(1) + PEfit(2));
-            % plot(tvec, KE./KE(1)); plot(tvec, tvec*KEfit(1) + KEfit(2));
+                [KEfit,bint,r,rint,stats] = regress(KE(1:kind)./KE(1), ...
+                                                    [tvec(1:kind) ...
+                                    ones([kind 1])]);
+                error_KE = bint(1,2) - KEfit(1);
+            end
 
-            eval(['diags(ff) = d' en 'dt']);
-            plotx(ff) = beta .* Lx(1)./fcen(1);
+            dPEdt = (PE(pind)-PE(1))./PE(1); %PEfit(1);
+            dKEdt = (KE(kind)-KE(1))./KE(1); %KEfit(1);
 
+            en = 'PE';
+
+            %laby = ['|d' en '/dt|'];
+            laby = ['\Delta' en '/' en '(0)'];
+
+            %figure; hold all;
+            %plot(tvec, PE./PE(1)); plot(tvec, tvec*PEfit(1) + ...
+            %                            PEfit(2));
+            %title(run.name);
+            %plot(tvec, KE./KE(1)); plot(tvec, tvec*KEfit(1) + KEfit(2));
+
+            eval(['diags(ff) = abs(d' en 'dt);']);
+            plotx(ff) = ...
+            (beta * Lz(1) - alpha * f0 * (1-erf(hedge(1)./Lz(1))));
+            eval(['error(ff) = abs(error_' en ');']);
+
+            errorbarflag = 1;
             name_points = 1;
-            laby = ['d' en '/dt'];
-            labx = '\beta L / f_0';
+            labx = ['$$\beta L_z - ' ...
+                    'f_0 \alpha_{bot} (1 - \mathrm{erf} (h_{edge}/L_z) )  $$'];
             titlestr = '';
         end
 
