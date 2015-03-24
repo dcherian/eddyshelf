@@ -20,7 +20,7 @@ function [] = fit_traj(runs, tcrit)
         iref = find_approx(yvec, ...
                            (yvec(1)+min(yvec))/2, 1);
     else
-        yvec = runs.eddy.hcen(uind)';
+        yvec = runs.eddy.hcen(uind);
         i0 = find(yvec == yvec(1), 1, 'last');
 
         % locate origin in the middle of the
