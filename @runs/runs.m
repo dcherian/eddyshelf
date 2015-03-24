@@ -404,7 +404,7 @@ methods
             h = runs.bathy.h(2:end-1,2:end-1);
             ix = vecfind(runs.eddy.xr(:,1), runs.eddy.mx);
             iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.my);
-            runs.eddy.hcen = h(sub2ind(size(runs.eddy.xr),ix,iy))';
+            runs.eddy.hcen = h(sub2ind(size(runs.eddy.xr),ix,iy));
 
             % f at eddy center
             f = runs.rgrid.f(2:end-1,2:end-1)';
@@ -412,11 +412,19 @@ methods
 
             if runs.bathy.axis == 'y'
                 iy = vecfind(runs.eddy.yr(1,:)',runs.eddy.vor.se);
-                runs.eddy.hedge = h(1,iy)';
+                runs.eddy.hedge = h(1,iy);
             end
 
             % remove needless h-matrix
             runs.eddy.h = [];
+
+            if isfield(runs.eddy, 'KE')
+                if size(runs.eddy.KE,1) == 1
+                    runs.eddy.KE = runs.eddy.KE';
+                    runs.eddy.PE = runs.eddy.PE';
+                    runs.eddy.vol = runs.eddy.vol';
+                end
+            end
         end
 
         if do_all == 1
