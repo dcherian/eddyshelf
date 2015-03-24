@@ -167,11 +167,11 @@ function [] = eddy_bulkproperties(runs, slab)
         %                          [],rgrid, ftype, 'single'); %#ok<*PROP>
 
         %masked  = sparse(reshape(eddye > thresh, sz));
-        %maskvor = sparse(reshape( repmat( ...
-        %    permute(logical(repnan(vormask(:,:,tt:tend), 0)), [1 2 4 3]), ...
-        %    [1 1 N 1]), sz));
+        maskvor = sparse(reshape( repmat( ...
+            permute(logical(repnan(vormask(:,:,tt:tend), 0)), [1 2 4 3]), ...
+            [1 1 N 1]), sz));
 
-        maskvor = 1;
+        %maskvor = 1;
 
         % integrated energies
         % yes, using sz4dfull(1)+1 IS correct. sz4dfull has interior
