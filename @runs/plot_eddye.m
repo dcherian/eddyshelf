@@ -3,11 +3,16 @@
 % scale
 function [] = plot_eddye(runs, days)
 
+    plot_pbot = 1;
+    if plot_pbot
+        pb = load([runs.dir '/pbot.mat'], 'pbot', 'xvec', 'yvec');
+    end
+
     % hack for when I'm trying to provide non-dimensional times
     if all(days < 1)
         tindices = vecfind(runs.ndtime, days);
     else
-        tindices = days; vecfind(runs.time/86400, days)
+        tindices = days; %vecfind(runs.time/86400, days)
     end
 
     nt = length(tindices);
@@ -16,8 +21,8 @@ function [] = plot_eddye(runs, days)
     %hf1 = figure; maximize();% - eddye
     hf2 = figure; maximize();% - rho
     %hf3 = figure; maximize();% - zdye
-    %hf4 = figure; maximize();% - u
-                             %hf5 = figure; maximize();% - v
+    hf4 = figure; maximize();% - u
+    %hf5 = figure; maximize();% - v
 
     tback = double(squeeze(ncread(runs.out_file, 'rho', [1 1 1 1], ...
                                   [1 Inf Inf 1])));
@@ -27,7 +32,10 @@ function [] = plot_eddye(runs, days)
     zback = runs.rgrid.z_r(:,:,1)';
     for ii=1:nt
 
-        loc = num2str(runs.eddy.mx(tindices(ii)));
+        loc = num2str(runs.eddy.mx(tindices(ii)) + 400e3)
+        if plot_pbot
+            iloc = find_approx(pb.xvec, str2double(loc),1);
+        end
 
         ed = dc_roms_read_data(runs.dir, runs.eddname, tindices(ii), ...
                                {'x' loc loc}, [], runs.rgrid, 'his');
@@ -51,8 +59,10 @@ function [] = plot_eddye(runs, days)
             ax2(ii) = subplot(1, nt, ii);
             drho = bsxfun(@minus, temp, tback);
             contourf(yz, runs.rgrid.z_r(:,:,1)', drho, 20);
+            colormap(flipud(cbrewer('seq','Blues',12)))
+
             shading flat;
-            liney(-1 * runs.eddy.Lgauss(tindices(ii)));
+            liney(-1 * runs.eddy.Lgauss(tindices(ii)), 'vertical scale');
             colorbar;
             if ii == 1
                 clim = caxis; %[-0.0553 -0.0021]; %caxis;
@@ -60,12 +70,21 @@ function [] = plot_eddye(runs, days)
             end
             caxis(clim);
             hold on;
-            contour(yz, runs.rgrid.z_r(:,:,1)', ed, 1, 'k', ...
-                    'LineWidth', 2);
+            %contour(yz, runs.rgrid.z_r(:,:,1)', ed, 1, 'k', ...
+            %        'LineWidth', 2);
             contour(yz, runs.rgrid.z_r(:,:,1)', drho, ...
                     [runs.eddy.drhothresh(1) runs.eddy.drhothreshssh(1)], ...
                     'Color', [1 1 1]*0.3, 'LineWidth', 2);
             caxis(clim);
+
+            if plot_pbot
+                pbvec = pb.pbot(iloc,:,tindices(ii));
+                pbvec = pbvec ./ max(abs(pbvec(:)));
+                z0 = mean(ylim);
+                plot(pb.yvec/1000, z0 + 100*pbvec)
+                liney(z0, 'pbot anom = 0','k');
+            end
+
             title(['day ' num2str(days(ii))]);
             xlabel('Y (km)');
             %axis square
@@ -93,14 +112,13 @@ function [] = plot_eddye(runs, days)
         if exist('hf4', 'var')
             figure(hf4);
             u = dc_roms_read_data(runs.dir, 'u', tindices(ii), ...
-                                  {'x' num2str(runs.eddy.cx(tindices(ii))) ...
-                                num2str(runs.eddy.cx(tindices(ii)))}, [], ...
+                                  {'x' loc loc}, [], ...
                                   runs.rgrid, 'his');
 
             ax4(ii) = subplot(1, nt, ii);
             contourf(yz/1000, runs.rgrid.z_r(:,:,1)', u);
             shading flat;
-            hold on
+            hold all
             contour(yz/1000, runs.rgrid.z_r(:,:,1)', ed, 1, 'k', ...
                     'LineWidth', 2);
             contour(yz, runs.rgrid.z_r(:,:,1)', drho, ...
@@ -110,6 +128,15 @@ function [] = plot_eddye(runs, days)
             colorbar;
             caxis( [-1 1] * max(abs(u(:))));
             title(['day' num2str(days(ii))]);
+
+            if plot_pbot
+                pbvec = pb.pbot(iloc,:,tindices(ii));
+                pbvec = pbvec ./ max(abs(pbvec(:)));
+                z0 = mean(ylim);
+                plot(pb.yvec/1000, z0 + 100*pbvec)
+                liney(z0, 'pbot anom = 0','k');
+            end
+
         end
 
         if exist('hf5', 'var')
