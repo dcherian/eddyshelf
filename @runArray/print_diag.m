@@ -408,7 +408,7 @@ function [diags, plotx] = print_diag(runArray, name)
             %plotx(ff) = Ro./Sa;
             plotx(ff) = beta/(alpha*f0/Lz(t0));
             name_points = 1; line_45 = 0;
-            laby = '$$1 - \mathrm{erf}(\frac{H}{L_z^0})$$';
+            laby = '$$\frac{U_b}{U_s} = 1 - \mathrm{erf}(\frac{H}{L_z^0})$$';
             labx = '$$\beta/\beta_t$$';
             titlestr = ['Water depth at which cross-isobath translation ' ...
                         'velocity drops by ' num2str(1-factor,2)];
@@ -419,7 +419,7 @@ function [diags, plotx] = print_diag(runArray, name)
                 limx = xlim;
                 limy = ylim;
 
-                xvec = linspace(limx(1), limx(2), 100);
+                xvec = linspace(0.5*min(plotx(:)), 1.2*max(plotx), 100);
 
                 P = polyfit(plotx, diags, 1);
                 c = P(1);
@@ -427,12 +427,14 @@ function [diags, plotx] = print_diag(runArray, name)
                 rmse = sqrt(mean((diags - c*plotx - P(2)).^2));
 
                 hplt = plot(xvec, c*xvec + P(2));
-                hleg = legend(hplt, ['$$1 - \mathrm{erf}(\frac{H}{L_z^0}) ' ...
+                hleg = legend(hplt, ['$$ \frac{U_b}{U_s} = ' ...
+                                    '1 - \mathrm{erf}(\frac{H}{L_z^0}) ' ...
                                     '= ' num2str(c,3) ' \beta/\' ...
-                                    'beta_t + ' num2str(P(2),2) '$$ ; rmse = ' num2str(rmse,3)], ...
+                                    'beta_t + ' num2str(P(2),2) '$$ ' ...
+                                    '; rmse = ' num2str(rmse,3)], ...
                               'Location', 'SouthEast');
                 set(hleg, 'interpreter', 'latex');
-                break;
+
                 % [y0, x1, x2, p] = fit_btrq(plotx, diags)
                 % paramstr1 = ['$$\frac{' num2str(y0,2) '}{(' ...
                 %             num2str(x1,2) ' + ' num2str(x2,2) ...
@@ -448,18 +450,18 @@ function [diags, plotx] = print_diag(runArray, name)
                 % % liney(0);
 
                 % 45° plot
-                subplot(122);
-                insertAnnotation(annostr);
-                param1 = c*plotx;
-                rmse1 = sum(diags-param1).^2;
-                plot(diags, param1, 'k*');
-                line45;
-                xlabel(['Diagnostic $$1 - \mathrm{erf}(\frac{H}{L_z^0}) ' ...
-                        '$$'], 'interpreter', 'latex');
-                ylabel('Parameterization', 'interpreter', ...
-                       'latex');
-                beautify;
-                set(gcf, 'renderer', 'zbuffer');
+                % subplot(122);
+                % insertAnnotation(annostr);
+                % param1 = c*plotx;
+                % rmse1 = sum(diags-param1).^2;
+                % plot(diags, param1, 'k*');
+                % line45;
+                % xlabel(['Diagnostic $$1 - \mathrm{erf}(\frac{H}{L_z^0}) ' ...
+                %         '$$'], 'interpreter', 'latex');
+                % ylabel('Parameterization', 'interpreter', ...
+                %        'latex');
+                % beautify;
+                % set(gcf, 'renderer', 'zbuffer');
 
                 % %title(paramstr, 'interpreter', 'latex');
 
