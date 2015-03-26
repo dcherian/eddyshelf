@@ -410,7 +410,18 @@ function [diags, plotx] = print_diag(runArray, name)
             %diags(ff) = Y./(run.rrdeep);
             %plotx(ff) = Ro./Sa;
             plotx(ff) = beta/(alpha*f0/Lz(t0));
+
             name_points = 1; line_45 = 0;
+            try
+                if run.params.flags.conststrat == 0
+                    ptName = '  N^2';
+                else
+                    ptName = '';
+                end
+            catch ME
+                ptName = '';
+            end
+
             laby = '$$\frac{U_b}{U_s} = 1 - \mathrm{erf}(\frac{H}{L_z^0})$$';
             labx = '$$\beta/\beta_t$$';
             titlestr = ['Water depth at which cross-isobath translation ' ...
