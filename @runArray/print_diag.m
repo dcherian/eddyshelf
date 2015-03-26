@@ -414,11 +414,11 @@ function [diags, plotx] = print_diag(runArray, name)
             name_points = 1; line_45 = 0;
             try
                 if run.params.flags.conststrat == 0
-                    ptName = '  N^2';
+                    ptName = ' N^2';
                 end
             catch ME
                 if run.params.eddy.tamp < 0
-                    ptName = '  C';
+                    ptName = ' C';
                 else
                     ptName = '';
                 end
