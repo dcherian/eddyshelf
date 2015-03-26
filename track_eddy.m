@@ -78,13 +78,16 @@ function [eddy] = track_eddy(dir1)
     % search region for tracking eddies (in addition to detected diameter)
     limit_x = 40*1000;
     limit_y = 40*1000;
-    
+
+    % support for both cyclones and anti-cyclones
+    sgn = sign(params.eddy.tamp);
+    bathyloc = params.bathy.loc;
 
     %dx = xr(2,1,1) - xr(1,1,1);
     %dy = yr(1,2,1) - yr(1,1,1);
 
-    zeta = zeta(2:end-1,2:end-1,:);
-    vor = avg1(avg1( ...
+    zeta = sgn * zeta(2:end-1,2:end-1,:);
+    vor = sgn * avg1(avg1( ...
                     bsxfun(@rdivide, diff(v,1,1), diff(avg1(xr(:,:,1),2),1,1)) ...
                   - bsxfun(@rdivide, diff(u,1,2), diff(avg1(yr(:,:,1),1),1,2)) ...
                   ,1),2);
@@ -182,7 +185,7 @@ function [eddy] = track_eddy(dir1)
         fprintf('tt = %3d | ', tt);
         temp = eddy_diag(izeta .* mask, ...
                          ivor.*mask,dxi,dyi,sbreak,thresh, [], ...
-                         cx0, cy0); %w(:,:,tt));
+                         cx0, cy0, bathyloc); %w(:,:,tt));
 
         % if eddy detection terminates for whatever reason before
         % the entire simulation has been processed.
@@ -209,7 +212,7 @@ function [eddy] = track_eddy(dir1)
         KE = (avg1(u(:,2:end-1,tt),1).^2 + avg1(v(2:end-1,:, ...
                                                         tt),2).^2);
         eddy.Vke(tt) = sqrt(nansum(nansum(KE .* dA, 1), 2) / eddy.vor.area(tt));
-        
+
         % do more diagnostics
         % [cx,cy] = location of weighted center (first moment)
         eddy.cx(tt)  = temp.cx;
@@ -218,7 +221,7 @@ function [eddy] = track_eddy(dir1)
         eddy.mx(tt)  = temp.mx;
         eddy.my(tt)  = temp.my;
         % amplitude defined as max - mean amplitude around perimeter
-        eddy.amp(tt) = temp.amp;
+        eddy.amp(tt) = temp.amp * sgn;
         % diameter of circle with same area
         eddy.dia(tt) = temp.dia;
         % mask for diagnostic purposes
@@ -249,7 +252,7 @@ function [eddy] = track_eddy(dir1)
         eddy.vor.angle(tt) = temp.vor.angle;
         eddy.vor.dia(tt)  = temp.vor.dia;
 
-        eddy.vor.amp(tt) = temp.vor.amp;
+        eddy.vor.amp(tt) = temp.vor.amp * sgn;
         eddy.vor.cx(tt) = temp.vor.cx;
         eddy.vor.cy(tt) = temp.vor.cy;
         % diagnose vertical scale (fit Gaussian / sine)
@@ -391,7 +394,8 @@ function [E] = sinefit(x0,T,zr)
 % only finds anticyclonic eddies
 
 % this routine is called at every timestep
-function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
+function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, ...
+                            cxn1, cyn1, bathyloc)
 
     % algorithm options
     amp_thresh = 0.001; % Amplitude threshold (in m)
@@ -567,7 +571,7 @@ function [eddy] = eddy_diag(zeta, vor, dx, dy, sbreak, thresh, w, cxn1, cyn1)
             eddy.cy   = cy; %     "
             eddy.mx   = ix(indx,indy) * dx; % maximum
             eddy.my   = iy(indx,indy) * dy; %    "
-            if eddy.my < sbreak;
+            if eddy.my < sbreak && bathyloc ~= 'h';
                 warning('eddy moving below shelfbreak!');
             end
             eddy.we   = dx/2 + nanmin(xmax) * dx; % west edge
