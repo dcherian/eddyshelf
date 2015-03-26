@@ -17,6 +17,7 @@ function [diags, plotx] = print_diag(runArray, name)
         line_45 = 0; %no 45° line by default
         errorbarflag = 0; % use errorbar() instead of plot()
         labx = ' '; laby = ' ';
+        clr = 'k';
         plotx = []; error = [];
         titlestr = name;
     end
@@ -25,6 +26,8 @@ function [diags, plotx] = print_diag(runArray, name)
         ii = runArray.filter(ff);
         run = runArray.array(ii);
         runName = runArray.getname(ii);
+
+        ptName = runName;
 
         % some commonly used variables
         tind = run.tscaleind;
@@ -733,16 +736,16 @@ function [diags, plotx] = print_diag(runArray, name)
             figure(hfig);
             axes(hax);
             if errorbarflag
-                errorbar(plotx(ff), diags(ff), error(ff), 'kx', ...
-                         'LineWidth', 2);
+                errorbar(plotx(ff), diags(ff), error(ff), 'x', ...
+                         'LineWidth', 2, 'Color', clr);
             else
-                plot(plotx(ff), diags(ff), 'k*');
+                plot(plotx(ff), diags(ff), '*', 'Color', clr);
             end
 
             % add run names
             if name_points
-                text(plotx(ff), diags(ff), runName, 'FontSize', ...
-                     12, 'Rotation', 90);
+                text(plotx(ff), diags(ff), ptName, 'FontSize', ...
+                     16, 'Rotation', 0);
             end
             if strfind(labx, '$$')
                 xlabel(labx, 'interpreter', 'latex');
