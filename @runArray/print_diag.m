@@ -378,7 +378,7 @@ function [diags, plotx] = print_diag(runArray, name)
             TCOEF = run.params.phys.TCOEF;
 
             tanhfitflag = 0;
-            if tanhfitflag
+            if tanhfitflag || run.params.eddy.tamp < 0
                 run.fit_traj(1.2);
 
                 tind = run.traj.tind;
@@ -415,11 +415,13 @@ function [diags, plotx] = print_diag(runArray, name)
             try
                 if run.params.flags.conststrat == 0
                     ptName = '  N^2';
+                end
+            catch ME
+                if run.params.eddy.tamp < 0
+                    ptName = '  C';
                 else
                     ptName = '';
                 end
-            catch ME
-                ptName = '';
             end
 
             laby = '$$\frac{U_b}{U_s} = 1 - \mathrm{erf}(\frac{H}{L_z^0})$$';
@@ -440,7 +442,7 @@ function [diags, plotx] = print_diag(runArray, name)
 
                 rmse = sqrt(mean((diags - c*plotx - P(2)).^2));
 
-                hplt = plot(xvec, c*xvec + P(2));
+                hplt = plot(xvec, c*xvec + P(2), 'k--');
                 hleg = legend(hplt, ['$$ \frac{U_b}{U_s} = ' ...
                                     '1 - \mathrm{erf}(\frac{H}{L_z^0}) ' ...
                                     '= ' num2str(c,3) ' \beta/\' ...
