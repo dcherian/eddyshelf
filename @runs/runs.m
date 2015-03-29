@@ -57,6 +57,9 @@ properties
                'eutrans = eulerian transport estimate (structure).' ...
                'eddy.trev = time at which eddy reverses direction (first)'];
 end
+methods(Static)
+    [y0,X,y1,x0,yc] = tanh_fit(x, y, plot_flag, test);
+end
 methods
     % constructor
     function [runs] = runs(dir, reset,  do_all)

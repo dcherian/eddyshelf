@@ -11,29 +11,31 @@ function [] = fit_traj(runs, tcrit)
     [ut,uind,~] = unique(tvec, 'stable');
     tvec = tvec(uind);
 
-    use_my = 0;
+    use_my = 1;
     if use_my
-        yvec = runs.eddy.my(uind);
+        if runs.bathy.axis == 'y'
+            yvec = runs.eddy.my(uind);
+        else
+            yvec = runs.eddy.mx(uind);
+        end
 
         % locate origin in the middle of the
         % straight line section.
-        iref = find_approx(yvec, ...
-                           (yvec(1)+min(yvec))/2, 1);
+        %iref = find_approx(yvec, ...
+        %                   (yvec(1)+min(yvec))/2, 1);
     else
         yvec = runs.eddy.hcen(uind);
         i0 = find(yvec == yvec(1), 1, 'last');
 
         % locate origin in the middle of the
         % straight line section.
-        iref = find_approx(yvec, ...
-                           (yvec(i0)+min(yvec))/2, 1);
+        %iref = find_approx(yvec, ...
+        %                   (yvec(i0)+min(yvec))/2, 1);
     end
 
-    yref = yvec(iref); tref = tvec(iref);
-
+    % avoid using iref. Use the fit instead
+    [y0,T,y1,tref,yref] = runs.tanh_fit(tvec, yvec, 0);
     tfit = tvec - tref;
-    yfit = yvec - yref;
-    [y0,T,y1] = runs.tanh_fit(tfit, yfit, 0);
 
     % location and water depth along idealized
     % trajectory.
@@ -42,7 +44,11 @@ function [] = fit_traj(runs, tcrit)
                 yref;
         itraj = vecfind(runs.rgrid.y_rho(:,1), ...
                         ytraj);
-        htraj = runs.bathy.h(1,itraj);
+        if runs.bathy.axis == 'y'
+            htraj = runs.bathy.h(1,itraj);
+        else
+            htraj = runs.bathy.h(itraj,1);
+        end
         str = 'y = eddy.my';
     else
         % clamp to max water depth
@@ -56,7 +62,7 @@ function [] = fit_traj(runs, tcrit)
 
     % sometimes T comes out as negative. not
     % sure why
-    tind = find_approx(tfit, tcrit*abs(T), 1);
+    tind = find_approx(tvec - tref, tcrit*abs(T), 1);
 
     H = htraj(tind);
     Y = ytraj(tind);
@@ -65,7 +71,7 @@ function [] = fit_traj(runs, tcrit)
         figure;
         if use_my
             subplot(211);
-            plot(tvec, runs.eddy.my(uind), '*', tvec, ytraj);
+            plot(tvec, yvec, '*', tvec, ytraj);
             liney(Y);
             subplot(212);
         end
@@ -78,7 +84,7 @@ function [] = fit_traj(runs, tcrit)
         title(runs.name);
     end
     % y,t scales (corrected for earlier reference shift)
-    yscl = y0 + yref;
+    yscl = y0;
     % T is a timescale for the tanh. I can do corrections later.
     tscl = T * runs.eddy.turnover;
 
@@ -89,13 +95,15 @@ function [] = fit_traj(runs, tcrit)
     runs.traj.tind = tind;
     runs.traj.y0 = y0;
     runs.traj.y1 = y1;
+    runs.traj.yref = yref;
+    runs.traj.tref = tref;
     runs.traj.H = H;
     runs.traj.Y = Y;
     runs.traj.T = T;
     runs.traj.htraj = htraj;
     runs.traj.ytraj = ytraj;
     runs.traj.str = str;
-    runs.traj.comment = ['Fit y = y0*tanh(t/T) + y1*(t/T) | ' ...
+    runs.traj.comment = ['Fit y = y0*tanh(t/T) + y1*(t/T) + yc| ' ...
                         'Use y = water depth (hcen) if use_my =0, ' ...
                         'y = eddy.my otherwise | ' ...
                         '(H,Y) = interpolated location / water-depth ' ...
