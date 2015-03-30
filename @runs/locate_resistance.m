@@ -17,11 +17,8 @@ function [xx,yy,tind] = locate_resistance(runs, nsmooth, factor)
 
     % smooth velocity a lot!
     if runs.bathy.axis == 'y'
-        cy = smooth(runs.eddy.vor.cy, npts)/1000;
-
-        vel = sgn * [0; diff(cy)./diff(smooth(runs.eddy.t', npts))];
-        ndtime = runs.eddy.t*86400./runs.eddy.turnover;
-
+        cen = smooth(runs.eddy.vor.cy, npts)/1000;
+        mcen = runs.eddy.my/1000;
         %vel = smooth(runs.eddy.mvy, npts);
         % figure;
         % subplot(211)
@@ -31,9 +28,11 @@ function [xx,yy,tind] = locate_resistance(runs, nsmooth, factor)
         % plot(smooth(runs.eddy.mvy, 15)); hold all
         % plot(vel);
     else
-        vel = sgn * smooth(runs.eddy.mvx, npts);
-        ndtime = runs.eddy.t*86400./runs.eddy.turnover;
+        cen = smooth(runs.eddy.vor.cx, npts)/1000;
+        mcen = runs.eddy.mx/1000;
     end
+    ndtime = runs.eddy.t*86400./runs.eddy.turnover;
+    vel = sgn * [0; diff(cen)./diff(smooth(runs.eddy.t', npts))];
 
     % locate minimum, i.e., max. southward/westward speed
     % but limit search to first 'n' turnover time scales
@@ -52,13 +51,13 @@ function [xx,yy,tind] = locate_resistance(runs, nsmooth, factor)
         figure;
         insertAnnotation('runArray.locate_resistance');
         subplot(221)
-        plot(ndtime, runs.eddy.my/1000);
+        plot(ndtime, mcen);
         title(runs.name);
         linex(ndtime(tind));
 
         subplot(223)
         plot(ndtime, vel);
-        linex(ndtime(imin)); liney(mn); liney(mn/2);
+        linex(ndtime(imin)); liney(mn); liney(mn*factor);
         linex(ndtime(tind));
 
         subplot(2,2,[2 4])
@@ -66,5 +65,4 @@ function [xx,yy,tind] = locate_resistance(runs, nsmooth, factor)
         hold on; axis image
         plot(xx/1000, yy/1000, 'x', 'MarkerSize', 14);
     end
-
 end
