@@ -31,6 +31,7 @@ function [diags, plotx] = print_diag(runArray, name)
 
         % some commonly used variables
         tind = run.tscaleind;
+        [~,uind,~] = unique(run.time, 'stable');
         ndtime = run.eddy.t * 86400 / run.eddy.turnover;
         Lx = run.eddy.vor.lmaj;
         Ly = run.eddy.vor.lmin;
@@ -377,19 +378,25 @@ function [diags, plotx] = print_diag(runArray, name)
             Tamp = run.params.eddy.tamp;
             TCOEF = run.params.phys.TCOEF;
 
-            tanhfitflag = 0;
-            if tanhfitflag || run.params.eddy.tamp < 0
-                run.fit_traj(1.2);
+            tanhfitflag = 1;
+            if tanhfitflag %|| run.params.eddy.tamp < 0
+                tcrit = 1.5;
+                run.fit_traj(tcrit);
 
                 tind = run.traj.tind;
                 H = run.eddy.hcen(tind); %run.traj.H;
                 Y = run.eddy.my(tind); %run.traj.Y;
+
+                titlestr = ['tanh(t/T) at t = ' num2str(tcrit) 'T'];
             else
                 nsmooth = 6;
                 factor = 1/3;
                 [~,~,tind] = run.locate_resistance(nsmooth, factor);
                 H = (run.eddy.hcen(tind));
-                Y = run.eddy.my(tind) - run.bathy.xsb; run.eddy.my(tind);
+                Y = run.eddy.my(tind) - run.bathy.xsb; ...
+                    run.eddy.my(tind);
+                titlestr = ['Water depth at which cross-isobath translation ' ...
+                            'velocity drops by ' num2str(1-factor,2)];
             end
             if isempty(tind), continue; end
 
@@ -404,7 +411,12 @@ function [diags, plotx] = print_diag(runArray, name)
             %plot(ndtime(tind), run.eddy.hcen(tind), 'k*');
             %%liney(yscl); linex([1 2 3]*tscl);
 
-            t0 = 1;
+            t0 = 1;run.eddy.tscaleind;
+            Lz = smooth(run.time(uind), run.eddy.Lgauss(uind), ...
+                        run.eddy.turnover, 'lowess');
+            if any(Lz == 0)
+                Lz = smooth(run.eddy.Lgauss, run.eddy.turnover./86400);
+            end
             diags(ff) = 1 - erf(H./Lz(t0));
             %plotx(ff) = (beta*Lx)/alpha * V(1)/(Tamp*TCOEF);
             %diags(ff) = Y./(run.rrdeep);
@@ -420,14 +432,12 @@ function [diags, plotx] = print_diag(runArray, name)
                 if run.params.eddy.tamp < 0
                     ptName = ' C';
                 else
-                    ptName = '';
+                    ptName = runName;
                 end
             end
 
             laby = '$$\frac{U_b}{U_s} = 1 - \mathrm{erf}(\frac{H}{L_z^0})$$';
             labx = '$$\beta/\beta_t$$';
-            titlestr = ['Water depth at which cross-isobath translation ' ...
-                        'velocity drops by ' num2str(1-factor,2)];
             %if ff == 1, hax = subplot(121); hold all; end
 
             % parameterization
