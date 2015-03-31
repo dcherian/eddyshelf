@@ -600,6 +600,21 @@ function [diags, plotx] = print_diag(runArray, name)
             diags(ff) = run.csflux.critrans;
         end
 
+        % nondim parameters to compare runs
+        if strcmpi(name, 'diff')
+            if ff == 1
+                close;
+                disp(sprintf('| %12s | %5s | %4s | %4s | %8s | %s |', ...
+                             'name', 'Rh', 'Ro', 'bl/f', 'beta_t', ...
+                             'L/Lsl'));
+            end
+            disp(sprintf('| %12s | %.2f | %.2f | %.2f | %.2e | %5.2f |', ...
+                         run.name, run.params.nondim.eddy.Rh, ...
+                         Ro(1), beta*Lx(1)/f0, beta_t, ...
+                         Lx(1)./run.bathy.L_slope));
+            continue;
+        end
+
         % penetration
         if strcmpi(name, 'hcen')
             hfinal = mean(hcen(tind:end));
