@@ -34,6 +34,7 @@ function [] = fit_traj(runs, tcrit)
     end
 
     % avoid using iref. Use the fit instead
+    % y = yref + y0 * tanh( (t-tref)/T ) + y1 * (t-tref)/T
     [y0,T,y1,tref,yref] = runs.tanh_fit(tvec, yvec, 0);
     tfit = tvec - tref;
 
@@ -73,6 +74,8 @@ function [] = fit_traj(runs, tcrit)
             subplot(211);
             plot(tvec, yvec, '*', tvec, ytraj);
             liney(Y);
+            linex(tvec(tind));
+            ylabel('Y (m)');
             subplot(212);
         end
         plot(tvec, runs.eddy.hcen(uind), '*', tvec, ...
@@ -103,7 +106,7 @@ function [] = fit_traj(runs, tcrit)
     runs.traj.htraj = htraj;
     runs.traj.ytraj = ytraj;
     runs.traj.str = str;
-    runs.traj.comment = ['Fit y = y0*tanh(t/T) + y1*(t/T) + yc| ' ...
+    runs.traj.comment = ['Fit y = y0*tanh((t-tref)/T) + y1*((t-tref)/T) + yref| ' ...
                         'Use y = water depth (hcen) if use_my =0, ' ...
                         'y = eddy.my otherwise | ' ...
                         '(H,Y) = interpolated location / water-depth ' ...
