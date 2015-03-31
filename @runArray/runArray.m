@@ -146,13 +146,13 @@ classdef runArray < handle
         end
 
         function [] = print_params(runArray, command)
-            for ii=1:runArray.len
-                run = runArray.array(ii);
+            for ii=1:length(runArray.filter)
+                run = runArray.array(runArray.filter(ii));
                 out = eval(['run.' command]);
                 if ~ischar(out)
                     out = num2str(out);
                 end
-                disp([runArray.array(ii).name ' | ' out]);
+                disp([run.name ' | ' out]);
             end
         end
 
