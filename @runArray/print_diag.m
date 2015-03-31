@@ -412,19 +412,26 @@ function [diags, plotx] = print_diag(runArray, name)
             %plot(ndtime(tind), run.eddy.hcen(tind), 'k*');
             %%liney(yscl); linex([1 2 3]*tscl);
 
-            t0 = 1;run.eddy.tscaleind;
+            t0 =  run.eddy.tscaleind;
             Lz = smooth(run.time(uind), run.eddy.Lgauss(uind), ...
                         run.eddy.turnover, 'lowess');
             if any(Lz == 0)
                 Lz = smooth(run.eddy.Lgauss, run.eddy.turnover./86400);
             end
+            if abs(run.eddy.vor.se(tind) - run.bathy.xsb) < ...
+                    run.rrdeep*0.75
+                continue;
+            end
+
             diags(ff) = 1 - erf(H./Lz(t0));
-            %plotx(ff) = (beta*Lx)/alpha * V(1)/(Tamp*TCOEF);
             %diags(ff) = Y./(run.rrdeep);
             %plotx(ff) = Ro./Sa;
             plotx(ff) = beta/(alpha*f0/Lz(t0));
+            %plotx(ff) = (hsb + Lx(t0).*alpha)./Lz(t0);
+            %plotx(ff) = Lz(tind)./Lx(tind)./alpha;
 
             name_points = 1; line_45 = 0;
+            slope = num2str(round(alpha*1e3));
             try
                 if run.params.flags.conststrat == 0
                     ptName = ' N^2';
@@ -433,7 +440,7 @@ function [diags, plotx] = print_diag(runArray, name)
                 if run.params.eddy.tamp < 0
                     ptName = ' C';
                 else
-                    ptName = runName;
+                    ptName = [runName '|' slope];
                 end
             end
             % mark NS isobath runs with gray points
