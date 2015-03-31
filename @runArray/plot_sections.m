@@ -10,7 +10,11 @@ function [] = plot_sections(runArray, varname, ndtimes)
     end
 
     nruns = length(runArray.filter);
-    nt = length(ndtimes);
+    if exist('ndtimes', 'var')
+        nt = length(ndtimes);
+    else
+        nt = 1;
+    end
 
     cmap = cbrewer('seq','Reds',32);
 
@@ -25,13 +29,17 @@ function [] = plot_sections(runArray, varname, ndtimes)
             run = runArray.array(ff);
             name = runArray.getname(ff);
 
-            ndtime = run.time ./ run.tscale;
-
-            % find required tindices
-            tind = vecfind(ndtime, ndtimes);
+            if exist('ndtimes', 'var')
+                ndtime = run.time ./ run.tscale;
+                % find required tindices
+                tind = vecfind(ndtime, ndtimes);
+            else
+                run.fit_traj(1.5);
+                tind = run.traj.tind;
+            end
 
             yscale = run.rrdeep;
-            zscale = 1;
+            zscale = run.eddy.Lgauss(1);
             ymat = repmat(run.rgrid.y_rho(:,1), [1 run.rgrid.N]);
             zmat = run.rgrid.z_r(:,:,1)';
 
@@ -59,18 +67,18 @@ function [] = plot_sections(runArray, varname, ndtimes)
             [ymat2,zmat2] = ndgrid(linspace(limy(1),limy(2),100), ...
                                      linspace(limz(1),limz(2),1000));
             % initial profile
-            prof = exp(-((ymat2-run.eddy.cy(tind(tt)))./ ...
+            prof = exp(-((ymat2-run.eddy.my(tind(tt)))./ ...
                          run.eddy.vor.dia(1)*2).^2) .* ...
                    exp(-(zmat2./run.eddy.Lgauss(1)).^2);
             % current profile
-            prof2 = exp(-((ymat2-run.eddy.cy(tind(tt)))./ ...
+            prof2 = exp(-((ymat2-run.eddy.my(tind(tt)))./ ...
                          run.eddy.vor.dia(tt)*2).^2) .* ...
                    exp(-(zmat2./run.eddy.Lgauss(tind(tt))).^2);
             hold on
             % patch bathymetry
             patch(([run.rgrid.y_rho(:,1); min(run.rgrid.y_rho(:,1))] ...
                    - run.bathy.xsb)./yscale, ...
-                  -1*[min(run.rgrid.h(:)); run.rgrid.h(:,1)], 'k');
+                  -1*[min(run.rgrid.h(:)); run.rgrid.h(:,1)]./zscale, 'k');
 
             % initial profile
             contour((ymat2-run.bathy.xsb)./yscale, ...
@@ -94,7 +102,7 @@ function [] = plot_sections(runArray, varname, ndtimes)
                 if ii ~= 1
                     set(gca, 'YTickLabel', []);
                 end
-                ylim([-round(run.params.eddy.depth/100)*100 0]);
+                %ylim([-round(run.params.eddy.depth/100)*100 0]);
             else
                 title(['ndtime = ', num2str(ndtimes(tt))]);
             end
@@ -108,8 +116,9 @@ function [] = plot_sections(runArray, varname, ndtimes)
         else
             suplabel('t', run.name);
         end
-        [~, hx] = suplabel('Distance from shelfbreak (km)', 'x', supAxes);
-        [~, hy] = suplabel('Depth (m)', 'y', supAxes);
+        [~, hx] = suplabel(['Distance from shelfbreak / Deformation ' ...
+                            'radius'], 'x', supAxes);
+        [~, hy] = suplabel('Depth / Initial vertical scale', 'y', supAxes);
         set(hx, 'fontSize', 18);
         set(hy, 'fontSize', 18);
     end
