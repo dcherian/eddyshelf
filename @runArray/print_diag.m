@@ -413,6 +413,7 @@ function [diags, plotx] = print_diag(runArray, name)
             %%liney(yscl); linex([1 2 3]*tscl);
 
             t0 =  run.eddy.tscaleind;
+            titlestr = [titlestr ' | t0 = ' num2str(t0)];
             Lz = smooth(run.time(uind), run.eddy.Lgauss(uind), ...
                         run.eddy.turnover, 'lowess');
             if any(Lz == 0)
