@@ -1066,7 +1066,7 @@ if flags.eddy
               avg1(diff(eddy.u(:,:,end),1,2)./diff(yrmat(:,:,end),1,2), 1);
 
         % get vorticity mask
-        vormask = vor .* sign(eddy.tamp) <  0;
+        vormask = vor .* sign(eddy.tamp) .* sign(phys.f0) <  0;
         % extract biggest region
         regions = bwconncomp(vormask, 8);
         nn = [];
