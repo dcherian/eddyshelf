@@ -3,7 +3,7 @@
 % scale
 function [] = plot_eddye(runs, days)
 
-    plot_pbot = 1;
+    plot_pbot = 0;
     if plot_pbot
         pb = load([runs.dir '/pbot.mat'], 'pbot', 'xvec', 'yvec');
     end
@@ -12,38 +12,52 @@ function [] = plot_eddye(runs, days)
     if all(days < 1)
         tindices = vecfind(runs.ndtime, days);
     else
-        tindices = days; %vecfind(runs.time/86400, days)
+        tindices = vecfind(runs.time/86400, days)
     end
 
     nt = length(tindices);
-    yz = repmat(runs.rgrid.y_rho(:,1), [1 runs.rgrid.N]) / 1000;
 
     %hf1 = figure; maximize();% - eddye
     hf2 = figure; maximize();% - rho
     %hf3 = figure; maximize();% - zdye
-    hf4 = figure; maximize();% - u
+    %hf4 = figure; maximize();% - u
     %hf5 = figure; maximize();% - v
-
-    tback = double(squeeze(ncread(runs.out_file, 'rho', [1 1 1 1], ...
-                                  [1 Inf Inf 1])));
     %zdback = double(squeeze(ncread(runs.out_file, runs.zdname, ...
     %                               [1 1 1 1], [1 Inf Inf
     %                               1])));
-    zback = runs.rgrid.z_r(:,:,1)';
+    %zback = runs.rgrid.z_r(:,:,1)';
+
+    if runs.bathy.axis == 'y'
+        cen = runs.eddy.mx;
+        bathyax = 'x';
+        yz = repmat(runs.rgrid.y_rho(:,1), [1 runs.rgrid.N]) / 1000;
+        zmat = runs.rgrid.z_r(:,:,1)';
+        tback = double(squeeze(ncread(runs.out_file, 'rho', [1 1 1 1], ...
+                                      [1 Inf Inf 1])));
+    else
+        cen = runs.eddy.my;
+        bathyax = 'y';
+        yz = repmat(runs.rgrid.x_rho(1,:)', [1 runs.rgrid.N]) / ...
+             1000;
+        zmat = squeeze(runs.rgrid.z_r(:,1,:))';
+        tback = double(squeeze(ncread(runs.out_file, 'rho', [1 1 1 1], ...
+                                      [Inf 1 Inf 1])));
+    end
+
     for ii=1:nt
 
-        loc = num2str(runs.eddy.mx(tindices(ii)) + 400e3)
+        loc = num2str(cen(tindices(ii)))
         if plot_pbot
             iloc = find_approx(pb.xvec, str2double(loc),1);
         end
 
         ed = dc_roms_read_data(runs.dir, runs.eddname, tindices(ii), ...
-                               {'x' loc loc}, [], runs.rgrid, 'his');
+                               {bathyax loc loc}, [], runs.rgrid, 'his');
 
         if exist('hf1', 'var')
             figure(hf1);
             ax1(ii) = subplot(1, nt, ii);
-            contour(yz, runs.rgrid.z_r(:,:,1)', ed, [0.1:0.1:1]);
+            contour(yz, zmat, ed, [0.1:0.1:1]);
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
             colorbar; caxis([0 1]);
             colormap(flipud(colormap('bone')))
@@ -54,11 +68,11 @@ function [] = plot_eddye(runs, days)
         if exist('hf2', 'var')
             figure(hf2);
             temp = dc_roms_read_data(runs.dir, 'rho', tindices(ii), ...
-                                     {'x' loc loc}, [], runs.rgrid, 'his');
+                                     {bathyax loc loc}, [], runs.rgrid, 'his');
 
             ax2(ii) = subplot(1, nt, ii);
             drho = bsxfun(@minus, temp, tback);
-            contourf(yz, runs.rgrid.z_r(:,:,1)', drho, 20);
+            contourf(yz, zmat, drho, 20);
             colormap(flipud(cbrewer('seq','Blues',12)))
 
             shading flat;
@@ -70,9 +84,9 @@ function [] = plot_eddye(runs, days)
             end
             caxis(clim);
             hold on;
-            %contour(yz, runs.rgrid.z_r(:,:,1)', ed, 1, 'k', ...
+            %contour(yz, zmat, ed, 1, 'k', ...
             %        'LineWidth', 2);
-            contour(yz, runs.rgrid.z_r(:,:,1)', drho, ...
+            contour(yz, zmat, drho, ...
                     [runs.eddy.drhothresh(1) runs.eddy.drhothreshssh(1)], ...
                     'Color', [1 1 1]*0.3, 'LineWidth', 2);
             caxis(clim);
@@ -86,7 +100,7 @@ function [] = plot_eddye(runs, days)
             end
 
             title(['day ' num2str(days(ii))]);
-            xlabel('Y (km)');
+            xlabel([upper(runs.bathy.axis) '(km)']);
             %axis square
             beautify([15 15 18]);
         end
@@ -94,17 +108,18 @@ function [] = plot_eddye(runs, days)
         if exist('hf3', 'var')
             figure(hf3);
             zd = dc_roms_read_data(runs.dir, runs.zdname, tindices(ii), ...
-                                  {'x' loc loc}, [], runs.rgrid, 'his');
+                                  {bathyax loc loc}, [], runs.rgrid, 'his');
 
             ax3(ii) = subplot(1, nt, ii);
-            contourf(yz/1000, runs.rgrid.z_r(:,:,1)', zd-zback);
+            contourf(yz/1000, zmat, zd-zback);
             shading flat;
             hold on
-            contour(yz/1000, runs.rgrid.z_r(:,:,1)', ed, 1, 'k', ...
+            contour(yz/1000, zmat, ed, 1, 'k', ...
                     'LineWidth', 2);
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
             colorbar;
             caxis( [-1 1] * max(abs(zd(:)-zback(:))) );
+            xlabel([upper(runs.bathy.axis) '(km)']);
             title(['day' num2str(days(ii))]);
             beautify;
         end
@@ -112,23 +127,27 @@ function [] = plot_eddye(runs, days)
         if exist('hf4', 'var')
             figure(hf4);
             u = dc_roms_read_data(runs.dir, 'u', tindices(ii), ...
-                                  {'x' loc loc}, [], ...
+                                  {bathyax loc loc}, [], ...
                                   runs.rgrid, 'his');
 
             ax4(ii) = subplot(1, nt, ii);
-            contourf(yz/1000, runs.rgrid.z_r(:,:,1)', u);
+            if runs.bathy.axis == 'y'
+                contourf(yz/1000, zmat, u);
+            else
+                contourf(yz(2:end-1,:)/1000, zmat(2:end-1,:), avg1(u,1));
+            end
             shading flat;
             hold all
-            contour(yz/1000, runs.rgrid.z_r(:,:,1)', ed, 1, 'k', ...
+            contour(yz/1000, zmat, ed, 1, 'k', ...
                     'LineWidth', 2);
-            contour(yz, runs.rgrid.z_r(:,:,1)', drho, ...
+            contour(yz, zmat, drho, ...
                     [runs.eddy.drhothresh(1) runs.eddy.drhothreshssh(1)], ...
                     'Color', [1 1 1]*0.3, 'LineWidth', 2);
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
             colorbar;
             caxis( [-1 1] * max(abs(u(:))));
             title(['day' num2str(days(ii))]);
-
+            xlabel([upper(runs.bathy.axis) '(km)']);
             if plot_pbot
                 pbvec = pb.pbot(iloc,:,tindices(ii));
                 pbvec = pbvec ./ max(abs(pbvec(:)));
@@ -142,15 +161,20 @@ function [] = plot_eddye(runs, days)
         if exist('hf5', 'var')
             figure(hf5);
             v = dc_roms_read_data(runs.dir, 'v', tindices(ii), ...
-                                  {'x' loc loc}, [], runs.rgrid, 'his');
+                                  {bathyax loc loc}, [], runs.rgrid, 'his');
             ax5(ii) = subplot(1, nt, ii);
-            contourf(yz(2:end-1,:)/1000, runs.rgrid.z_r(:,2:end-1,1)', avg1(v,1));
+            if runs.bathy.axis == 'y'
+                contourf(yz(2:end-1,:)/1000, zmat(2:end-1,:), avg1(v,1));
+            else
+                contourf(yz/1000, zmat, v);
+            end
             shading flat;
             hold on
-            contour(yz/1000, runs.rgrid.z_r(:,:,1)', ed, 1, 'k', ...
+            contour(yz/1000, zmat, ed, 1, 'k', ...
                     'LineWidth', 2);
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
             colorbar;
+            xlabel([upper(runs.bathy.axis) '(km)']);
             caxis( [-1 1] * max(abs(v(:))));
             title(['day' num2str(days(ii))]);
         end
