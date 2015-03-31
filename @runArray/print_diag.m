@@ -58,6 +58,7 @@ function [diags, plotx] = print_diag(runArray, name)
         xsl = run.bathy.xsl;
         Sa = run.bathy.S_sl;
         beta_t = f0 * alpha./Lz(1);
+        N = sqrt(run.params.phys.N2);
         diagstr = [];
 
         %%%%% dummy
@@ -434,6 +435,10 @@ function [diags, plotx] = print_diag(runArray, name)
                 else
                     ptName = runName;
                 end
+            end
+            % mark NS isobath runs with gray points
+            if run.bathy.axis == 'x'
+                clr = [1 1 1]*0.75;
             end
 
             laby = '$$\frac{U_b}{U_s} = 1 - \mathrm{erf}(\frac{H}{L_z^0})$$';
