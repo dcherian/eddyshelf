@@ -15,7 +15,7 @@ function [] = animate_field(runs, name, t0, ntimes)
         asindex = [1 2];
     end
 
-    rhocontourplot = 1; % plot eddy drho contour too?
+    rhocontourplot = 0; % plot eddy drho contour too?
     enfluxplot = 0; % plot AS energy flux ?
     sshplot = 0; % plot ssh-contour too?
     dyeplot = 0; % plot eddye contour too?
