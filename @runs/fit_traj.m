@@ -15,8 +15,12 @@ function [] = fit_traj(runs, tcrit)
     if use_my
         if runs.bathy.axis == 'y'
             yvec = runs.eddy.my(uind);
+            laby = 'Y (m)';
+            axis = runs.rgrid.y_rho(:,1);
         else
             yvec = runs.eddy.mx(uind);
+            laby = 'X (m)';
+            axis = runs.rgrid.x_rho(1,:);
         end
 
         % locate origin in the middle of the
@@ -43,8 +47,7 @@ function [] = fit_traj(runs, tcrit)
     if use_my
         ytraj = y0*tanh(tfit./T) + y1*(tfit./T) + ...
                 yref;
-        itraj = vecfind(runs.rgrid.y_rho(:,1), ...
-                        ytraj);
+        itraj = vecfind(axis, ytraj);
         if runs.bathy.axis == 'y'
             htraj = runs.bathy.h(1,itraj);
         else
@@ -75,7 +78,7 @@ function [] = fit_traj(runs, tcrit)
             plot(tvec, yvec, '*', tvec, ytraj);
             liney(Y);
             linex(tvec(tind));
-            ylabel('Y (m)');
+            ylabel(laby);
             subplot(212);
         end
         plot(tvec, runs.eddy.hcen(uind), '*', tvec, ...
