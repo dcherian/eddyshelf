@@ -38,28 +38,42 @@ function [] = plot_penetration(runArray)
         end
 
         % normalization for axes
-        xnorm = run.rrdeep; run.eddy.vor.dia(1)/2;
+        xnorm = run.eddy.vor.dia(1)/2;
         ynorm = run.eddy.vor.dia(1)/2; run.eddy.my(1) - run.bathy.xsb;
 
+        if run.bathy.axis == 'y'
+            mx = run.eddy.mx;
+            my = run.eddy.my;
+
+            edge1 = run.eddy.vor.ne;
+            edge2 = run.eddy.vor.se;
+        else
+            mx = run.eddy.my;
+            my = run.eddy.mx;
+
+            edge1 = run.eddy.vor.ee;
+            edge2 = run.eddy.vor.we;
+        end
+
         % reference location
-        x0 = run.eddy.mx(1);
+        x0 = mx(1);
         %y0 = run.eddy.my(1);
         y0 = run.bathy.xsb;
 
         if ~isempty(hfig1)
             figure(hfig1);
             subplot(2,1,1);
-            hgplt1(ff) = plot(ndtime, (run.eddy.vor.ne - y0)./ynorm);
+            hgplt1(ff) = plot(ndtime, (edge1 - y0)./ynorm);
             names{ff} = name;
 
             subplot(2,1,2);
-            plot(ndtime, (run.eddy.vor.se - y0)./ynorm);
+            plot(ndtime, (edge2 - y0)./ynorm);
         end
 
         figure(hfig2)
         axes(ax1)
-        x = (run.eddy.mx - x0)/xnorm;
-        y = (run.eddy.my - y0)/ynorm;
+        x = (mx - x0)/xnorm;
+        y = (my - y0)/ynorm;
 
         % plot track
         hgplt2(ff) = plot(x, y);
@@ -69,11 +83,10 @@ function [] = plot_penetration(runArray)
         [~,~,tind] = run.locate_resistance;
         plot(x(tind), y(tind), '.', ...
              'Color', get(hgplt2(ff), 'Color'), 'Markersize', 22);
-        run.fit_traj;
+        run.fit_traj(1.0);
         plot(x(run.traj.tind), y(run.traj.tind), 'x', ...
              'Color', get(hgplt2(ff), 'Color'), 'Markersize', 18);
 
-         
         % mark timestamps
         if mark_timestamp
             plot(x(tinds), y(tinds), 'kx');
