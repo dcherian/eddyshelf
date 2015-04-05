@@ -68,7 +68,10 @@ function [] = eddy_bulkproperties(runs, slab)
                                                'single'), [3 1 2]);
         end
     else
-        error('Not implemented for N-S isobaths');
+        rback = permute( dc_roms_read_data(dirname, 'rho', [1 1], ...
+                                           {'y' 1 1; 'x' 2 sz4dfull(1)+1}, ...
+                                           [], rgrid, ftype, ...
+                                           'single'), [1 3 2]);
     end
 
     if ~isfield(runs.eddy, 'drhothresh')
