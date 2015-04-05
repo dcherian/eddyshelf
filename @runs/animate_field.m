@@ -131,8 +131,13 @@ function [] = animate_field(runs, name, t0, ntimes)
 
     % plot track
     plot(runs.eddy.mx/1000, runs.eddy.my/1000);
-    plot(runs.eddy.mx/1000, runs.eddy.vor.ne/1000);
-    plot(runs.eddy.mx/1000, runs.eddy.vor.se/1000);
+    if runs.bathy.axis == 'y'
+        plot(runs.eddy.mx/1000, runs.eddy.vor.ne/1000);
+        plot(runs.eddy.mx/1000, runs.eddy.vor.se/1000);
+    else
+        plot(runs.eddy.vor.ee/1000, runs.eddy.my/1000);
+        plot(runs.eddy.vor.we/1000, runs.eddy.my/1000);
+    end
 
     % plot eddy contours
     he = runs.plot_eddy_contour('contour',ii);
