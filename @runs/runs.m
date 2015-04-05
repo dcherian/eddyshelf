@@ -651,7 +651,11 @@ methods
         dhdt = bsxfun(@rdivide, diff(runs.eddy.Lgauss), dt');
 
         % velocity
-        v = avg1(runs.eddy.mvy);
+        if runs.bathy.axis == 'y'
+            v = avg1(runs.eddy.mvy);
+        else
+            v = avg1(runs.eddy.mvx);
+        end
 
         tvec = avg1(runs.eddy.t*86400)./runs.eddy.turnover;
 
@@ -685,7 +689,7 @@ methods
 
         %stop
 
-        param = (runs.eddy.Lgauss)./abs(runs.eddy.hcen' - runs.eddy.Lgauss) ...
+        param = (runs.eddy.Lgauss)./abs(runs.eddy.hcen - runs.eddy.Lgauss) ...
                 .* runs.params.phys.beta .* runs.eddy.V;
 
         figure; insertAnnotation(annostr);
