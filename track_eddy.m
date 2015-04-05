@@ -80,7 +80,7 @@ function [eddy] = track_eddy(dir1)
     limit_y = 40*1000;
 
     % support for both cyclones and anti-cyclones
-    sgn = sign(params.eddy.tamp);
+    sgn = sign(params.eddy.tamp) .* sign(params.phys.f0);
     bathyloc = params.bathy.loc;
 
     %dx = xr(2,1,1) - xr(1,1,1);
@@ -158,7 +158,7 @@ function [eddy] = track_eddy(dir1)
             cy0 = nan;
         else
             if tt == 546,
-                keyboard; % for debugging
+                %keyboard; % for debugging
             end
             mask = nan(sz);
             lx = eddy.dia(tt-1)/2 + limit_x;
