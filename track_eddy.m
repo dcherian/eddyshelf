@@ -80,14 +80,14 @@ function [eddy] = track_eddy(dir1)
     limit_y = 40*1000;
 
     % support for both cyclones and anti-cyclones
-    sgn = sign(params.eddy.tamp) .* sign(params.phys.f0);
+    sgn = sign(params.eddy.tamp);
     bathyloc = params.bathy.loc;
 
     %dx = xr(2,1,1) - xr(1,1,1);
     %dy = yr(1,2,1) - yr(1,1,1);
 
     zeta = sgn * zeta(2:end-1,2:end-1,:);
-    vor = sgn * avg1(avg1( ...
+    vor = sign(params.phys.f0) * sgn * avg1(avg1( ...
                     bsxfun(@rdivide, diff(v,1,1), diff(avg1(xr(:,:,1),2),1,1)) ...
                   - bsxfun(@rdivide, diff(u,1,2), diff(avg1(yr(:,:,1),1),1,2)) ...
                   ,1),2);
