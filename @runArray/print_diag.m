@@ -50,6 +50,7 @@ function [diags, plotx] = print_diag(runArray, name)
         Lr = run.rrdeep;
         beta = run.params.phys.beta;
         use run.params.phys
+        f0 = abs(f0);
 
         alpha = run.bathy.sl_slope;
         hsb = run.bathy.hsb;
@@ -374,7 +375,7 @@ function [diags, plotx] = print_diag(runArray, name)
         if strcmpi(name, 'bottom torque')
 
             Ro = Ro(1);
-            Lx = run.eddy.vor.dia(1)/2;
+            %Lx = run.eddy.vor.dia(1)/2;
             H0 = hcen(1);
             Tamp = run.params.eddy.tamp;
             TCOEF = run.params.phys.TCOEF;
@@ -412,17 +413,17 @@ function [diags, plotx] = print_diag(runArray, name)
             %plot(ndtime(tind), run.eddy.hcen(tind), 'k*');
             %%liney(yscl); linex([1 2 3]*tscl);
 
-            t0 =  run.eddy.tscaleind;
+            t0 = 1; % run.eddy.tscaleind;
             titlestr = [titlestr ' | t0 = ' num2str(t0)];
             Lz = smooth(run.time(uind), run.eddy.Lgauss(uind), ...
-                        run.eddy.turnover, 'lowess');
+                        round(run.eddy.turnover./(run.time(2)-run.time(1))));
             if any(Lz == 0)
                 Lz = smooth(run.eddy.Lgauss, run.eddy.turnover./86400);
             end
-            if abs(run.eddy.vor.se(tind) - run.bathy.xsb) < ...
-                    run.rrdeep*0.75
-                continue;
-            end
+            %if abs(run.eddy.vor.se(tind) - run.bathy.xsb) < ...
+            %        run.rrdeep*0.75
+            %    continue;
+            %end
 
             diags(ff) = 1 - erf(H./Lz(t0));
             %diags(ff) = Y./(run.rrdeep);
@@ -436,12 +437,19 @@ function [diags, plotx] = print_diag(runArray, name)
             try
                 if run.params.flags.conststrat == 0
                     ptName = ' N^2';
+                    clr = [231,41,138]/255;
                 end
             catch ME
                 if run.params.eddy.tamp < 0
                     ptName = ' C';
+                    clr = [117,112,179]/255;
                 else
-                    ptName = [runName '|' slope];
+                    if run.params.phys.f0 < 0
+                        ptName = ' f^{-}';
+                        clr = [27,158,119]/255;
+                    else
+                        ptName = '';[runName];
+                    end
                 end
             end
             % mark NS isobath runs with gray points
