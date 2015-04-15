@@ -1,7 +1,7 @@
 % diagnostic plots to show how much eddy penetrates slope
 function [] = plot_penetration(runArray)
 
-    mark_timestamp = 0;
+    mark_timestamp = 1;
 
     corder_backup = runArray.sorted_colors;
 
@@ -32,7 +32,8 @@ function [] = plot_penetration(runArray)
 
         ndtime = run.eddy.t * 86400 / run.eddy.turnover;
         if mark_timestamp
-            tinds = vecfind(ndtime, [0.5:0.5:(max(ndtime))]);
+            dt = 75;
+            tinds = vecfind(run.eddy.t, [dt:dt:max(run.eddy.t)]);
         else
             tinds = [];
         end
@@ -77,21 +78,25 @@ function [] = plot_penetration(runArray)
 
         % plot track
         hgplt2(ff) = plot(x, y);
+        color = get(hgplt2(ff), 'Color');
         %addlegend(hgplt, name, 'NorthWest');
 
         % mark start of resistance
-        [~,~,tind] = run.locate_resistance;
-        plot(x(tind), y(tind), '.', ...
-             'Color', get(hgplt2(ff), 'Color'), 'Markersize', 22);
-        run.fit_traj(1.0);
-        plot(x(run.traj.tind), y(run.traj.tind), 'x', ...
-             'Color', get(hgplt2(ff), 'Color'), 'Markersize', 18);
+        %[~,~,tind] = run.locate_resistance;
+        %plot(x(tind), y(tind), '.', ...
+        %     'Color', get(hgplt2(ff), 'Color'), 'Markersize', 22);
+        if run.bathy.L_slope/run.eddy.vor.dia(1) > 1
+            run.fit_traj(1.0);
+            plot(x(run.traj.tind), y(run.traj.tind), 'x', ...
+                 'Color', color, 'Markersize', 16);
+        end
 
         % mark timestamps
         if mark_timestamp
-            plot(x(tinds), y(tinds), 'kx');
-            text(x(tinds), y(tinds), ...
-                 cellstr(num2str(ndtime(tinds)', 2)));
+            plot(x(tinds), y(tinds), '.', 'Color', color, 'MarkerSize', ...
+                 24);
+            %text(x(tinds), y(tinds), ...
+            %     cellstr(num2str(ndtime(tinds)', 2)));
         end
 
         if ~isempty(ax2)
@@ -121,20 +126,19 @@ function [] = plot_penetration(runArray)
     axes(ax1)
     if ynorm == run.rrdeep
         ylabel('(Y - Y_{sb})/(deformation radius)');
-        liney(1);
         set(gca, 'YTick', [0:1:max(ylim)]);
     else
         if ynorm == run.eddy.vor.dia(1)/2
             ylabel('(Y - Y_{sb})/(initial radius)');
-            liney(1);
             set(gca, 'YTick', [0:1:max(ylim)]);
         else
             ylabel(['Distance from shelfbreak / Initial distance from ' ...
                     'shelfbreak']);
-            liney(1);
             set(gca, 'YTick', [0:0.1:max(ylim)]);
         end
     end
+    xlim([-12 2]);
+    liney(1);
 
     if xnorm == run.rrdeep
         xlabel('(X-X_0)/(deformation radius)');
