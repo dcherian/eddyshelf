@@ -48,18 +48,27 @@ function [] = plot_penetration(runArray)
 
             edge1 = run.eddy.vor.ne;
             edge2 = run.eddy.vor.se;
+
+            % reference location
+            x0 = mx(1);
+            y0 = run.bathy.xsb;
+            legloc = 'NorthWest';
+            x0str = 'X_0';
+            y0str = 'Y_{sb}';
         else
-            mx = run.eddy.my;
-            my = run.eddy.mx;
+            mx = run.eddy.mx;
+            my = run.eddy.my;
 
             edge1 = run.eddy.vor.ee;
             edge2 = run.eddy.vor.we;
-        end
 
-        % reference location
-        x0 = mx(1);
-        %y0 = run.eddy.my(1);
-        y0 = run.bathy.xsb;
+            % reference location
+            y0 = my(1);
+            x0 = run.bathy.xsb;
+            legloc = 'NorthEast';
+            x0str = 'X_{sb}';
+            y0str = 'Y_0';
+        end
 
         if ~isempty(hfig1)
             figure(hfig1);
@@ -125,33 +134,40 @@ function [] = plot_penetration(runArray)
     figure(hfig2)
     axes(ax1)
     if ynorm == run.rrdeep
-        ylabel('(Y - Y_{sb})/(deformation radius)');
-        set(gca, 'YTick', [0:1:max(ylim)]);
+        ylabel(['(Y - ' y0str ')/(deformation radius)']);
+        dytick = 1;
     else
         if ynorm == run.eddy.vor.dia(1)/2
-            ylabel('(Y - Y_{sb})/(initial radius)');
-            set(gca, 'YTick', [0:1:max(ylim)]);
+            ylabel(['(Y - ' y0str ')/(initial radius)']);
+            dytick = 1;
         else
             ylabel(['Distance from shelfbreak / Initial distance from ' ...
                     'shelfbreak']);
-            set(gca, 'YTick', [0:0.1:max(ylim)]);
+            dytick = 0.1;
         end
     end
-    xlim([-12 2]);
-    liney(1);
+    if run.bathy.axis == 'y'
+        xlim([-12 2]);
+        liney(1);
+        set(gca, 'YTick', [0:dytick:max(ylim)]);
+    else
+        xlim([0 max(xlim)]);
+        ylim([min(ylim) -1*min(ylim)/2]);
+        linex(1);
+    end
 
     if xnorm == run.rrdeep
-        xlabel('(X-X_0)/(deformation radius)');
+        xlabel(['(X - ' x0str ')/(deformation radius)']);
     else
         if xnorm == run.eddy.vor.dia(1)/2
-            xlabel('(X-X_0)/(initial radius)');
+            xlabel(['(X - ' x0str ')/(initial radius)']);
         end
     end
 
     %axis image;
     %    ylim([-2 max(ylim)]);
 
-    hlegend = legend(hgplt2, names, 'Location', 'NorthWest', 'Box', ...
+    hlegend = legend(hgplt2, names, 'Location', legloc, 'Box', ...
                      'off');
     beautify(fontSize);
 
