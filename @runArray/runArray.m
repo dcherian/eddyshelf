@@ -146,6 +146,10 @@ classdef runArray < handle
         end
 
         function [] = print_params(runArray, command)
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
             for ii=1:length(runArray.filter)
                 run = runArray.array(runArray.filter(ii));
                 out = eval(['run.' command]);
