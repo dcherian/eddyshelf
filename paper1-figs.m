@@ -1,22 +1,37 @@
 %% Figures for paper 1:
-% load all required runs here, then filter out some for each figure;
-figs = runArray({ ...
+% EW isobaths
+ew = runArray({ ...
     'runew-4341/', ...
     'runew-36-sym/', ...
     'runew-6362-2', ...
     'runew-64361/', ...
                 });
-figs.name = {'L_{sl}/L > 1', 'L_{sl}/L ~ 1', 'L_{sl}/L < 1', 'L_{sl}/L < 1'};
+ew.name = {'L_{sl}/L > 1', 'L_{sl}/L ~ 1', 'L_{sl}/L < 1', 'L_{sl}/L < 1'};
 
+% shelfbreak depth
 sb = runArray({ ...
     'runew-36', 'runew-2360', 'runew-2361_wider', 'runew-2362_wider', ...
               });
 
-%% Center-tracks
-figs.filter = [];
+% NS isobaths
+folders = { ...
+    'runns-64361', 'runns-6341', 'runns-6362-2',...
+    'runns-6441', ...
+          };
+ns = runArray(folders);
 
-figs.plot_penetration;
+%% EW, NS Center-tracks
+ew.filter = [];
+ns.filter = [];
+
+figure; maximize();
+subplot(121);
+ew.plot_penetration(gca);
+subplot(122);
+ns.plot_penetration(gca);
 export_fig('images/paper1/centrack.pdf');
+%export_fig('images/paper1/EWcentrack.pdf')
+%export_fig('images/paper1/NScentrack.pdf');
 
 %% x-y plots of shelfbreak runs
 % add colorbar
@@ -45,4 +60,5 @@ for ii=1:sb.len
     ylabel('Y (km)');
     xlabel('X (km)');
 end
+
 export_fig('images/paper1/sb-maps.pdf');
