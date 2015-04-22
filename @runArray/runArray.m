@@ -45,6 +45,7 @@ classdef runArray < handle
                 end
             end
             runArray.len = kk-1;
+            runArray.filter = [1:runArray.len];
         end
 
         function [] = add(runArray, dir)
