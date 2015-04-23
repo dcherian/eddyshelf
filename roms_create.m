@@ -257,7 +257,7 @@ clear fnew
 % make plots to check bathymetry?
 bathy_plot = 0
 
-if isnan(bathy.H_shelf)
+if isnan(bathy.H_shelf) || ~isnan(bathy.H_sbreak)
     bathy.H_shelf = bathy.H_sbreak - bathy.sl_shelf * bathy.L_shelf;
 end
 
