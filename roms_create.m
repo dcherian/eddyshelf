@@ -1005,7 +1005,7 @@ if flags.eddy
 %                 S.zeta = S.zeta + -phys.TCOEF * eddy.tamp * int_Tz .* (1-eddy.xyprof);
 %                 % Calculate azimuthal velocity shear (r d(theta)/dt)_z using geostrophic balance
 %                 rutz = avg1(bsxfun(@times, eddy.temp, ...
-%                         g*phys.TCOEF* 1./f .* (-exponent./r *eddy.a)),3);
+%                         g*phys.TCOEF* 1./f0 .* (-exponent./r *eddy.a)),3);
             end
         end
 
@@ -1081,7 +1081,7 @@ if flags.eddy
         % area-averaged vor/f
         dA = avg1(avg1( 1./S.pm .* 1./S.pn, 1), 2) .* vormask;
 
-        nondim.eddy.Rovor = abs(sum(sum(vor./avg1(avg1(f,1),2) .* ...
+        nondim.eddy.Rovor = abs(sum(sum(vor./f0 .* ...
                             vormask .* dA,1),2)) ./ nansum(dA(:));
 
         % max. azimuthal velocity for future
