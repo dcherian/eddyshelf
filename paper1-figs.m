@@ -13,6 +13,9 @@ sb = runArray({ ...
     'runew-36', 'runew-2360', 'runew-2361_wider', 'runew-2362_wider', ...
               });
 
+% image effect velocity - sb
+image = runArray({ 'runew-2360', 'runew-2360_wider'});
+
 % NS isobaths
 folders = { ...
     'runns-64361', 'runns-6341', 'runns-6362-2',...
@@ -28,7 +31,8 @@ figure; maximize();
 subplot(121);
 ew.plot_penetration(gca);
 subplot(122);
-ns.plot_penetration(gca);
+ns.plot_penetration(gca); drawnow;
+ax1 = gca; ax1.XTick = unique([ax1.XTick 1])
 export_fig('images/paper1/centrack.pdf');
 %export_fig('images/paper1/EWcentrack.pdf')
 %export_fig('images/paper1/NScentrack.pdf');
@@ -62,3 +66,19 @@ for ii=1:sb.len
 end
 
 export_fig('images/paper1/sb-maps.pdf');
+
+%% image effect?
+figure; hold on;
+for ii=1:image.len
+    run = image.array(ii);
+
+    tvec = run.time/run.eddy.turnover;
+
+    plot(tvec, run.eddy.cvx);
+    ylabel('Centroid along-isobath velocity (km/day)');
+    xlabel('Time / Turnover Time');
+end
+liney(0); ylim([-0.1 0]);
+legend('40 km shelf', '150 km shelf');
+beautify;
+export_fig('images/paper1/image-effect.pdf');
