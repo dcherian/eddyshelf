@@ -1,12 +1,19 @@
 %% Figures for paper 1:
 % EW isobaths
-ew = runArray({ ...
+ewall = runArray({ ...
     'runew-4341/', ...
     'runew-36-sym/', ...
     'runew-6362-2', ...
     'runew-64361/', ...
                 });
-ew.name = {'L_{sl}/L > 1', 'L_{sl}/L ~ 1', 'L_{sl}/L < 1', 'L_{sl}/L < 1'};
+ewall.name = {'L_{edd}/L_{sl} > 1', 'L_{edd}/L_{sl} ~ 1', ...
+              'L_{edd}/L_{sl} < 1', 'L_{edd}/L_{sl} < 1'};
+
+ew = runArray({ ...
+    'runew-64361', ...
+    'runew-6341', ...
+    'runew-6362-2', ...
+    'runew-6441' });
 
 % shelfbreak depth
 sb = runArray({ ...
@@ -23,7 +30,11 @@ folders = { ...
           };
 ns = runArray(folders);
 
-%% EW, NS Center-tracks
+%% EW - center tracks - all,
+ewall.plot_penetration;
+export_fig('images/paper1/centrack.pdf');
+
+%% EW, NS Center-tracks - wide slope
 ew.filter = [];
 ns.filter = [];
 
@@ -33,7 +44,7 @@ ew.plot_penetration(gca);
 subplot(122);
 ns.plot_penetration(gca); drawnow;
 ax1 = gca; ax1.XTick = unique([ax1.XTick 1])
-export_fig('images/paper1/centrack.pdf');
+export_fig('images/paper1/sl-centrack.pdf');
 %export_fig('images/paper1/EWcentrack.pdf')
 %export_fig('images/paper1/NScentrack.pdf');
 
@@ -78,7 +89,7 @@ for ii=1:image.len
     ylabel('Centroid along-isobath velocity (km/day)');
     xlabel('Time / Turnover Time');
 end
-liney(0); ylim([-0.1 0]);
+liney(0); ylim([-0.1 0.05]);
 legend('40 km shelf', '150 km shelf');
 beautify;
 export_fig('images/paper1/image-effect.pdf');
