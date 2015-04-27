@@ -41,9 +41,11 @@ function [diags, plotx] = print_diag(runArray, name)
         V = run.eddy.V;
         if isfield(run.eddy, 'Vb'), Vb = run.eddy.Vb; end
 
-        hedge = run.eddy.hedge;
+        hedge = NaN; %run.eddy.hedge;
         hcen = run.eddy.hcen;
         fcen = run.eddy.fcen;
+        my = run.eddy.my;
+        mx = run.eddy.mx;
 
         A = run.eddy.amp(1);
 
@@ -148,10 +150,26 @@ function [diags, plotx] = print_diag(runArray, name)
         %%%%% slope parameter
         if strcmpi(name, 'slope param')
             plots = 0;
-            diags(ff) = Ro(1)./Sa;
+            diags(ff) = beta/beta_t;
+            plotx(ff) = NaN;
         end
 
-        %%%% resistance
+        %%%%%
+        if strcmpi(name, 'aspect')
+            run.fit_traj(1.5);
+
+            tind = run.traj.tind;
+
+            H = hcen(tind);
+
+            diags(ff) = H./Lz(run.eddy.tscaleind);
+            plotx(ff) = beta/beta_t;
+
+            laby = 'H/Lz';
+            labx = 'index';
+        end
+
+        %%%%% resistance
         if strcmpi(name, 'resistance')
             [xx,yy,tind] = run.locate_resistance;
 
@@ -439,7 +457,7 @@ function [diags, plotx] = print_diag(runArray, name)
 
             if errorbarflag
                 error(ff) = 2/sqrt(pi) * exp(-(H/Lz(t0))^2) * ...
-                    alpha * run.traj.yerr/Lz(t0);
+                    (alpha * run.traj.yerr)/Lz(t0);
             end
 
             try
@@ -626,14 +644,15 @@ function [diags, plotx] = print_diag(runArray, name)
         end
 
         % nondim parameters to compare runs
-        if strcmpi(name, 'diff')
+        if strcmpi(name, 'diff') || strcmpi(name, 'nondim')
+
             if ff == 1
                 close;
-                disp(sprintf('| %12s | %5s | %4s | %4s | %8s | %s |', ...
+                disp(sprintf('| %18s | %5s | %4s | %4s | %8s | %5s |', ...
                              'name', 'Rh', 'Ro', 'bl/f', 'beta_t', ...
                              'L/Lsl'));
             end
-            disp(sprintf('| %12s | %.2f | %.2f | %.2f | %.2e | %5.2f |', ...
+            disp(sprintf('| %18s | %5.2f | %4.2f | %4.2f | %.2e | %5.2f |', ...
                          run.name, run.params.nondim.eddy.Rh, ...
                          Ro(1), beta*Lx(1)/f0, beta_t, ...
                          Lx(1)./run.bathy.L_slope));
@@ -815,8 +834,8 @@ function [diags, plotx] = print_diag(runArray, name)
 
             % add run names
             if name_points
-                text(plotx(ff), diags(ff), ptName, 'FontSize', ...
-                     16, 'Rotation', 0);
+                text(plotx(ff)-4e-3, diags(ff), ptName, 'FontSize', ...
+                     16, 'Rotation', 0, 'Color', clr);
             end
             if strfind(labx, '$$')
                 xlabel(labx, 'interpreter', 'latex');
