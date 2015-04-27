@@ -1,16 +1,20 @@
 % diagnostic plots to show how much eddy penetrates slope
-function [] = plot_penetration(runArray)
+function [] = plot_penetration(runArray, ax)
 
     mark_timestamp = 1;
 
     corder_backup = runArray.sorted_colors;
 
-    hfig1 = figure; subplot(2,1,1); hold all; subplot(2,1,2);
-    hold all; insertAnnotation('runArray.plot_penetration');
+    hfig1 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2);
+                %hold all; insertAnnotation('runArray.plot_penetration');
 
-    hfig2 = figure;
-    insertAnnotation('runArray.plot_penetration');
-    ax1 = gca; hold all; %subplot(2,2,[1 3]); hold all;
+    if ~exist('ax', 'var')
+        hfig2 = figure;ax1 = gca; hold all; %subplot(2,2,[1 3]); hold all;
+    else
+        hfig2 = gcf;
+        ax1 = ax; hold all;
+    end
+    figure(hfig2); insertAnnotation('runArray.plot_penetration');
     ax2 = []; %subplot(2,2,2); hold all;
     ax3 = []; %subplot(2,2,4); hold all;
 
@@ -18,9 +22,13 @@ function [] = plot_penetration(runArray)
         runArray.filter = 1:runArray.len;
     end
 
-    for ff=1:length(runArray.filter)
+    len = length(runArray.filter);
+    colors = cbrewer('qual','Dark2',4);
+
+    for ff=1:len
         ii = runArray.filter(ff);
 
+        color = colors(ff,:);
         run  = runArray.array(ii);
         name = getname(runArray, ii);
         %name = [getname(runArray, ii) ' | L_{sl} = ' ...
@@ -73,29 +81,27 @@ function [] = plot_penetration(runArray)
         if ~isempty(hfig1)
             figure(hfig1);
             subplot(2,1,1);
-            hgplt1(ff) = plot(ndtime, (edge1 - y0)./ynorm);
-            names{ff} = name;
+            hgplt1(ff) = plot(ndtime, (edge1 - y0)./ynorm, 'Color', ...
+                              color);
 
             subplot(2,1,2);
-            plot(ndtime, (edge2 - y0)./ynorm);
+            plot(ndtime, (edge2 - y0)./ynorm, 'Color', color);
         end
 
-        figure(hfig2)
         axes(ax1)
         x = (mx - x0)/xnorm;
         y = (my - y0)/ynorm;
 
         % plot track
-        hgplt2(ff) = plot(x, y);
-        color = get(hgplt2(ff), 'Color');
-        %addlegend(hgplt, name, 'NorthWest');
+        hgplt2(ff) = plot(x, y, 'Color', color, 'LineStyle', '-');
+        names{ff} = name;
 
         % mark start of resistance
         %[~,~,tind] = run.locate_resistance;
         %plot(x(tind), y(tind), '.', ...
-        %     'Color', get(hgplt2(ff), 'Color'), 'Markersize', 22);
+        %     'Color', color, 'Markersize', 22);
         if run.bathy.L_slope/run.eddy.vor.dia(1) > 1
-            run.fit_traj(1.0);
+            run.fit_traj(1.5);
             plot(x(run.traj.tind), y(run.traj.tind), 'x', ...
                  'Color', color, 'Markersize', 16);
         end
@@ -110,11 +116,12 @@ function [] = plot_penetration(runArray)
 
         if ~isempty(ax2)
             axes(ax2)
-            hgplt = plot(ndtime, run.eddy.Lgauss./run.eddy.hcen');
+            hgplt = plot(ndtime, run.eddy.Lgauss./run.eddy.hcen', ...
+                         'Color', color);
         end
         if ~isempty(ax3)
             axes(ax3)
-            hgplt = plot(ndtime, run.eddy.Lgauss);
+            hgplt = plot(ndtime, run.eddy.Lgauss, 'Color', color);
         end
     end
 
@@ -131,8 +138,8 @@ function [] = plot_penetration(runArray)
         beautify(fontSize);
     end
 
-    figure(hfig2)
     axes(ax1)
+    axis image;
     if ynorm == run.rrdeep
         ylabel(['(Y - ' y0str ')/(deformation radius)']);
         dytick = 1;
@@ -148,12 +155,15 @@ function [] = plot_penetration(runArray)
     end
     if run.bathy.axis == 'y'
         xlim([-12 2]);
+        ylim([0 max(ylim)]);
         liney(1);
         set(gca, 'YTick', [0:dytick:max(ylim)]);
+        title('Southern Coast');
     else
         xlim([0 max(xlim)]);
         ylim([min(ylim) -1*min(ylim)/2]);
         linex(1);
+        title('Western Coast');
     end
 
     if xnorm == run.rrdeep
