@@ -210,6 +210,41 @@ function [diags, plotx] = print_diag(runArray, name)
             labx = 'Ro/S_\alpha';
         end
 
+        %%%%% energy loss - as vertical scale
+        if strcmpi(name, 'dhdt')
+            use_traj = 1;
+            if use_traj
+                run.fit_traj(1.5);
+                tind = run.traj.tind;
+            else
+                [~,~,tind] = run.locate_resistance;
+            end
+
+            diags(ff) = (Lz(tind) - Lz(1))./Lz(1);
+            plotx(ff) = V(1)./beta./Ls(1).^2;
+
+            laby = '\Delta L_z / L_z^0';
+            labx = 'U/\beta L_s^2';
+            %plotx(ff) = beta*Ls(1)/f0;% - much worse
+        end
+
+        % can run cross shelfbreak?
+        if strcmpi(name, 'cross sb')
+            tind = find_approx((run.eddy.vor.se - xsb), 0);
+
+            % figure;
+            % plot(Lz); linex(tind); liney(hsb);
+            % title(run.name);
+            % continue;
+
+            diags(ff) = Lz(tind)/hsb;
+            plotx(ff) = V(1)./beta./Ls(1).^2;
+
+            laby = '\Delta L_z / L_z^0';
+            labx = 'U/\beta L_s^2';
+        end
+
+
         %%%%% energy loss
         if strcmpi(name, 'dEdt')
             [~,~,tind] = run.locate_resistance;
@@ -242,8 +277,8 @@ function [diags, plotx] = print_diag(runArray, name)
                 error_KE = bint(1,2) - KEfit(1);
             end
 
-            dPEdt = (PE(pind)-PE(1))./PE(1); %PEfit(1);
-            dKEdt = (KE(kind)-KE(1))./KE(1); %KEfit(1);
+            dPEdt = (PE(pind))./PE(1) - 1; %PEfit(1);
+            dKEdt = (KE(kind))./KE(1) - 1; %KEfit(1);
 
             en = 'PE';
 
@@ -257,14 +292,15 @@ function [diags, plotx] = print_diag(runArray, name)
             %plot(tvec, KE./KE(1)); plot(tvec, tvec*KEfit(1) + KEfit(2));
 
             eval(['diags(ff) = abs(d' en 'dt);']);
-            plotx(ff) = ...
-            (beta * Lz(1) - alpha * f0 * (1-erf(hedge(1)./Lz(1))));
+            plotx(ff) = beta * Lx(1) ./ f0; %...
+            %(beta * Lz(1) - alpha * f0 * (1-erf(hedge(1)./Lz(1))));
             eval(['error(ff) = abs(error_' en ');']);
 
             errorbarflag = 1;
             name_points = 1;
-            labx = ['$$\beta L_z - ' ...
-                    'f_0 \alpha_{bot} (1 - \mathrm{erf} (h_{edge}/L_z) )  $$'];
+            labx = '\beta L / f_0';
+            %labx = ['$$\beta L_z - ' ...
+            %        'f_0 \alpha_{bot} (1 - \mathrm{erf} (h_{edge}/L_z) )  $$'];
             titlestr = '';
         end
 
