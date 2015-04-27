@@ -109,7 +109,7 @@ function [] = plot_penetration(runArray, ax)
         % mark timestamps
         if mark_timestamp
             plot(x(tinds), y(tinds), '.', 'Color', color, 'MarkerSize', ...
-                 24);
+                 22);
             %text(x(tinds), y(tinds), ...
             %     cellstr(num2str(ndtime(tinds)', 2)));
         end
@@ -125,7 +125,7 @@ function [] = plot_penetration(runArray, ax)
         end
     end
 
-    fontSize = [16 16 18];
+    fontSize = [20 20 22];
     if ~isempty(hfig1)
         figure(hfig1);
         subplot(2,1,1)
