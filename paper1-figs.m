@@ -31,7 +31,7 @@ folders = { ...
 ns = runArray(folders);
 
 %% EW - center tracks - all,
-ewall.plot_penetration;
+ewall.plot_penetration; maximize();
 export_fig('images/paper1/centrack.pdf');
 
 %% EW, NS Center-tracks - wide slope
@@ -39,14 +39,12 @@ ew.filter = [];
 ns.filter = [];
 
 figure; maximize();
-subplot(121);
-ew.plot_penetration(gca);
+ax1 = subplot(121);
+ew.plot_penetration(ax1);
 subplot(122);
 ns.plot_penetration(gca); drawnow;
 ax1 = gca; ax1.XTick = unique([ax1.XTick 1])
 export_fig('images/paper1/sl-centrack.pdf');
-%export_fig('images/paper1/EWcentrack.pdf')
-%export_fig('images/paper1/NScentrack.pdf');
 
 %% x-y plots of shelfbreak runs
 % add colorbar
