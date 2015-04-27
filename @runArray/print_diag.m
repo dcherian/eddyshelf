@@ -428,12 +428,20 @@ function [diags, plotx] = print_diag(runArray, name)
             diags(ff) = 1 - erf(H./Lz(t0));
             %diags(ff) = Y./(run.rrdeep);
             %plotx(ff) = Ro./Sa;
-            plotx(ff) = beta/(alpha*f0/Lz(t0));
+            plotx(ff) = beta/(alpha*abs(f0)/Lz(t0));
             %plotx(ff) = (hsb + Lx(t0).*alpha)./Lz(t0);
             %plotx(ff) = Lz(tind)./Lx(tind)./alpha;
+            %plotx(ff) = V(1)./beta./Ls(1)^2;
 
+            errorbarflag = 1;
             name_points = 1; line_45 = 0;
             slope = num2str(round(alpha*1e3));
+
+            if errorbarflag
+                error(ff) = 2/sqrt(pi) * exp(-(H/Lz(t0))^2) * ...
+                    alpha * run.traj.yerr/Lz(t0);
+            end
+
             try
                 if run.params.flags.conststrat == 0
                     ptName = ' N^2';
@@ -448,9 +456,10 @@ function [diags, plotx] = print_diag(runArray, name)
                         ptName = ' f^{-}';
                         clr = [27,158,119]/255;
                     else
-                        ptName = '';[runName];
+                        ptName =''; [runName];
                     end
                 end
+                %ptName = num2str(err,2);
             end
             % mark NS isobath runs with gray points
             if run.bathy.axis == 'x'
