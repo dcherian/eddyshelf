@@ -457,40 +457,48 @@ classdef runArray < handle
 
             corder_backup = runArray.sorted_colors;
 
-            figure; subplot(211); hold all; subplot(212); hold all;
+            figure; subplot(121); hold all; subplot(122); hold all;
             insertAnnotation('runArray.plot_dEdt');
 
+            kk=1;
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
-                names{ff} = runArray.getname(ii);
+                if ~isfield(run.eddy, 'KE'), continue; end
+
+                names{kk} = runArray.getname(ii);
                 tind = run.traj.tind;
                 tvec = run.time/run.eddy.turnover;
 
-                subplot(211)
+                subplot(121)
                 vec = run.eddy.KE(:,1);
                 %hplt(ff) = plot(avg1(tvec), ...
                 %                smooth(diff(vec)./diff(tvec')./vec(1),30));
-                hplt(ff) = plot(tvec, vec./vec(1));
+                hplt(kk) = plot(tvec, vec./vec(1), 'Color', [1 1 1]*0.5);
                 plot(tvec(tind), vec(tind)./vec(1), 'kx');
 
-                subplot(212)
+                subplot(122)
                 vec = run.eddy.PE(:,1);
+                plot(tvec, vec./vec(1), 'Color', [1 1 1]*0.5);
                 %hplt(ff) = plot(avg1(tvec), ...
                 %                smooth(diff(vec)./diff(tvec')./vec(1),30));
-                hplt(ff) = plot(tvec, vec./vec(1));
                 plot(tvec(tind), vec(tind)./vec(1), 'kx');
+
+                kk = kk+1;
             end
             legend(hplt, names);
-            subplot(211);
-            ylabel('Integrated KE');
+            subplot(121);
+            ylabel('KE / KE_0');
             title(['Crosses at traj.tind. Values normalized by initial ' ...
                    'value']);
+            beautify;
 
-            subplot(212);
-            ylabel('Integrated PE');
+            subplot(122);
+            ylabel('PE / PE_0');
             xlabel('Time / Turnover time');
+            beautify;
 
+            %packrows;
             runArray.reset_colors(corder_backup);
         end
 
