@@ -20,7 +20,7 @@ sb = runArray({ ...
     'runew-36', 'runew-2360', 'runew-2361_wider', 'runew-2362_wider', ...
               });
 
-% wide slopre runs
+% wide slope runs
 folders = { ...
 %'runew-04', 'runew-6040', 'runew-6041', 'runew-6042-new', ...
     ... %'runew-15', 'runew-6150', 'runew-6151', ... % 6152 sucks
@@ -68,6 +68,15 @@ export_fig('images/paper1/sl-centrack.pdf');
 sl.print_diag('bottom torque');
 title([]); pause(1);
 export_fig('images/paper1/penetration-erf-param.pdf');
+
+%% energy decay
+sl.plot_dEdt; maximize(); pause(1);
+subplot(121); title([]);
+pbaspect([1.618 1 1]); xlim([0 400]);
+legend('off');
+subplot(122); xlim([0 400]);
+pbaspect([1.618 1 1]);
+export_fig('images/paper1/energy-decay.pdf');
 
 %% x-y plots of shelfbreak runs
 % add colorbar
