@@ -39,7 +39,7 @@ folders = { ...
 sl = runArray(folders);
 
 % image effect velocity - sb
-image = runArray({ 'runew-2360', 'runew-2360_wider'});
+image = runArray({ 'runew-2360-fb', 'runew-2360', 'runew-2360_wider'});
 
 % NS isobaths
 folders = { ...
@@ -113,6 +113,6 @@ for ii=1:image.len
 end
 hl = liney(0); ylim([-0.08 0.05]);
 uistack(hl, 'bottom');
-legend('40 km shelf', '150 km shelf');
+legend('0 km shelf', '40 km shelf', '150 km shelf');
 beautify;
 export_fig('images/paper1/image-effect.pdf');
