@@ -491,6 +491,7 @@ classdef runArray < handle
             ylabel('KE / KE_0');
             title(['Crosses at traj.tind. Values normalized by initial ' ...
                    'value']);
+            xlabel('Time / Turnover time');
             beautify;
 
             subplot(122);
