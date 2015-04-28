@@ -77,17 +77,19 @@ end
 export_fig('images/paper1/sb-maps.pdf');
 
 %% image effect?
-figure; hold on;
+figure; maximize(); hold on;
 for ii=1:image.len
     run = image.array(ii);
 
     tvec = run.time/run.eddy.turnover;
-
-    plot(tvec, run.eddy.cvx);
-    ylabel('Centroid along-isobath velocity (km/day)');
+    cvx = run.eddy.cvx;
+    cvx(cvx < -0.06) = NaN;
+    plot(tvec, cvx);
+    ylabel({'Centroid', 'along-isobath', 'velocity', '(km/day)'});
     xlabel('Time / Turnover Time');
 end
-liney(0); ylim([-0.1 0.05]);
+hl = liney(0); ylim([-0.08 0.05]);
+uistack(hl, 'bottom');
 legend('40 km shelf', '150 km shelf');
 beautify;
 export_fig('images/paper1/image-effect.pdf');
