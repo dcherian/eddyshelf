@@ -9,6 +9,7 @@ function [] = fit_traj(runs, tcrit)
     tvec = runs.ndtime;
     % get unique timesteps
     [ut,uind,~] = unique(tvec, 'stable');
+
     tvec = tvec(uind);
 
     use_my = 1;
@@ -109,6 +110,9 @@ function [] = fit_traj(runs, tcrit)
     runs.traj.htraj = htraj;
     runs.traj.ytraj = ytraj;
     runs.traj.str = str;
+    runs.traj.yerr = sqrt(mean( (yvec-ytraj).^2));
+    runs.traj.herr = runs.bathy.sl_slope * runs.traj.yerr;
+    disp([runs.traj.yerr/1000 runs.traj.herr runs.traj.T])
     runs.traj.comment = ['Fit y = y0*tanh((t-tref)/T) + y1*((t-tref)/T) + yref| ' ...
                         'Use y = water depth (hcen) if use_my =0, ' ...
                         'y = eddy.my otherwise | ' ...
