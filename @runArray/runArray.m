@@ -465,6 +465,7 @@ classdef runArray < handle
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
                 if ~isfield(run.eddy, 'KE'), continue; end
+                run.fit_traj(1.0);
 
                 names{kk} = runArray.getname(ii);
                 tind = run.traj.tind;

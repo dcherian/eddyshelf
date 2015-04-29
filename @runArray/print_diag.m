@@ -436,7 +436,7 @@ function [diags, plotx] = print_diag(runArray, name)
 
             tanhfitflag = 1;
             if tanhfitflag %|| run.params.eddy.tamp < 0
-                tcrit = 1.5;
+                tcrit = 1.0;
                 run.fit_traj(tcrit);
 
                 tind = run.traj.tind;
