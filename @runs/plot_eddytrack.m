@@ -57,4 +57,5 @@ function [] = plot_eddytrack(runs)
     plot(plotx(tind), ploty(tind), 'x', 'MarkerSize', 12);
 
     liney(0);
+    %xlim([0 max(xlim)]);
 end

@@ -125,7 +125,7 @@ function [] = plot_penetration(runArray, ax)
         end
     end
 
-    fontSize = [20 20 22];
+    fontSize = [18 18 20];
     if ~isempty(hfig1)
         figure(hfig1);
         subplot(2,1,1)

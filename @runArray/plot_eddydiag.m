@@ -49,7 +49,7 @@ function [] = plot_eddydiag(runArray)
 
         %tscale = run.tscale; find_approx(asp, 0.5, 1);
         %ndtime = run.eddy.t/tscale * 86400;
-
+        run.fit_traj(1.0);
         ndtime = run.eddy.t*86400 ./ run.eddy.turnover;
         if isempty(runArray.name)
             name{ff} = run.name;
@@ -86,8 +86,12 @@ function [] = plot_eddydiag(runArray)
             figure(hfig1)
             subplot(2,1,1)
             hgplt1(ff) = plot(ndtime, run.eddy.Lgauss);
+            plot(ndtime(run.traj.tind), run.eddy.Lgauss(run.traj.tind), ...
+                 'x');
             subplot(2,1,2)
-            %plot(ndtime, run.eddy.vol./run.eddy.vol(1));
+            plot(ndtime, run.eddy.hcen);
+            plot(ndtime(run.traj.tind), run.eddy.hcen(run.traj.tind), ...
+                 'x');
         end
 
         % KE, PE
@@ -214,7 +218,7 @@ function [] = plot_eddydiag(runArray)
         subplot(2,1,2)
         ylabel('Volume/Volume(1)');
         %ylabel('Aspect ratio = \alpha_{iso}');
-        xlabel('Time /(time at slopebreak)');
+        xlabel('Time /(turnover time)');
         insertAnnotation(annostr);
         legend(hgplt1, name);
     end

@@ -646,7 +646,7 @@ methods
 
         beta = runs.params.phys.beta;
         dt = diff(runs.eddy.t*86400);
-        TE = (runs.eddy.PE + runs.eddy.KE)./abs(runs.eddy.mass);
+        TE = (runs.eddy.PE + runs.eddy.KE)./abs(1);
         dEdt = bsxfun(@rdivide, diff(TE), dt');
         dhdt = bsxfun(@rdivide, diff(runs.eddy.Lgauss), dt');
 
@@ -680,11 +680,14 @@ methods
         figure; insertAnnotation(annostr);
         plot(tvec, -bsxfun(@rdivide, dEdtsmth(:,1), min(dEdtsmth(:,1))));
         hold all
-        plot(tvec, -v./min(v));
+        %plot(tvec, -v./min(v));
         %plot(tvec, smooth(dhdt./dhdt(1), 5));
-        legend('dE/dt','cvy','dh/dt');
-        title(runs.name); liney(0);
+        %legend('dE/dt','cvy','dh/dt');
+        ylabel('dE/dt');
+        title(runs.name);
+        hl =liney(0); uistack(hl,'bottom');
         xlabel('Time / turnover time');
+        maximize(); pause(1);
         beautify;
 
         %stop

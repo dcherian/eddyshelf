@@ -438,12 +438,13 @@ classdef runArray < handle
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
                 names{ff} = runArray.getname(ii);
+                run.fit_traj;
                 tind = run.traj.tind;
                 tvec = run.time/run.eddy.turnover;
 
-                vec = run.eddy.KE(:,1);
-                hplt(ff) = plot(tvec, vec./vec(1));
-                plot(tvec(tind), vec(tind)./vec(1), 'kx');
+                vec =  run.eddy.cvx;
+                hplt(ff) = plot(tvec, vec);
+                plot(tvec(tind), vec(tind), 'kx');
             end
             legend(hplt, names);
 
