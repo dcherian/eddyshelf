@@ -16,6 +16,7 @@ function [diags, plotx] = print_diag(runArray, name)
         name_points = 1; % name points by default
         line_45 = 0; %no 45° line by default
         errorbarflag = 0; % use errorbar() instead of plot()
+        kozak = 0; % fancy Kozak scatterplot
         labx = ' '; laby = ' ';
         clr = 'k';
         plotx = []; error = [];
@@ -487,7 +488,7 @@ function [diags, plotx] = print_diag(runArray, name)
             %plotx(ff) = Lz(tind)./Lx(tind)./alpha;
             %plotx(ff) = V(1)./beta./Ls(1)^2;
 
-            errorbarflag = 1;
+            errorbarflag = 1; kozak = 1;
             name_points = 1; line_45 = 0;
             slope = num2str(round(alpha*1e3));
 
@@ -529,7 +530,7 @@ function [diags, plotx] = print_diag(runArray, name)
                 limx = xlim;
                 limy = ylim;
 
-                xvec = linspace(0.5*min(plotx(:)), 1.2*max(plotx), 100);
+                xvec = linspace(0.5*min(plotx(:)), 1*max(plotx), 100);
 
                 P = polyfit(plotx, diags, 1);
                 %[P,Pint] = regress(diags', [plotx' ones(size(plotx'))], ...
@@ -873,17 +874,19 @@ function [diags, plotx] = print_diag(runArray, name)
                 text(plotx(ff)-4e-3, diags(ff), ptName, 'FontSize', ...
                      16, 'Rotation', 0, 'Color', clr);
             end
-            if strfind(labx, '$$')
-                xlabel(labx, 'interpreter', 'latex');
-            else
-                xlabel(labx);
+            if ff == 1
+                if strfind(labx, '$$')
+                    xlabel(labx, 'interpreter', 'latex');
+                else
+                    xlabel(labx);
+                end
+                if strfind(laby, '$$')
+                    ylabel(laby, 'interpreter', 'latex')
+                else
+                    ylabel(laby);
+                end
+                htitle = title(titlestr);
             end
-            if strfind(laby, '$$')
-                ylabel(laby, 'interpreter', 'latex')
-            else
-                ylabel(laby);
-            end
-            title(titlestr);
         end
 
         disp([run.name ' | ' name ' = ' diagstr ' | plotx ' ...
@@ -895,10 +898,30 @@ function [diags, plotx] = print_diag(runArray, name)
     end
 
     if plots
-        figure(hfig)
-        beautify([18 18 20]);
+        figure(hfig); ax1 = gca;
+        maximize(); drawnow; pause(1);
+        %beautify([20 20 22]);
         set(gcf, 'renderer', 'zbuffer');
         if line_45, line45; end
+
+        if kozak
+            ax2 = kozakscatterplot(ax1, [min(plotx) max(plotx)], ...
+                             [min(diags) max(diags)]);
+            grid off;
+
+            %hleg = legend;
+            %pos = hleg.Position;
+            %hleg.Position = [pos(1)-0.1 pos(2:end)];
+        end
+        beautify([18 18 20]);
+
+        if strcmpi(name, 'bottom torque')
+            ax2.YLabel.Rotation = 90;
+
+            pos = ax2.YLabel.Position;
+            ex = ax2.YLabel.Extent;
+            ax2.YLabel.Position = [pos(1)+ex(3)*1.2 pos(2:end)];
+        end
     end
 
     if exist('hfig_flux', 'var')
