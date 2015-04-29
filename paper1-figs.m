@@ -48,6 +48,33 @@ folders = { ...
           };
 ns = runArray(folders);
 
+%% initial condition
+run = ew.array(2);
+
+%% x-y cross-section
+run = runs('../topoeddy/runew-34/');
+fontSize = [16 16 18];
+tt = [1 350];
+figure; ax1 = subplot(221);
+run.animate_vorsurf(ax1,tt(1),1);
+title('Surface vorticity / f');
+xlabel([]);
+clim = caxis; beautify(fontSize);
+ax2 = subplot(223);
+run.animate_vorsurf(ax2,tt(2),1);
+title([]); xlabel([]);
+caxis(clim); beautify(fontSize);
+seqcolor = cbrewer('seq','Reds',12);
+ax3 = subplot(222);
+run.animate_field('eddye', ax3, tt(1), 1);
+title('Dye'); caxis([0 1]); beautify(fontSize);
+colormap(ax3,seqcolor);
+ax4 = subplot(224);
+run.animate_field('eddye', ax4, tt(2), 1);
+title([]); caxis([0 1]);
+colormap(ax4,seqcolor); beautify(fontSize);
+export_fig('images/paper1/xymap.pdf');
+
 %% EW - center tracks - all,
 ewall.plot_penetration; maximize();
 export_fig('images/paper1/centrack.pdf');

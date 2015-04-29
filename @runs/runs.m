@@ -1939,10 +1939,10 @@ methods
 
         if isempty(runs.vorsurf)
             vx =  bsxfun(@rdivide,diff(runs.vsurf,1,1), ...
-                                    diff(runs.rgrid.x_v',1,1));
+                         diff(runs.rgrid.x_v',1,1));
 
             uy = bsxfun(@rdivide,diff(runs.usurf,1,2), ...
-                             diff(runs.rgrid.y_u',1,2));
+                        diff(runs.rgrid.y_u',1,2));
 
             runs.vorsurf = vx - uy;
 
@@ -3808,10 +3808,14 @@ methods
 
     end
 
-    function [] = animate_vorsurf(runs)
+    function [] = animate_vorsurf(runs, hax, t0, ntimes)
         if isempty(runs.vorsurf)
             runs.calc_vorsurf();
         end
+
+        if ~exist('hax', 'var'), hax = []; end
+        if ~exist('t0', 'var'), t0 = 1; end
+        if ~exist('ntimes', 'var'), ntimes = length(runs.time); end
 
         runs.video_init('surfvorcsd');
 
@@ -3822,43 +3826,61 @@ methods
                                              'his');
         end
 
-        csdlevels = runs.bathy.xsb + [-20 -10 0 10] * 1000;
+        csdlevels = runs.bathy.xsb + [0 -20] * 1000;
 
-        tt = 1;
-        figure();
+        tt = t0;
+        if isempty(hax), figure(); else axis(hax); end
         maximize();
         vorsurf = bsxfun(@rdivide, runs.vorsurf, ...
                          avg1(avg1(runs.rgrid.f', 1), 2));
-        vormax = max(abs(vorsurf(:)));
+        if ntimes ~= 1
+            vormax = max(abs(vorsurf(:)));
+        else
+            vormax = max(max(abs(vorsurf(:,:,t0))));
+        end
+
         levels = linspace(-vormax,vormax,20);
-        [~,hh] = contourf(runs.rgrid.xvor/1000,runs.rgrid.yvor/1000, ...
-                          vorsurf(:,:,tt),levels);
-        caxis([-1 1] * vormax); colorbar; shading flat;
+        [hh] = pcolor(runs.rgrid.xvor/1000,runs.rgrid.yvor/1000, ...
+                          vorsurf(:,:,tt));
+        caxis([-1 1] * vormax); hcbar = colorbar; shading interp;
+        hcbar.Label.String = '\zeta/f';
         hold on
+        % bathy contour
         runs.plot_bathy('contour', [1 1 1]*0.7);
-        %[~,h0vor] = contour(runs.rgrid.xvor/1000, runs.rgrid.yvor/1000, ...
-        %                    runs.vorsurf(:,:,tt), [0 0], 'r', ...
-        %                    'LineWidth', 2);
+
+        % eddy contours
         hedd = runs.plot_eddy_contour('contour', tt);
-        hssh = runs.plot_eddy_sshcontour('contour', tt);
-        [~,hcsd] = contour(runs.rgrid.x_rho'/1000, runs.rgrid.y_rho'/1000, ...
-                           runs.csdsurf(:,:,tt), csdlevels, 'Color', [0 0 0], ...
-                           'LineWidth', 2);
-        contour(runs.rgrid.x_rho'/1000, runs.rgrid.y_rho'/1000, ...
-                runs.csdsurf(:,:,tt), csdlevels(1), 'Color', [1 1 1]*0.9, ...
-                'LineWidth', 2)
+        % hssh = runs.plot_eddy_sshcontour('contour', tt);
+
+        % dye-contours (current)
+        %[~,hcsd] = contour(runs.rgrid.x_rho'/1000, runs.rgrid.y_rho'/1000, ...
+        %                   runs.csdsurf(:,:,tt), csdlevels, 'Color', [1 1 1]*0.5, ...
+        %                   'LineWidth', 2);
+        % dye contours (initial)
+        % contour(runs.rgrid.x_rho'/1000, runs.rgrid.y_rho'/1000, ...
+        %        runs.csdsurf(:,:,tt), csdlevels(1), 'Color', [1 1 1]*0.9, ...
+        %        'LineWidth', 2)
         xlabel('X (km)'); ylabel('Y (km)');
         axis image;
-        ht = title(['Surface vorticity @ t = ' num2str(tt/2) ' days']);
+        ht = title(['Surface vorticity @ t = ' ...
+                    num2str(runs.time(tt)/86400) ' days']);
+        ax = gca;
+        htext = text(ax.XTick(2), ax.YTick(end), ...
+                     ['t = ' num2str(runs.time(tt)/86400) ' days']);
         beautify([18 18 20]);
-        for tt = 2:3:size(runs.vorsurf,3)
+
+        for tt = 2:3:ntimes
             set(hh,'ZData', double(vorsurf(:,:,tt)));
             set(hcsd, 'ZData', double(runs.csdsurf(:,:,tt)));
             %set(h0vor, 'ZData', double(runs.vorsurf(:,:,tt)));
             shading flat;
             runs.update_eddy_contour(hedd, tt);
-            runs.update_eddy_sshcontour(hssh, tt);
-            set(ht,'String',['Surface vorticity @ t = ' num2str(tt/2) ' days']);
+            % runs.update_eddy_sshcontour(hssh, tt);
+            set(ht,'String',['Surface vorticity | t = ' ...
+                             num2str(runs.time(tt)/86400) ' ' ...
+                             'days']);
+            set(htext,'String', ['t = ' num2str(runs.time(tt)/86400) ...
+                                ' days']);
             runs.video_update();
             pause(0.05);
         end
@@ -5436,6 +5458,7 @@ methods
                             runs.rgrid.h',[200 500 1000 1500 ...
                                 2000], 'Color', color);
             clabel(cc,hplot,'LabelSpacing',108*3, 'Color', color);
+            hax = gca;
             if runs.bathy.axis == 'y'
                 liney(runs.bathy.xsb/1000,'shelfbreak',color);
                 liney(runs.bathy.xsl/1000,'slopebreak',color);

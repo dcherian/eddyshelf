@@ -1,7 +1,8 @@
 %  animate 2D field at the surface presumably.
-function [] = animate_field(runs, name, t0, ntimes)
-    runs.video_init(name);
+function [] = animate_field(runs, name, hax, t0, ntimes)
+    if ~exist('hax','var'), hax = []; end
 
+    runs.video_init(name);
     titlestr = [];
 
     dt = 10;
@@ -19,6 +20,7 @@ function [] = animate_field(runs, name, t0, ntimes)
     enfluxplot = 0; % plot AS energy flux ?
     sshplot = 0; % plot ssh-contour too?
     dyeplot = 0; % plot eddye contour too?
+    drawtrack = 0; % plot eddy track?
     telesplot = 0;  % plot lines where grid stretching starts
                     % and ends
 
@@ -77,6 +79,7 @@ function [] = animate_field(runs, name, t0, ntimes)
         if strcmpi(name, 'eddye')
             varname = 'eddsurf';
             titlestr = 'Eddy dye';
+            colormapflag = 1;
         end
     end
 
@@ -110,7 +113,13 @@ function [] = animate_field(runs, name, t0, ntimes)
     end
 
     %%%% actually plot
-    figure; insertAnnotation([runs.name '.animate_field']);
+    if isempty(hax)
+        figure;
+        insertAnnotation([runs.name '.animate_field']);
+    else
+        axis(hax);
+    end
+
     if subplots_flag == 'x'
         ax = subplot(5,1,[1 2 3]);
     else
@@ -124,19 +133,21 @@ function [] = animate_field(runs, name, t0, ntimes)
     hz = runs.plot_surf(varname, 'pcolor', ii);
 
     hold on;
-    colorbar; freezeColors;
+    colorbar;
 
     % bathy
-    hbathy = runs.plot_bathy('contour','k');
+    hbathy = runs.plot_bathy('contour', [1 1 1]*0.7);
 
     % plot track
-    plot(runs.eddy.mx/1000, runs.eddy.my/1000);
-    if runs.bathy.axis == 'y'
-        plot(runs.eddy.mx/1000, runs.eddy.vor.ne/1000);
-        plot(runs.eddy.mx/1000, runs.eddy.vor.se/1000);
-    else
-        plot(runs.eddy.vor.ee/1000, runs.eddy.my/1000);
-        plot(runs.eddy.vor.we/1000, runs.eddy.my/1000);
+    if drawtrack
+        plot(runs.eddy.mx/1000, runs.eddy.my/1000);
+        if runs.bathy.axis == 'y'
+            plot(runs.eddy.mx/1000, runs.eddy.vor.ne/1000);
+            plot(runs.eddy.mx/1000, runs.eddy.vor.se/1000);
+        else
+            plot(runs.eddy.vor.ee/1000, runs.eddy.my/1000);
+            plot(runs.eddy.vor.we/1000, runs.eddy.my/1000);
+        end
     end
 
     % plot eddy contours
@@ -181,6 +192,8 @@ function [] = animate_field(runs, name, t0, ntimes)
     maximize(gcf); pause(0.2);
     beautify([16 16 18]);
     ax = gca;
+    htext = text(ax.XTick(2), ax.YTick(end-1), ...
+                     ['t = ' num2str(runs.time(ii)/86400) ' days']);
 
     % second plot
     if subplots_flag == 'x'
@@ -346,6 +359,9 @@ function [] = animate_field(runs, name, t0, ntimes)
             if vecplot || (asfluxplot == 2)
                 set(htime, 'XData', [1 1]*tvec(ii));
             end
+
+            % update time label
+            htext.String = ['t = ' num2str(runs.time(ii)/86400) ' days'];
             runs.video_update();
             pause(1);
         end
