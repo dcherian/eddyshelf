@@ -41,42 +41,53 @@ sl = runArray(folders);
 % image effect velocity - sb
 image = runArray({ 'runew-2360-fb', 'runew-2360', 'runew-2360_wider'});
 
-% NS isobaths
-folders = { ...
-    'runns-64361', 'runns-6341', 'runns-6362-2',...
-    'runns-6441', ...
-          };
-ns = runArray(folders);
-
 %% initial condition
 run = ew.array(2);
 
 %% x-y cross-section
-run = runs('../topoeddy/runew-34/');
+%run = runs('../topoeddy/runew-34/');
 fontSize = [16 16 18];
-tt = [1 350];
-figure; ax1 = subplot(221);
+tt = [1 250];
+seqcolor = flipud(cbrewer('div','RdYlBu',32));
+figure; maximize(); pause(0.5);
+ax1 = subplot(221);
 run.animate_vorsurf(ax1,tt(1),1);
 title('Surface vorticity / f');
 xlabel([]);
 clim = caxis; beautify(fontSize);
+
 ax2 = subplot(223);
 run.animate_vorsurf(ax2,tt(2),1);
 title([]); xlabel([]);
 caxis(clim); beautify(fontSize);
-seqcolor = cbrewer('seq','Reds',12);
+
 ax3 = subplot(222);
 run.animate_field('eddye', ax3, tt(1), 1);
-title('Dye'); caxis([0 1]); beautify(fontSize);
+title('Dye'); caxis([-1 1]); beautify(fontSize);
 colormap(ax3,seqcolor);
+
 ax4 = subplot(224);
 run.animate_field('eddye', ax4, tt(2), 1);
-title([]); caxis([0 1]);
+title([]); caxis([-1 1]);
 colormap(ax4,seqcolor); beautify(fontSize);
-export_fig('images/paper1/xymap.pdf');
+
+export_fig('-r450','images/paper1/xymap.png');
 
 %% EW - center tracks - all,
+fs  = 18;
 ewall.plot_penetration; maximize();
+ax = gca;
+title([]); pbaspect([1.618 1 1]);
+text(-10, 0.2, 'shelfbreak', 'FontSize', fs);
+text(-0.3, 1.5, 'L_{edd} > L_{sl}', ...
+     'FontSize', fs, 'Color', ax.ColorOrder(1,:));
+text(0.2, 3.8, 'L_{edd} ~ L_{sl}', ...
+     'FontSize', fs, 'Color', ax.ColorOrder(2,:));
+text(-9, 2.1, 'L_{edd} < L_{sl}', ...
+     'FontSize', fs, 'Color', ax.ColorOrder(3,:));
+text(-6, 3.8, 'L_{edd} < L_{sl}', ...
+     'FontSize', fs, 'Color', ax.ColorOrder(4,:));
+legend('off');
 export_fig('images/paper1/centrack.pdf');
 
 %% EW, NS Center-tracks - wide slope
