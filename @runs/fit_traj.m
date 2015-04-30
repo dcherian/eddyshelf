@@ -110,7 +110,7 @@ function [] = fit_traj(runs, tcrit)
     runs.traj.htraj = htraj;
     runs.traj.ytraj = ytraj;
     runs.traj.str = str;
-    runs.traj.yerr = sqrt(mean( (yvec-ytraj).^2));
+    runs.traj.yerr = sqrt(mean( (yvec(1:tind)-ytraj(1:tind)).^2));
     runs.traj.herr = runs.bathy.sl_slope * runs.traj.yerr;
     disp([runs.traj.yerr/1000 runs.traj.herr runs.traj.T])
     runs.traj.comment = ['Fit y = y0*tanh((t-tref)/T) + y1*((t-tref)/T) + yref| ' ...
