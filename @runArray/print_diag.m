@@ -488,7 +488,7 @@ function [diags, plotx] = print_diag(runArray, name)
             %plotx(ff) = Lz(tind)./Lx(tind)./alpha;
             %plotx(ff) = V(1)./beta./Ls(1)^2;
 
-            errorbarflag = 1; kozak = 1;
+            errorbarflag = 0; kozak = 1;
             name_points = 1; line_45 = 0;
             slope = num2str(round(alpha*1e3));
 
