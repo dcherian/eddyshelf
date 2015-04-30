@@ -866,7 +866,8 @@ function [diags, plotx] = print_diag(runArray, name)
                 errorbar(plotx(ff), diags(ff), error(ff), 'x', ...
                          'LineWidth', 2, 'Color', clr);
             else
-                plot(plotx(ff), diags(ff), '*', 'Color', clr);
+                plot(plotx(ff), diags(ff), '.', 'Color', clr, ...
+                     'MarkerSize', 20);
             end
 
             % add run names
