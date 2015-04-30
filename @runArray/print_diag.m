@@ -917,11 +917,15 @@ function [diags, plotx] = print_diag(runArray, name)
         beautify([18 18 20]);
 
         if strcmpi(name, 'bottom torque')
-            ax2.YLabel.Rotation = 90;
+            if kozak
+                correct_ticks('x', '%.2f', []);
+                correct_ticks('y', '%.2f', 1);
+            end
+        %     ax2.YLabel.Rotation = 90;
 
-            pos = ax2.YLabel.Position;
-            ex = ax2.YLabel.Extent;
-            ax2.YLabel.Position = [pos(1)+ex(3)*1.2 pos(2:end)];
+        %     pos = ax2.YLabel.Position;
+        %     ex = ax2.YLabel.Extent;
+        %     ax2.YLabel.Position = [pos(1)+ex(3)*1.2 pos(2:end)];
         end
     end
 
