@@ -45,7 +45,7 @@ image = runArray({ 'runew-2360-fb', 'runew-2360', 'runew-2360_wider'});
 run = ew.array(2);
 
 %% x-y cross-section
-%run = runs('../topoeddy/runew-34/');
+run = runs('../topoeddy/runew-34/');
 fontSize = [16 16 18];
 tt = [1 250];
 seqcolor = flipud(cbrewer('div','RdYlBu',32));
@@ -55,21 +55,25 @@ run.animate_vorsurf(ax1,tt(1),1);
 title('Surface vorticity / f');
 xlabel([]);
 clim = caxis; beautify(fontSize);
+correct_ticks('y',[],[3 5]);
 
 ax2 = subplot(223);
 run.animate_vorsurf(ax2,tt(2),1);
 title([]); xlabel([]);
 caxis(clim); beautify(fontSize);
+correct_ticks('y',[],[3 5]);
 
 ax3 = subplot(222);
 run.animate_field('eddye', ax3, tt(1), 1);
 title('Dye'); caxis([-1 1]); beautify(fontSize);
 colormap(ax3,seqcolor);
+correct_ticks('y',[],[3 5]);
 
 ax4 = subplot(224);
 run.animate_field('eddye', ax4, tt(2), 1);
 title([]); caxis([-1 1]);
 colormap(ax4,seqcolor); beautify(fontSize);
+correct_ticks('y',[],[3 5]);
 
 export_fig('-r450','images/paper1/xymap.png');
 
