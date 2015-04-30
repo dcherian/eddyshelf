@@ -901,7 +901,6 @@ function [diags, plotx] = print_diag(runArray, name)
     if plots
         figure(hfig); ax1 = gca;
         maximize(); drawnow; pause(1);
-        %beautify([20 20 22]);
         set(gcf, 'renderer', 'zbuffer');
         if line_45, line45; end
 
@@ -909,23 +908,24 @@ function [diags, plotx] = print_diag(runArray, name)
             ax2 = kozakscatterplot(ax1, [min(plotx) max(plotx)], ...
                              [min(diags) max(diags)]);
             grid off;
-
             %hleg = legend;
             %pos = hleg.Position;
             %hleg.Position = [pos(1)-0.1 pos(2:end)];
+        else
+            pbaspect([1.618 1 1]);
         end
-        beautify([18 18 20]);
-
+        %beautify([18 18 20]);
+        %ax1.XColor = [1 1 1]; %ax1.YColor = [1 1 1];
         if strcmpi(name, 'bottom torque')
             if kozak
                 correct_ticks('x', '%.2f', []);
                 correct_ticks('y', '%.2f', 1);
             end
-        %     ax2.YLabel.Rotation = 90;
-
-        %     pos = ax2.YLabel.Position;
-        %     ex = ax2.YLabel.Extent;
-        %     ax2.YLabel.Position = [pos(1)+ex(3)*1.2 pos(2:end)];
+            box off;
+            ax2.FontSize = 18;
+            set(legend, 'box', 'off');
+        else
+            beautify([18 18 20]);
         end
     end
 
