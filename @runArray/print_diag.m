@@ -549,20 +549,6 @@ function [diags, plotx] = print_diag(runArray, name)
                               'Location', 'SouthEast');
                 set(hleg, 'interpreter', 'latex');
 
-                % [y0, x1, x2, p] = fit_btrq(plotx, diags)
-                % paramstr1 = ['$$\frac{' num2str(y0,2) '}{(' ...
-                %             num2str(x1,2) ' + ' num2str(x2,2) ...
-                %             ' (\beta / \beta_t)^{' num2str(p,2) '})}$$'];
-                % yvec = y0./(x1 + x2.*xvec.^p);
-                % hplt1 = plot(xvec, yvec, 'k');
-                % ylim([1 2]);
-
-                % % plot residuals
-                % % figure; hold all;
-                % % plot(plotx, diags - y0./(x1+x2.*plotx.^p), '*');
-                % % ylabel('Residual'); xlabel('\beta/\beta_t');
-                % % liney(0);
-
                 % 45° plot
                 % subplot(122);
                 % insertAnnotation(annostr);
@@ -578,75 +564,7 @@ function [diags, plotx] = print_diag(runArray, name)
                 % set(gcf, 'renderer', 'zbuffer');
 
                 % %title(paramstr, 'interpreter', 'latex');
-
-                % [y0, x, y1] = exp_fit(plotx, diags);
-                % yvec = y1+ y0.*exp(-(xvec/x));
-                % param2 = y1 + y0 * exp(-plotx./x);
-                % rmse2 = sum(diags-param2).^2;
-                % paramstr2 = ['$$' num2str(y1,2) ' + ' ...
-                %              num2str(y0,2) ' e^{(\beta / \beta_t)/' ...
-                %              num2str(x,2) '}$$'];
-                % subplot(121);
-                % hplt2 = plot(xvec, yvec, 'b');
-                % subplot(122);
-                % plot(diags, param2, 'b*');
-
-                % hleg = legend([hplt1, hplt2], ...
-                %               sprintf('%s ; rmse = %.2e', paramstr1, rmse1), ...
-                %               sprintf('%s ; rmse = %.2e', paramstr2, rmse2));
-                % hleg.Interpreter = 'Latex';
-
-                % disp(['rmse (1/1+x) = ' num2str(rmse1)]);
-                % disp(['rmse (exp) = ' num2str(rmse2)]);
             end
-
-            % there is an older version that didn't really work
-            %  ndtime = run.eddy.t*86400 ./ run.eddy.turnover;
-            % Lx = sqrt(run.eddy.vor.lmaj .* run.eddy.vor.lmin);
-            % c = smooth(run.eddy.mvx, 10)';
-
-            % Vb = run.eddy.Vb;
-
-            % hcen = run.eddy.hcen';
-
-            % % last 'n' turnover periods
-            % n = 30;
-            % ind = find_approx(run.eddy.t, run.eddy.t(end) - ...
-            %                   n * run.eddy.turnover/86400);
-
-            % % average quantities
-            % Vm = nanmean(V(ind:end));
-            % Vbm = nanmean(Vb(ind:end));
-            % cm = nanmean(c(ind:end));
-            % Lxm = nanmean(Lx(ind:end));
-            % Am = nanmean(run.eddy.vor.amp(ind:end));
-
-            % h = run.bathy.h(1,:);
-            % seind = vecfind(run.eddy.yr(1,:), run.eddy.vor.se);
-            % hedge = h(seind);
-
-            % %figure;
-            % %plot(run.eddy.mx, run.eddy.my);
-            % %hold on;
-            % %plot(run.eddy.mx(ind), run.eddy.my(ind), 'k*');
-            % %title(run.name);
-
-            % %c = runArray.sorted_colors;
-
-            % %num = alpha * Lx;
-            % %deno = c./Vb +  V./Vb;
-
-            % d1 = alpha .* f0./beta .* Vbm./Vm;
-            % d2 = cm./Vm .* f0./beta./Lxm .* Am;
-            % diags(ff) = d1/100;
-
-            % plotx(ff) = mean((hedge(ind:end) + hcen(ind:end)) /2);
-            % %hold all;
-            % %hplt = plot(ndtime, vec);
-            % %addlegend(hplt, run.name);
-            % %plot(ndtime, run.eddy.Lgauss, 'Color', get(hplt, ...
-            % %                                            'Color'))
-            % %runArray.reset_colors(c);
         end
 
         %%%%% test critical iflux hypothesis for eddy to
