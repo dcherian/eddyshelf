@@ -819,7 +819,7 @@ function [diags, plotx] = print_diag(runArray, name)
     if plots
         figure(hfig); ax1 = gca;
         maximize(); drawnow; pause(1);
-        set(gcf, 'renderer', 'zbuffer');
+        set(gcf, 'renderer', 'painters');
         if line_45, line45; end
 
         if kozak
@@ -839,12 +839,8 @@ function [diags, plotx] = print_diag(runArray, name)
                 correct_ticks('x', '%.2f', []);
                 correct_ticks('y', '%.2f', 1);
             end
-            box off;
-            ax2.FontSize = 18;
-            set(legend, 'box', 'off');
-        else
-            beautify([18 18 20]);
         end
+        beautify([18 18 20]);
     end
 
     if exist('hfig_flux', 'var')
