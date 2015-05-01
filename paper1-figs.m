@@ -15,7 +15,14 @@ ew = runArray({ ...
     'runew-6362-2', ...
     'runew-6441' });
 
-% shelfbreak depth
+% NS isobaths
+folders = { ...
+    'runns-64361', 'runns-6341', 'runns-6362-2',...
+    'runns-6441', ...
+          };
+ns = runArray(folders);
+
+% shelfbreak depth - xy maps
 sb = runArray({ ...
     'runew-36', 'runew-2360', 'runew-2361_wider', 'runew-2362_wider', ...
               });
@@ -119,7 +126,6 @@ legend('off');
 subplot(122); xlim([0 400]);
 pbaspect([1.618 1 1]);
 export_fig('images/paper1/energy-decay.pdf');
-
 %% x-y plots of shelfbreak runs
 % add colorbar
 % fix bathy
