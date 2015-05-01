@@ -160,16 +160,16 @@ export_fig('images/paper1/sb-maps.pdf');
 figure; maximize(); hold on;
 for ii=1:image.len
     run = image.array(ii);
-
     tvec = run.time/run.eddy.turnover;
+    nsmooth = 1; run.eddy.turnover./diff(run.time(1:2));
     cvx = run.eddy.cvx;
     cvx(cvx < -0.06) = NaN;
-    plot(tvec, cvx);
-    ylabel({'Centroid', 'along-isobath', 'velocity', '(km/day)'});
+    plot(tvec, smooth(cvx, 6*nsmooth));
+    ylabel({'Centroid along-isobath', 'velocity (km/day)'});
     xlabel('Time / Turnover Time');
 end
-hl = liney(0); ylim([-0.08 0.05]);
-uistack(hl, 'bottom');
 legend('0 km shelf', '40 km shelf', '150 km shelf');
-beautify;
+hl = liney(0); ylim([-0.08 0.05]);
+uistack(hl, 'bottom'); axis tight;
+beautify; pbaspect([1.618 1 1]);
 export_fig('images/paper1/image-effect.pdf');
