@@ -155,62 +155,6 @@ function [diags, plotx] = print_diag(runArray, name)
             plotx(ff) = NaN;
         end
 
-        %%%%%
-        if strcmpi(name, 'aspect')
-            run.fit_traj(1.5);
-
-            tind = run.traj.tind;
-
-            H = hcen(tind);
-
-            diags(ff) = H./Lz(run.eddy.tscaleind);
-            plotx(ff) = beta/beta_t;
-
-            laby = 'H/Lz';
-            labx = 'index';
-        end
-
-        %%%%% resistance
-        if strcmpi(name, 'resistance')
-            [xx,yy,tind] = run.locate_resistance;
-
-            loc = 'cen';
-            loc = 'edge';
-
-            % save for later
-            run.eddy.res.xx = xx;
-            run.eddy.res.yy = yy;
-            run.eddy.res.tind = tind;
-            run.eddy.res.comment = ['(xx,yy) = center ' ...
-                                'location | tind = time index'];
-
-            plotx(ff) = 1./(1+Ro(1));
-            %diags(ff) = yy./run.rrdeep;
-            if strcmpi(loc, 'cen')
-                hdiag = run.eddy.hcen(tind);
-                laby = 'H_{cen}./H_{eddy}';
-            else
-                if run.bathy.axis == 'y'
-                    xind = find_approx(run.rgrid.y_rho(:,1), ...
-                                       run.eddy.vor.se(tind), ...
-                                       1);
-                    hdiag = run.bathy.h(1,xind)
-                else
-                    xind = find_approx(run.rgrid.x_rho(1,:), ...
-                                       run.eddy.vor.we(tind), ...
-                                       1);
-                    hdiag = run.bathy.h(xind,1)
-                end
-                laby = 'H_{edge}./H_{eddy}';
-            end
-
-            diags(ff) = hdiag ./ Lz(1);
-
-            % name points with run names on summary plot
-            name_points = 1;
-            labx = 'Ro/S_\alpha';
-        end
-
         %%%%% energy loss - as vertical scale
         if strcmpi(name, 'dhdt')
             use_traj = 1;
@@ -361,17 +305,6 @@ function [diags, plotx] = print_diag(runArray, name)
             laby = 'dE/dt';
         end
 
-        %%%%% topography parameter - taylor column
-        if strcmpi(name, 'hogg')
-            diags(ff) = 1./Ro(1) ./ ...
-                (1+hsb/Lz(1) * 1/Sa);
-        end
-
-        %%%%% rest latitude hypothesis?
-        if strcmpi(name, 'rest')
-
-        end
-
         %%%%% estimate slope for bottom torque balance
         if strcmpi(name, 'slope est')
             [slope,pbot,angmom] = syms_angmom(run);
@@ -388,43 +321,6 @@ function [diags, plotx] = print_diag(runArray, name)
             labx = 'Water depth where angmom/pbot = \alpha';
             name_points = 1;
             line_45 = 1;
-        end
-
-        %%%%% Flierl (1987) bottom torque hypothesis.
-        %% estimate ∫∫ψ
-        if strcmpi(name, 'btrq est')
-            %plot(run.eddy.btrq(:,1)/1025);
-
-            figure;
-            subplot(211); hold all
-            hplt = plot(ndtime, beta .* Lz ./f0 .* (V/Vb)*1./alpha);
-            addlegend(hplt, runName);
-            %try
-            %    plot(ndtime, Vb./V /6);
-            %catch ME
-            %    plot(ndtime, Vb./V'/6);
-            %end
-
-            title(runName);
-            % rhoamp = rho0 * TCOEF * run.eddy.T(:,end)';
-            % %plot((run.eddy.mass-1000*run.eddy.vol) .* g .* alpha./rho0)
-            % %uvec = f0 .* bsxfun(@times, run.eddy.vol, V');
-            % %plot(uvec);
-
-            %hold all
-            %plot(ndtime, g*alpha*rhoamp/rho0);
-            %plot(ndtime, beta.*run.eddy.Ls.*V);
-
-            subplot(212); hold all;
-            plot(ndtime, run.eddy.hcen);
-            %subplot(211);
-            %plot(beta .* run.eddy.voltrans)
-            %hold all
-            %subplot(212);
-            %plot(run.eddy.btrq/1025); hold all
-            %legend('Transport 1', 'Transport 2', ...
-            %       'bottom torque 1', 'bottom torque 2');
-            continue;
         end
         %%%%% Flierl (1987) bottom torque hypothesis.
         if strcmpi(name, 'bottom torque')
@@ -567,37 +463,6 @@ function [diags, plotx] = print_diag(runArray, name)
             end
         end
 
-        %%%%% test critical iflux hypothesis for eddy to
-        %%%%% start moving northward
-        if strcmpi(name, 'critical flux')
-            iflux = run.csflux.west.itrans.shelf(:,1);
-            dcy = diff(run.eddy.vor.cy);
-
-            % make sure my time vectors are the same
-            assert(isequal(run.eddy.t*86400, ...
-                           run.csflux.time));
-
-            % find where velocity changes sign
-            ind = find(dcy(run.csflux.tscaleind:end) > 0, ...
-                       1, 'first') - 1 + run.csflux.tscaleind;
-
-            % check ind detection with flux and center
-            % location plot
-            %figure;
-            %plotyy(run.eddy.t, run.eddy.vor.cy, ...
-            %       run.csflux.time/86400, ...
-            %       run.csflux.west.shelf(:,1));
-            %linex(run.eddy.t(ind));
-
-            %run.animate_zeta(ind, 1);
-
-            % Get Flux at ind
-            run.csflux.critrans = ...
-                run.csflux.west.itrans.shelf(ind,1);
-
-            diags(ff) = run.csflux.critrans;
-        end
-
         % nondim parameters to compare runs
         if strcmpi(name, 'diff') || strcmpi(name, 'nondim')
 
@@ -636,6 +501,7 @@ function [diags, plotx] = print_diag(runArray, name)
                 betabeta ./ betat  ...
                 ) ' | ' num2str(mean(hcen(run.tscaleind:end)))];
         end
+
 
         %%%%% shelf flux
         if strcmpi(name, 'shelf flux')
@@ -771,6 +637,140 @@ function [diags, plotx] = print_diag(runArray, name)
             %lab = cellstr(get(hax1,'xticklabel'));
             %lab{ff} = runArray.getname( ff);
             %set(hax1,'xticklabel', lab);
+        end
+
+        %%%%%%%%%%%%%%%%%%%% deprecated
+
+        %%%%%
+        if strcmpi(name, 'aspect')
+            % critical aspect ratio hypothesis
+            run.fit_traj(1.1);
+
+            tind = run.traj.tind;
+
+            H = hcen(tind);
+
+            diags(ff) = H./Lz(tind);
+            plotx(ff) = beta/beta_t;
+
+            laby = 'H/Lz';
+            labx = 'index';
+        end
+
+        %%%%% topography parameter - taylor column
+        if strcmpi(name, 'hogg')
+            diags(ff) = 1./Ro(1) ./ ...
+                (1+hsb/Lz(1) * 1/Sa);
+        end
+
+        %%%%% Flierl (1987) bottom torque hypothesis.
+        %% estimate ∫∫ψ
+        if strcmpi(name, 'btrq est')
+            %plot(run.eddy.btrq(:,1)/1025);
+
+            figure;
+            subplot(211); hold all
+            hplt = plot(ndtime, beta .* Lz ./f0 .* (V/Vb)*1./alpha);
+            addlegend(hplt, runName);
+            %try
+            %    plot(ndtime, Vb./V /6);
+            %catch ME
+            %    plot(ndtime, Vb./V'/6);
+            %end
+
+            title(runName);
+            % rhoamp = rho0 * TCOEF * run.eddy.T(:,end)';
+            % %plot((run.eddy.mass-1000*run.eddy.vol) .* g .* alpha./rho0)
+            % %uvec = f0 .* bsxfun(@times, run.eddy.vol, V');
+            % %plot(uvec);
+
+            %hold all
+            %plot(ndtime, g*alpha*rhoamp/rho0);
+            %plot(ndtime, beta.*run.eddy.Ls.*V);
+
+            subplot(212); hold all;
+            plot(ndtime, run.eddy.hcen);
+            %subplot(211);
+            %plot(beta .* run.eddy.voltrans)
+            %hold all
+            %subplot(212);
+            %plot(run.eddy.btrq/1025); hold all
+            %legend('Transport 1', 'Transport 2', ...
+            %       'bottom torque 1', 'bottom torque 2');
+            continue;
+        end
+
+        %%%%% test critical iflux hypothesis for eddy to
+        %%%%% start moving northward
+        if strcmpi(name, 'critical flux')
+            iflux = run.csflux.west.itrans.shelf(:,1);
+            dcy = diff(run.eddy.vor.cy);
+
+            % make sure my time vectors are the same
+            assert(isequal(run.eddy.t*86400, ...
+                           run.csflux.time));
+
+            % find where velocity changes sign
+            ind = find(dcy(run.csflux.tscaleind:end) > 0, ...
+                       1, 'first') - 1 + run.csflux.tscaleind;
+
+            % check ind detection with flux and center
+            % location plot
+            %figure;
+            %plotyy(run.eddy.t, run.eddy.vor.cy, ...
+            %       run.csflux.time/86400, ...
+            %       run.csflux.west.shelf(:,1));
+            %linex(run.eddy.t(ind));
+
+            %run.animate_zeta(ind, 1);
+
+            % Get Flux at ind
+            run.csflux.critrans = ...
+                run.csflux.west.itrans.shelf(ind,1);
+
+            diags(ff) = run.csflux.critrans;
+        end
+
+        %%%%% resistance
+        %%%%% old version of bottom torque
+        if strcmpi(name, 'resistance')
+            [xx,yy,tind] = run.locate_resistance;
+
+            loc = 'cen';
+            loc = 'edge';
+
+            % save for later
+            run.eddy.res.xx = xx;
+            run.eddy.res.yy = yy;
+            run.eddy.res.tind = tind;
+            run.eddy.res.comment = ['(xx,yy) = center ' ...
+                                'location | tind = time index'];
+
+            plotx(ff) = 1./(1+Ro(1));
+            %diags(ff) = yy./run.rrdeep;
+            if strcmpi(loc, 'cen')
+                hdiag = run.eddy.hcen(tind);
+                laby = 'H_{cen}./H_{eddy}';
+            else
+                if run.bathy.axis == 'y'
+                    xind = find_approx(run.rgrid.y_rho(:,1), ...
+                                       run.eddy.vor.se(tind), ...
+                                       1);
+                    hdiag = run.bathy.h(1,xind)
+                else
+                    xind = find_approx(run.rgrid.x_rho(1,:), ...
+                                       run.eddy.vor.we(tind), ...
+                                       1);
+                    hdiag = run.bathy.h(xind,1)
+                end
+                laby = 'H_{edge}./H_{eddy}';
+            end
+
+            diags(ff) = hdiag ./ Lz(1);
+
+            % name points with run names on summary plot
+            name_points = 1;
+            labx = 'Ro/S_\alpha';
         end
 
         if isempty(diagstr)
