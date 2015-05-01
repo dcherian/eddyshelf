@@ -1019,9 +1019,24 @@ if flags.eddy
         end
 
         % azimuthal velocity = r d(theta)/dt
-        rut = eddy.tamp * (phys.TCOEF*phys.g) .* ...
-              bsxfun(@times, cumtrapz(eddy.z,eddy.tz,3), dTdr./phys.f0);
+        if ~flags.integrate_from_top
+            rut = eddy.tamp * (phys.TCOEF*phys.g) .* ...
+                  bsxfun(@times, cumtrapz(eddy.z,eddy.tz,3), ...
+                         dTdr./phys.f0);
+        else
+            % add contribution to SSH
+            sgn = sign(eddy.tamp) * -1;
+            zetabt = (-phys.f0/phys.g) * sgn * eddy.Usurf * eddy.xyprof;
 
+            rut = bsxfun(@plus, eddy.tamp * (phys.TCOEF * phys.g) .* ...
+                  flip(bsxfun(@times, cumtrapz(flip(eddy.z), ...
+                                                  flip(eddy.tz,3),3), ...
+                              dTdr./phys.f0), 3), ...
+                  sgn * eddy.Usurf * dTdr);
+
+            plot(squeeze(rut(eddy.ix,eddy.iy,:)), eddy.z);
+        end
+        stop;
         % solve quadratic for vel. if gradient wind balance
         vgeo = rut;
         if flags.use_gradient
