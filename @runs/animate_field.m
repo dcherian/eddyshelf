@@ -23,8 +23,9 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     drawtrack = 0; % plot eddy track?
     telesplot = 0;  % plot lines where grid stretching starts
                     % and ends
-
     vecplot = 0; % plot some time vector (assign tvec and vec);
+    addcsdye = 0; % add csdye to eddye plot?
+
     if vecplot
         %%% integrated energy asflux
         %tvec = runs.eddy.t;
@@ -76,10 +77,23 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     % read eddye if required
     if (dyeplot && isempty(runs.eddsurf)) || strcmpi(name, 'eddye')
         runs.read_eddsurf(t0, ntimes);
-        if strcmpi(name, 'eddye')
+        if strcmpi(name, 'eddye') && (addcsdye == 0)
             varname = 'eddsurf';
             titlestr = 'Eddy dye';
-            colormapflag = 1;
+        end
+        if addcsdye == 1
+            varname = 'edcsdyesurf';
+            titlestr = 'Tracers';
+        end
+    end
+
+    % read csdye if required
+    if (dyeplot && isempty(runs.csdsurf)) || strcmpi(name, 'csdye') ...
+            || (addcsdye == 1)
+        runs.read_csdsurf(t0, ntimes);
+        if strcmpi(name, 'csdye')
+            varname = 'csdsurf';
+            titlestr = 'Cross-shelf dye';
         end
     end
 
@@ -112,6 +126,15 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         end
     end
 
+    % process addcsdye
+    if strcmpi(name, 'csdye') && addcsdye
+        tind = t0:t0+ntimes-1;
+        runs.edcsdyesurf(:,:,tind) = (runs.csdsurf(:,:,tind) < ...
+                                      (runs.bathy.xsb+10e3))*-1;
+        runs.edcsdyesurf(:,:,tind) = runs.edcsdyesurf(:,:,tind) + ...
+            runs.eddsurf(:,:,tind) .* (runs.edcsdyesurf(:,:,tind) == 0);
+    end
+
     %%%% actually plot
     if isempty(hax)
         figure;
@@ -131,7 +154,6 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     % plot field
     hz = runs.plot_surf(varname, 'pcolor', ii);
-
     hold on;
     colorbar;
 
