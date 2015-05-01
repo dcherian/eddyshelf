@@ -262,17 +262,17 @@ if isnan(bathy.H_shelf) || ~isnan(bathy.H_sbreak)
 end
 
 if flags.flat_bottom
-    S.h = Z * ones(size(S.x_rho));
+    S.h = grid.Z * ones(size(S.x_rho));
 
     bathy.xsb = 0;
     bathy.isb = 0;
-    bathy.hsb = Z;
+    bathy.hsb = grid.Z;
     if bathy.axis == 'x'
         bathy.xsl = X/2;
     else
         bathy.xsl = Y/2;
     end
-    bathy.hsl = Z;
+    bathy.hsl = grid.Z;
 else
     % linear bathymetry
     %if flags.linear_bathymetry == 1
@@ -784,7 +784,7 @@ if flags.eddy
 
         % find zero-crossing of first-mode
         zeroind = find_approx(Hmode, 0, 1);
-        eddy.depth = abs(zvec(zeroind));
+        eddy.depth = abs(zvec(zeroind)) * 1./sqrt(eddy.Bu);
 
         % print information
         fprintf(['\n\n Non-constant stratification:' ...
@@ -804,6 +804,15 @@ if flags.eddy
     if (flags.vprof_gaussian | flags.pres_gaussian) & isnan(eddy.depth)
         eddy.depth = eddy.depth_factor * phys.f0 * eddy.dia/2 / ...
                 sqrt(phys.N2);
+    end
+
+    if ~flags.conststrat
+        figure;
+        plot(yrmat(1,:,1)/1000, -1*bathy.h(1,:));
+        ind = find_approx(bathy.h(1,:), eddy.depth);
+        linex(yrmat(1,ind,1)/1000); liney(-1*eddy.depth, 'eddy depth');
+        linex((yrmat(1,ind,1) - eddy.dia/2)/1000);
+        linex(bathy.xsb/1000);
     end
 
     disp(['beta/beta_t = ' ...
@@ -1005,7 +1014,7 @@ if flags.eddy
 %                 S.zeta = S.zeta + -phys.TCOEF * eddy.tamp * int_Tz .* (1-eddy.xyprof);
 %                 % Calculate azimuthal velocity shear (r d(theta)/dt)_z using geostrophic balance
 %                 rutz = avg1(bsxfun(@times, eddy.temp, ...
-%                         g*phys.TCOEF* 1./f0 .* (-exponent./r *eddy.a)),3);
+%                         g*phys.TCOEF* 1./phys.f0 .* (-exponent./r *eddy.a)),3);
             end
         end
 
@@ -1081,7 +1090,7 @@ if flags.eddy
         % area-averaged vor/f
         dA = avg1(avg1( 1./S.pm .* 1./S.pn, 1), 2) .* vormask;
 
-        nondim.eddy.Rovor = abs(sum(sum(vor./f0 .* ...
+        nondim.eddy.Rovor = abs(sum(sum(vor./phys.f0 .* ...
                             vormask .* dA,1),2)) ./ nansum(dA(:));
 
         % max. azimuthal velocity for future
@@ -1272,7 +1281,7 @@ if flags.eddy
     %%
 
     % clear variables to save space
-    clear rut rutz dTdr strat r rnorm rfb2 sdisc vgeo
+    clear rut rutz dTdr bstrat r rnorm rfb2 sdisc vgeo
     %eddy.tz = []; eddy.temp = []; eddy.u = []; eddy.v = [];
 
     fprintf('\n Eddy - %4.1f MB \n\n', monitor_memory_whos);
@@ -1361,7 +1370,7 @@ end
 % in this cell
 fprintf('\n Writing eddy, strat, bg params');
 write_params_to_ini(INI_NAME,eddy);
-if exist('strat', 'var'); write_params_to_ini(INI_NAME,strat); end
+if ~flags.conststrat; write_params_to_ini(INI_NAME,strat); end
 write_params_to_ini(INI_NAME,bg);
 write_params_to_ini(INI_NAME,bathy);
 write_params_to_ini(INI_NAME,phys);
