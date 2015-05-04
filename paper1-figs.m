@@ -98,7 +98,7 @@ text(-9, 2.1, 'L_{edd} < L_{sl}', ...
      'FontSize', fs, 'Color', ax.ColorOrder(3,:));
 text(-6, 3.8, 'L_{edd} < L_{sl}', ...
      'FontSize', fs, 'Color', ax.ColorOrder(4,:));
-legend('off');
+%legend('off');
 export_fig('images/paper1/centrack.pdf');
 
 %% EW, NS Center-tracks - wide slope
