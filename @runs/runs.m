@@ -5,7 +5,7 @@ properties
         fpos_file;
     % data
     zeta; temp; usurf; vsurf; vorsurf; csdsurf; ubot; vbot; eddsurf; ...
-        rhosurf;
+        rhosurf; edcsdyesurf;
     rbacksurf; % background density at surface
     % dimensional and non-dimensional time
     time; ndtime; tscale; tscaleind;
