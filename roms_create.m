@@ -676,7 +676,8 @@ if flags.front
                 (S.zeta(:,3)-S.zeta(:,2))./(zetahax2(:,3) - zetahax2(:,2));
     S.zeta(:,end) = S.zeta(:,end-1) + ...
                 (zetahax2(:,end) - zetahax2(:,end-1)).* ...
-                    (S.zeta(:,end-1)-S.zeta(:,end-2))./(zetahax2(:,end-1) - zetahax2(:,end-2));
+        (S.zeta(:,end-1)-S.zeta(:,end-2))./ ...
+        (zetahax2(:,end-1) - zetahax2(:,end-2));
     if flip_flag, % flip everything just in case
         S.zeta = S.zeta';
         tmp = tmp';
@@ -962,6 +963,7 @@ if flags.eddy
 
     % use half-Gaussian profile & normalize
     if flags.vprof_gaussian
+        % treat as flat bottom
         eddy.zprof = exp(-(eddy.z ./ eddy.depth) .^ 2);
     else
         if flags.pres_gaussian
@@ -976,7 +978,12 @@ if flags.eddy
     %eddy.zprof = eddy.zprof./trapz(eddy.z,eddy.zprof);
 
     % add eddy temperature perturbation
-    eddy.tz = repmat(permute(eddy.zprof,[3 2 1]),[S.Lm+2 S.Mm+2 1]);
+    if ~flags.integrate_from_top
+        eddy.tz = repmat(permute(eddy.zprof,[3 2 1]),[S.Lm+2 S.Mm+2 ...
+                            1]);
+    else
+        eddy.tz = exp(-(zrmat./eddy.depth).^2);
+    end
     eddy.temp = eddy.tamp * bsxfun(@times,eddy.xyprof,eddy.tz);
     if ~isnan(eddy.temp)
         S.temp = S.temp + eddy.temp;
@@ -1028,13 +1035,36 @@ if flags.eddy
             sgn = sign(eddy.tamp) * -1;
             zetabt = (-phys.f0/phys.g) * sgn * eddy.Usurf * eddy.xyprof;
 
-            rut = bsxfun(@plus, eddy.tamp * (phys.TCOEF * phys.g) .* ...
-                  flip(bsxfun(@times, cumtrapz(flip(eddy.z), ...
-                                                  flip(eddy.tz,3),3), ...
-                              dTdr./phys.f0), 3), ...
-                  sgn * eddy.Usurf * dTdr);
+            rut = eddy.tamp * (phys.TCOEF * phys.g) .* ...
+                  flip(bsxfun(@times, cumsum(flip(eddy.tz,3) .* ...
+                                            flip(diff(zwmat,1,3),3), 3), ...
+                              dTdr./phys.f0), 3);
 
-            plot(squeeze(rut(eddy.ix,eddy.iy,:)), eddy.z);
+            % make surface intensified eddy
+            %rutprof = (abs(rut)>1e-4);
+            %rut = rut - min(rut(:)).*rutprof;
+            rut = bsxfun(@plus, rut, eddy.Usurf);
+
+            figure; hold on;
+            dyr = floor(eddy.dia/2/grid.dy0);
+            plot(squeeze(rut(eddy.ix,eddy.iy+dyr,:)), ...
+                 squeeze(zrmat(eddy.ix,eddy.iy+dyr,:)));
+            plot(squeeze(rut(eddy.ix,eddy.iy-dyr,:)), ...
+                 squeeze(zrmat(eddy.ix,eddy.iy-dyr,:)));
+
+            figure;
+            xedd = eddy.ix;
+            subplot(121);
+            contourf(squeeze(yrmat(xedd,:,:))/fy, ...
+                     squeeze(zrmat(xedd,:,:)), ...
+                     squeeze(S.temp(xedd,:,:)),20, 'EdgeColor', 'None');
+            subplot(122);
+            contourf(squeeze(yrmat(xedd,:,:))/fy, ...
+                     squeeze(zrmat(xedd,:,:)), ...
+                     squeeze(rut(xedd,:,:)),20, 'EdgeColor', ...
+                     'None');
+            center_colorbar;
+
         end
         stop;
         % solve quadratic for vel. if gradient wind balance
@@ -1202,7 +1232,7 @@ if flags.eddy
     % check temperature profile
     figure;
     axe(1) = subplot(241);
-    contourf(squeeze(xrmat(:,yedd,:))/fx,squeeze(zrmat(:,yedd,:)),squeeze(S.temp(:,yedd,:)),20);
+     contourf(squeeze(xrmat(:,yedd,:))/fx,squeeze(zrmat(:,yedd,:)),squeeze(S.temp(:,yedd,:)),20);
     colorbar;
     title('temp (y=mid)');
     xlabel(['x' lx]); ylabel('z (m)');
