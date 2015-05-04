@@ -219,8 +219,9 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     maximize(gcf); pause(0.2);
     beautify([16 16 18]);
     ax = gca;
-    htext = text(ax.XTick(2), ax.YTick(end-1), ...
-                     ['t = ' num2str(runs.time(ii)/86400) ' days']);
+    htext = text(0.05,0.9, ...
+                 ['t = ' num2str(runs.time(ii)/86400) ' days'], ...
+                 'Units', 'normalized');
 
     % second plot
     if subplots_flag == 'x'
