@@ -24,7 +24,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     telesplot = 0;  % plot lines where grid stretching starts
                     % and ends
     vecplot = 0; % plot some time vector (assign tvec and vec);
-    addcsdye = 0; % add csdye to eddye plot?
+    addcsdye = 1; % add csdye to eddye plot?
 
     if vecplot
         %%% integrated energy asflux
@@ -66,6 +66,9 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     if ~exist('ntimes', 'var'), ntimes = length(runs.time); end
     if ~exist('t0', 'var'), t0 = 1; end
+
+    ix = runs.spng.sx1:runs.spng.sx2;
+    iy = runs.spng.sy1:runs.spng.sy2;
 
     % read zeta if required
     if strcmpi(name, 'zeta')
@@ -127,7 +130,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     end
 
     % process addcsdye
-    if strcmpi(name, 'csdye') && addcsdye
+    if strcmpi(name, 'eddye') && addcsdye
         tind = t0:t0+ntimes-1;
         runs.edcsdyesurf(:,:,tind) = (runs.csdsurf(:,:,tind) < ...
                                       (runs.bathy.xsb+10e3))*-1;
@@ -198,8 +201,10 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     if strcmpi(name, 'zeta')
         if dyeplot
-            [~,hedd2] = contour(runs.rgrid.x_rho/1000, runs.rgrid.y_rho/1000, ...
-                                runs.eddsurf(:,:,ii)', [1 1]*0.95, 'LineWidth', ...
+            [~,hedd2] = contour(runs.rgrid.x_rho(ix,iy)/1000, ...
+                                runs.rgrid.y_rho(ix,iy)/1000, ...
+                                runs.eddsurf(ix,iy,ii)', ...
+                                [1 1]*0.95, 'LineWidth', ...
                                 2, 'Color', 'r');
         end
     end
@@ -261,8 +266,8 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         end
 
         if csfluxplot == 1
-            hflux = plot(runs.rgrid.xr(2:end-1,1)/1000, ...
-                         runs.csflux.shelfxt(:, ii));
+            hflux = plot(runs.rgrid.xr(ix,1)/1000, ...
+                         runs.csflux.shelfxt(ix-1, ii));
             ylim([min(runs.csflux.shelfxt(:)) ...
                   max(runs.csflux.shelfxt(:))]);
             hee = linex(runs.eddy.vor.ee(ii)/1000);
@@ -348,7 +353,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
             % eddye contours
             if dyeplot
-                set(hedd2, 'ZData', runs.eddsurf(:,:,ii)');
+                set(hedd2, 'ZData', runs.eddsurf(ix,iy,ii)');
             end
 
             % shelfwater flux plots

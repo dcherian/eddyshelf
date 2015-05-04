@@ -210,8 +210,9 @@ methods
         runs.spng.sx1 = find(runs.sponge(1:sz(1),sz(2)) == 0, 1, 'first');
         runs.spng.sx2 = sz(1) + find(runs.sponge(sz(1):end,sz(2)) == 1, 1, ...
                              'first') - 2;
-        runs.spng.sy1 = NaN;
-        runs.spng.sy2 = find(runs.sponge(sz(1), :) == 1, 1, 'first') - 1;
+        runs.spng.sy1 = find(runs.sponge(sz(1),1:sz(2)) == 0, 1, 'first');
+        runs.spng.sy2 = sz(2) + find(runs.sponge(sz(1), sz(2):end) == 1, 1, ...
+                                     'first') - 2;
 
         % rossby radii
         runs.rrdeep = sqrt(runs.params.phys.N2)*max(runs.bathy.h(:)) ...
@@ -3819,6 +3820,9 @@ methods
 
         runs.video_init('surfvorcsd');
 
+        ix = max([runs.spng.sx1:runs.spng.sx2]-1,1);
+        iy = max([runs.spng.sy1:runs.spng.sy2]-1,1);
+
         % read in dye values
         if isempty(runs.csdsurf)
             runs.csdsurf = dc_roms_read_data(runs.dir, runs.csdname, [], {'z' ...
@@ -3836,12 +3840,13 @@ methods
         if ntimes ~= 1
             vormax = max(abs(vorsurf(:)));
         else
-            vormax = max(max(abs(vorsurf(:,:,t0))));
+            vormax = max(max(abs(vorsurf(ix,iy,t0))));
         end
 
         levels = linspace(-vormax,vormax,20);
-        [hh] = pcolor(runs.rgrid.xvor/1000,runs.rgrid.yvor/1000, ...
-                          vorsurf(:,:,tt));
+        [hh] = pcolor(runs.rgrid.xvor(ix,iy)/1000, ...
+                      runs.rgrid.yvor(ix,iy)/1000, ...
+                      vorsurf(ix,iy,tt));
         caxis([-1 1] * vormax); hcbar = colorbar; shading interp;
         hcbar.Label.String = '\zeta/f';
         hold on
@@ -3870,8 +3875,8 @@ methods
         beautify([18 18 20]);
 
         for tt = 2:3:ntimes
-            set(hh,'ZData', double(vorsurf(:,:,tt)));
-            set(hcsd, 'ZData', double(runs.csdsurf(:,:,tt)));
+            set(hh,'ZData', double(vorsurf(ix,iy,tt)));
+            %set(hcsd, 'ZData', double(runs.csdsurf(ix,iy,tt)));
             %set(h0vor, 'ZData', double(runs.vorsurf(:,:,tt)));
             shading flat;
             runs.update_eddy_contour(hedd, tt);
@@ -5334,9 +5339,13 @@ methods
     function [hplot] = plot_surf(runs,varname,plottype,tt)
         if ~exist('tt','var'), tt = 1; end
 
+        range = ['runs.spng.sx1:runs.spng.sx2,' ...
+                 'runs.spng.sy1:runs.spng.sy2'];
+
         if strcmpi(plottype,'pcolor')
-            eval(['hplot = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000,' ...
-                  'double(runs.' varname '(:,:,tt)));']);
+            eval(['hplot = pcolor(runs.rgrid.xr(' range ')/1000,' ...
+                  'runs.rgrid.yr(' range ')/1000,' ...
+                  'double(runs.' varname '(' range ',tt)));']);
             if runs.makeVideo
                 shading interp;
             else
@@ -5344,12 +5353,14 @@ methods
             end
         else
             if strcmpi(plottype,'contourf') || strcmpi(plottype,'contour')
-                eval(['[cc,hplot] = ' plottype '(runs.rgrid.xr/1000,runs.rgrid.yr/1000,'...
-                    'double(runs.' varname '(:,:,tt)));']);
+                eval(['[cc,hplot] = ' plottype ...
+                      '(runs.rgrid.xr(' range ')/1000,' ...
+                      'runs.rgrid.yr(' range ')/1000,'...
+                    'double(runs.' varname '(' range ',tt)));']);
                 shading flat
             end
         end
-        eval(['zend = runs.' varname '(:,:,end);']);
+        eval(['zend = runs.' varname '(' range ',end);']);
         if ~isnan(zend)
             caxis([min(zend(:)) max(zend(:))]);
         end
@@ -5368,25 +5379,22 @@ methods
 
 
     function [hplot] = plot_eddy_contour(runs,plottype,tt)
-        try
-            mask = runs.eddy.vormask(:,:,tt);
-        catch
-            mask = runs.eddy.mask(:,:,tt);
-        end
+        ix = max([runs.spng.sx1:runs.spng.sx2],1);
+        iy = max([runs.spng.sy1:runs.spng.sy2]-1,1);
+
         hold on;
-        [~,hplot] = contour(runs.eddy.xr/1000,runs.eddy.yr/1000, ...
-                    mask,'Color','k','LineWidth',1);
+        [~,hplot] = contour(runs.eddy.xr(ix,iy)/1000,runs.eddy.yr(ix,iy)/1000, ...
+                    runs.eddy.vormask(ix,iy,tt),'Color','k','LineWidth',1);
     end
 
     function update_eddy_contour(runs,handle,tt)
-        try
-            mask = runs.eddy.vormask(:,:,tt);
-        catch
-            mask = runs.eddy.mask(:,:,tt);
-        end
+        ix = max([runs.spng.sx1:runs.spng.sx2],1);
+        iy = max([runs.spng.sy1:runs.spng.sy2]-1,1);
+
         for ii=1:length(handle)
             try
-                set(handle(ii),'ZData',mask);
+                set(handle(ii),'ZData', ...
+                               runs.eddy.vormask(ix,iy,tt));
             catch ME
             end
         end
@@ -5394,21 +5402,28 @@ methods
 
 
     function [hplot] = plot_rho_contour(runs,plottype,tt)
+        ix = max([runs.spng.sx1:runs.spng.sx2],1);
+        iy = max([runs.spng.sy1:runs.spng.sy2]-1,1);
 
         mask = ((runs.rhosurf(2:end-1,2:end-1,tt) - runs.rbacksurf) < ...
                runs.eddy.drhothresh(1)); % .* runs.eddy.vormask(:,:,tt);
         hold on;
 
-        [~,hplot] = contour(runs.eddy.xr/1000,runs.eddy.yr/1000, ...
-                    mask,'Color',[44 162 95]/256,'LineWidth',1);
+        [~,hplot] = contour(runs.eddy.xr(ix,iy)/1000, ...
+                            runs.eddy.yr(ix,iy)/1000, ...
+                            mask(ix,iy),'Color',[44 162 95]/256, ...
+                            'LineWidth',1);
     end
     function update_rho_contour(runs,handle,tt)
+        ix = max([runs.spng.sx1:runs.spng.sx2],1);
+        iy = max([runs.spng.sy1:runs.spng.sy2]-1,1);
+
         mask = ((runs.rhosurf(2:end-1,2:end-1,tt) - runs.rbacksurf) < ...
                runs.eddy.drhothresh(1)); % .* runs.eddy.vormask(:,:,tt);
 
         for ii=1:length(handle)
             try
-                set(handle(ii),'ZData',mask);
+                set(handle(ii),'ZData',mask(ix,iy));
             catch ME
             end
         end
@@ -5416,25 +5431,23 @@ methods
 
 
     function [hplot] = plot_eddy_sshcontour(runs,plottype,tt)
-        try
-            mask = runs.eddy.mask(:,:,tt);
-        catch
-            mask = runs.eddy.mask(:,:,tt);
-        end
+        ix = max([runs.spng.sx1:runs.spng.sx2],1);
+        iy = max([runs.spng.sy1:runs.spng.sy2]-1,1);
+
         hold on;
-        [~,hplot] = contour(runs.eddy.xr/1000,runs.eddy.yr/1000, ...
-                    mask,'Color','k','LineWidth',1);
+        [~,hplot] = contour(runs.eddy.xr(ix,iy)/1000, ...
+                            runs.eddy.yr(ix,iy)/1000, ...
+                            runs.eddy.mask(ix,iy,tt), ...
+                            'Color','k','LineWidth',1);
     end
 
     function update_eddy_sshcontour(runs,handle,tt)
-        try
-            mask = runs.eddy.mask(:,:,tt);
-        catch
-            mask = runs.eddy.mask(:,:,tt);
-        end
+        ix = max([runs.spng.sx1:runs.spng.sx2],1);
+        iy = max([runs.spng.sy1:runs.spng.sy2]-1,1);
+
         for ii=1:length(handle)
             try
-                set(handle(ii),'ZData',mask);
+                set(handle(ii),'ZData', run.eddy.mask(ix,iy,tt));
             catch ME
             end
         end
@@ -5452,10 +5465,14 @@ methods
     end
 
     function [hplot] = plot_bathy(runs,plottype,color)
+        ix = runs.spng.sx1:runs.spng.sx2;
+        iy = runs.spng.sy1:runs.spng.sy2;
+
         if ~exist('color','var'), color = 'w'; end
         if strcmpi(plottype,'contour')
-            [cc,hplot] = contour(runs.rgrid.xr/1000,runs.rgrid.yr/1000, ...
-                            runs.rgrid.h',[200 500 1000 1500 ...
+            [cc,hplot] = contour(runs.rgrid.xr(ix,iy)/1000,...
+                                 runs.rgrid.yr(ix,iy)/1000, ...
+                                 runs.rgrid.h(iy,ix)',[200 500 1000 1500 ...
                                 2000], 'Color', color);
             clabel(cc,hplot,'LabelSpacing',108*3, 'Color', color);
             hax = gca;
