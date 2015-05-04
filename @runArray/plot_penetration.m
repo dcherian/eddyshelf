@@ -120,7 +120,7 @@ function [] = plot_penetration(runArray, ax)
 
         % mark slopebreak
         plot(x(tsl), y(tsl), 'o', 'Color', color, ...
-             'MarkerSize', 12);
+             'MarkerSize', 10);
 
         if ~isempty(ax2)
             axes(ax2)
