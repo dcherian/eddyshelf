@@ -995,16 +995,45 @@ methods
             tind = [1 length(runs.time)];
         end
 
-        if isempty(runs.eddsurf) | ...
-                any(isempty(runs.eddsurf(:,:,tind(1):tind(2))))
+        sz = [size(runs.rgrid.x_rho') length(runs.time)];
+        if isempty(runs.eddsurf) | (t0 > size(runs.eddsurf,3)) | ...
+                any(isnan(fillnan(runs.eddsurf(:,:,tind(1):tind(2)),0)))
             if ~runs.givenFile
-                runs.eddsurf = dc_roms_read_data(runs.dir, runs.eddname, [], ...
-                                                 {'z' runs.rgrid.N runs.rgrid.N}, ...
-                                                 [], runs.rgrid, 'his', 'single');
+                runs.eddsurf(:,:,tind) = ...
+                    dc_roms_read_data(runs.dir, runs.eddname, [tind], ...
+                                      {'z' runs.rgrid.N runs.rgrid.N}, ...
+                                      [], runs.rgrid, 'his', 'single');
             else
-                runs.eddsurf = single(squeeze(ncread(runs.out_file,runs.eddname, ...
+                runs.eddsurf(:,:,tind) = single(squeeze(ncread(runs.out_file,runs.eddname, ...
                                                      [1 1 runs.rgrid.N ...
                                     1], [Inf Inf 1 Inf])));
+            end
+        end
+    end
+
+    function [] = read_csdsurf(runs, t0, ntimes)
+        if ~exist('t0', 'var'), t0 = 1; end
+        if ~exist('ntimes', 'var'), ntimes = Inf; end
+
+        % read zeta
+        if ntimes == 1
+            tind = [t0 t0+1];
+        else
+            tind = [1 length(runs.time)];
+        end
+
+        if isempty(runs.csdsurf) | (t0 > size(runs.csdsurf,3)) | ...
+                any(isnan(fillnan(runs.csdsurf(:,:,tind(1):tind(2)),0)))
+            if ~runs.givenFile
+                runs.csdsurf(:,:,tind) = ...
+                    dc_roms_read_data(runs.dir, runs.csdname, [tind], {'z' ...
+                                    runs.rgrid.N runs.rgrid.N}, [], runs.rgrid, ...
+                                             'his');
+            else
+                runs.csdsurf = ...
+                    single(squeeze(ncread(runs.out_file,runs.csdname, ...
+                                          [1 1 runs.rgrid.N 1], ...
+                                          [Inf Inf 1 Inf])));
             end
         end
     end
@@ -3355,11 +3384,12 @@ methods
         %quiver(runs.rgrid.x_r(1,2:end-1),
     end
 
-    function [] = animate_zeta(runs, t0, ntimes)
+    function [] = animate_zeta(runs, hax, t0, ntimes)
+        if ~exist('hax', 'var'), hax = []; end
         if ~exist('t0', 'var'), t0 = 1; end
         if ~exist('ntimes', 'var'), ntimes = length(runs.time); end
 
-        runs.animate_field('zeta', t0, ntimes);
+        runs.animate_field('zeta', hax, t0, ntimes);
     end
 
     % depth section through streamer
