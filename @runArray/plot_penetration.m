@@ -57,6 +57,8 @@ function [] = plot_penetration(runArray, ax)
             edge1 = run.eddy.vor.ne;
             edge2 = run.eddy.vor.se;
 
+            tsl = find_approx(my, run.bathy.xsl, 1);
+
             % reference location
             x0 = mx(1);
             y0 = run.bathy.xsb;
@@ -69,6 +71,8 @@ function [] = plot_penetration(runArray, ax)
 
             edge1 = run.eddy.vor.ee;
             edge2 = run.eddy.vor.we;
+
+            tsl = find_approx(mx, run.bathy.xsl, 1);
 
             % reference location
             y0 = my(1);
@@ -113,6 +117,10 @@ function [] = plot_penetration(runArray, ax)
             %text(x(tinds), y(tinds), ...
             %     cellstr(num2str(ndtime(tinds)', 2)));
         end
+
+        % mark slopebreak
+        plot(x(tsl), y(tsl), 'o', 'Color', color, ...
+             'MarkerSize', 12);
 
         if ~isempty(ax2)
             axes(ax2)
@@ -173,9 +181,6 @@ function [] = plot_penetration(runArray, ax)
             xlabel(['(X - ' x0str ')/(initial radius)']);
         end
     end
-
-    %axis image;
-    %    ylim([-2 max(ylim)]);
 
     hlegend = legend(hgplt2, names, 'Location', legloc, 'Box', ...
                      'off');
