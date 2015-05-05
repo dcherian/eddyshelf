@@ -25,14 +25,13 @@ function [] = plot_fluxes(runArray)
         ii = runArray.filter(ff);
 
         run = runArray.array(ii);
-        name = getname(runArray, ii);
+        names{ff} = getname(runArray, ii);
 
         if run.params.flags.flat_bottom
             continue;
         end
 
-        tind = find_approx(run.eddy.t*86400 / run.tscale, ...
-                           1.5, 1);
+        tind = find_approx(run.ndtime, 1.5, 1);
         Ue = run.eddy.V(tind);
         He = run.bathy.hsb; %run.eddy.Lgauss(tind);
         Le = run.eddy.vor.dia(tind)/2;
@@ -43,10 +42,9 @@ function [] = plot_fluxes(runArray)
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SHELF WATER
         figure(hfig1)
         subplot(2,1,1)
-        hgplt = plot(run.csflux.time(1:end-2)/run.tscale, ...
+        hgplt1(ff) = plot(run.csflux.time(1:end-2)/run.tscale, ...
                      smooth((run.csflux.west.shelf(1:end-2, ...
                                                    1))/fluxscl, 3));
-        addlegend(hgplt, name, 'NorthWest');
 
         subplot(2,1,2)
         plot(run.csflux.time/run.tscale, ...
@@ -61,7 +59,6 @@ function [] = plot_fluxes(runArray)
             %                    xnd = (run.csflux.west.shelfwater.bins)./run.rrshelf;
             %                    subplot(2,2,1)
             %hgplt = plot(xnd, run.csflux.west.shelfwater.itrans);
-            %addlegend(hgplt, name, 'NorthEast');
 
             %subplot(2,2,2)
             %plot(xnd, run.csflux.west.shelfwater.itrans ...
@@ -78,8 +75,8 @@ function [] = plot_fluxes(runArray)
             zvec = run.csflux.west.shelfwater.vertbins ./ ...
                    run.bathy.hsb;
             bc = baroclinicity(zvec, profile);
-            hgplt = plot(profile, zvec);
-            addlegend(hgplt, [name ' | bc = ' num2str(bc,'%.3f')], 'SouthWest');
+            hgplt2(ff) = plot(profile, zvec);
+            names2{ff} =  [name ' | bc = ' num2str(bc,'%.3f')];
         catch ME
             disp(ME)
         end
@@ -92,17 +89,15 @@ function [] = plot_fluxes(runArray)
         metric = run.bathy.h(1,ind)./run.bathy.hsb .* ...
                  (1+run.rgrid.f(run.bathy.isb,1)./run.rgrid.f(ind,1))';
 
-        hgplt = plot(run.csflux.time/run.tscale, ...
+        hgplt3(ff) = plot(run.csflux.time/run.tscale, ...
                      (run.bathy.xsb - env)./run.rrshelf);
-        addlegend(hgplt, name);
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EDDY WATER
         figure(hfig4)
         subplot(2,1,1)
-        hgplt = plot(run.csflux.time(1:end-2)/run.tscale, ...
+        hgplt4(ff) = plot(run.csflux.time(1:end-2)/run.tscale, ...
                      smooth((run.csflux.east.eddy(1:end-2, ...
                                                   1))/fluxscl, 3));
-        addlegend(hgplt, name, 'NorthWest');
 
         subplot(2,1,2)
         plot(run.csflux.time/run.tscale, ...
@@ -116,6 +111,7 @@ function [] = plot_fluxes(runArray)
     subplot(2,1,2)
     ylabel('Total volume transported');
     xlabel('Non-dimensional time');
+    legend(hgplt1, names);
 
     figure(hfig2)
     %subplot(2,2,1)
@@ -142,19 +138,18 @@ function [] = plot_fluxes(runArray)
     xlim([0 limx(2)]);
     xlabel('Normalized volume transported');
     ylabel('Vertical bin / Shelfbreak depth');
+    %legend(hgplt2, names2, 'Location', 'SouthWest');
 
     figure(hfig3)
     xlabel('Non-dimensional time');
     ylabel('isobath most on-shore source of water / h_{sb}');
+    legend(hgplt3, names{ff});
 
     figure(hfig4)
     subplot(2,1,1);
     ylabel('Flux of eddy water (Sv)');
+    legend(hgplt4, names{ff});
     subplot(2,1,2);
     ylabel('Total volume transported (m^3)');
     xlabel('Non-dimensional time');
-
-    figure(hfig5)
-    ylabel('Normalized shelf water flux');
-
 end
