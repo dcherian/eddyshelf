@@ -133,36 +133,53 @@ legend('off');
 subplot(122); xlim([0 400]);
 pbaspect([1.618 1 1]);
 export_fig('images/paper1/energy-decay.pdf');
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% x-y plots of shelfbreak runs
 % add colorbar
-% fix bathy
 % figure out best time indices
-% change ticks to mark shelfbreak and slopebreak exactly.
-tinds = [200 100 150 100]; % figure out what these are
-figure;
-for ii=1:sb.len
-    run = sb.array(ii);
+tinds = [90 90 100 100]; % figure out what these are
+figure; maximize();
+sb.filter = [2 4 3 5];
+fontSize = [16 16 18];
+len = length(sb.filter);
+for ii=1:len
+    run = sb.array(sb.filter(ii));
     run.read_zeta;
 
-    xr = run.rgrid.x_rho'/1000;
-    yr = run.rgrid.y_rho'/1000;
+    ix = run.spng.sx1:run.spng.sx2;
+    iy = run.spng.sy1:run.spng.sy2;
 
-    subplot(sb.len/2,2,ii);
-    pcolorcen(xr, yr, run.zeta(:,:,tinds(ii)));
+    xr = run.rgrid.x_rho(iy,ix)'/1000;
+    yr = run.rgrid.y_rho(iy,ix)'/1000;
+
+    subplot(floor(len/2),2,ii);
+    run.animate_field('eddye', gca, tinds(ii), 1);
+    %pcolorcen(xr, yr, run.zeta(ix,iy,tinds(ii)));
+    hold on;
+    plot(run.eddy.mx/1000, run.eddy.my/1000, 'k');
+    plot(run.eddy.mx(tinds(ii))/1000, run.eddy.my(tinds(ii))/1000, ...
+         'kx');
     if ii == 1, clim = caxis; end
     hold all
-    run.plot_bathy('contour');
     caxis(clim);
 
     title(['\lambda = ' num2str(run.bathy.hsb/run.eddy.Lgauss(1), ...
                                 2) ...
-          ' (t = ' num2str(run.eddy.t(tinds(ii)), '%.0f') ' days)']);
+          ' (H_{sb} = ' num2str(run.bathy.hsb, '%.0f') ' m)']);
     ylabel('Y (km)');
     xlabel('X (km)');
+    if ii == 3
+        correct_ticks('y',[],[4 6]);
+    else
+        correct_ticks('y',[],[5]);
+    end
+    beautify(fontSize);
 end
 
-export_fig('images/paper1/sb-maps.pdf');
+%tic; export_fig('images/paper1/sb-maps.pdf'); toc;
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% image effect?
 figure; maximize(); hold on;
 for ii=1:image.len
