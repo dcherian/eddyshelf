@@ -5500,7 +5500,7 @@ methods
         ix = runs.spng.sx1:runs.spng.sx2;
         iy = runs.spng.sy1:runs.spng.sy2;
 
-        if ~exist('color','var'), color = 'w'; end
+        if ~exist('color','var'), color = [1 1 1]*0.75; end
         if strcmpi(plottype,'contour')
             [cc,hplot] = contour(runs.rgrid.xr(ix,iy)/1000,...
                                  runs.rgrid.yr(ix,iy)/1000, ...
@@ -5509,8 +5509,8 @@ methods
             clabel(cc,hplot,'LabelSpacing',108*3, 'Color', color);
             hax = gca;
             if runs.bathy.axis == 'y'
-                liney(runs.bathy.xsb/1000,'shelfbreak',color);
-                liney(runs.bathy.xsl/1000,'slopebreak',color);
+                liney(runs.bathy.xsb/1000,'sb',color);
+                liney(runs.bathy.xsl/1000,'sl',color);
             else
                 linex(runs.bathy.xsb/1000,'shelfbreak',color);
                 liney(runs.bathy.xsl/1000,'slopebreak',color);
