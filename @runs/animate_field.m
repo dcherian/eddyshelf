@@ -92,7 +92,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     % read csdye if required
     if (dyeplot && isempty(runs.csdsurf)) || strcmpi(name, 'csdye') ...
-            || (addcsdye == 1)
+            || (strcmpi(name, 'eddye') && addcsdye == 1)
         runs.read_csdsurf(t0, ntimes);
         if strcmpi(name, 'csdye')
             varname = 'csdsurf';
