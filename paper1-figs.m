@@ -50,6 +50,19 @@ sl = runArray(folders);
 image = runArray({ 'runew-2360-fb', 'runew-2360-20km', ...
                    'runew-2360', 'runew-2360_wider'});
 
+%% bottom friction
+folders = { ...
+    ... %'runew-34', 'runew-5341', 'runew-5343'
+    'runew-6341', 'runew-56341', 'runew-56341-2', ...
+          };
+bfrics = runArray(folders);
+for ii=1:bfrics.len
+    run = bfrics.array(ii);
+    tind = find_approx(run.eddy.t/run.eddy.tscale*86400, 1);
+    bfrics.name{ii} = ['r = ' ...
+                       num2str(bfrics.array(ii).params.misc.rdrg) ' m/s'];
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% initial condition
 run = ew.array(2);
@@ -117,6 +130,13 @@ subplot(122);
 ns.plot_penetration(gca); drawnow;
 ax1 = gca; ax1.XTick = unique([ax1.XTick 1])
 export_fig('images/paper1/sl-centrack.pdf');
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% bottom friction
+
+bfrics.plot_penetration; maximize();
+pbaspect([1.618 1 1]);
+export_fig('images/paper1/bfrics-centrack.pdf');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% parameterization
