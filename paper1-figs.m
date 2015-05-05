@@ -24,7 +24,8 @@ ns = runArray(folders);
 
 % shelfbreak depth - xy maps
 sb = runArray({ ...
-    'runew-36', 'runew-2360', 'runew-2361_wider', 'runew-2362_wider', ...
+    'runew-36', 'runew-2360_wider', 'runew-2361_wider', ...
+    'runew-2363_wider', 'runew-2362_wider', ...
               });
 
 % wide slope runs
@@ -53,6 +54,7 @@ image = runArray({ 'runew-2360-fb', 'runew-2360-20km', ...
 %% initial condition
 run = ew.array(2);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% x-y cross-section
 run = runs('../topoeddy/runew-34/');
 fontSize = [16 16 18];
@@ -103,6 +105,7 @@ text(-6, 3.8, 'L_{edd} < L_{sl}', ...
 %legend('off');
 export_fig('images/paper1/centrack.pdf');
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% EW, NS Center-tracks - wide slope
 ew.filter = [];
 ns.filter = [];
@@ -115,11 +118,13 @@ ns.plot_penetration(gca); drawnow;
 ax1 = gca; ax1.XTick = unique([ax1.XTick 1])
 export_fig('images/paper1/sl-centrack.pdf');
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% parameterization
 sl.print_diag('bottom torque');
 title([]); pause(1);
 export_fig('images/paper1/penetration-erf-param.pdf');
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% energy decay
 sl.plot_dEdt; maximize(); pause(1);
 subplot(121); title([]);
@@ -175,3 +180,4 @@ hl = liney(0); ylim([-0.08 0.05]);
 uistack(hl, 'bottom'); axis tight;
 beautify; pbaspect([1.618 1 1]);
 export_fig('images/paper1/image-effect.pdf');
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
