@@ -3903,7 +3903,7 @@ methods
         htext = text(0.05,0.9, ...
                      ['t = ' num2str(runs.time(tt)/86400) ' days'], ...
                      'Units', 'normalized');
-        colormap(cbrewer('div','RdBu',20));
+        colormap(flipud(cbrewer('div','RdBu',20)));
         beautify([18 18 20]);
 
         for tt = 2:3:ntimes
@@ -5402,10 +5402,15 @@ methods
         end
     end
     function update_surf(runs,varname,handle,tt)
+        range = ['runs.spng.sx1:runs.spng.sx2,' ...
+                 'runs.spng.sy1:runs.spng.sy2'];
+
         try
-            eval(['set(handle,''CData'',double(runs.' varname '(:,:,tt)))']);
+            eval(['set(handle,''CData'',double(runs.' varname '(' ...
+                  range ',tt)))']);
         catch ME
-            eval(['set(handle,''ZData'',double(runs.' varname '(:,:,tt)))']);
+            eval(['set(handle,''ZData'',double(runs.' varname '(' ...
+                  range ',tt)))']);
         end
     end
 
@@ -5426,8 +5431,10 @@ methods
         for ii=1:length(handle)
             try
                 set(handle(ii),'ZData', ...
-                               runs.eddy.vormask(ix,iy,tt));
+                               double(runs.eddy.vormask(ix,iy,tt)));
             catch ME
+                set(handle(ii),'CData', ...
+                               double(runs.eddy.vormask(ix,iy,tt)));
             end
         end
     end
