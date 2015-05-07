@@ -69,17 +69,29 @@ run = ew.array(2);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% x-y cross-section
-if ~exist('run', 'var') || ~strcmpi(run.name, 'ew-34')
-    run = runs('../topoeddy/runew-34/');
+name = 'ew-34';
+if ~exist('run', 'var') || ~strcmpi(run.name, name)
+    run = runs(['../topoeddy/run' name '/']);
 end
 fontSize = [16 16 18];
+ms = 12; % marker size
+trackcolor = [1 1 1]*0.65;
+sbslcolor = trackcolor;
 tt = [1 250];
 seqcolor = flipud(cbrewer('div','RdYlBu',32));
 figure; maximize(); pause(0.5);
 ax1 = subplot(221);
 run.animate_vorsurf(ax1,tt(1),1);
-plot(run.eddy.mx/1000, run.eddy.my/1000, 'k');
-plot(run.eddy.mx(tt(1))/1000, run.eddy.my(tt(1))/1000, 'kx');
+limx = xlim;
+text(0.15*diff(limx), run.bathy.xsl/1000, 'slopebreak', ...
+     'VerticalAlignment', 'Bottom', 'FontSize', fontSize(1)-4, ...
+     'Color', sbslcolor);
+text(0.15*diff(limx), run.bathy.xsb/1000, 'shelfbreak', ...
+     'VerticalAlignment', 'Top', 'FontSize', fontSize(1)-4, ...
+     'Color', sbslcolor);
+plot(run.eddy.mx/1000, run.eddy.my/1000, 'Color', trackcolor);
+plot(run.eddy.mx(tt(1))/1000, run.eddy.my(tt(1))/1000, 'x', ...
+     'MarkerSize', ms, 'Color', trackcolor);
 title('Surface vorticity / f');
 xlabel([]);
 clim = caxis; beautify(fontSize);
@@ -87,24 +99,33 @@ correct_ticks('y',[],[3 5]);
 
 ax2 = subplot(223);
 run.animate_vorsurf(ax2,tt(2),1);
-plot(run.eddy.mx/1000, run.eddy.my/1000, 'k');
-plot(run.eddy.mx(tt(2))/1000, run.eddy.my(tt(2))/1000, 'kx');
+plot(run.eddy.mx/1000, run.eddy.my/1000, 'Color', trackcolor);
+plot(run.eddy.mx(tt(2))/1000, run.eddy.my(tt(2))/1000, 'x', ...
+     'MarkerSize', ms, 'Color', trackcolor);
 title([]); xlabel([]);
 caxis(clim); beautify(fontSize);
 correct_ticks('y',[],[3 5]);
 
 ax3 = subplot(222);
 run.animate_field('eddye', ax3, tt(1), 1);
-plot(run.eddy.mx/1000, run.eddy.my/1000, 'k');
-plot(run.eddy.mx(tt(1))/1000, run.eddy.my(tt(1))/1000, 'kx');
+plot(run.eddy.mx/1000, run.eddy.my/1000, 'Color', trackcolor);
+plot(run.eddy.mx(tt(1))/1000, run.eddy.my(tt(1))/1000, 'x', ...
+     'MarkerSize', ms, 'Color', trackcolor);
+text(0.15*diff(limx), run.bathy.xsl/1000, 'slopebreak', ...
+     'VerticalAlignment', 'Bottom', 'FontSize', fontSize(1)-4, ...
+     'Color', sbslcolor);
+text(0.15*diff(limx), run.bathy.xsb/1000, 'shelfbreak', ...
+     'VerticalAlignment', 'Top', 'FontSize', fontSize(1)-4, ...
+     'Color', sbslcolor);
 title('Dye'); caxis([-1 1]); beautify(fontSize);
 colormap(ax3,seqcolor);
 correct_ticks('y',[],[3 5]);
 
 ax4 = subplot(224);
 run.animate_field('eddye', ax4, tt(2), 1);
-plot(run.eddy.mx/1000, run.eddy.my/1000, 'k');
-plot(run.eddy.mx(tt(2))/1000, run.eddy.my(tt(2))/1000, 'kx');
+plot(run.eddy.mx/1000, run.eddy.my/1000, 'Color', trackcolor);
+plot(run.eddy.mx(tt(2))/1000, run.eddy.my(tt(2))/1000, 'x', ...
+     'MarkerSize', ms, 'Color', trackcolor);
 title([]); caxis([-1 1]);
 colormap(ax4,seqcolor); beautify(fontSize);
 correct_ticks('y',[],[3 5]);
