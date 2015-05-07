@@ -63,19 +63,23 @@ for ii=1:bfrics.len
                        num2str(bfrics.array(ii).params.misc.rdrg) ' m/s'];
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% initial condition
 run = ew.array(2);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% x-y cross-section
-run = runs('../topoeddy/runew-34/');
+if ~exist('run', 'var') || ~strcmpi(run.name, 'ew-34')
+    run = runs('../topoeddy/runew-34/');
+end
 fontSize = [16 16 18];
 tt = [1 250];
 seqcolor = flipud(cbrewer('div','RdYlBu',32));
 figure; maximize(); pause(0.5);
 ax1 = subplot(221);
 run.animate_vorsurf(ax1,tt(1),1);
+plot(run.eddy.mx/1000, run.eddy.my/1000, 'k');
+plot(run.eddy.mx(tt(1))/1000, run.eddy.my(tt(1))/1000, 'kx');
 title('Surface vorticity / f');
 xlabel([]);
 clim = caxis; beautify(fontSize);
@@ -83,18 +87,24 @@ correct_ticks('y',[],[3 5]);
 
 ax2 = subplot(223);
 run.animate_vorsurf(ax2,tt(2),1);
+plot(run.eddy.mx/1000, run.eddy.my/1000, 'k');
+plot(run.eddy.mx(tt(2))/1000, run.eddy.my(tt(2))/1000, 'kx');
 title([]); xlabel([]);
 caxis(clim); beautify(fontSize);
 correct_ticks('y',[],[3 5]);
 
 ax3 = subplot(222);
 run.animate_field('eddye', ax3, tt(1), 1);
+plot(run.eddy.mx/1000, run.eddy.my/1000, 'k');
+plot(run.eddy.mx(tt(1))/1000, run.eddy.my(tt(1))/1000, 'kx');
 title('Dye'); caxis([-1 1]); beautify(fontSize);
 colormap(ax3,seqcolor);
 correct_ticks('y',[],[3 5]);
 
 ax4 = subplot(224);
 run.animate_field('eddye', ax4, tt(2), 1);
+plot(run.eddy.mx/1000, run.eddy.my/1000, 'k');
+plot(run.eddy.mx(tt(2))/1000, run.eddy.my(tt(2))/1000, 'kx');
 title([]); caxis([-1 1]);
 colormap(ax4,seqcolor); beautify(fontSize);
 correct_ticks('y',[],[3 5]);
