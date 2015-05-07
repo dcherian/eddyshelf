@@ -132,12 +132,12 @@ correct_ticks('y',[],[3 5]);
 
 export_fig('-r450','images/paper1/xymap.png');
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% EW - center tracks - all,
 fs  = 18;
 ewall.plot_penetration; maximize();
 ax = gca;
 title([]); pbaspect([1.618 1 1]);
-text(-10, 0.2, 'shelfbreak', 'FontSize', fs);
 text(-0.3, 1.5, 'L_{edd} > L_{sl}', ...
      'FontSize', fs, 'Color', ax.ColorOrder(1,:));
 text(0.2, 3.8, 'L_{edd} ~ L_{sl}', ...

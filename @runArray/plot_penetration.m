@@ -3,6 +3,10 @@ function [] = plot_penetration(runArray, ax)
 
     mark_timestamp = 1;
 
+    % shelfbreak label options
+    txtfactor = 0.15;
+    fontsize = 16;
+
     corder_backup = runArray.sorted_colors;
 
     hfig1 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2);
@@ -148,6 +152,8 @@ function [] = plot_penetration(runArray, ax)
 
     axes(ax1)
     axis image;
+
+    % axes labels
     if ynorm == run.rrdeep
         ylabel(['(Y - ' y0str ')/(deformation radius)']);
         dytick = 1;
@@ -161,25 +167,33 @@ function [] = plot_penetration(runArray, ax)
             dytick = 0.1;
         end
     end
-    if run.bathy.axis == 'y'
-        xlim([-12 2]);
-        ylim([0 max(ylim)]);
-        liney(1);
-        set(gca, 'YTick', [0:dytick:max(ylim)]);
-        title('Southern Coast');
-    else
-        xlim([0 max(xlim)]);
-        ylim([min(ylim) -1*min(ylim)/2]);
-        linex(1);
-        title('Western Coast');
-    end
-
     if xnorm == run.rrdeep
         xlabel(['(X - ' x0str ')/(deformation radius)']);
     else
         if xnorm == run.eddy.vor.dia(1)/2
             xlabel(['(X - ' x0str ')/(initial radius)']);
         end
+    end
+
+    if run.bathy.axis == 'y'
+        xlim([-12 2]);
+        ylim([0 max(ylim)]);
+        liney(1);
+        set(gca, 'YTick', [0:dytick:max(ylim)]);
+        title('Southern Coast');
+        % mark shelfbreak
+        limx = xlim;
+        text(limx(1) + 0.15*diff(limx), 0.02, 'shelfbreak', 'Rotation', ...
+             0, 'VerticalAlignment', 'Bottom', 'FontSize', fontsize);
+    else
+        xlim([0 max(xlim)]);
+        ylim([min(ylim) -1*min(ylim)/2]);
+        linex(1);
+        title('Western Coast');
+        % mark shelfbreak
+        limy = ylim;
+        text(0.06, limy(1) + 0.25*diff(limy), 'shelfbreak', 'Rotation', ...
+             270, 'VerticalAlignment', 'bottom', 'FontSize', fontsize);
     end
 
     hlegend = legend(hgplt2, names, 'Location', legloc, 'Box', ...
