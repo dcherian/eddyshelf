@@ -63,10 +63,6 @@ for ii=1:bfrics.len
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% initial condition
-run = ew.array(2);
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% x-y cross-section
 name = 'ew-34';
 if ~exist('run', 'var') || ~strcmpi(run.name, name)
@@ -130,6 +126,20 @@ colormap(ax4,seqcolor); beautify(fontSize);
 correct_ticks('y',[],[3 5]);
 
 export_fig('-r450','images/paper1/xymap.png');
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% y-z cross section
+name = 'ew-34';
+if ~exist('run', 'var') || ~strcmpi(run.name, name)
+    run = runs(['../topoeddy/run' name '/']);
+end
+
+tt = [1 250];
+run.plot_eddye(tt);
+subplot(121); correct_ticks('y',[],5);
+suplabel('', 't');
+
+export_fig('-r450', 'images/paper1/yzsection.png');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% EW - center tracks - all,

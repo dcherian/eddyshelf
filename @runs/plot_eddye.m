@@ -45,7 +45,6 @@ function [] = plot_eddye(runs, days)
     end
 
     for ii=1:nt
-
         loc = num2str(cen(tindices(ii)))
         if plot_pbot
             iloc = find_approx(pb.xvec, str2double(loc),1);
@@ -72,24 +71,41 @@ function [] = plot_eddye(runs, days)
 
             ax2(ii) = subplot(1, nt, ii);
             drho = bsxfun(@minus, temp, tback);
-            contourf(yz, zmat, drho, 20);
-            colormap(flipud(cbrewer('seq','Blues',12)))
+            [cc,hh] = contourf(yz, zmat, drho, 20);
+            colormap(flipud(cbrewer('seq','Blues',12)));
+            hh.EdgeColor = 'none';
 
-            shading flat;
-            liney(-1 * runs.eddy.Lgauss(tindices(ii)), 'vertical scale');
-            colorbar;
+            shading flat; hold on;
+
+            hcbar = colorbar;
+            hcbar.Label.String = '$$\rho - \bar\rho(z)$$';
+            hcbar.Label.Interpreter = 'latex';
+
             if ii == 1
                 clim = caxis; %[-0.0553 -0.0021]; %caxis;
                 ylabel('Z (m)');
             end
             caxis(clim);
-            hold on;
-            %contour(yz, zmat, ed, 1, 'k', ...
-            %        'LineWidth', 2);
+
+            % patch bathymetry
+            patch(([runs.rgrid.y_rho(:,1); min(runs.rgrid.y_rho(:,1))])./1000, ...
+                  -1*[min(runs.rgrid.h(:)); runs.rgrid.h(:,1)]./1, 'k');
+
+            % density anomaly contours
             contour(yz, zmat, drho, ...
-                    [runs.eddy.drhothresh(1) runs.eddy.drhothreshssh(1)], ...
-                    'Color', [1 1 1]*0.3, 'LineWidth', 2);
-            caxis(clim);
+                    [1 1]* runs.eddy.drhothresh(1), ...
+                    'Color', [1 1 1]*0, 'LineWidth', 2);
+
+            % eddye contours
+            contour(yz, zmat, ed, [1 1]*0.9, 'Color', 'r', ...
+                    'LineWidth', 2);
+
+            caxis(clim); limx = xlim; limy = ylim;
+            % vertical scale
+            liney(-1 * runs.eddy.Lgauss(tindices(ii)), [], 'k');
+            text(0.85*limx(2), -1 * runs.eddy.Lgauss(tindices(ii)), ...
+                 {'vertical','scale'}, 'VerticalAlignment', 'Bottom', ...
+                 'HorizontalAlignment','Center');
 
             if plot_pbot
                 pbvec = pb.pbot(iloc,:,tindices(ii));
@@ -99,9 +115,9 @@ function [] = plot_eddye(runs, days)
                 liney(z0, 'pbot anom = 0','k');
             end
 
-            title(['day ' num2str(days(ii))]);
+            text(0.65 , 0.05, ...
+                 ['t = ' num2str(days(ii)) ' days'], 'Units', 'normalized');
             xlabel([upper(runs.bathy.axis) '(km)']);
-            %axis square
             beautify([15 15 18]);
         end
 
@@ -190,14 +206,17 @@ function [] = plot_eddye(runs, days)
 
     if exist('hf2', 'var')
         figure(hf2)
-        %suplabel('Density anomaly', 't');
-        [~,ht] = suplabel(['\rho anomaly | (black, grey) contours = (eddye, \rho ' ...
-                           'threshold) | grey line = Gaussian fit vertical scale'], ...
-                          't');
-        set(ht, 'FontSize', 20);
-        %spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
+        %[~,ht] = suplabel(['\rho anomaly | (black, grey) contours = (eddye, \rho ' ...
+        %                   'threshold)'], 't');
+        %set(ht, 'FontSize', 20);
         linkaxes(ax2, 'xy');
         insertAnnotation([runs.name '.plot_eddye']);
+        if ~isempty(findall(gcf, 'type', 'colorbar'))
+            hcbar = findall(gcf,'type','colorbar');
+            for ii = 1:length(hcbar)
+                hcbar(ii).Label.Rotation = 90;
+            end
+        end
     end
 
     if exist('hf3', 'var')
