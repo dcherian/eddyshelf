@@ -27,7 +27,7 @@ function [] = plot_penetration(runArray, ax)
     end
 
     len = length(runArray.filter);
-    colors = cbrewer('qual','Dark2',4);
+    colors = get(gca, 'ColorOrder');
 
     for ff=1:len
         ii = runArray.filter(ff);
@@ -164,7 +164,7 @@ function [] = plot_penetration(runArray, ax)
         else
             ylabel(['Distance from shelfbreak / Initial distance from ' ...
                     'shelfbreak']);
-            dytick = 0.1;
+            dytick = 1;
         end
     end
     if xnorm == run.rrdeep
