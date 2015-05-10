@@ -5507,20 +5507,21 @@ methods
         ix = runs.spng.sx1:runs.spng.sx2;
         iy = runs.spng.sy1:runs.spng.sy2;
 
-        if ~exist('color','var'), color = [1 1 1]*0.75; end
+        if ~exist('color','var'), color = [1 1 1]*0.85; end
         if strcmpi(plottype,'contour')
-            [cc,hplot] = contour(runs.rgrid.xr(ix,iy)/1000,...
+            [cc,hplot{1}] = contour(runs.rgrid.xr(ix,iy)/1000,...
                                  runs.rgrid.yr(ix,iy)/1000, ...
                                  runs.rgrid.h(iy,ix)',[200 500 1000 1500 ...
                                 2000], 'Color', color);
-            clabel(cc,hplot,'LabelSpacing',108*3, 'Color', color);
+            clabel(cc, hplot{1}, 'LabelSpacing', 108*2.75, 'Color', color);
             hax = gca;
+            sbslcolor = color;
             if runs.bathy.axis == 'y'
-                liney(runs.bathy.xsb/1000,'sb',color);
-                liney(runs.bathy.xsl/1000,'sl',color);
+                hplot{2} = liney(runs.bathy.xsb/1000,[], sbslcolor);
+                hplot{3} = liney(runs.bathy.xsl/1000,[], sbslcolor);
             else
-                linex(runs.bathy.xsb/1000,'shelfbreak',color);
-                liney(runs.bathy.xsl/1000,'slopebreak',color);
+                hplot{2} = linex(runs.bathy.xsb/1000,[], sbslcolor);
+                hplot{3} = liney(runs.bathy.xsl/1000,[], sbslcolor);
             end
         end
     end
