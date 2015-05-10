@@ -258,7 +258,8 @@ co = image.sorted_colors;
 
 subplot(2,2,[1 2]);
 image.plot_penetration(gca);
-title([]);
+title([]); axis image;
+
 for ii=1:image.len
     run = image.array(ii);
     tvec = run.time/run.eddy.turnover;
@@ -278,10 +279,10 @@ end
 subplot(223);
 hl = liney(0); ylim([-0.08 0.05]);
 uistack(hl, 'bottom'); axis tight;
-beautify; pbaspect([1.33 1 1]);
+beautify; pbaspect([1.618 1 1]);
 
 subplot(224);
-beautify; pbaspect([1.33 1 1]);
+beautify; pbaspect([1.618 1 1]);
 image.reset_colors(co);
 
 linkaxes(ax, 'x');
