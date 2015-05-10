@@ -268,7 +268,7 @@ for ii=1:image.len
     cvx = run.eddy.mvx;
     %cvx(cvx < -0.06) = NaN;
     plot(tvec, smooth(cvx, 8));
-    ylabel({'Centroid along-isobath', 'velocity (km/day)'});
+    ylabel({'Eddy center along-isobath', 'velocity (km/day)'});
 
     subplot(224);
     plot(tvec, run.eddy.vol(:,1));
