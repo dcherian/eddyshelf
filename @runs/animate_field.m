@@ -64,6 +64,11 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         %locx = []; locy = [];
     end
 
+    % over flat bottom, addcsdye makes no sense
+    if runs.params.flags.flat_bottom
+        addcsdye = 0;
+    end
+
     if ~exist('ntimes', 'var'), ntimes = length(runs.time); end
     if ~exist('t0', 'var'), t0 = 1; end
 
