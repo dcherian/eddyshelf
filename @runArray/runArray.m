@@ -10,6 +10,8 @@ classdef runArray < handle
         rotate_ns = 0;
         % sort by this parameter?
         sort_param = []; sorted = 0;
+        % flip sorted colors
+        flip_colors = 0;
         % length of array
         len;
         % actual indices to plot
@@ -119,9 +121,13 @@ classdef runArray < handle
                     len = length(runArray.filter);
                 end
 
+                colors = brighten(cbrewer('seq','Reds',len), -0.5);
                 set(groot, 'defaultAxesLineStyleorder','-');
-                set(groot, 'defaultAxesColorOrder', brighten(cbrewer('seq','Reds',len), ...
-                                                             -0.5));
+                if runArray.flip_colors
+                    set(groot, 'defaultAxesColorOrder', flip(colors));
+                else
+                    set(groot, 'defaultAxesColorOrder', colors);
+                end
             end
         end
 
