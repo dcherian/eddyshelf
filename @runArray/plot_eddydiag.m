@@ -84,14 +84,17 @@ function [] = plot_eddydiag(runArray)
         % vertical scale
         if ~isempty(hfig1)
             figure(hfig1)
+            colors = get(gca, 'ColorOrder');
             subplot(2,1,1)
-            hgplt1(ff) = plot(ndtime, run.eddy.Lgauss);
+            hgplt1(ff) = plot(ndtime, run.eddy.Lgauss, ...
+                              'Color', colors(ff,:));
             plot(ndtime(run.traj.tind), run.eddy.Lgauss(run.traj.tind), ...
-                 'x');
+                 'x', 'Color', colors(ff,:));
             subplot(2,1,2)
-            plot(ndtime, run.eddy.hcen);
-            plot(ndtime(run.traj.tind), run.eddy.hcen(run.traj.tind), ...
-                 'x');
+            ind = 1; % 0vor or SSH contour ρ criterion?
+            plot(ndtime, run.eddy.vol(:,ind), 'Color', colors(ff,:));
+            plot(ndtime(run.traj.tind), run.eddy.vol(run.traj.tind,ind), ...
+                 'x', 'Color', colors(ff,:));
         end
 
         % KE, PE
