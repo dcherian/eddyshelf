@@ -49,6 +49,15 @@ sl = runArray(folders);
 image = runArray({ 'runew-2360-fb', 'runew-2360-20km', ...
                    'runew-2360', 'runew-2360_wider'});
 
+for ii=1:image.len
+    sh(ii) = image.array(ii).params.bathy.L_shelf;
+    if image.array(ii).params.flags.flat_bottom
+        sh(ii) = 0;
+    end
+    image.name{ii} = [num2str(sh(ii)/1000, '%.0f') ' km shelf'];
+end
+image.sort(sh);
+
 %% bottom friction
 folders = { ...
     ... %'runew-34', 'runew-5341', 'runew-5343'
@@ -241,20 +250,40 @@ tic; export_fig('-r450','images/paper1/sb-maps.png'); toc;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% image effect?
-figure; maximize(); hold on;
+figure; maximize();
+ax(1) = subplot(223); hold on;
+ax(2) = subplot(224); hold on;
+image.flip_colors = 1;
+co = image.sorted_colors;
+
+subplot(2,2,[1 2]);
+image.plot_penetration(gca);
+title([]);
 for ii=1:image.len
     run = image.array(ii);
     tvec = run.time/run.eddy.turnover;
     nsmooth = 3; run.eddy.turnover./diff(run.time(1:2));
-    cvx = run.eddy.cvx;
-    cvx(cvx < -0.06) = NaN;
-    plot(tvec, smooth(cvx, 6*nsmooth));
+
+    subplot(223);
+    cvx = run.eddy.mvx;
+    %cvx(cvx < -0.06) = NaN;
+    plot(tvec, smooth(cvx, 8));
     ylabel({'Centroid along-isobath', 'velocity (km/day)'});
+
+    subplot(224);
+    plot(tvec, run.eddy.vol(:,1));
+    ylabel('Volume / Volume(t=0)');
     xlabel('Time / Turnover Time');
 end
-legend('0 km shelf', '20 km shelf', '40 km shelf', '150 km shelf');
+subplot(223);
 hl = liney(0); ylim([-0.08 0.05]);
 uistack(hl, 'bottom'); axis tight;
-beautify; pbaspect([1.618 1 1]);
+beautify; pbaspect([1.33 1 1]);
+
+subplot(224);
+beautify; pbaspect([1.33 1 1]);
+image.reset_colors(co);
+
+linkaxes(ax, 'x');
 export_fig('images/paper1/image-effect.pdf');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
