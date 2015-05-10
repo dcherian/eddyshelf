@@ -20,10 +20,13 @@ function [] = plot_sections(runArray, varname, ndtimes)
 
     % multiple runs on same figure? set to 1
     % multiple timesteps on same figure? set to 0
-    runs_on_one_fig = 1;
+    runs_on_one_fig = 0;
 
     for tt = 1:nt
-        figure;
+        if runs_on_one_fig
+            figure;
+        end
+
         for ii = 1:nruns
             ff = runArray.filter(ii);
             run = runArray.array(ff);
@@ -60,7 +63,7 @@ function [] = plot_sections(runArray, varname, ndtimes)
             pcolorcen((ymat-run.bathy.xsb)./run.rrdeep, ...
                       zmat./zscale, var);
             liney(-1*run.eddy.Lgauss(tind(tt))/zscale);
-            colormap(cmap);
+            colormap(cmap); shading interp
 
             % overlay profile of initial eddy
             limy = xlim .* yscale; limz = ylim .* zscale;
@@ -75,24 +78,25 @@ function [] = plot_sections(runArray, varname, ndtimes)
                          run.eddy.vor.dia(tt)*2).^2) .* ...
                    exp(-(zmat2./run.eddy.Lgauss(tind(tt))).^2);
             hold on
+
             % patch bathymetry
             patch(([run.rgrid.y_rho(:,1); min(run.rgrid.y_rho(:,1))] ...
                    - run.bathy.xsb)./yscale, ...
                   -1*[min(run.rgrid.h(:)); run.rgrid.h(:,1)]./zscale, 'k');
 
             % initial profile
-            contour((ymat2-run.bathy.xsb)./yscale, ...
-                    zmat2./zscale, prof, [1 1]*0.5, 'color', 'b', 'LineWidth', ...
-                    2);
+            %contour((ymat2-run.bathy.xsb)./yscale, ...
+            %        zmat2./zscale, prof, [1 1]*0.5, 'color', 'b', 'LineWidth', ...
+            %        2);
             % current profile
-            contour((ymat2-run.bathy.xsb)./yscale, ...
-                    zmat2./zscale, prof2, [1 1]*0.5, 'color', 'b', 'LineWidth', ...
-                    2);
+            %contour((ymat2-run.bathy.xsb)./yscale, ...
+            %        zmat2./zscale, prof2, [1 1]*0.5, 'color', 'b', 'LineWidth', ...
+            %        2);
 
             % line at 1 deformation radius from shelfbreak
-            linex(1.2);
+            %linex(1.2);
 
-            beautify([18 18 20]);
+            beautify([18 18 20]); box on;
 
             if runs_on_one_fig
                 title(['S_\alpha = ', num2str(run.bathy.S_sl)]);
