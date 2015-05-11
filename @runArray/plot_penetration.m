@@ -1,7 +1,27 @@
 % diagnostic plots to show how much eddy penetrates slope
-function [] = plot_penetration(runArray, ax)
+function [] = plot_penetration(runArray, ax, choices)
 
-    mark_timestamp = 1;
+    if ~exist('choices', 'var'), choices = []; end
+    cmd_list = {'mark_timestamp', 'mark_slopebreak', 'mark_fittraj', ...
+               'all','dt'};
+
+    [flag, ~] = parse_commands(cmd_list, choices);
+    mark_timestamp = flag(1);
+    mark_slopebreak = flag(2);
+    mark_fittraj = flag(3);
+
+    if flag(4)
+        mark_timestamp = 1;
+        mark_slopebreak = 1;
+        mark_fittraj = 1;
+    end
+
+    % dt for mark_timestamp
+    if flag(5) == 0
+        dt = 100; % default
+    else
+        dt = flag(5);
+    end
 
     % shelfbreak label options
     txtfactor = 0.15;
@@ -44,7 +64,6 @@ function [] = plot_penetration(runArray, ax)
 
         ndtime = run.eddy.t * 86400 / run.eddy.turnover;
         if mark_timestamp
-            dt = 75;
             tinds = vecfind(run.eddy.t, [dt:dt:max(run.eddy.t)]);
         else
             tinds = [];
@@ -108,7 +127,8 @@ function [] = plot_penetration(runArray, ax)
         %[~,~,tind] = run.locate_resistance;
         %plot(x(tind), y(tind), '.', ...
         %     'Color', color, 'Markersize', 22);
-        if run.bathy.L_slope/run.eddy.vor.dia(1) > 1
+        if run.bathy.L_slope/run.eddy.vor.dia(1) > 1 && ...
+                mark_fittraj
             run.fit_traj(1.10);
             plot(x(run.traj.tind), y(run.traj.tind), 'x', ...
                  'Color', color, 'Markersize', 16);
@@ -116,15 +136,17 @@ function [] = plot_penetration(runArray, ax)
 
         % mark timestamps
         if mark_timestamp
-            plot(x(tinds), y(tinds), '.', 'Color', color, 'MarkerSize', ...
-                 22);
+            plot(x(tinds), y(tinds), '.', 'Color', 'k', 'MarkerSize', ...
+                 26);
             %text(x(tinds), y(tinds), ...
             %     cellstr(num2str(ndtime(tinds)', 2)));
         end
 
         % mark slopebreak
-        plot(x(tsl), y(tsl), 'o', 'Color', color, ...
-             'MarkerSize', 10);
+        if mark_slopebreak
+            plot(x(tsl), y(tsl), 'o', 'Color', color, ...
+                 'MarkerSize', 10);
+        end
 
         if ~isempty(ax2)
             axes(ax2)
