@@ -303,10 +303,11 @@ subplot(224);
 ylim([0 1]);
 %liney([0.75 0.4 0.3 0.25]);
 ax(3).YTick = sort(unique([ax(3).YTick 0.3  0.75]));
+ax(3).XTick = sort(unique([ax(3).XTick 70]));
 correct_ticks('y', '%.2f', '0.8');
 beautify; pbaspect([1.618 1 1]);
 image.reset_colors(co);
 
 linkaxes(ax(2:3), 'x');
-%export_fig('images/paper1/image-effect.pdf');
+export_fig('images/paper1/image-effect.pdf');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
