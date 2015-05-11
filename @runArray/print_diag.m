@@ -331,7 +331,7 @@ function [diags, plotx] = print_diag(runArray, name)
             Tamp = run.params.eddy.tamp;
             TCOEF = run.params.phys.TCOEF;
 
-            tanhfitflag = 1;
+            tanhfitflag = 0;
             if tanhfitflag %|| run.params.eddy.tamp < 0
                 run.fit_traj()
 
@@ -340,10 +340,10 @@ function [diags, plotx] = print_diag(runArray, name)
                 Y = run.eddy.my(tind); %run.traj.Y;
 
                 titlestr = ['tanh(t/T) at t = ' ...
-                            num2str(runs.traj.tcrit) 'T'];
+                            num2str(run.traj.tcrit) 'T'];
             else
-                nsmooth = 6;
-                factor = 1/3;
+                nsmooth = 10;
+                factor = 1/4;
                 [~,~,tind] = run.locate_resistance(nsmooth, factor);
                 H = (run.eddy.hcen(tind));
                 Y = run.eddy.my(tind) - run.bathy.xsb; ...
