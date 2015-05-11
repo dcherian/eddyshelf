@@ -13,7 +13,8 @@ function [xx,yy,tind] = locate_resistance(runs, nsmooth, factor)
     npts = (nsmooth*runs.eddy.turnover/86400);
 
     % support cyclones too
-    sgn = sign(runs.params.eddy.tamp);
+    sgn = sign(runs.params.eddy.tamp) * ...
+          sign(runs.params.phys.f0);
 
     % smooth velocity a lot!
     if runs.bathy.axis == 'y'
