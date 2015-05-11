@@ -295,16 +295,18 @@ end
 subplot(223);
 hl = liney(0); ylim([-0.08 0.05]);
 uistack(hl, 'bottom'); axis tight;
+ax(2).YTick = sort(unique([ax(2).YTick -2.3 -1.5 -0.8]));
+correct_ticks('y', '%.1f', {'-2','-1'});
 beautify; pbaspect([1.618 1 1]);
 
 subplot(224);
 ylim([0 1]);
-liney([0.75 0.4 0.3 0.25]);
+%liney([0.75 0.4 0.3 0.25]);
 ax(3).YTick = sort(unique([ax(3).YTick 0.3  0.75]));
 correct_ticks('y', '%.2f', '0.8');
 beautify; pbaspect([1.618 1 1]);
 image.reset_colors(co);
 
 linkaxes(ax(2:3), 'x');
-export_fig('images/paper1/image-effect.pdf');
+%export_fig('images/paper1/image-effect.pdf');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
