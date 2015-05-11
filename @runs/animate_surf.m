@@ -1,7 +1,10 @@
 % animate variables at the surface
 
-function [] = animate_surf(runs, varname, t0, ntimes)
+function [] = animate_surf(runs, varname, hax, t0, ntimes)
 
+    warning('USE ANIMATE_FIELD INSTEAD');
+
+    if ~exist('hax', 'var'), hax = []; end
     if ~exist('ntimes', 'var'), ntimes = length(runs.time); end
     if ~exist('t0', 'var'), t0 = 1; end
 
@@ -28,16 +31,16 @@ function [] = animate_surf(runs, varname, t0, ntimes)
 
     % eddy dye?
     if strcmpi(varname, runs.eddname) | strcmpi(varname, 'eddye')
-        if isempty(runs.eddsurf) | isnan(runs.eddsurf(:,:,t0))
+        if isempty(runs.eddsurf)
             if ntimes == 1
                 tindices = t0;
             else
                 tindices = [];
             end
 
-            runs.eddsurf = dc_roms_read_data(runs.dir, runs.eddname, tindices, {'z' ...
-                                runs.rgrid.N runs.rgrid.N}, [], runs.rgrid, ...
-                                             'his');
+            runs.eddsurf(:,:,tt) = dc_roms_read_data(runs.dir, runs.eddname, tindices, ...
+                                                     {'z' runs.rgrid.N ...
+                                runs.rgrid.N}, [], runs.rgrid, 'his');
         end
 
         vname = 'runs.eddsurf';
@@ -50,7 +53,7 @@ function [] = animate_surf(runs, varname, t0, ntimes)
     yr = runs.rgrid.y_rho'/1000;
     tt = t0;
 
-    figure;
+    if isempty(hax), figure; else axis(hax); end
     eval(['hpc = pcolorcen(xr, yr, ' vname '(:,:,tt));']);
     hold on; colorbar; freezeColors;
 

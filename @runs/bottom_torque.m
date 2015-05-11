@@ -172,6 +172,8 @@ function [] = bottom_torque(runs)
     masku = logical(zeros(size(zeta)));
     maskp = masku;
 
+    keyboard;
+
     for i=0:iend-1
         disp(['==== Iteration : ' num2str(i+1) '/' num2str(iend)  ...
                    ' ====']);
@@ -403,8 +405,11 @@ function [] = bottom_torque(runs)
 
     keyboard;
 
-    pcrit = 0.25; amcrit = NaN;
-    masku = find_mask(ipresfull,pcrit,imx,imy);
+    iU = cumtrapz(yvec, f0U/f0, 2); % crude streamfunction estimate
+    %iV = cumtrapz(xvec, V, 1); % crude streamfunction estimate
+
+    pcrit = 0.25; amcrit = 0.15;
+    masku = find_mask(-1*iU,amcrit,imx,imy);
     maskp = masku;
 
     uarea = integrate(xvec, yvec, masku)';
@@ -420,20 +425,18 @@ function [] = bottom_torque(runs)
     %     maskp = masku;
     % end
 
-    vbar = avg1(dc_roms_read_data(runs.dir, 'vbar', [], volumev, [], ...
-                                  runs.rgrid, 'his', 'single'),2);
-    V = vbar .* bsxfun(@plus, zeta, H);
+    % vbar = avg1(dc_roms_read_data(runs.dir, 'vbar', [], volumev, [], ...
+    %                               runs.rgrid, 'his', 'single'),2);
+    % V = vbar .* bsxfun(@plus, zeta, H);
 
-    dpbdx = bsxfun(@times, bsxfun(@rdivide, diff(pbot,1,1), diff(xvec)), ...
-                   avg1(slbot,1));
-    dpbdxvec = maskintegrate(avg1(xvec), yvec, dpbdx, avg1(maskp,1)>0);
-    bV = maskintegrate(avg1(xvec), yvec, avg1(beta.*V,1), avg1(maskp,1)>0);
-    figure; hold all
-    plot(bV); plot(dpbdxvec);
-    legend('\beta V', 'dH/dy d/dx(p_{bot})');
+    % dpbdx = bsxfun(@times, bsxfun(@rdivide, diff(pbot,1,1), diff(xvec)), ...
+    %                avg1(slbot,1));
+    % dpbdxvec = maskintegrate(avg1(xvec), yvec, dpbdx, avg1(maskp,1)>0);
+    % bV = maskintegrate(avg1(xvec), yvec, avg1(beta.*V,1), avg1(maskp,1)>0);
+    % figure; hold all
+    % plot(bV); plot(dpbdxvec);
+    % legend('\beta V', 'dH/dy d/dx(p_{bot})');
 
-    %iU = cumtrapz(yvec, U, 2); % crude streamfunction estimate
-    %iV = cumtrapz(xvec, V, 1); % crude streamfunction estimate
 
     if flags.mom_budget
         dvdtvec = maskintegrate(xvec, yvec, dvdt, (avg1(masku,3)>0))';
@@ -449,22 +452,24 @@ function [] = bottom_torque(runs)
     btrq = maskintegrate(xvec, yvec, ...
                      bsxfun(@times, pbot, slbot), maskp)';
 
-    tvec = runs.eddy.t(tind(1):dt:tind(2))*86400;
-    ndt = runs.eddy.turnover;
-    tvec = tvec./ndt;
+    %tvec = runs.eddy.t(tind(1):dt:tind(2))*86400;
+    %ndt = runs.eddy.turnover;
+    %tvec = tvec./ndt;
+    tvec = 1:length(byUvec);
 
     if flags.mom_budget
         figure; hold all
         insertAnnotation([runs.name '.bottom_torque']);
         %plot(dvdtvec);
         plot(tvec, duvdxvec + dv2dyvec);
-        plot(tvec, f0Uvec-dipdy);
+        plot(tvec, f0Uvec);
+        plot(tvec, dipdy);
         plot(tvec, byUvec);
         plot(tvec, btrq);
         %plot(tvec, dipdy);
         liney(0); linex(tvec(runs.traj.tind));
         xlim([0.5 max(xlim)]);
-        legend('d/dx(uv) + d/dy(v^2)', 'f_0U + d/dy(\int P)', '\beta y U', ...
+        legend('d/dx(uv) + d/dy(v^2)', 'f_0U', '-d/dy(\int P)','\beta y U', ...
                'dH/dy p_{bot}');
         ylabel('m^2/s^2');
         xlabel('Time / Turnover time');

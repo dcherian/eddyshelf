@@ -413,6 +413,7 @@ classdef runArray < handle
                 runArray.filter = 1:runArray.len;
             end
 
+            figure; hold all
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
@@ -421,12 +422,12 @@ classdef runArray < handle
 
                 cvy = [0 diff(run.eddy.vor.cy)./diff(run.eddy.t*86400)];
 
-                delta = run.eddy.Lgauss./(run.eddy.hcen'-run.eddy.Lgauss);
-                figure; hold all;
+                %delta = run.eddy.Lgauss./(run.eddy.hcen-run.eddy.Lgauss);
+                %figure; hold all;
                 tind = run.traj.tind;
-                plot(ndtime, smooth(cvy, 6));
+                plot(ndtime, smooth(cvy, 12), '-', 'Color', [1 1 1]*0.65);
                 plot(ndtime(tind), cvy(tind), 'k*');
-                liney(-1 * delta(1) * run.eddy.V(1)/4);
+                %liney(-1 * delta(1) * run.eddy.V(1)/4);
 
             end
 
@@ -440,8 +441,8 @@ classdef runArray < handle
 
             corder_backup = runArray.sorted_colors;
 
-            figure; hold all;
-            insertAnnotation('runArray.plot_test3');
+            %figure; hold all;
+            %insertAnnotation('runArray.plot_test3');
 
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
@@ -451,11 +452,10 @@ classdef runArray < handle
                 tind = run.traj.tind;
                 tvec = run.time/run.eddy.turnover;
 
-                vec =  run.eddy.cvx;
-                hplt(ff) = plot(tvec, vec);
-                plot(tvec(tind), vec(tind), 'kx');
+                run.animate_field('eddye', [], tind, 1);
+                title(names{ff});
             end
-            legend(hplt, names);
+            %legend(hplt, names);
 
             runArray.reset_colors(corder_backup);
         end

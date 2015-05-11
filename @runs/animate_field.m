@@ -5,7 +5,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     runs.video_init(name);
     titlestr = [];
 
-    dt = 10;
+    dt = 3;
 
     csfluxplot = 0; % 0 = no flux plot
                     % 1 = instantaneous x-profile;
@@ -16,7 +16,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         asindex = [1 2];
     end
 
-    rhocontourplot = 0; % plot eddy drho contour too?
+    rhocontourplot = 1; % plot eddy drho contour too?
     enfluxplot = 0; % plot AS energy flux ?
     sshplot = 0; % plot ssh-contour too?
     dyeplot = 0; % plot eddye contour too?
@@ -42,7 +42,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         %locx = []; locy = [];
 
         tvec = runs.eddy.t;
-        vec = runs.eddy.vol;
+        vec = runs.eddy.vol(:,1);
         laby = 'Volume (m^3)';
         locx = []; locy = [];
 
