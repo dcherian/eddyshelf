@@ -250,16 +250,32 @@ tic; export_fig('-r450','images/paper1/sb-maps.png'); toc;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% image effect?
-figure; maximize();
-ax(1) = subplot(223); hold on;
-ax(2) = subplot(224); hold on;
-image.flip_colors = 1;
 co = image.sorted_colors;
+figure; maximize();
+ax(2) = subplot(223); hold on;
+ax(3) = subplot(224); hold on;
+image.flip_colors = 1;
 
-subplot(2,2,[1 2]);
+% track
+ax(1) = subplot(2,2,[1 2]);
 image.plot_penetration(gca);
-title([]); axis image;
+title([]);
+% add timestamps
+text(-1.85, 2.75, '50d', 'HorizontalAlignment', 'Center', ...
+     'VerticalAlignment', 'bottom');
+plot(-1.85*[1 1], [2.75 2.3], 'k-');
+text(-3.45, 2.75, '100d', 'HorizontalAlignment', 'Center', ...
+     'VerticalAlignment', 'bottom');
+plot(-3.45*[1 1], [2.75 1.9], 'k-');
+text(-3.45, 2.75, '100d', 'HorizontalAlignment', 'Center', ...
+     'VerticalAlignment', 'bottom');
+plot(-3.45*[1 1], [2.75 1.9], 'k-');
+text(-5.45, 2.75, '200d', 'HorizontalAlignment', 'Center', ...
+     'VerticalAlignment', 'bottom');
+plot(-5.45*[1 1], [2.75 1.5], 'k-');
 
+% volume, speed diagnostics
+co = image.sorted_colors;
 for ii=1:image.len
     run = image.array(ii);
     tvec = run.time/run.eddy.turnover;
@@ -272,7 +288,7 @@ for ii=1:image.len
     ylabel({'Eddy center along-isobath', 'velocity (km/day)'});
 
     subplot(224);
-    plot(tvec, run.eddy.vol(:,1));
+    plot(tvec, run.eddy.vol(:,1)./run.eddy.vol(1,1));
     ylabel('Volume / Volume(t=0)');
     xlabel('Time / Turnover Time');
 end
@@ -282,9 +298,13 @@ uistack(hl, 'bottom'); axis tight;
 beautify; pbaspect([1.618 1 1]);
 
 subplot(224);
+ylim([0 1]);
+liney([0.75 0.4 0.3 0.25]);
+ax(3).YTick = sort(unique([ax(3).YTick 0.3  0.75]));
+correct_ticks('y', '%.2f', '0.8');
 beautify; pbaspect([1.618 1 1]);
 image.reset_colors(co);
 
-linkaxes(ax, 'x');
+linkaxes(ax(2:3), 'x');
 export_fig('images/paper1/image-effect.pdf');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
