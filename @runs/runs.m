@@ -1052,9 +1052,10 @@ methods
         if isempty(runs.rhosurf) | ...
                 any(isempty(runs.rhosurf(:,:,tind(1):tind(2))))
             if ~runs.givenFile
-                runs.rhosurf = dc_roms_read_data(runs.dir, 'rho', [], ...
-                                                 {'z' runs.rgrid.N runs.rgrid.N}, ...
-                                                 [], runs.rgrid, 'his', 'single');
+                runs.rhosurf(:,:,tind(1):tind(2)) = ...
+                    dc_roms_read_data(runs.dir, 'rho', [tind], ...
+                                      {'z' runs.rgrid.N runs.rgrid.N}, ...
+                                      [], runs.rgrid, 'his', 'single');
             else
                 runs.rhosurf = single(squeeze(ncread(runs.out_file,'rho',[1 1 runs.rgrid.N ...
                                     1], [Inf Inf 1 Inf])));
@@ -5458,12 +5459,14 @@ methods
         iy = max([runs.spng.sy1:runs.spng.sy2]-1,1);
 
         mask = ((runs.rhosurf(2:end-1,2:end-1,tt) - runs.rbacksurf) < ...
-               runs.eddy.drhothresh(1)); % .* runs.eddy.vormask(:,:,tt);
+                runs.eddy.drhothresh(1)) .* runs.eddy.vormask(:,:,tt);
 
         for ii=1:length(handle)
             try
-                set(handle(ii),'ZData',mask(ix,iy));
+                set(handle(ii),'ZData', ...
+                               double(mask(ix,iy)));
             catch ME
+                disp(ME.message);
             end
         end
     end
