@@ -159,13 +159,13 @@ function [diags, plotx] = print_diag(runArray, name)
         if strcmpi(name, 'dhdt')
             use_traj = 1;
             if use_traj
-                run.fit_traj(1.5);
+                run.fit_traj(1.1);
                 tind = run.traj.tind;
             else
                 [~,~,tind] = run.locate_resistance;
             end
 
-            diags(ff) = (Lz(tind) - Lz(1))./Lz(1);
+            diags(ff) = (mean(Lz(tind)) - Lz(1))./Lz(1);
             plotx(ff) = V(1)./beta./Ls(1).^2;
 
             laby = '\Delta L_z / L_z^0';
@@ -790,8 +790,9 @@ function [diags, plotx] = print_diag(runArray, name)
 
             % add run names
             if name_points
-                text(plotx(ff)-4e-3, diags(ff), ptName, 'FontSize', ...
-                     16, 'Rotation', 0, 'Color', clr);
+                text(plotx(ff), diags(ff), ptName, 'FontSize', ...
+                     10, 'Rotation', 0, 'Color', clr, ...
+                     'VerticalAlignment','Bottom');
             end
             if ff == 1
                 if strfind(labx, '$$')
