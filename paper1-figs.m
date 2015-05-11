@@ -48,7 +48,6 @@ sl = runArray(folders);
 % image effect velocity - sb
 image = runArray({ 'runew-2360-fb', 'runew-2360-20km', ...
                    'runew-2360', 'runew-2360_wider'});
-
 for ii=1:image.len
     sh(ii) = image.array(ii).params.bathy.L_shelf;
     if image.array(ii).params.flags.flat_bottom
@@ -153,7 +152,8 @@ export_fig('-r450', 'images/paper1/yzsection.png');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% EW - center tracks - all,
 fs  = 18;
-ewall.plot_penetration; maximize();
+ewall.plot_penetration(gca,'all');
+maximize();
 ax = gca;
 title([]); pbaspect([1.618 1 1]);
 text(-0.3, 1.5, 'R > L_{sl}', ...
@@ -174,16 +174,16 @@ ns.filter = [];
 
 figure; maximize();
 ax1 = subplot(121);
-ew.plot_penetration(ax1);
+ew.plot_penetration(ax1, 'all');
 subplot(122);
-ns.plot_penetration(gca); drawnow;
+ns.plot_penetration(gca, 'all'); drawnow;
 ax1 = gca; ax1.XTick = unique([ax1.XTick 1])
 export_fig('images/paper1/sl-centrack.pdf');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% bottom friction
 
-bfrics.plot_penetration; maximize();
+bfrics.plot_penetration([],'all'); maximize();
 pbaspect([1.618 1 1]);
 export_fig('images/paper1/bfrics-centrack.pdf');
 
