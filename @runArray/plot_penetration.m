@@ -129,7 +129,7 @@ function [] = plot_penetration(runArray, ax, choices)
         %     'Color', color, 'Markersize', 22);
         if run.bathy.L_slope/run.eddy.vor.dia(1) > 1 && ...
                 mark_fittraj
-            run.fit_traj(1.10);
+            run.fit_traj();
             plot(x(run.traj.tind), y(run.traj.tind), 'x', ...
                  'Color', color, 'Markersize', 16);
         end

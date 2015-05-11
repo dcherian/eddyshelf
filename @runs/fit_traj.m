@@ -4,7 +4,7 @@ function [] = fit_traj(runs, tcrit)
 
     debug = 0;
 
-    if ~exist('tcrit', 'var'), tcrit = 1; end
+    if ~exist('tcrit', 'var'), tcrit = 1.1; end
 
     tvec = runs.ndtime;
     % get unique timesteps

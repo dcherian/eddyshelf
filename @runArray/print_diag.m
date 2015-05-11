@@ -333,14 +333,14 @@ function [diags, plotx] = print_diag(runArray, name)
 
             tanhfitflag = 1;
             if tanhfitflag %|| run.params.eddy.tamp < 0
-                tcrit = 1.10;
-                run.fit_traj(tcrit);
+                run.fit_traj()
 
                 tind = run.traj.tind;
                 H = run.eddy.hcen(tind); %run.traj.H;
                 Y = run.eddy.my(tind); %run.traj.Y;
 
-                titlestr = ['tanh(t/T) at t = ' num2str(tcrit) 'T'];
+                titlestr = ['tanh(t/T) at t = ' ...
+                            num2str(runs.traj.tcrit) 'T'];
             else
                 nsmooth = 6;
                 factor = 1/3;
