@@ -1005,8 +1005,6 @@ if flags.eddy
         %S.zeta = S.zeta + phys.TCOEF*eddy.tamp * int_Tz .* eddy.xyprof;
         eddy.zeta = phys.TCOEF * trapz(eddy.z, ...
                  bsxfun(@minus,eddy.temp,eddy.temp(eddy.ix,eddy.iy,:)),3);
-        S.zeta = S.zeta + eddy.zeta;
-        S.zeta = S.zeta - min(S.zeta(:));
 
         % Calculate azimuthal velocity shear (r d(theta)/dt)_z using geostrophic balance
         if flags.solidbody_katsman
@@ -1032,23 +1030,21 @@ if flags.eddy
                          dTdr./phys.f0);
         else
             % add contribution to SSH
-            sgn = sign(eddy.tamp) * -1;
-            zetabt = (-phys.f0/phys.g) * sgn * eddy.Usurf * ...
-                     eddy.xyprof;
-            S.zeta = S.zeta + zetabt;
+            sgn = sign(eddy.tamp);
+            eddy.zeta = (phys.f0/phys.g) * sgn * eddy.Usurf * ...
+                eddy.xyprof * r0;
 
             % -1 because I want ∫ from z to 0.
             % when flipped, I integrate from 0 to z.
             rut = -1* eddy.tamp * (phys.TCOEF * phys.g) .* ...
                   flip(bsxfun(@times, cumsum(flip(eddy.tz,3) .* ...
-                                            flip(diff(zwmat,1,3),3), 3), ...
+                                             flip(diff(zwmat,1,3),3), 3), ...
                               dTdr./phys.f0), 3);
 
-            Ru = dTdr./min(dTdr(:));
             % make surface intensified eddy
             %rutprof = (abs(rut)>1e-4);
             %rut = rut - min(rut(:)).*rutprof;
-            rut = bsxfun(@plus, rut, -1*eddy.Usurf*Ru);
+            rut = bsxfun(@plus, rut, eddy.Usurf*dTdr * r0);
 
             figure; hold on;
             dyr = floor(eddy.dia/2/grid.dy0);
@@ -1094,6 +1090,31 @@ if flags.eddy
         eddy.u = -1 * bsxfun(@times,rut, sin(th));
         eddy.v =      bsxfun(@times,rut, cos(th));
 
+        if flags.integrate_from_top
+            % calculate diagnostics
+            [U,V] = uv_barotropic(avg1(eddy.u,1), ...
+                                  avg1(eddy.v,2),Hz);
+            byu = avg1(f - phys.f0, 1) .* U .* avg1(bathy.h,1); % βyu
+            AM = trapz(xumat(:,1,1), ...
+                       trapz(yumat(1,:,1) , byu, 2), 1);
+
+            eddy.rho = phys.R0*(1 - phys.TCOEF * (eddy.temp-phys.T0));
+            irhoanom = flipdim(cumsum(flipdim( ...
+                (eddy.rho - phys.rho0) .* diff(zwmat,1,3), ...
+                3),3),3);
+            pres = phys.g./phys.rho0 .*(bsxfun(@plus, phys.rho0 .* ...
+                                               permute(eddy.zeta, [1 2 4 3]), ...
+                                               irhoanom));
+            pbot = bsxfun(@minus, pres(:,:,1), pres(1,:,1));
+            btrq = trapz(xrmat(:,1,1), trapz(yrmat(1,:,1), ...
+                                             pbot, 2),1) ...
+                   .* bathy.sl_slope;
+
+            disp(['AM/btrq = ' num2str(AM/btrq, '%3e')]);
+            pause;
+            clear pres byu
+        end
+
         % test hassanzadeh et al. (2011)
         range = eddy.ix-10:eddy.ix+15; %eddy.ix-18:eddy.ix+18;
         vt = rut(range, eddy.iy, end)';
@@ -1107,17 +1128,12 @@ if flags.eddy
         %subplot(212);
         %plot(ri/1000, fn);
 
-        %-mvt .* (phys.f0 + mvt./L) .* L
-        %trapz(ri, fn)
-
-        % check angular momentum integral
-%         % if zero, eddy is isolated
-%         L = R0*(1 - phys.TCOEF * eddy.temp) .* ...
-%             (bsxfun(@times,eddy.v,(S.x_rho - eddy.cx)) - ...
-%              bsxfun(@times,eddy.u,(S.y_rho - eddy.cy)));
-
+        % add velocity
         S.u = S.u + avg1(eddy.u,1);
         S.v = S.v + avg1(eddy.v,2);
+
+        % add Free surface
+        S.zeta = S.zeta + eddy.zeta;
 
         % calculate surface vorticity
         vor = avg1(diff(eddy.v(:,:,end),1,1)./diff(xrmat(:,:,end),1,1), 2) - ...
@@ -1325,8 +1341,8 @@ if flags.eddy
     fprintf(['\n Based on Early et al. (2011) : \n ' ...
             'Vr = %.3f m/s, Estimated (zonal, meridional) speed = (%.3f, %.3f) m/s\n'], ...
             Vr, Vest_zon, Vest_mer);
-    if Vest_zon > 0, error('Estimated zonal velocity is EASTWARD'); ...
-            end
+    %    if Vest_zon > 0, error('Estimated zonal velocity is EASTWARD'); ...
+    %        end
     %%
 
     % clear variables to save space
@@ -1414,6 +1430,8 @@ if flags.ubt_initial == 1
             end
         end
 end
+
+S.zeta = S.zeta - min(S.zeta(:));
 
 % write eddy params now (late) because eddy.nl might be calculated
 % in this cell
