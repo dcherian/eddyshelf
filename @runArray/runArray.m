@@ -420,15 +420,10 @@ classdef runArray < handle
                 name = runArray.name{ii};
                 ndtime = run.eddy.t*86400 / run.eddy.turnover;
 
-                cvy = [0 diff(run.eddy.vor.cy)./diff(run.eddy.t*86400)];
+                run.fit_traj();
+                vel = smooth(run.eddy.mvy, 20);
 
-                %delta = run.eddy.Lgauss./(run.eddy.hcen-run.eddy.Lgauss);
-                %figure; hold all;
-                tind = run.traj.tind;
-                plot(ndtime, smooth(cvy, 12), '-', 'Color', [1 1 1]*0.65);
-                plot(ndtime(tind), cvy(tind), 'k*');
-                %liney(-1 * delta(1) * run.eddy.V(1)/4);
-
+                plot(ff, vel(run.traj.tind)./max(abs(vel(:))), 'x');
             end
 
             %runArray.reset_colors(corder_backup);
