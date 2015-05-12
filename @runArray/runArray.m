@@ -475,10 +475,11 @@ classdef runArray < handle
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
                 if ~isfield(run.eddy, 'KE'), continue; end
-                run.fit_traj();
+                %run.fit_traj();
+                run.traj = [];
 
                 names{kk} = runArray.getname(ii);
-                tind = run.traj.tind;
+                [~,~,tind] = run.locate_resistance();
                 tvec = run.time/run.eddy.turnover;
 
                 subplot(121)

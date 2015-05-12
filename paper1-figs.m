@@ -191,7 +191,7 @@ export_fig('images/paper1/bfrics-centrack.pdf');
 %% parameterization
 sl.print_diag('bottom torque');
 title([]); pause(1);
-export_fig('images/paper1/penetration-erf-param.pdf');
+export_fig('images/paper1/penetration-res-param.pdf');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% energy decay

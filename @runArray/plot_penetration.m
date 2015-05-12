@@ -3,24 +3,26 @@ function [] = plot_penetration(runArray, ax, choices)
 
     if ~exist('choices', 'var'), choices = []; end
     cmd_list = {'mark_timestamp', 'mark_slopebreak', 'mark_fittraj', ...
-               'all','dt'};
+               'mark_resistance', 'all','dt'};
 
     [flag, ~] = parse_commands(cmd_list, choices);
     mark_timestamp = flag(1);
     mark_slopebreak = flag(2);
     mark_fittraj = flag(3);
+    mark_resistance = flag(4);
 
-    if flag(4)
+    if flag(5)
         mark_timestamp = 1;
         mark_slopebreak = 1;
         mark_fittraj = 1;
+        mark_resistance = 1;
     end
 
     % dt for mark_timestamp
-    if flag(5) == 0
+    if flag(6) == 0
         dt = 100; % default
     else
-        dt = flag(5);
+        dt = flag(6);
     end
 
     % shelfbreak label options
@@ -124,9 +126,12 @@ function [] = plot_penetration(runArray, ax, choices)
         names{ff} = name;
 
         % mark start of resistance
-        %[~,~,tind] = run.locate_resistance;
-        %plot(x(tind), y(tind), '.', ...
-        %     'Color', color, 'Markersize', 22);
+        if mark_resistance
+            [~,~,tind] = run.locate_resistance;
+            plot(x(tind), y(tind), '.', ...
+                 'Color', color, 'Markersize', 22);
+        end
+
         if run.bathy.L_slope/run.eddy.vor.dia(1) > 1 && ...
                 mark_fittraj
             run.fit_traj();
