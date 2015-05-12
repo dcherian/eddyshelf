@@ -1033,17 +1033,22 @@ if flags.eddy
         else
             % add contribution to SSH
             sgn = sign(eddy.tamp) * -1;
-            zetabt = (-phys.f0/phys.g) * sgn * eddy.Usurf * eddy.xyprof;
+            zetabt = (-phys.f0/phys.g) * sgn * eddy.Usurf * ...
+                     eddy.xyprof;
+            S.zeta = S.zeta + zetabt;
 
-            rut = eddy.tamp * (phys.TCOEF * phys.g) .* ...
+            % -1 because I want ∫ from z to 0.
+            % when flipped, I integrate from 0 to z.
+            rut = -1* eddy.tamp * (phys.TCOEF * phys.g) .* ...
                   flip(bsxfun(@times, cumsum(flip(eddy.tz,3) .* ...
                                             flip(diff(zwmat,1,3),3), 3), ...
                               dTdr./phys.f0), 3);
 
+            Ru = dTdr./min(dTdr(:));
             % make surface intensified eddy
             %rutprof = (abs(rut)>1e-4);
             %rut = rut - min(rut(:)).*rutprof;
-            rut = bsxfun(@plus, rut, eddy.Usurf);
+            rut = bsxfun(@plus, rut, -1*eddy.Usurf*Ru);
 
             figure; hold on;
             dyr = floor(eddy.dia/2/grid.dy0);
@@ -1064,9 +1069,8 @@ if flags.eddy
                      squeeze(rut(xedd,:,:)),20, 'EdgeColor', ...
                      'None');
             center_colorbar;
-
         end
-        stop;
+
         % solve quadratic for vel. if gradient wind balance
         vgeo = rut;
         if flags.use_gradient
