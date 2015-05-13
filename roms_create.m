@@ -1110,7 +1110,16 @@ if flags.eddy
                                              pbot, 2),1) ...
                    .* bathy.sl_slope;
 
-            disp(['AM/btrq = ' num2str(AM/btrq, '%3e')]);
+            beta_t = phys.f0/bathy.h(eddy.ix,eddy.iy) .* ...
+                     bathy.sl_slope;
+            Us = max(max(abs(eddy.u(:,:,end))))
+            Ub = max(max(abs(eddy.u(:,:,1))))
+            Lx = eddy.dia/2;
+            eddy.AMtoBtrq = AM/btrq;
+            disp(['AM/btrq = ' num2str(eddy.AMtoBtrq, '%3e')]);
+            disp(['critical beta = ' num2str(btrq*phys.beta./AM)]);
+            disp(['Rh_surf = ' num2str(Us/phys.beta/Lx^2, '%.2f') ...
+                  ' | Rh_bot = ' num2str(Ub/beta_t/Lx^2, '%.2f')]);
             pause;
             clear pres byu
         end
