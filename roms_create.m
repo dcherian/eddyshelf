@@ -1042,8 +1042,6 @@ if flags.eddy
                               dTdr./phys.f0), 3);
 
             % make surface intensified eddy
-            %rutprof = (abs(rut)>1e-4);
-            %rut = rut - min(rut(:)).*rutprof;
             rut = bsxfun(@plus, rut, eddy.Usurf*dTdr * r0);
 
             figure; hold on;
@@ -1094,21 +1092,17 @@ if flags.eddy
             % calculate diagnostics
             [U,V] = uv_barotropic(avg1(eddy.u,1), ...
                                   avg1(eddy.v,2),Hz);
-            byu = avg1(f - phys.f0, 1) .* U .* avg1(bathy.h,1); % βyu
+            fu = avg1(f-phys.f0, 1) .* U .* avg1(bathy.h,1); % βyu
             AM = trapz(xumat(:,1,1), ...
-                       trapz(yumat(1,:,1) , byu, 2), 1);
+                       trapz(yumat(1,:,1) , fu, 2), 1);
 
-            eddy.rho = phys.R0*(1 - phys.TCOEF * (eddy.temp-phys.T0));
-            irhoanom = flipdim(cumsum(flipdim( ...
-                (eddy.rho - phys.rho0) .* diff(zwmat,1,3), ...
-                3),3),3);
-            pres = phys.g./phys.rho0 .*(bsxfun(@plus, phys.rho0 .* ...
-                                               permute(eddy.zeta, [1 2 4 3]), ...
-                                               irhoanom));
-            pbot = bsxfun(@minus, pres(:,:,1), pres(1,:,1));
-            btrq = trapz(xrmat(:,1,1), trapz(yrmat(1,:,1), ...
-                                             pbot, 2),1) ...
-                   .* bathy.sl_slope;
+            slbot = diff(bathy.h,1,2)./diff(yrmat(:,:,1),1,2);
+            eddy.rho = phys.R0*(- phys.TCOEF * eddy.temp);
+            irhoanom = sum(eddy.rho .* diff(zwmat,1,3), 3);
+            pbot = phys.g .* (eddy.zeta + 1./phys.rho0 * irhoanom);
+            btrq = trapz(xrmat(:,1,1), ...
+                         trapz(avg1(yrmat(1,:,1)), ...
+                               avg1(pbot,2) .* slbot, 2),1);
 
             beta_t = phys.f0/bathy.h(eddy.ix,eddy.iy) .* ...
                      bathy.sl_slope;
@@ -1117,9 +1111,9 @@ if flags.eddy
             Lx = eddy.dia/2;
             eddy.AMtoBtrq = AM/btrq;
             disp(['AM/btrq = ' num2str(eddy.AMtoBtrq, '%3e')]);
-            disp(['critical beta = ' num2str(btrq*phys.beta./AM)]);
             disp(['Rh_surf = ' num2str(Us/phys.beta/Lx^2, '%.2f') ...
                   ' | Rh_bot = ' num2str(Ub/beta_t/Lx^2, '%.2f')]);
+
             pause;
             clear pres byu
         end
