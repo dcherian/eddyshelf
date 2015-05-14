@@ -959,7 +959,7 @@ if flags.eddy
             eddy.xyprof = exp( -1 * exponent );
         end
     end
-    eddy.xyprof = eddy.xyprof./max(eddy.xyprof(:));
+    eddy.xyprof = eddy.xyprof./max(eddy.xyprof(:)); % not much difference
 
     % use half-Gaussian profile & normalize
     if flags.vprof_gaussian
@@ -975,15 +975,9 @@ if flags.eddy
             eddy.depth = Z/2;
         end
     end
-    %eddy.zprof = eddy.zprof./trapz(eddy.z,eddy.zprof);
 
     % add eddy temperature perturbation
-    if ~flags.integrate_from_top
-        eddy.tz = repmat(permute(eddy.zprof,[3 2 1]),[S.Lm+2 S.Mm+2 ...
-                            1]);
-    else
-        eddy.tz = exp(-(zrmat./eddy.depth).^2);
-    end
+    eddy.tz = exp(-(zrmat./eddy.depth).^2);
     eddy.temp = eddy.tamp * bsxfun(@times,eddy.xyprof,eddy.tz);
     if ~isnan(eddy.temp)
         S.temp = S.temp + eddy.temp;
