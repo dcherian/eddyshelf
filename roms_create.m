@@ -1028,6 +1028,14 @@ if flags.eddy
             eddy.zeta = (phys.f0/phys.g) * sgn * eddy.Usurf * ...
                 eddy.xyprof * r0;
 
+            % change vertical profile from pure Gaussian to account
+            % for slope
+            eddy.tz = repmat(permute(eddy.zprof,[3 2 1]),[S.Lm+2 S.Mm+2 ...
+                                1]);
+            itz = eddy.depth*sqrt(pi)*erf(bathy.h/eddy.depth)/2;
+            eddy.tz = bsxfun(@times, eddy.tz, ...
+                             itz./itz(eddy.ix,eddy.iy));
+
             % -1 because I want ∫ from z to 0.
             % when flipped, I integrate from 0 to z.
             rut = -1* eddy.tamp * (phys.TCOEF * phys.g) .* ...
@@ -1040,6 +1048,8 @@ if flags.eddy
 
             figure; hold on;
             dyr = floor(eddy.dia/2/grid.dy0);
+            iyp = eddy.iy + dyr;
+            iym = eddy.iy - dyr;
             plot(squeeze(rut(eddy.ix,eddy.iy+dyr,:)), ...
                  squeeze(zrmat(eddy.ix,eddy.iy+dyr,:)));
             plot(squeeze(rut(eddy.ix,eddy.iy-dyr,:)), ...
@@ -1085,8 +1095,19 @@ if flags.eddy
         if flags.integrate_from_top
             % calculate diagnostics
             [U,V] = uv_barotropic(avg1(eddy.u,1), ...
-                                  avg1(eddy.v,2),Hz);
-            fu = avg1(f-phys.f0, 1) .* U .* avg1(bathy.h,1); % βyu
+                                  avg1(eddy.v,2), Hz);
+            fu = avg1(phys.f0, 1) .* U .* avg1(bathy.h,1); % βyu
+
+            trapz(xumat(:,1,1), ...
+                  trapz(yumat(1,:,1), U .* avg1(bathy.h,1),2),1)
+            %            trapz(xvmat(:,1,1), ...
+            %      trapz(yvmat(1,:,1), V .* avg1(bathy.h,2),2),1)
+
+            % trapz(squeeze(zumat(eddy.ix,iyp,:)), ...
+            %       squeeze(eddy.u(eddy.ix,iyp,:)))
+            % trapz(squeeze(zumat(eddy.ix,iym,:)), ...
+            %       squeeze(eddy.u(eddy.ix,iym,:)))
+
             AM = trapz(xumat(:,1,1), ...
                        trapz(yumat(1,:,1) , fu, 2), 1);
 
