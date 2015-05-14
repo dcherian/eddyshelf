@@ -1025,9 +1025,11 @@ if flags.eddy
         else
             % add contribution to SSH
             sgn = sign(eddy.tamp);
+
+            mask = eddy.xyprof > 1e-2;
             hnorm = bathy.h ./ bathy.h(eddy.ix,eddy.iy);
             eddy.zeta = (phys.f0/phys.g) * sgn * eddy.Usurf * ...
-                eddy.xyprof./hnorm * r0;
+                eddy.xyprof./hnorm * r0 .* mask;
 
             % change vertical profile from pure Gaussian to account
             % for slope
@@ -1035,8 +1037,9 @@ if flags.eddy
                                 1]);
             norm = sum(cumsum(eddy.tz .* diff(zwmat,1,3),3) ...
                        .* diff(zwmat,1,3), 3);
-            eddy.tz = bsxfun(@rdivide, eddy.tz, ...
-                             norm./norm(eddy.ix,eddy.iy));
+            eddy.tz = bsxfun(@times, mask, ...
+                             bsxfun(@rdivide, eddy.tz, ...
+                                    norm./norm(eddy.ix,eddy.iy)));
 
             % -1 because I want ∫ from z to 0.
             % when flipped, I integrate from 0 to z.
@@ -1046,7 +1049,8 @@ if flags.eddy
                               dTdr./phys.f0), 3);
 
             % make surface intensified eddy
-            rut = bsxfun(@plus, rut, eddy.Usurf*dTdr./hnorm * r0);
+            rut = bsxfun(@plus, rut, eddy.Usurf*dTdr./hnorm * r0 .* ...
+                         mask);
 
             figure; hold on;
             dyr = floor(eddy.dia/2/grid.dy0);
