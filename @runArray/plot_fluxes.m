@@ -76,7 +76,7 @@ function [] = plot_fluxes(runArray)
                    run.bathy.hsb;
             bc = baroclinicity(zvec, profile);
             hgplt2(ff) = plot(profile, zvec);
-            names2{ff} =  [name ' | bc = ' num2str(bc,'%.3f')];
+            names2{ff} =  [names{ff} ' | bc = ' num2str(bc,'%.3f')];
         catch ME
             disp(ME)
         end

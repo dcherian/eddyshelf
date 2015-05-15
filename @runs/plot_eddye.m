@@ -20,7 +20,7 @@ function [] = plot_eddye(runs, days)
     %hf1 = figure; maximize();% - eddye
     hf2 = figure; maximize();% - rho
     %hf3 = figure; maximize();% - zdye
-    %hf4 = figure; maximize();% - u
+    hf4 = figure; maximize();% - u
     %hf5 = figure; maximize();% - v
     %zdback = double(squeeze(ncread(runs.out_file, runs.zdname, ...
     %                               [1 1 1 1], [1 Inf Inf
@@ -154,13 +154,13 @@ function [] = plot_eddye(runs, days)
             end
             shading flat;
             hold all
-            contour(yz/1000, zmat, ed, 1, 'k', ...
-                    'LineWidth', 2);
-            contour(yz, zmat, drho, ...
-                    [runs.eddy.drhothresh(1) runs.eddy.drhothreshssh(1)], ...
-                    'Color', [1 1 1]*0.3, 'LineWidth', 2);
+            % contour(yz/1000, zmat, ed, 1, 'r', ...
+            %         'LineWidth', 2);
+            % contour(yz/1000, zmat, drho, ...
+            %         [runs.eddy.drhothresh(1) runs.eddy.drhothreshssh(1)], ...
+            %         'Color', [1 1 1]*0.3, 'LineWidth', 2);
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
-            colorbar;
+            colorbar; center_colorbar;
             caxis( [-1 1] * max(abs(u(:))));
             title(['day' num2str(days(ii))]);
             xlabel([upper(runs.bathy.axis) '(km)']);
@@ -171,7 +171,6 @@ function [] = plot_eddye(runs, days)
                 plot(pb.yvec/1000, z0 + 100*pbvec)
                 liney(z0, 'pbot anom = 0','k');
             end
-
         end
 
         if exist('hf5', 'var')
@@ -186,10 +185,10 @@ function [] = plot_eddye(runs, days)
             end
             shading flat;
             hold on
-            contour(yz/1000, zmat, ed, 1, 'k', ...
+            contour(yz/1000, zmat, ed, 1, 'r', ...
                     'LineWidth', 2);
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
-            colorbar;
+            colorbar; center_colorbar;
             xlabel([upper(runs.bathy.axis) '(km)']);
             caxis( [-1 1] * max(abs(v(:))));
             title(['day' num2str(days(ii))]);
