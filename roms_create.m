@@ -1052,27 +1052,32 @@ if flags.eddy
             rut = bsxfun(@plus, rut, eddy.Usurf*dTdr./hnorm * r0 .* ...
                          mask);
 
-            figure; hold on;
             dyr = floor(eddy.dia/2/grid.dy0);
             iyp = eddy.iy + dyr;
             iym = eddy.iy - dyr;
-            plot(squeeze(rut(eddy.ix,eddy.iy+dyr,:)), ...
-                 squeeze(zrmat(eddy.ix,eddy.iy+dyr,:)));
-            plot(squeeze(rut(eddy.ix,eddy.iy-dyr,:)), ...
-                 squeeze(zrmat(eddy.ix,eddy.iy-dyr,:)));
 
-            figure;
-            xedd = eddy.ix;
-            subplot(121);
-            contourf(squeeze(yrmat(xedd,:,:))/fy, ...
-                     squeeze(zrmat(xedd,:,:)), ...
-                     squeeze(S.temp(xedd,:,:)),20, 'EdgeColor', 'None');
-            subplot(122);
-            contourf(squeeze(yrmat(xedd,:,:))/fy, ...
-                     squeeze(zrmat(xedd,:,:)), ...
-                     squeeze(rut(xedd,:,:)),20, 'EdgeColor', ...
-                     'None');
-            center_colorbar;
+            % figure;
+            % RU = sum(rut .* diff(zwmat,1,3), 3);
+            % pcolorcen(RU'); center_colorbar;
+
+            % figure; hold on;
+            % plot(squeeze(rut(eddy.ix,eddy.iy+dyr,:)), ...
+            %      squeeze(zrmat(eddy.ix,eddy.iy+dyr,:)));
+            % plot(squeeze(rut(eddy.ix,eddy.iy-dyr,:)), ...
+            %      squeeze(zrmat(eddy.ix,eddy.iy-dyr,:)));
+
+            % figure;
+            % xedd = eddy.ix;
+            % subplot(121);
+            % contourf(squeeze(yrmat(xedd,:,:))/fy, ...
+            %          squeeze(zrmat(xedd,:,:)), ...
+            %          squeeze(S.temp(xedd,:,:)),20, 'EdgeColor', 'None');
+            % subplot(122);
+            % contourf(squeeze(yrmat(xedd,:,:))/fy, ...
+            %          squeeze(zrmat(xedd,:,:)), ...
+            %          squeeze(rut(xedd,:,:)),20, 'EdgeColor', ...
+            %          'None');
+            % center_colorbar;
         end
 
         % solve quadratic for vel. if gradient wind balance
@@ -1105,10 +1110,14 @@ if flags.eddy
             U = U .* avg1(bathy.h,1);
             V = V .* avg1(bathy.h,2);
 
-            fu = avg1(phys.f0, 1) .* U;
+            fu = avg1(f-phys.f0, 1) .* U;
 
-            trapz(xumat(:,1,1), ...
-                  trapz(yumat(1,:,1), U, 2),1)
+            Uneg = trapz(xumat(:,1,1), ...
+                         trapz(yumat(1,:,1), U .* (U<0), 2),1);
+            Upos = trapz(xumat(:,1,1), ...
+                         trapz(yumat(1,:,1), U .* (U>0), 2),1);
+            (Upos-abs(Uneg))./Uneg * 100
+
             trapz(xvmat(:,1,1), ...
                   trapz(yvmat(1,:,1), V, 2),1)
 
