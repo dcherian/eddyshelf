@@ -39,7 +39,8 @@ function [xx,yy,tind] = locate_resistance(runs, nsmooth, factor)
     % but limit search to first 'n' turnover time scales
 
     it = find_approx(ndtime, 60);
-    [mn, imin] = min(vel(5:it));
+    %[mn, imin] = min(vel(5:it));
+    [mn, imin] = min(vel(:));
 
     vv = vel(imin:end) - mn * factor;
     tind = find(vv > 0, 1, 'first');
