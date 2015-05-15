@@ -33,21 +33,22 @@ function [] = plot_fluxes(runArray)
 
         tind = find_approx(run.ndtime, 1.5, 1);
         Ue = run.eddy.V(tind);
-        He = run.bathy.hsb; %run.eddy.Lgauss(tind);
+        He = run.bathy.hsb;
         Le = run.eddy.vor.dia(tind)/2;
 
         fluxscl = 1e6;Ue * Le * He;
         transscl = 1;fluxscl * (2*Le/Ue);
 
+        ndtime = run.ndtime; %run.csflux.time/run.tscale
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SHELF WATER
         figure(hfig1)
         subplot(2,1,1)
-        hgplt1(ff) = plot(run.csflux.time(1:end-2)/run.tscale, ...
+        hgplt1(ff) = plot(ndtime(1:end-2), ...
                      smooth((run.csflux.west.shelf(1:end-2, ...
                                                    1))/fluxscl, 3));
 
         subplot(2,1,2)
-        plot(run.csflux.time/run.tscale, ...
+        plot(ndtime, ...
              run.csflux.west.itrans.shelf(:,1)/transscl);
 
         % total transport
@@ -89,18 +90,18 @@ function [] = plot_fluxes(runArray)
         metric = run.bathy.h(1,ind)./run.bathy.hsb .* ...
                  (1+run.rgrid.f(run.bathy.isb,1)./run.rgrid.f(ind,1))';
 
-        hgplt3(ff) = plot(run.csflux.time/run.tscale, ...
-                     (run.bathy.xsb - env)./run.rrshelf);
+        hgplt3(ff) = plot(ndtime, ...
+                          (run.bathy.xsb - env)./run.rrshelf);
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EDDY WATER
         figure(hfig4)
         subplot(2,1,1)
-        hgplt4(ff) = plot(run.csflux.time(1:end-2)/run.tscale, ...
+        hgplt4(ff) = plot(ndtime(1:end-2), ...
                      smooth((run.csflux.east.eddy(1:end-2, ...
                                                   1))/fluxscl, 3));
 
         subplot(2,1,2)
-        plot(run.csflux.time/run.tscale, ...
+        plot(ndtime, ...
              run.csflux.east.itrans.eddy(:,1)/transscl);
     end
 
