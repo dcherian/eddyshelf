@@ -1,6 +1,11 @@
 % diagnostic plots to show how much eddy penetrates slope
 function [] = plot_penetration(runArray, ax, choices)
 
+    if ischar(ax)
+        choices = ax;
+        ax = [];
+    end
+
     if ~exist('choices', 'var'), choices = []; end
     cmd_list = {'mark_timestamp', 'mark_slopebreak', 'mark_fittraj', ...
                'mark_resistance', 'all','dt'};
@@ -14,7 +19,7 @@ function [] = plot_penetration(runArray, ax, choices)
     if flag(5)
         mark_timestamp = 1;
         mark_slopebreak = 1;
-        mark_fittraj = 1;
+        mark_fittraj = 0;
         mark_resistance = 1;
     end
 
@@ -34,7 +39,7 @@ function [] = plot_penetration(runArray, ax, choices)
     hfig1 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2);
                 %hold all; insertAnnotation('runArray.plot_penetration');
 
-    if ~exist('ax', 'var')
+    if ~exist('ax', 'var') || isempty(ax)
         hfig2 = figure;ax1 = gca; hold all; %subplot(2,2,[1 3]); hold all;
     else
         hfig2 = gcf;
@@ -128,7 +133,7 @@ function [] = plot_penetration(runArray, ax, choices)
         % mark start of resistance
         if mark_resistance
             [~,~,tind] = run.locate_resistance;
-            plot(x(tind), y(tind), '.', ...
+            plot(x(tind), y(tind), 'x', ...
                  'Color', color, 'Markersize', 22);
         end
 
@@ -141,7 +146,7 @@ function [] = plot_penetration(runArray, ax, choices)
 
         % mark timestamps
         if mark_timestamp
-            plot(x(tinds), y(tinds), '.', 'Color', 'k', 'MarkerSize', ...
+            plot(x(tinds), y(tinds), '.', 'Color', color, 'MarkerSize', ...
                  26);
             %text(x(tinds), y(tinds), ...
             %     cellstr(num2str(ndtime(tinds)', 2)));
