@@ -11,7 +11,7 @@ function [] = csfluxes(runs, ftype)
     if ~exist('ftype', 'var') || isempty(ftype), ftype = 'his'; end
 
     % calculate energy fluxes?
-    do_energy = 1;
+    do_energy = 0;
 
     % do PV fluxes?
     dopv = 0;
@@ -26,33 +26,34 @@ function [] = csfluxes(runs, ftype)
     revind = runs.eddy.trevind;
 
     % quantities for area-averaging if needed
-    Las = max(runs.rgrid.x_rho(:));
-    %Lcs = runs.bathy.xsb;
     h = runs.bathy.h(2:end-1,2:end-1);
-
-    % find sponge edges
-    sz = size(runs.sponge);
-    sy2 = find(runs.sponge(sz(1)/2, :) == 1, 1, 'first') - 1;
 
     % sort out isobaths across which to calculate transports
     Y = max(runs.rgrid.y_rho(:));
-    loc = [runs.bathy.xsb runs.bathy.xsl Y/2]; %linspace(runs.bathy.xsb, runs.bathy.xsl, 4);
+    loc = [runs.bathy.xsb runs.bathy.xsl]; %linspace(runs.bathy.xsb, runs.bathy.xsl, 4);
     if runs.params.bathy.axis == 'x'
         csvelid = 'u';
         asvelid = 'v';
         bathyax = 1;
         indices = vecfind(runs.eddy.xr(:,1),loc);
+
+        % append sponge edge to existing values
+        sy2 = runs.spng.sx2;
+        indices = [indices sy2];
+        loc = [loc runs.eddy.xr(sy2, 1)];
     else
         csvelid = 'v';
         asvelid = 'u';
         bathyax = 2;
         indices = vecfind(runs.eddy.yr(1,:),loc);
-        %runs.rgrid.y_rho(vecfind(runs.bathy.h(1,:),[250 1000]),1)']);
+
+        % append sponge edge to existing values
+        sy2 = runs.spng.sy2;
+        indices = [indices sy2];
+        loc = [loc runs.eddy.yr(1, sy2)];
     end
 
-    % append sponge edge to existing values
-    indices = [indices sy2];
-    loc = [loc runs.eddy.yr(1, sy2)];
+    sz = size(runs.sponge);
 
     % save locations
     runs.csflux.x = loc;
