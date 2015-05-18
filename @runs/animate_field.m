@@ -143,6 +143,11 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
             runs.eddsurf(:,:,tind) .* (runs.edcsdyesurf(:,:,tind) == 0);
     end
 
+    if strcmpi(name, 'u')
+        varname = 'usurf';
+        runs.read_velsurf(t0, ntimes);
+    end
+
     %%%% actually plot
     if isempty(hax)
         figure;
