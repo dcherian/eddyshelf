@@ -157,7 +157,7 @@ function [diags, plotx] = print_diag(runArray, name)
 
         %%%%% energy loss - as vertical scale
         if strcmpi(name, 'dhdt')
-            use_traj = 1;
+            use_traj = 0;
             if use_traj
                 run.fit_traj(1.1);
                 tind = run.traj.tind;
@@ -165,8 +165,13 @@ function [diags, plotx] = print_diag(runArray, name)
                 [~,~,tind] = run.locate_resistance;
             end
 
-            diags(ff) = (mean(Lz(tind)) - Lz(1))./Lz(1);
+            diags(ff) = (Lz(tind)-Lz(1))./Lz(1);
             plotx(ff) = V(1)./beta./Ls(1).^2;
+
+            if plotx(ff) > 25
+                plotx(ff) = NaN;
+                diags(ff) = NaN;
+            end
 
             laby = '\Delta L_z / L_z^0';
             labx = 'U/\beta L_s^2';
@@ -193,7 +198,11 @@ function [diags, plotx] = print_diag(runArray, name)
         %%%%% energy loss
         if strcmpi(name, 'dEdt')
             [~,~,tind] = run.locate_resistance;
-            PE = abs(run.eddy.PE(1:tind,1));
+            try
+                PE = abs(run.eddy.PE(1:tind,1));
+            catch ME
+                run.eddy_bulkproperties;
+            end
             KE = run.eddy.KE(1:tind,1);
 
             tvec = ndtime(1:tind)';
