@@ -405,7 +405,27 @@ classdef runArray < handle
 
         function [] = plot_test2(runArray)
 
-        figure; hold all
+            corder_backup = runArray.sorted_colors;
+
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            hf = figure; hold all
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
+                run = runArray.array(ii);
+                name = runArray.name{ii};
+                ndtime = run.eddy.t*86400 / run.eddy.turnover;
+
+                [~,~,tind] = run.locate_resistance;
+            end
+
+            runArray.reset_colors(corder_backup);
+
+        end
+
+        function [] = check_fittraj(runArray)
 
             %corder_backup = runArray.sorted_colors;
 
@@ -420,10 +440,15 @@ classdef runArray < handle
                 name = runArray.name{ii};
                 ndtime = run.eddy.t*86400 / run.eddy.turnover;
 
-                run.fit_traj();
-                vel = smooth(run.eddy.mvy, 20);
+                [~,~,tind] = run.locate_resistance;
+                %run.fit_traj();
+                %vel = smooth(run.eddy.mvy, 20);
 
-                plot(ff, vel(run.traj.tind)./max(abs(vel(:))), 'x');
+                %plot(ff, vel(run.traj.tind)./max(abs(vel(:))),
+                %'x');
+
+                plot(ff, run.eddy.Lgauss(tind)./run.eddy.Lgauss(1), ...
+                     'kx');
             end
 
             %runArray.reset_colors(corder_backup);
@@ -436,19 +461,23 @@ classdef runArray < handle
 
             corder_backup = runArray.sorted_colors;
 
-            %figure; hold all;
+            figure; hold all;
             %insertAnnotation('runArray.plot_test3');
 
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
                 names{ff} = runArray.getname(ii);
-                run.fit_traj;
-                tind = run.traj.tind;
+                %run.fit_traj;
+                %tind = run.traj.tind;
+                [~,~,tind] = run.locate_resistance(10,1/2);
                 tvec = run.time/run.eddy.turnover;
 
-                run.animate_field('eddye', [], tind, 1);
-                title(names{ff});
+                %run.animate_field('eddye', [], tind, 1);
+                %title(names{ff});
+
+                plot(tvec, run.eddy.Lgauss);
+                plot(tvec(tind), run.eddy.Lgauss(tind), 'kx');
             end
             %legend(hplt, names);
 

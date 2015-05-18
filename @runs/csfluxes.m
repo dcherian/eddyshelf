@@ -55,6 +55,9 @@ function [] = csfluxes(runs, ftype)
 
     sz = size(runs.sponge);
 
+    loc = loc(1:2);
+    indices = indices(1:2);
+
     % save locations
     runs.csflux.x = loc;
     % save indices for locations - w.r.t INTERIOR RHO POINTS

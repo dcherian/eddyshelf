@@ -8,12 +8,16 @@ function [] = plot_eddye(runs, days)
         pb = load([runs.dir '/pbot.mat'], 'pbot', 'xvec', 'yvec');
     end
 
+    [~,~,tind] = runs.locate_resistance;
     % hack for when I'm trying to provide non-dimensional times
     if all(days < 1)
         tindices = vecfind(runs.ndtime, days);
     else
         tindices = vecfind(runs.time/86400, days)
     end
+
+    tindices = [1 tind];
+    days = runs.eddy.t(tindices);
 
     nt = length(tindices);
 

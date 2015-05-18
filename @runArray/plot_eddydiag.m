@@ -22,8 +22,8 @@ function [] = plot_eddydiag(runArray)
     hfig4 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all;
 
     % Ro, L-scale, U-scale
-    hfig5 = []; %figure; subplot(3,1,1); hold all; subplot(3,1,2); hold  all;
-                %subplot(3,1,3); hold all;
+    hfig5 = figure; subplot(3,1,1); hold all; subplot(3,1,2); hold  all;
+            subplot(3,1,3); hold all;
 
     hfig6 = []; %figure; hold all
 
@@ -50,6 +50,7 @@ function [] = plot_eddydiag(runArray)
         %tscale = run.tscale; find_approx(asp, 0.5, 1);
         %ndtime = run.eddy.t/tscale * 86400;
         run.fit_traj(1.0);
+        [~,~,tind] = run.locate_resistance;
         ndtime = run.eddy.t*86400 ./ run.eddy.turnover;
         if isempty(runArray.name)
             name{ff} = run.name;
@@ -128,6 +129,7 @@ function [] = plot_eddydiag(runArray)
             figure(hfig5)
             subplot(3,1,1)
             try
+                Rh = run.eddy.V./run.params.phys.beta./run.eddy.Ls.^2;
                 plot(ndtime, run.eddy.Ro);
             catch ME
                 warning('didn''t plot');

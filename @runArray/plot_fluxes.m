@@ -5,10 +5,10 @@ function [] = plot_fluxes(runArray)
 
     hfig2 = figure;
     hold all
-    %            subplot(2,2,1); hold all
-    %subplot(2,2,2); hold all
-    %subplot(2,2,3); hold all
-    %subplot(2,2,4); hold all
+    % subplot(2,2,1); hold all
+    % subplot(2,2,2); hold all
+    % subplot(2,2,3); hold all
+    % subplot(2,2,4); hold all
 
     hfig3 = figure;
     hold all;
