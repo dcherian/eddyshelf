@@ -448,6 +448,40 @@ function [diags, plotx] = print_diag(runArray, name)
             end
         end
 
+        if strcmpi(name, 'velprofile')
+            it = [1 tind];
+            ix = vecfind(run.rgrid.x_rho(1,:), run.eddy.mx(it));
+            iy = vecfind(run.rgrid.y_rho(:,1), ...
+                         run.eddy.my(it) - ...
+                         run.eddy.vor.lmin(it)/3);
+
+            for tt=1:length(it)
+                u(:,tt) = ...
+                    dc_roms_read_data(run.dir, 'u', it(tt), {'x' ix(tt) ...
+                                    ix(tt); 'y' iy(tt) iy(tt)}, [], ...
+                                      run.rgrid, 'his');
+                [u0(tt),Z1(tt)] = ...
+                    erf_fit((double(run.rgrid.z_u(:,iy(tt),ix(tt)))), ...
+                            (u(:,tt)./u(end,tt)), 0);
+
+            end
+
+            % figure out factor to account for gradient wind
+            Lz = run.eddy.Lgauss(it);
+            H = run.eddy.hcen(tind);
+            run.eddy.grfactor = Z1./Lz*-1;
+
+            plotx(ff) = beta/beta_t;
+            diags(ff) = run.eddy.grfactor(2);
+        end
+
+        if strcmpi(name, 'rh')
+            [~,~,tind] = run.locate_resistance;
+
+            plotx(ff) = ff;
+            diags(ff) = V(tind)./beta/Ls(tind).^2;
+        end
+
         % nondim parameters to compare runs
         if strcmpi(name, 'diff') || strcmpi(name, 'nondim')
 
