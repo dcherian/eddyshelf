@@ -613,29 +613,40 @@ methods
 
     function [] = plot_velprofiles(runs)
 
-        it = [1 runs.traj.tind];
+        [~,~,tind] = runs.locate_resistance();
+
+        it = [1 tind];
 
         ix = vecfind(runs.rgrid.x_rho(1,:), runs.eddy.mx(it));
-        iy = vecfind(runs.rgrid.y_rho(:,1), runs.eddy.my(it) - runs.eddy.vor.lmin(it)/2);
+        iy = vecfind(runs.rgrid.y_rho(:,1), ...
+                     runs.eddy.my(it) - runs.eddy.vor.lmin(it)/3);
 
         corder_backup = get(0, 'DefaultAxesColorOrder');
         set(0, 'DefaultAxesLineStyleorder','-');
         set(0, 'DefaultAxesColorOrder', brighten(cbrewer('seq','Reds',length(it)), ...
                                                  -0.5));
-        figure; hold all
+        hf = figure; hold all
+        t0 = 1;
         for tt=1:length(it)
             tt
             u = dc_roms_read_data(runs.dir, 'u', it(tt), {'x' ix(tt) ...
                                 ix(tt); 'y' iy(tt) iy(tt)}, [], ...
                                   runs.rgrid, 'his');
-            plot(u./u(end), runs.rgrid.z_u(:,iy(tt),ix(tt)) ./ ...
-                 runs.eddy.Lgauss(1));
+            figure(hf);
+            plot(abs(u./u(end)), ...
+                 runs.rgrid.z_u(:,iy(tt),ix(tt)) ./ runs.eddy.Lgauss(1));
         end
 
         z = [-3:0.01:0];
-        hplt = plot((erf(z) + 1), z, 'b-');
-        legend(hplt, '1 + erf(z/Lz)', 'Location', 'SouthEast');
+        prof = (1-erf(abs(z)));
+        hplt = plot(prof./prof(end), z, 'b-');
+        linex(0); liney(runs.eddy.hcen(tind)./runs.eddy.Lgauss(t0)*-1);
+        legend(hplt, '1 - erf(|z|/Lz)', 'Location', 'SouthEast');
         ylabel('z/L_z'); xlabel('U(z)/U(0)'); title(runs.name);
+
+        runs.animate_field('u', [], it(end), 1);
+        plot(runs.rgrid.x_rho(1,ix(end))/1000, ...
+             runs.rgrid.y_rho(iy(end),1)/1000, 'kx');
 
         set(0, 'DefaultAxesColorOrder', corder_backup);
         set(0,'DefaultAxesLineStyleOrder',{'-','--','-.'});
@@ -1179,27 +1190,35 @@ methods
     end
 
     % read surface velocities for animate_pt & surf vorticity plot
-    function [] = read_velsurf(runs)
+    function [] = read_velsurf(runs, t0, ntimes)
         disp('Reading surface velocity fields...');
         start = [1 1 runs.rgrid.N 1];
         count = [Inf Inf 1 Inf];
         stride = [1 1 1 1];
 
+        if ntimes == 1
+            tind = [t0 t0+1];
+        else
+            tind = [1 length(runs.time)];
+        end
+
         if runs.givenFile
             runs.usurf = double(squeeze(ncread(runs.out_file, ....
                 'u',start,count,stride)));
         else
-            runs.usurf = dc_roms_read_data(runs.dir,'u', ...
-                [],{'z' runs.rgrid.N runs.rgrid.N},[],runs.rgrid, ...
-                                           'his', 'single');
+            runs.usurf(:,:,tind(1):tind(2)) = ...
+                       dc_roms_read_data(runs.dir,'u', ...
+                                         [tind],{'z' runs.rgrid.N runs.rgrid.N}, ...
+                                         [],runs.rgrid, 'his', 'single');
         end
         if runs.givenFile
             runs.vsurf = double(squeeze(ncread(runs.out_file, ....
                 'v',start,count,stride)));
         else
-            runs.vsurf = dc_roms_read_data(runs.dir,'v', ...
-                [],{'z' runs.rgrid.N runs.rgrid.N},[],runs.rgrid, ...
-                                           'his', 'single');
+            runs.vsurf(:,:,tind(1):tind(2)) = ...
+                dc_roms_read_data(runs.dir,'v', ...
+                                  [tind],{'z' runs.rgrid.N runs.rgrid.N}, ...
+                                  [],runs.rgrid, 'his', 'single');
         end
     end
 
