@@ -345,16 +345,14 @@ function [diags, plotx] = print_diag(runArray, name)
                 run.fit_traj()
 
                 tind = run.traj.tind;
-                H = run.eddy.hcen(tind); %run.traj.H;
                 Y = run.eddy.my(tind); %run.traj.Y;
 
                 titlestr = ['tanh(t/T) at t = ' ...
                             num2str(run.traj.tcrit) 'T'];
             else
-                nsmooth = 10;
+                nsmooth = 6;
                 factor = 1/4;
                 [~,~,tind] = run.locate_resistance(nsmooth, factor);
-                H = (run.eddy.hcen(tind));
                 Y = run.eddy.my(tind) - run.bathy.xsb; ...
                     run.eddy.my(tind);
                 titlestr = ['Water depth at which cross-isobath translation ' ...
@@ -362,38 +360,16 @@ function [diags, plotx] = print_diag(runArray, name)
             end
             if isempty(tind), continue; end
 
-            %if H./run.bathy.hsl > 0.9
-            %    H = (run.eddy.hedge(tind));
-            %    disp(runName);
-            %end
-
-            %figure;
-            %hplt = plot(ndtime, run.eddy.hcen); hold on
-            %addlegend(hplt, runName);
-            %plot(ndtime(tind), run.eddy.hcen(tind), 'k*');
-            %%liney(yscl); linex([1 2 3]*tscl);
-
-            t0 = 1; % run.eddy.tscaleind;
+            H = run.eddy.hcen(tind);
+            t0 = 1; %run.eddy.tscaleind;
             titlestr = [titlestr ' | t0 = ' num2str(t0)];
-            Lz = smooth(run.time(uind), run.eddy.Lgauss(uind), ...
-                        round(run.eddy.turnover./(run.time(2)-run.time(1))));
-            if any(Lz == 0)
-                Lz = smooth(run.eddy.Lgauss, run.eddy.turnover./86400);
-            end
-            %if abs(run.eddy.vor.se(tind) - run.bathy.xsb) < ...
-            %        run.rrdeep*0.75
-            %    continue;
-            %end
 
-            diags(ff) = 1 - erf(H./Lz(t0));
-            %diags(ff) = Y./(run.rrdeep);
-            %plotx(ff) = Ro./Sa;
-            plotx(ff) = beta/(alpha*abs(f0)/Lz(t0));
-            %plotx(ff) = (hsb + Lx(t0).*alpha)./Lz(t0);
-            %plotx(ff) = Lz(tind)./Lx(tind)./alpha;
-            %plotx(ff) = V(1)./beta./Ls(1)^2;
+            Lz0 = Lz(t0); %*run.eddy.grfactor(1);
 
-            errorbarflag = 0; kozak = 1;
+            diags(ff) = 1-erf(H./Lz0);
+            plotx(ff) = beta/(alpha*abs(f0)/Lz0);
+
+            errorbarflag = 0; kozak = 0;
             name_points = 1; line_45 = 0;
             slope = num2str(round(alpha*1e3));
 
@@ -416,7 +392,7 @@ function [diags, plotx] = print_diag(runArray, name)
                         ptName = ' f^{-}';
                         clr = [27,158,119]/255;
                     else
-                        ptName =''; [runName];
+                        ptName = ''; [runName];
                     end
                 end
                 %ptName = num2str(err,2);
