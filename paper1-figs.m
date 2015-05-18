@@ -175,8 +175,10 @@ ns.filter = [];
 figure; maximize();
 ax1 = subplot(121);
 ew.plot_penetration(ax1, 'all');
+beautify([18 18 25])
 subplot(122);
 ns.plot_penetration(gca, 'all'); drawnow;
+beautify([18 18 25])
 ax1 = gca; ax1.XTick = unique([ax1.XTick 1])
 export_fig('images/paper1/sl-centrack.pdf');
 
