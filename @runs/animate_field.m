@@ -16,15 +16,28 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         asindex = [1 2];
     end
 
-    rhocontourplot = 1; % plot eddy drho contour too?
-    enfluxplot = 0; % plot AS energy flux ?
+    % eddy contours?
+    rhocontourplot = 0; % plot eddy drho contour too?
+    vorcontourplot = 0; % vorticity contour
     sshplot = 0; % plot ssh-contour too?
     dyeplot = 0; % plot eddye contour too?
-    drawtrack = 0; % plot eddy track?
+
+    % eddy diagnostics
+    drawtrack = 1; % plot eddy track?
+    drawedgetrack = 0; % plot eddy's edge tracks?
+    drawcenter = 1; % mark eddy center location.
+
+    % grid diagnostics
     telesplot = 0;  % plot lines where grid stretching starts
                     % and ends
+
+    % time series?
+    enfluxplot = 0; % plot AS energy flux ?
     vecplot = 0; % plot some time vector (assign tvec and vec);
+
+    % extra contours
     addcsdye = 1; % add csdye to eddye plot?
+    addzeta = 1; % overlay zeta contours
 
     if vecplot
         %%% integrated energy asflux
@@ -76,7 +89,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     iy = runs.spng.sy1:runs.spng.sy2;
 
     % read zeta if required
-    if strcmpi(name, 'zeta')
+    if strcmpi(name, 'zeta') || addzeta
         runs.read_zeta(t0, ntimes);
         varname = 'zeta';
         titlestr = 'SSH (m)';
@@ -148,10 +161,10 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         runs.read_velsurf(t0, ntimes);
     end
 
-    %%%% actually plot
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% actually plot
     if isempty(hax)
         figure;
-        insertAnnotation([runs.name '.animate_field']);
+        insertAnnotation([runs.name '.animate_field(' name ')']);
     else
         axis(hax);
     end
@@ -168,7 +181,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     % plot field
     hz = runs.plot_surf(varname, 'pcolor', ii);
     hold on;
-    colorbar;
+    colorbar; center_colorbar;
 
     % bathy
     hbathy = runs.plot_bathy('contour', [1 1 1]*0.7);
@@ -176,17 +189,33 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     % plot track
     if drawtrack
         plot(runs.eddy.mx/1000, runs.eddy.my/1000);
-        if runs.bathy.axis == 'y'
-            plot(runs.eddy.mx/1000, runs.eddy.vor.ne/1000);
-            plot(runs.eddy.mx/1000, runs.eddy.vor.se/1000);
-        else
-            plot(runs.eddy.vor.ee/1000, runs.eddy.my/1000);
-            plot(runs.eddy.vor.we/1000, runs.eddy.my/1000);
+        if drawedgetrack
+            if runs.bathy.axis == 'y'
+                plot(runs.eddy.mx/1000, runs.eddy.vor.ne/1000);
+                plot(runs.eddy.mx/1000, runs.eddy.vor.se/1000);
+            else
+                plot(runs.eddy.vor.ee/1000, runs.eddy.my/1000);
+                plot(runs.eddy.vor.we/1000, runs.eddy.my/1000);
+            end
         end
     end
 
+    if drawcenter
+        hcen = plot(runs.eddy.mx(ii)/1000, runs.eddy.my(ii)/1000, 'kx');
+    end
+
+    % zeta too?
+    if addzeta
+        clim = caxis;
+        hzeta = runs.plot_surf('zeta','contour', ii);
+        set(hzeta, 'Color', 'k', 'LineWidth', 2);
+        caxis(clim);
+    end
+
     % plot eddy contours
-    he = runs.plot_eddy_contour('contour',ii);
+    if vorcontourplot
+        he = runs.plot_eddy_contour('contour',ii);
+    end
     if sshplot
         he2 = runs.plot_eddy_sshcontour('contour',ii);
     end
@@ -352,7 +381,19 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
             end
 
             runs.update_surf(varname, hz,ii);
-            runs.update_eddy_contour(he,ii);
+            if vorcontourplot
+                runs.update_eddy_contour(he,ii);
+            end
+
+            if addzeta
+                runs.update_surf('zeta', hzeta, ii);
+            end
+
+            if drawcenter
+                hcen.XData = runs.eddy.mx(ii)/1000;
+                hcen.YData = runs.eddy.my(ii)/1000;
+            end
+
             % ssh contour
             if sshplot
                 runs.update_eddy_sshcontour(he2,ii);

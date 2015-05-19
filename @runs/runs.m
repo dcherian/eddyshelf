@@ -1007,8 +1007,8 @@ methods
         end
 
         sz = [size(runs.rgrid.x_rho') length(runs.time)];
-        if isempty(runs.eddsurf) | (t0 > size(runs.eddsurf,3)) | ...
-                any(isnan(fillnan(runs.eddsurf(:,:,tind(1):tind(2)),0)))
+        if isempty(runs.eddsurf) | (t0 > size(runs.eddsurf,3))
+            %| any(isnan(fillnan(runs.eddsurf(:,:,tind(1):tind(2)),0)))
             if ~runs.givenFile
                 runs.eddsurf(:,:,tind(1):tind(2)) = ...
                     dc_roms_read_data(runs.dir, runs.eddname, [tind], ...
@@ -5358,6 +5358,10 @@ methods
     function [hplot] = plot_zeta(runs,plottype,tt)
         if ~exist('tt','var'), tt = 1; end
 
+        range = ['runs.spng.sx1:runs.spng.sx2,' ...
+                 'runs.spng.sy1:runs.spng.sy2'];
+
+
         if strcmpi(plottype,'pcolor')
             hplot = pcolor(runs.rgrid.xr/1000,runs.rgrid.yr/1000,runs.zeta(:,:,tt));
             if runs.makeVideo
@@ -5394,6 +5398,12 @@ methods
         range = ['runs.spng.sx1:runs.spng.sx2,' ...
                  'runs.spng.sy1:runs.spng.sy2'];
 
+        eval(['zend = runs.' varname '(' range ',end);']);
+        if ~isnan(zend)
+            crange = double([min(zend(:)) max(zend(:))]);
+            caxis(crange);
+        end
+
         if strcmpi(plottype,'pcolor')
             eval(['hplot = pcolor(runs.rgrid.xr(' range ')/1000,' ...
                   'runs.rgrid.yr(' range ')/1000,' ...
@@ -5408,13 +5418,10 @@ methods
                 eval(['[cc,hplot] = ' plottype ...
                       '(runs.rgrid.xr(' range ')/1000,' ...
                       'runs.rgrid.yr(' range ')/1000,'...
-                    'double(runs.' varname '(' range ',tt)));']);
+                      'double(runs.' varname '(' range ',tt)));']);
+                hplot.LevelList = linspace(crange(1),crange(2), 10);
                 shading flat
             end
-        end
-        eval(['zend = runs.' varname '(' range ',end);']);
-        if ~isnan(zend)
-            caxis([min(zend(:)) max(zend(:))]);
         end
 
         if strcmpi(varname, 'eddye')
@@ -5425,12 +5432,18 @@ methods
         range = ['runs.spng.sx1:runs.spng.sx2,' ...
                  'runs.spng.sy1:runs.spng.sy2'];
 
+        eval(['zend = runs.' varname '(' range ',end);']);
+        if ~isnan(zend)
+            crange = double([min(zend(:)) max(zend(:))]);
+        end
+
         try
             eval(['set(handle,''CData'',double(runs.' varname '(' ...
                   range ',tt)))']);
         catch ME
             eval(['set(handle,''ZData'',double(runs.' varname '(' ...
                   range ',tt)))']);
+            handle.LevelList = linspace(crange(1),crange(2), 10);
         end
     end
 
