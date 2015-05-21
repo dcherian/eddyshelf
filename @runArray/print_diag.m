@@ -835,13 +835,13 @@ function [diags, plotx] = print_diag(runArray, name)
     end
 
     if plots
-        figure(hfig); ax1 = gca;
+        figure(hfig);
         maximize(); drawnow; pause(1);
         set(gcf, 'renderer', 'painters');
-        if line_45, line45; end
+        if line_45, line45(hax); end
 
         if kozak
-            ax2 = kozakscatterplot(ax1, [min(plotx) max(plotx)], ...
+            ax2 = kozakscatterplot(hax, [min(plotx) max(plotx)], ...
                              [min(diags) max(diags)]);
             grid off;
             %hleg = legend;
