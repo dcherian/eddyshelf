@@ -527,8 +527,8 @@ function [diags, plotx] = print_diag(runArray, name)
             if ~isfield(run.csflux, 'time')
                 continue;
             end
-            if ff == 1
-                hfig_flux = figure; hold on; hax1 = gca;
+
+            if ff == 1 || ~exist('hfig_fluxerr', 'var')
                 hfig_fluxerr = figure; hold on;
             end
 
@@ -539,10 +539,10 @@ function [diags, plotx] = print_diag(runArray, name)
             % convert everything to double since I'm
             % dealing with large numbers here (time in
             % seconds) and integrated flux (m^3)
-            fluxvec = double(smooth(run.csflux.west.shelf(run.tscaleind: ...
-                                                          end,1), 6));
-            ifluxvec = double(smooth(run.csflux.west.itrans.shelf(run.tscaleind: ...
-                                                              end,1), 6));
+            fluxvec = double(smooth( ...
+                run.csflux.west.shelf(run.tscaleind:end,1), 6));
+            ifluxvec = double(smooth( ...
+                run.csflux.west.itrans.shelf(run.tscaleind:end,1), 6));
             tvec = double(run.csflux.time(run.tscaleind:end));
 
             % change origin
@@ -641,21 +641,19 @@ function [diags, plotx] = print_diag(runArray, name)
                        num2str(err/1000,'%.2f') ' mSv | scale = ' ...
                        num2str(transscl)];
 
+
+            % plot error
             paramerr = avgflux/1000 - transscl;
             figure(hfig_fluxerr)
             plot(run.eddy.Ro(tind), paramerr, '*');
 
-            figure(hfig_flux);
-            errorbar(transscl, avgflux/1000, err/1000, 'x');
-            %plot(transscl, flx, 'x');
-            text(transscl, double(avgflux + err)/1000, run.name, ...
-                 'Rotation', 90, 'FontSize', 12);
+            errorbarflag = 1; name_points = 1; line_45 = 1;
+            laby = 'Flux (mSv)';
+            labx = 'Parameterization (mSv)';
 
-            %errorbar(ff , avgflux/1000, err/1000, 'x');
-            %set(hax1, 'Xtick', [1:runArray.len]);
-            %lab = cellstr(get(hax1,'xticklabel'));
-            %lab{ff} = runArray.getname( ff);
-            %set(hax1,'xticklabel', lab);
+            diags(ff) = avgflux/1000;
+            error(ff) = err/1000;
+            plotx(ff) = transscl;
         end
 
         %%%%%%%%%%%%%%%%%%%% deprecated
@@ -860,17 +858,12 @@ function [diags, plotx] = print_diag(runArray, name)
                 correct_ticks('y', '%.2f', 1);
             end
         end
-        beautify([18 18 20]);
-    end
 
-    if exist('hfig_flux', 'var')
-        figure(hfig_flux);
-        insertAnnotation(annostr);
-        limy = ylim;
-        ylim([0 limy(2)]);
-        line45; axis square;
-        ylabel('Flux (mSv)');
-        xlabel('Parameterization (mSv)');
+        if strcmpi(name, 'shelf flux')
+            figure(hfig);
+            axis square;
+        end
+
         beautify([18 18 20]);
     end
 end
