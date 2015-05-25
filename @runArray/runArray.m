@@ -425,6 +425,36 @@ classdef runArray < handle
 
         end
 
+        function [] = plot_test3(runArray)
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            corder_backup = runArray.sorted_colors;
+
+            %figure; hold all;
+            %insertAnnotation('runArray.plot_test3');
+
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
+                run = runArray.array(ii);
+                names{ff} = runArray.getname(ii);
+                %run.fit_traj;
+                %tind = run.traj.tind;
+                [~,~,tind] = run.locate_resistance(10,1/2);
+                tvec = run.time/run.eddy.turnover;
+
+                run.animate_field('eddye', [], tind, 1);
+                title(names{ff});
+
+                %plot(tvec, run.eddy.Lgauss);
+                %plot(tvec(tind), run.eddy.Lgauss(tind), 'kx');
+            end
+            %legend(hplt, names);
+
+            runArray.reset_colors(corder_backup);
+        end
+
         function [] = check_fittraj(runArray)
 
             %corder_backup = runArray.sorted_colors;
@@ -454,14 +484,14 @@ classdef runArray < handle
             %runArray.reset_colors(corder_backup);
         end
 
-        function [] = plot_test3(runArray)
+        function [] = check_penetration(runArray)
             if isempty(runArray.filter)
                 runArray.filter = 1:runArray.len;
             end
 
             corder_backup = runArray.sorted_colors;
 
-            figure; hold all;
+            %figure; hold all;
             %insertAnnotation('runArray.plot_test3');
 
             for ff=1:length(runArray.filter)
@@ -470,14 +500,14 @@ classdef runArray < handle
                 names{ff} = runArray.getname(ii);
                 %run.fit_traj;
                 %tind = run.traj.tind;
-                [~,~,tind] = run.locate_resistance(10,1/2);
+                [~,~,tind] = run.locate_resistance(10,1/4);
                 tvec = run.time/run.eddy.turnover;
 
-                %run.animate_field('eddye', [], tind, 1);
-                %title(names{ff});
+                run.animate_field('eddye', [], tind, 1);
+                title(names{ff});
 
-                plot(tvec, run.eddy.Lgauss);
-                plot(tvec(tind), run.eddy.Lgauss(tind), 'kx');
+                %plot(tvec, run.eddy.Lgauss);
+                %plot(tvec(tind), run.eddy.Lgauss(tind), 'kx');
             end
             %legend(hplt, names);
 

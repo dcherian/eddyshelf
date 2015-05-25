@@ -93,6 +93,8 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         runs.read_zeta(t0, ntimes);
         varname = 'zeta';
         titlestr = 'SSH (m)';
+
+        if strcmpi(name, 'zeta'), addzeta = 0; end
     end
 
     % read eddye if required

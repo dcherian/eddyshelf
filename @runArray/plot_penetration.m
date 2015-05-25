@@ -1,6 +1,8 @@
 % diagnostic plots to show how much eddy penetrates slope
 function [] = plot_penetration(runArray, ax, choices)
 
+    if ~exist('ax', 'var'), ax = []; end
+
     if ischar(ax)
         choices = ax;
         ax = [];

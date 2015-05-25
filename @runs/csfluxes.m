@@ -141,7 +141,7 @@ function [] = csfluxes(runs, ftype)
     runs.csflux.west.shelfwater.trans = nan([szflux maxrr]);
     binmat = repmat(runs.csflux.west.shelfwater.bins, [tinf 1]);
 
-    runs.csflux.west.shelfwater.vertitrans = nan([runs.rgrid.N sz(2)]);
+    runs.csflux.west.shelfwater.vertitrans = nan([runs.rgrid.N length(loc)]);
 
     % initialize - pv fluxes
     if exist(vorname, 'file') && dopv == 1

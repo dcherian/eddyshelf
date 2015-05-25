@@ -3,7 +3,12 @@ function [diags, plotx] = print_diag(runArray, name)
         runArray.filter = 1:runArray.len;
     end
 
-    plots = 1;
+    if ~strcmpi(name, 'nondim')
+        plots = 1;
+    else
+        plots = 0;
+    end
+
     annostr = ['runArray.print_diag(' name ')'];
     diags = nan(size(runArray.filter));
 
@@ -42,7 +47,7 @@ function [diags, plotx] = print_diag(runArray, name)
         V = run.eddy.V;
         if isfield(run.eddy, 'Vb'), Vb = run.eddy.Vb; end
 
-        hedge = NaN; %run.eddy.hedge;
+        hedge = run.eddy.hedge;
         hcen = run.eddy.hcen;
         fcen = run.eddy.fcen;
         my = run.eddy.my;
@@ -392,6 +397,7 @@ function [diags, plotx] = print_diag(runArray, name)
                         ptName = ' f^{-}';
                         clr = [27,158,119]/255;
                     else
+                        clr = 'k';
                         ptName = ''; [runName];
                     end
                 end
@@ -482,19 +488,42 @@ function [diags, plotx] = print_diag(runArray, name)
             diags(ff) = V(tind)./beta/Ls(tind).^2;
         end
 
+        % compare against flat bottom rest latitude
+        if strcmpi(name, 'rest latitude')
+            [~,~,tind] = run.locate_resistance();
+
+            sgn = sign(f0) * sign(run.params.eddy.tamp);
+            Yb2 = max(run.rgrid.y_rho(:))/2;
+            y = Yb2 + 1./beta * (fcen(1)*(1-sgn*Ro(tind)) - f0);
+
+            dy = (y - sgn*run.eddy.my(tind));
+
+            diags(ff) = dy/1000;
+            plotx(ff) = ff;
+        end
+
+        % compare rest latitude for shallow water PV
+        if strcmpi(name, 'shallow PV')
+            [~,~,tind] = run.locate_resistance();
+            diags(ff) = hcen(1) * fcen(tind)./fcen(1) .* ...
+                (1 - Ro(tind))./(1 - Ro(1)) ./ hcen(tind);
+            plotx(ff) = ff;
+        end
+
         % nondim parameters to compare runs
         if strcmpi(name, 'diff') || strcmpi(name, 'nondim')
 
             if ff == 1
                 close;
-                disp(sprintf('| %18s | %5s | %4s | %4s | %8s | %5s |', ...
+                disp(sprintf('| %18s | %5s | %4s | %4s | %8s | %5s | %6s |', ...
                              'name', 'Rh', 'Ro', 'bl/f', 'beta_t', ...
-                             'L/Lsl'));
+                             'L/Lsl', 'lambda'));
             end
-            disp(sprintf('| %18s | %5.2f | %4.2f | %4.2f | %.2e | %5.2f |', ...
+            disp(sprintf('| %18s | %5.2f | %4.2f | %4.2f | %.2e | %5.2f | %5.2f |', ...
                          run.name, run.params.nondim.eddy.Rh, ...
                          Ro(1), beta*Lx(1)/f0, beta_t, ...
-                         Lx(1)./run.bathy.L_slope));
+                         Lx(1)./run.bathy.L_slope, ...
+                         hsb./Lz(1)));
             continue;
         end
 
