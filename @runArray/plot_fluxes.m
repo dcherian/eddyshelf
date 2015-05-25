@@ -31,6 +31,11 @@ function [] = plot_fluxes(runArray)
             continue;
         end
 
+        if isempty(run.csflux)
+            disp(['Skipping ' run.name]);
+            continue;
+        end
+
         tind = find_approx(run.ndtime, 1.5, 1);
         Ue = run.eddy.V(tind);
         He = run.bathy.hsb;
@@ -71,14 +76,15 @@ function [] = plot_fluxes(runArray)
 
             %subplot(2,2,4)
             profile = ...
-                run.csflux.west.shelfwater.vertitrans./ ...
+                run.csflux.west.shelfwater.vertitrans(:,1)./ ...
                 ttrans;
-            zvec = run.csflux.west.shelfwater.vertbins ./ ...
+            zvec = run.csflux.west.shelfwater.vertbins(:,1) ./ ...
                    run.bathy.hsb;
             bc = baroclinicity(zvec, profile);
             hgplt2(ff) = plot(profile, zvec);
             names2{ff} =  [names{ff} ' | bc = ' num2str(bc,'%.3f')];
         catch ME
+            keyboard;
             disp(ME)
         end
 
@@ -139,17 +145,17 @@ function [] = plot_fluxes(runArray)
     xlim([0 limx(2)]);
     xlabel('Normalized volume transported');
     ylabel('Vertical bin / Shelfbreak depth');
-    %legend(hgplt2, names2, 'Location', 'SouthWest');
+    legend(hgplt2, names2, 'Location', 'SouthWest');
 
     figure(hfig3)
     xlabel('Non-dimensional time');
     ylabel('isobath most on-shore source of water / h_{sb}');
-    legend(hgplt3, names{ff});
+    legend(hgplt3, names);
 
     figure(hfig4)
     subplot(2,1,1);
     ylabel('Flux of eddy water (Sv)');
-    legend(hgplt4, names{ff});
+    legend(hgplt4, names);
     subplot(2,1,2);
     ylabel('Total volume transported (m^3)');
     xlabel('Non-dimensional time');
