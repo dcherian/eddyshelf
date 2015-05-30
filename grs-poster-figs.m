@@ -1,13 +1,5 @@
 %% Figures for paper 1:
 % EW isobaths
-ewall = runArray({ ...
-    'runew-4341/', ...
-    'runew-36-sym/', ...
-    'runew-64361/', ...
-                });
-ewall.name = {'R/L_{sl} > 1', 'R/L_{sl} ~ 1', ...
-              'R/L_{sl} < 1'};
-
 ew = runArray({ ...
     'runew-64361', ...
     'runew-6341', ...
@@ -20,12 +12,6 @@ folders = { ...
     'runns-6441', ...
           };
 ns = runArray(folders);
-
-% shelfbreak depth - xy maps
-sb = runArray({ ...
-    'runew-36', 'runew-2360_wider', 'runew-2361_wider', ...
-    'runew-2363_wider', 'runew-2362_wider', ...
-              });
 
 % wide slope runs
 folders = { ...
@@ -87,45 +73,18 @@ correct_ticks('y',[],[3 6]);
 export_fig('-r450','images/xymap-poster.png');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% EW - center tracks - all,
-fs  = 18;
-ewall.plot_penetration(gca,'all');
-maximize();
-ax = gca;
-title([]); pbaspect([1.618 1 1]);
-text(-0.3, 1.5, 'R > L_{sl}', ...
-     'FontSize', fs, 'Color', ax.ColorOrder(1,:));
-text(0.2, 3.8, 'R ~ L_{sl}', ...
-     'FontSize', fs, 'Color', ax.ColorOrder(2,:));
-%text(-9, 2.1, 'R < L_{sl}', ...
-%     'FontSize', fs, 'Color', ax.ColorOrder(3,:));
-text(-6, 3.8, 'R < L_{sl}', ...
-     'FontSize', fs, 'Color', ax.ColorOrder(3,:));
-%legend('off');
-export_fig('images/grs-poster/centrack.pdf');
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% EW, NS Center-tracks - wide slope
 ew.filter = [];
 ns.filter = [];
 
 fontSize = [22 22 30]
-figure; maximize();
-ax1 = subplot(121);
-ew.plot_penetration(ax1, 'all');
-beautify(fontSize)
-subplot(122);
-ns.plot_penetration(gca, 'all'); drawnow;
-beautify(fontSize)
+ew.plot_penetration('all'); maximize();
+beautify(fontSize); legend('off');
+export_fig('images/grs-poster/ew-centrack.pdf');
+ns.plot_penetration('all'); maximize(); drawnow;
+beautify(fontSize); legend('off')
 ax1 = gca; ax1.XTick = unique([ax1.XTick 1])
-export_fig('images/grs-poster/sl-centrack.pdf');
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% bottom friction
-
-bfrics.plot_penetration([],'all'); maximize();
-pbaspect([1.618 1 1]);
-export_fig('images/grs-poster/bfrics-centrack.pdf');
+export_fig('images/grs-poster/ns-centrack.pdf');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% parameterization
