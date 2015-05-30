@@ -93,7 +93,7 @@ title([]); pause(1);
 set(gcf, 'renderer', 'opengl');
 correct_ticks('x', '%.2f', 2);
 correct_ticks('y', '%.2f', 2);
-%export_fig('images/grs-poster/penetration-res-param.pdf');
+export_fig('images/grs-poster/penetration-res-param.png');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% energy decay
@@ -101,6 +101,5 @@ sl.plot_dEdt; maximize(); pause(1);
 subplot(121); title([]);
 pbaspect([1.618 1 1]); xlim([0 400]);
 legend('off');
-subplot(122); xlim([0 400]);
-pbaspect([1.618 1 1]);
+ax = subplot(122); delete(ax);
 export_fig('images/grs-poster/energy-decay.pdf');
