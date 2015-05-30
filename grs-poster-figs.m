@@ -90,7 +90,10 @@ export_fig('images/grs-poster/ns-centrack.pdf');
 %% parameterization
 sl.print_diag('bottom torque');
 title([]); pause(1);
-export_fig('images/grs-poster/penetration-res-param.pdf');
+set(gcf, 'renderer', 'opengl');
+correct_ticks('x', '%.2f', 2);
+correct_ticks('y', '%.2f', 2);
+%export_fig('images/grs-poster/penetration-res-param.pdf');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% energy decay
