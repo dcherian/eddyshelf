@@ -97,7 +97,7 @@ sl.filter = [1:sl.len]; sl.filter(end-2) = [];
 sl.print_diag('bottom torque');
 title([]); pause(1);
 set(gcf, 'renderer', 'opengl');
-correct_ticks('x', '%.2f', 6);
+correct_ticks('x', '%.3f', 6);
 correct_ticks('y', '%.2f', 2);
 export_fig('-r250', 'images/grs-poster/penetration-res-param.png');
 
