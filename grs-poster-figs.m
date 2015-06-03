@@ -36,9 +36,10 @@ if ~exist('run', 'var') || ~strcmpi(run.name, name)
     run = runs(['../topoeddy/run' name '/']);
 end
 fontSize = [22 24 30];
-ms = 18; % marker size
+ms = 22; % marker size
 trackcolor = [1 1 1]*0.65;
 sbslcolor = trackcolor;
+rescolor = 'k';
 tt = [1 250];
 seqcolor = flipud(cbrewer('div','RdYlBu',32));
 [~,~,tind] = run.locate_resistance;
@@ -51,7 +52,7 @@ plot(run.eddy.mx/1000, run.eddy.my/1000, 'Color', trackcolor);
 plot(run.eddy.mx(tt(1))/1000, run.eddy.my(tt(1))/1000, '.', ...
      'MarkerSize', 1.5*ms, 'Color', trackcolor);
 plot(run.eddy.mx(tind)/1000, run.eddy.my(tind)/1000, 'x', ...
-     'MarkerSize', ms, 'Color', trackcolor);
+     'MarkerSize', ms, 'Color', rescolor);
 text(0.15*diff(limx), run.bathy.xsl/1000, 'slopebreak', ...
      'VerticalAlignment', 'Bottom', 'FontSize', fontSize(1)-4, ...
      'Color', sbslcolor);
@@ -68,7 +69,7 @@ plot(run.eddy.mx/1000, run.eddy.my/1000, 'Color', trackcolor);
 plot(run.eddy.mx(tt(2))/1000, run.eddy.my(tt(2))/1000, '.', ...
      'MarkerSize', 1.5*ms, 'Color', trackcolor);
 plot(run.eddy.mx(tind)/1000, run.eddy.my(tind)/1000, 'x', ...
-     'MarkerSize', ms, 'Color', trackcolor);
+     'MarkerSize', ms, 'Color', rescolor);
 caxis([-1 1]);
 colormap(ax4,seqcolor); beautify(fontSize);
 title('Dyes and SSH'); ylabel([]);
