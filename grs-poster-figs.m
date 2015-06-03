@@ -93,7 +93,7 @@ export_fig('images/grs-poster/ns-centrack.pdf');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% parameterization
-sl.filter = [1:sl.len]; sl.filter(end-1) = [];
+sl.filter = [1:sl.len]; sl.filter(end-2) = [];
 sl.print_diag('bottom torque');
 title([]); pause(1);
 set(gcf, 'renderer', 'opengl');
