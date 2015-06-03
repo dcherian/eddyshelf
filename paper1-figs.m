@@ -131,6 +131,48 @@ colormap(ax4,seqcolor); beautify(fontSize);
 correct_ticks('y',[],[3 5]);
 
 export_fig('-r450','images/paper1/xymap.png');
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% xymap
+name = 'ew-64361';
+if ~exist('run', 'var') || ~strcmpi(run.name, name)
+    run = runs(['../topoeddy/run' name '/']);
+end
+fontSize = [20 22 24];
+ms = 12; % marker size
+trackcolor = [1 1 1]*0.65;
+sbslcolor = trackcolor;
+tt = [1 250];
+seqcolor = flipud(cbrewer('div','RdYlBu',32));
+figure; maximize(); pause(0.5);
+
+ax3 = subplot(121);
+run.animate_field('eddye', ax3, tt(1), 1);
+limx = xlim;
+plot(run.eddy.mx/1000, run.eddy.my/1000, 'Color', trackcolor);
+plot(run.eddy.mx(tt(1))/1000, run.eddy.my(tt(1))/1000, 'x', ...
+     'MarkerSize', ms, 'Color', trackcolor);
+text(0.15*diff(limx), run.bathy.xsl/1000, 'slopebreak', ...
+     'VerticalAlignment', 'Bottom', 'FontSize', fontSize(1)-4, ...
+     'Color', sbslcolor);
+text(0.15*diff(limx), run.bathy.xsb/1000, 'shelfbreak', ...
+     'VerticalAlignment', 'Top', 'FontSize', fontSize(1)-4, ...
+     'Color', sbslcolor);
+title('Dyes and SSH'); caxis([-1 1]); beautify(fontSize);
+colormap(ax3,seqcolor);
+correct_ticks('y',[],[3 6]);
+
+ax4 = subplot(122);
+run.animate_field('eddye', ax4, tt(2), 1);
+plot(run.eddy.mx/1000, run.eddy.my/1000, 'Color', trackcolor);
+plot(run.eddy.mx(tt(2))/1000, run.eddy.my(tt(2))/1000, 'x', ...
+     'MarkerSize', ms, 'Color', trackcolor);
+caxis([-1 1]);
+colormap(ax4,seqcolor); beautify(fontSize);
+title('Dyes and SSH'); ylabel([]);
+ax4.YTickLabel = [];
+correct_ticks('y',[],[3 6]);
+
+export_fig('-r450','images/xymap-poster.png');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% y-z cross section
