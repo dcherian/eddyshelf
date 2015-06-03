@@ -839,7 +839,7 @@ function [diags, plotx] = print_diag(runArray, name)
             % add run names
             if name_points
                 text(plotx(ff), diags(ff), ptName, 'FontSize', ...
-                     10, 'Rotation', 0, 'Color', clr, ...
+                     16, 'Rotation', 0, 'Color', clr, ...
                      'VerticalAlignment','Bottom');
             end
             if ff == 1
@@ -881,20 +881,12 @@ function [diags, plotx] = print_diag(runArray, name)
         else
             pbaspect([1.618 1 1]);
         end
-        %beautify([18 18 20]);
-        %ax1.XColor = [1 1 1]; %ax1.YColor = [1 1 1];
-        if strcmpi(name, 'bottom torque')
-            if kozak
-                correct_ticks('x', '%.2f', []);
-                correct_ticks('y', '%.2f', 1);
-            end
-        end
 
         if strcmpi(name, 'shelf flux')
             figure(hfig);
             axis square;
         end
 
-        beautify([18 18 20]);
+        beautify([20 24 30]);
     end
 end
