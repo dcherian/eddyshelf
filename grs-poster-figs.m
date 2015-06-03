@@ -23,7 +23,7 @@ folders = { ...
     'runew-64361', 'runew-64361-2', ...
     'runew-64461-3', ...%'runew-64462', ...
     'runew-64461-4', 'runew-64461-5',...
-    'runew-64461-6', 'runew-64461-7', ...
+    'runew-64461-6', 'runew-64461-7', 'runew-64463-1', ...
     'runew-b4361', ...
     'runew-64351-cyc', 'runew-6341-fneg', ...
           };
@@ -36,7 +36,7 @@ if ~exist('run', 'var') || ~strcmpi(run.name, name)
     run = runs(['../topoeddy/run' name '/']);
 end
 fontSize = [22 24 30];
-ms = 14; % marker size
+ms = 18; % marker size
 trackcolor = [1 1 1]*0.65;
 sbslcolor = trackcolor;
 tt = [1 250];
@@ -49,7 +49,7 @@ run.animate_field('eddye', ax3, tt(1), 1);
 limx = xlim;
 plot(run.eddy.mx/1000, run.eddy.my/1000, 'Color', trackcolor);
 plot(run.eddy.mx(tt(1))/1000, run.eddy.my(tt(1))/1000, '.', ...
-     'MarkerSize', 2*ms, 'Color', trackcolor);
+     'MarkerSize', 1.5*ms, 'Color', trackcolor);
 plot(run.eddy.mx(tind)/1000, run.eddy.my(tind)/1000, 'x', ...
      'MarkerSize', ms, 'Color', trackcolor);
 text(0.15*diff(limx), run.bathy.xsl/1000, 'slopebreak', ...
@@ -66,7 +66,7 @@ ax4 = subplot(122);
 run.animate_field('eddye', ax4, tt(2), 1);
 plot(run.eddy.mx/1000, run.eddy.my/1000, 'Color', trackcolor);
 plot(run.eddy.mx(tt(2))/1000, run.eddy.my(tt(2))/1000, '.', ...
-     'MarkerSize', 2*ms, 'Color', trackcolor);
+     'MarkerSize', 1.5*ms, 'Color', trackcolor);
 plot(run.eddy.mx(tind)/1000, run.eddy.my(tind)/1000, 'x', ...
      'MarkerSize', ms, 'Color', trackcolor);
 caxis([-1 1]);
@@ -93,18 +93,21 @@ export_fig('images/grs-poster/ns-centrack.pdf');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% parameterization
+sl.filter = [1:sl.len]; sl.filter(end-1) = [];
 sl.print_diag('bottom torque');
 title([]); pause(1);
 set(gcf, 'renderer', 'opengl');
-correct_ticks('x', '%.2f', 2);
+correct_ticks('x', '%.2f', 6);
 correct_ticks('y', '%.2f', 2);
-export_fig('images/grs-poster/penetration-res-param.png');
+export_fig('-r250', 'images/grs-poster/penetration-res-param.png');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% energy decay
+%% energy decay - only KE
+sl.filter = [3 4 5 7 8 12]
 sl.plot_dEdt; maximize(); pause(1);
 subplot(121); title([]);
-pbaspect([1.618 1 1]); xlim([0 400]);
+ylim([0 1]);
+pbaspect([1.618 1 1]); xlim([0 200]);
 legend('off');
 ax = subplot(122); delete(ax);
 export_fig('images/grs-poster/energy-decay.pdf');
