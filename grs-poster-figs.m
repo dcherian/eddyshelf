@@ -109,6 +109,6 @@ sl.plot_dEdt; maximize(); pause(1);
 subplot(121); title([]);
 ylim([0 1]);
 pbaspect([1.618 1 1]); xlim([0 200]);
-legend('off');
+legend('off'); beautify([22 24 28]);
 ax = subplot(122); delete(ax);
 export_fig('images/grs-poster/energy-decay.pdf');
