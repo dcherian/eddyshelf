@@ -355,8 +355,8 @@ function [diags, plotx] = print_diag(runArray, name)
                 titlestr = ['tanh(t/T) at t = ' ...
                             num2str(run.traj.tcrit) 'T'];
             else
-                nsmooth = 6;
-                factor = 1/4;
+                nsmooth = 10;
+                factor = 1/3;
                 [~,~,tind] = run.locate_resistance(nsmooth, factor);
                 Y = run.eddy.my(tind) - run.bathy.xsb; ...
                     run.eddy.my(tind);
@@ -369,12 +369,14 @@ function [diags, plotx] = print_diag(runArray, name)
             t0 = 1; %run.eddy.tscaleind;
             titlestr = [titlestr ' | t0 = ' num2str(t0)];
 
-            Lz0 = Lz(t0); %*run.eddy.grfactor(1);
+            Lz0 = Lz(1); %*run.eddy.grfactor(1);
+            beta_t = (alpha*abs(fcen(tind))/Lz(tind));
 
-            diags(ff) = 1-erf(H./Lz0);
-            plotx(ff) = beta/(alpha*abs(f0)/Lz0);
-
-            errorbarflag = 0; kozak = 0;
+            zz = H./Lz0;
+            diags(ff) = (1-erf(zz)); %./((zz*(1-erf(zz)) + 1/sqrt(pi) * ...
+                                     %(1 - exp(-zz^2))));
+            plotx(ff) = beta/beta_t./(1-beta/beta_t);
+            errorbarflag = 0; kozak = 1;
             name_points = 1; line_45 = 0;
             slope = num2str(round(alpha*1e3));
 
@@ -398,7 +400,7 @@ function [diags, plotx] = print_diag(runArray, name)
                         clr = [27,158,119]/255;
                     else
                         clr = 'k';
-                        ptName = ''; [runName];
+                        ptName = ''; %[runName];
                     end
                 end
                 %ptName = num2str(err,2);
