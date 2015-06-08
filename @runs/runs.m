@@ -31,7 +31,7 @@ properties
     % bottom torque calculations
     bottom; angmom;
     % tanh trajectory fit
-    traj;
+    traj; res;
     % wnoise metric
     wmetric;
     % along-shore jet properties
@@ -5570,7 +5570,7 @@ methods
                 hplot{3} = liney(runs.bathy.xsl/1000,[], sbslcolor);
             else
                 hplot{2} = linex(runs.bathy.xsb/1000,[], sbslcolor);
-                hplot{3} = liney(runs.bathy.xsl/1000,[], sbslcolor);
+                hplot{3} = linex(runs.bathy.xsl/1000,[], sbslcolor);
             end
         end
     end
