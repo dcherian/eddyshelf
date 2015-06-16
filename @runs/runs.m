@@ -422,6 +422,17 @@ methods
             % remove needless h-matrix
             runs.eddy.h = [];
 
+            % calculate βL/f
+            dA = 1./runs.rgrid.pm' .* 1./runs.rgrid.pn';
+            betal = fillnan(runs.eddy.vormask, 0) .* ...
+                    abs(bsxfun(@minus, runs.rgrid.f(2:end-1,2:end-1)', ...
+                       permute(runs.eddy.fcen, [3 2 1])));
+            betaldA = bsxfun(@times, betal, dA(2:end-1,2:end-1));
+
+            runs.eddy.betahat = squeeze(nansum(nansum(betaldA, 1), 2))' ./ ...
+                runs.eddy.vor.area ./ runs.eddy.fcen';
+            runs.eddy.Rh = runs.eddy.Ro ./ runs.eddy.betahat;
+
             if isfield(runs.eddy, 'KE')
                 if size(runs.eddy.KE,1) == 1
                     runs.eddy.KE = runs.eddy.KE';
