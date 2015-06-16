@@ -35,7 +35,7 @@ function [] = plot_eddydiag(runArray)
     hfig8 = []; %figure; hold all;
 
     % x,y velocities
-    hfig9 = []; %figure; subplot(211); hold all; subplot(212); hold all;
+    hfig9 = figure; subplot(211); hold all; subplot(212); hold all;
 
     if isempty(runArray.filter)
         runArray.filter = 1:runArray.len;

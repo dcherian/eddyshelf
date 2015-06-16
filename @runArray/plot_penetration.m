@@ -34,7 +34,7 @@ function [] = plot_penetration(runArray, ax, choices)
 
     % shelfbreak label options
     txtfactor = 0.15;
-    fontsize = 16;
+    fontsize = 22;
 
     corder_backup = runArray.sorted_colors;
 
@@ -207,6 +207,10 @@ function [] = plot_penetration(runArray, ax, choices)
         if xnorm == run.eddy.vor.dia(1)/2
             xlabel(['(X - ' x0str ')/(initial radius)']);
         end
+    end
+
+    if ynorm == 1
+        axis square; return;
     end
 
     if run.bathy.axis == 'y'

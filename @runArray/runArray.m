@@ -430,6 +430,8 @@ classdef runArray < handle
                 ndtime = run.eddy.t*86400 / run.eddy.turnover;
 
                 [~,~,tind] = run.locate_resistance;
+
+                plot(ndtime, run.eddy.cvx);
             end
 
             runArray.reset_colors(corder_backup);
