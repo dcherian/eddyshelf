@@ -93,9 +93,11 @@ function [] = plot_eddydiag(runArray)
                  'x', 'Color', colors(ff,:));
             subplot(2,1,2)
             ind = 1; % 0vor or SSH contour ρ criterion?
-            plot(ndtime, run.eddy.vol(:,ind), 'Color', colors(ff,:));
-            plot(ndtime(run.traj.tind), run.eddy.vol(run.traj.tind,ind), ...
-                 'x', 'Color', colors(ff,:));
+            if isfield(run.eddy, 'vol')
+                plot(ndtime, run.eddy.vol(:,ind), 'Color', colors(ff,:));
+                plot(ndtime(run.traj.tind), run.eddy.vol(run.traj.tind,ind), ...
+                     'x', 'Color', colors(ff,:));
+            end
         end
 
         % KE, PE
