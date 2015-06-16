@@ -95,6 +95,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         titlestr = 'SSH (m)';
 
         if strcmpi(name, 'zeta'), addzeta = 0; end
+        addcsdye = 0;
     end
 
     % read eddye if required
@@ -106,7 +107,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         end
         if addcsdye == 1
             varname = 'edcsdyesurf';
-            titlestr = 'Tracers';
+            titlestr = 'Red = eddy water | Blue = shelf/slope water';
         end
     end
 
@@ -263,6 +264,12 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     htext = text(0.05,0.9, ...
                  ['t = ' num2str(runs.time(ii)/86400, '%.0f') ' days'], ...
                  'Units', 'normalized');
+
+    if addcsdye
+        caxis([-1 1]*1.5);
+        colorbar('hide');
+        correct_ticks('y',[],[2 6]);
+    end
 
     % second plot
     if subplots_flag == 'x'
