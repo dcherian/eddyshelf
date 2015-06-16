@@ -49,6 +49,10 @@ function [xx,yy,tind] = locate_resistance(runs, nsmooth, factor)
     xx = runs.eddy.mx(tind);
     yy = runs.eddy.my(tind);
 
+    runs.res.xx = xx;
+    runs.res.yy = yy;
+    runs.res.tind = tind;
+
     if debug_plot
         figure;
         insertAnnotation('runArray.locate_resistance');
