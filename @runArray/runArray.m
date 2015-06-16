@@ -23,6 +23,8 @@ classdef runArray < handle
 
             if ~exist('reset', 'var'), reset = 0; end
 
+            if ~iscell(folders), folders = cellstr(folders); end
+
             runArray.array = runs.empty([length(folders) 0]);
             kk = 1;
             for ii = 1:length(folders)
@@ -51,7 +53,11 @@ classdef runArray < handle
         end
 
         function [] = add(runArray, dir)
-            len = runArray.len;
+            if ~isempty(runArray)
+                len = runArray.len;
+            else
+                len = 0;
+            end
 
             try
                 runArray.folders{len+1} = dir;
@@ -64,6 +70,8 @@ classdef runArray < handle
                 disp([dir ' did not work'])
                 disp(ME.message)
             end
+
+            runArray.filter = 1:runArray.len;
         end
 
         function [] = delete(runArray, index)
@@ -77,7 +85,10 @@ classdef runArray < handle
             runArray.name = ...
                 runArray.name(~cellfun('isempty',runArray.name));
             runArray.folders = ...
-                runArray.folders(~cellfun('isempty',runArray.folders));
+                runArray.folders(~cellfun('isempty', ...
+                                          runArray.folders));
+
+            runArray.filter = 1:runArray.len;
         end
 
         function [] = print_names(runArray)
