@@ -565,16 +565,18 @@ classdef runArray < handle
             end
             legend(hplt, names);
             subplot(121);
+            ylim([0 1.1]);
             ylabel('KE / KE_0');
             title(['Crosses at traj.tind. Values normalized by initial ' ...
                    'value']);
             xlabel('Time / Turnover time');
-            beautify;
+            beautify([22 24 28]);
 
             subplot(122);
+            ylim([0 1.1]);
             ylabel('PE / PE_0');
             xlabel('Time / Turnover time');
-            beautify;
+            beautify([22 24 28]);
 
             %packrows;
             runArray.reset_colors(corder_backup);
