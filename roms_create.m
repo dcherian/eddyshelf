@@ -807,14 +807,12 @@ if flags.eddy
                 sqrt(phys.N2);
     end
 
-    if ~flags.conststrat
-        figure;
-        plot(yrmat(1,:,1)/1000, -1*bathy.h(1,:));
-        ind = find_approx(bathy.h(1,:), eddy.depth);
-        linex(yrmat(1,ind,1)/1000); liney(-1*eddy.depth, 'eddy depth');
-        linex((yrmat(1,ind,1) - eddy.dia/2)/1000);
-        linex(bathy.xsb/1000);
-    end
+    figure;
+    plot(yrmat(1,:,1)/1000, -1*bathy.h(1,:));
+    ind = find_approx(bathy.h(1,:), eddy.depth);
+    linex(yrmat(1,ind,1)/1000); liney(-1*eddy.depth, 'eddy depth');
+    linex((yrmat(1,ind,1) - eddy.dia/2)/1000);
+    linex(bathy.xsb/1000);
 
     disp(['beta/beta_t = ' ...
          num2str(phys.beta * eddy.depth./bathy.sl_slope./phys.f0) ' | Continue?']);
