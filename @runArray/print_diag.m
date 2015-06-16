@@ -3,7 +3,7 @@ function [diags, plotx] = print_diag(runArray, name)
         runArray.filter = 1:runArray.len;
     end
 
-    if ~strcmpi(name, 'nondim')
+    if ~strcmpi(name, 'nondim') && ~strcmpi(name, 'beta gyre')
         plots = 1;
     else
         plots = 0;
@@ -319,6 +319,12 @@ function [diags, plotx] = print_diag(runArray, name)
             laby = 'dE/dt';
         end
 
+        %%%%% β gyre timescale
+        if strcmpi(name, 'beta gyre')
+            diags(ff) = (1./(beta .* Lx(1)))/run.eddy.turnover;
+            plotx(ff) = 0;
+        end
+
         %%%%% estimate slope for bottom torque balance
         if strcmpi(name, 'slope est')
             [slope,pbot,angmom] = syms_angmom(run);
@@ -454,6 +460,15 @@ function [diags, plotx] = print_diag(runArray, name)
 
                 % %title(paramstr, 'interpreter', 'latex');
             end
+        end
+
+        if strcmpi(name, 'btrq')
+            % β ∫∫∫ yu = αg (∫∫η + 1/ρ0 ∫∫∫ρ' )
+
+            [angmom,pbot] = run.estimate_bottrq;
+
+            diags(ff) = angmom;
+            plotx(ff) = pbot;
         end
 
         if strcmpi(name, 'velprofile')
