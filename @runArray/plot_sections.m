@@ -16,11 +16,12 @@ function [] = plot_sections(runArray, varname, ndtimes)
         nt = 1;
     end
 
-    cmap = cbrewer('seq','Reds',32);
+    cmap = cbrewer('div','RdYlBu', 32);
+    %cmap = cbrewer('seq','Reds',32);
 
     % multiple runs on same figure? set to 1
     % multiple timesteps on same figure? set to 0
-    runs_on_one_fig = 0;
+    runs_on_one_fig = 1;
 
     for tt = 1:nt
         if runs_on_one_fig
@@ -33,7 +34,7 @@ function [] = plot_sections(runArray, varname, ndtimes)
             name = runArray.getname(ff);
 
             if exist('ndtimes', 'var')
-                ndtime = run.time ./ run.tscale;
+                ndtime = run.ndtime;
                 % find required tindices
                 tind = vecfind(ndtime, ndtimes);
             else
@@ -43,8 +44,13 @@ function [] = plot_sections(runArray, varname, ndtimes)
 
             yscale = run.rrdeep;
             zscale = run.eddy.Lgauss(1);
-            ymat = repmat(run.rgrid.y_rho(:,1), [1 run.rgrid.N]);
-            zmat = run.rgrid.z_r(:,:,1)';
+            if strcmpi(varname, 'rho') || strcmpi(varname, 'u')
+                ymat = repmat(run.rgrid.y_rho(:,1), [1 run.rgrid.N]);
+                zmat = run.rgrid.z_r(:,:,1)';
+            else
+                ymat = repmat(run.rgrid.y_v(:,1), [1 run.rgrid.N]);
+                zmat = run.rgrid.z_v(:,:,1)';
+            end
 
             axind = sub2ind([nruns nt], ii,tt);
             if runs_on_one_fig
@@ -63,7 +69,17 @@ function [] = plot_sections(runArray, varname, ndtimes)
             pcolorcen((ymat-run.bathy.xsb)./run.rrdeep, ...
                       zmat./zscale, var);
             liney(-1*run.eddy.Lgauss(tind(tt))/zscale);
+
+            if ii == 1
+                clim = caxis;
+            else
+                caxis(clim);
+            end
+
             colormap(cmap); shading interp
+            if ~strcmpi(varname, 'rho')
+                center_colorbar;
+            end
 
             % overlay profile of initial eddy
             limy = xlim .* yscale; limz = ylim .* zscale;
@@ -99,7 +115,8 @@ function [] = plot_sections(runArray, varname, ndtimes)
             beautify([18 18 20]); box on;
 
             if runs_on_one_fig
-                title(['S_\alpha = ', num2str(run.bathy.S_sl)]);
+                %title(['S_\alpha = ', num2str(run.bathy.S_sl)]);
+                title(runArray.name{ii});
                 set(gca, 'TickDir', 'out');
                 set(gca, 'box', 'on');
                 set(gcf, 'renderer', 'zbuffer');
