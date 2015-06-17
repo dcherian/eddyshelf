@@ -130,6 +130,28 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         end
     end
 
+    % bottom velocities
+    if strcmpi(name, 'ubot')
+        if isempty(runs.ubot), runs.read_velbot; end
+        varname = 'ubot';
+        titlestr = 'Bottom u';
+    end
+    if strcmpi(name, 'vbot')
+        if isempty(runs.vbot), runs.read_velbot; end
+        varname = 'vbot';
+        titlestr = 'Bottom v';
+    end
+
+    % surface velocities
+    if strcmpi(name, 'u')
+        varname = 'usurf';
+        runs.read_velsurf(t0, ntimes);
+    end
+    if strcmpi(name, 'v')
+        varname = 'vsurf';
+        runs.read_velsurf(t0, ntimes);
+    end
+
     if isempty(titlestr)
         titlestr = ['Surface ' name];
     end
@@ -159,11 +181,6 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
             runs.eddsurf(:,:,tind) .* (runs.edcsdyesurf(:,:,tind) == 0);
     end
 
-    if strcmpi(name, 'u')
-        varname = 'usurf';
-        runs.read_velsurf(t0, ntimes);
-    end
-
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% actually plot
     if isempty(hax)
         figure;
@@ -185,6 +202,11 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     hz = runs.plot_surf(varname, 'pcolor', ii);
     hold on;
     colorbar; center_colorbar;
+
+    if strcmpi(name, 'ubot') || strcmpi(name, 'vbot')
+        eval(['cmax = max(abs(runs.' varname '(:)));']);
+        caxis([-1 1].*cmax);
+    end
 
     % bathy
     hbathy = runs.plot_bathy('contour', [1 1 1]*0.7);
