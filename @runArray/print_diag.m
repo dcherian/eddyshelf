@@ -579,7 +579,8 @@ function [diags, plotx] = print_diag(runArray, name)
             end
 
             ind = run.eddy.tscaleind;
-            transscl = 0.075 * 9.81/f0 .* run.eddy.amp(ind).* hsb/1000;
+            transscl = 0.075 * g/f0 .* run.eddy.amp(ind) .* hsb/1000;
+            %transscl = 0.035 * Lx(1) * V(1) * hsb / 1000;
 
             % flux vector for applicable time
             % convert everything to double since I'm
@@ -693,13 +694,13 @@ function [diags, plotx] = print_diag(runArray, name)
             figure(hfig_fluxerr)
             plot(run.eddy.Ro(tind), paramerr, '*');
 
-            errorbarflag = 1; name_points = 1; line_45 = 1;
+            errorbarflag = 1; name_points = 1; line_45 = 0;
             laby = 'Flux (mSv)';
             labx = 'Parameterization (mSv)';
 
             diags(ff) = avgflux/1000;
             error(ff) = err/1000;
-            plotx(ff) = transscl;
+            plotx(ff) =  Ls(1) * V(1) * run.bathy.hsb/1000; transscl;
         end
 
         %%%%%%%%%%%%%%%%%%%% deprecated
