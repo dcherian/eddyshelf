@@ -214,8 +214,8 @@ function [] = plot_eddydiag(runArray)
             subplot(212)
             plot(ndtime, run.eddy.cvy./run.eddy.V);
         end
-
     end
+    drawnow;
     if ~isempty(hfig1)
         figure(hfig1);
         subplot(2,1,1)
@@ -299,6 +299,7 @@ function [] = plot_eddydiag(runArray)
     if ~isempty(hfig9)
         figure(hfig9);
         subplot(211);
+        liney(0);
         ylabel('Center x-velocity / Eddy velocity scale');
         beautify;
 
