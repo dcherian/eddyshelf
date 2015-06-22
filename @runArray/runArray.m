@@ -426,16 +426,16 @@ classdef runArray < handle
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
-                name = runArray.name{ii};
+                names{ff} = runArray.name{ii};
                 ndtime = run.eddy.t*86400 / run.eddy.turnover;
 
                 [~,~,tind] = run.locate_resistance;
 
-                plot(ndtime, run.eddy.cvx);
+                hplt(ff) = plot(ndtime(1:tt), XXX);
             end
 
+            legend(hplt, names);
             runArray.reset_colors(corder_backup);
-
         end
 
         function [] = plot_test3(runArray)
@@ -502,6 +502,8 @@ classdef runArray < handle
             end
 
             legend(hplt, names);
+            xlabel('Non-dimensional time');
+            title('SSH of "wake cyclone"')
             runArray.reset_colors(corder_backup);
         end
 
