@@ -34,10 +34,16 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     % time series?
     enfluxplot = 0; % plot AS energy flux ?
     vecplot = 0; % plot some time vector (assign tvec and vec);
+    pointplot = 1; % mark some point on the map
 
     % extra contours
     addcsdye = 1; % add csdye to eddye plot?
     addzeta = 1; % overlay zeta contours
+
+    if pointplot
+        px = (runs.eddy.mx + runs.eddy.vor.dia(1))/1000;
+        py = runs.eddy.my/1000;
+    end
 
     if vecplot
         %%% integrated energy asflux
@@ -254,6 +260,9 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         liney([runs.params.grid.iyp],'telescope','w');
     end
 
+    % mark point
+    hpt = plot(px(ii), py(ii), 'kx', 'MarkerSize', 22);
+
     % misc stuff
     ht = runs.set_title(titlestr,ii);
     xlabel('X (km)');ylabel('Y (km)');
@@ -418,6 +427,11 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
             if addzeta
                 runs.update_surf('zeta', hzeta, ii);
+            end
+
+            if pointplot
+                hpt.XData = px(ii);
+                hpt.YData = py(ii);
             end
 
             if drawcenter
