@@ -566,6 +566,30 @@ classdef runArray < handle
             runArray.reset_colors(corder_backup);
         end
 
+        function [] = plot_dhdt(runArray)
+
+            corder_backup = runArray.sorted_colors;
+
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            hf = figure; hold all
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
+                run = runArray.array(ii);
+                names{ff} = runArray.name{ii};
+                ndtime = run.eddy.t*86400 / run.eddy.turnover;
+
+                [~,~,tind] = run.locate_resistance;
+
+                hplt(ff) = plot(ndtime(1:tt), run.eddy.Lgauss);
+            end
+
+            legend(hplt, names);
+            runArray.reset_colors(corder_backup);
+        end
+
         function [] = plot_dEdt(runArray)
             if isempty(runArray.filter)
                 runArray.filter = 1:runArray.len;
