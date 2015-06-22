@@ -215,7 +215,8 @@ function [] = plot_eddydiag(runArray)
             plot(ndtime, run.eddy.cvy./run.eddy.V);
         end
     end
-    drawnow;
+
+    drawnow; pause(1);
     if ~isempty(hfig1)
         figure(hfig1);
         subplot(2,1,1)

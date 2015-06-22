@@ -3,7 +3,8 @@ function [diags, plotx] = print_diag(runArray, name)
         runArray.filter = 1:runArray.len;
     end
 
-    if ~strcmpi(name, 'nondim') && ~strcmpi(name, 'beta gyre')
+    if ~strcmpi(name, 'nondim') && ~strcmpi(name, 'beta gyre') ...
+            && ~strcmpi(name, 'bfric')
         plots = 1;
     else
         plots = 0;
@@ -11,6 +12,7 @@ function [diags, plotx] = print_diag(runArray, name)
 
     annostr = ['runArray.print_diag(' name ')'];
     diags = nan(size(runArray.filter));
+    plotx = diags;
 
     if plots
         hfig = figure;
@@ -24,7 +26,7 @@ function [diags, plotx] = print_diag(runArray, name)
         kozak = 0; % fancy Kozak scatterplot
         labx = ' '; laby = ' ';
         clr = 'k';
-        plotx = []; error = [];
+        error = [];
         titlestr = name;
     end
 
@@ -317,6 +319,13 @@ function [diags, plotx] = print_diag(runArray, name)
             plotx(ff) = run.topowaves; labx = 'cg (m/s)';
             %plotx(ff) = run.eddy.Ro(1)./run.bathy.S_sl; labx = 'Ro/S_\alpha';
             laby = 'dE/dt';
+        end
+
+        %%%%% bottom friction
+        if strcmpi(name, 'bfric')
+            rdrg = run.params.misc.rdrg;
+            tscale = 1./(beta.*Lx(1));
+            diags(ff) = rdrg./hcen(1) .* tscale;
         end
 
         %%%%% β gyre timescale
