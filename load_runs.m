@@ -317,18 +317,17 @@ folders = { ...
     ... %'runew-34', 'runew-5341', 'runew-5343'
     ... %'runew-6341', 'runew-56341', 'runew-56341-2', ...
     'runew-64361', 'runew-564361', 'runew-564361-2', ...
+    'runew-64361-fb', 'runew-564361-fb', ...
     'runew-64461-3', 'runew-5644613-1/', ...
           };
 bfrics = runArray(folders);
+bfrics.filter = [];
+diags = bfrics.print_diag('bfric');
 for ii=1:bfrics.len
     run = bfrics.array(ii);
     tind = find_approx(run.eddy.t/run.eddy.tscale*86400, 1);
     %bfrics.name{ii} = num2str(bfrics.array(ii).params.misc.rdrg);
-    bfrics.name{ii} = [num2str(bfrics.array(ii).params.misc.rdrg) ' m/s'];
-end
-
-for ii=1:bfrics.len
-    bfrics.array(ii).csfluxes;
+    bfrics.name{ii} = num2str(diags(ii));
 end
 
 figure;
