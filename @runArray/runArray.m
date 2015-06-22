@@ -468,6 +468,43 @@ classdef runArray < handle
             runArray.reset_colors(corder_backup);
         end
 
+        function [] = plot_zetacyc(runArray)
+
+            corder_backup = runArray.sorted_colors;
+
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            hf = figure; hold all
+            insertAnnotation('runArray.plot_zetacyc');
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
+                run = runArray.array(ii);
+                names{ff} = runArray.name{ii};
+                ndtime = run.eddy.t*86400 / run.eddy.turnover;
+
+                [~,~,tind] = run.locate_resistance;
+
+                run.read_zeta;
+
+                zz = nan(size(ndtime));
+                for tt=1:size(run.zeta,3)
+                    ix = vecfind(run.rgrid.x_rho(1,:), ...
+                                 run.eddy.vor.ee(tt) + ...
+                                 run.eddy.vor.dia(1));
+                    iy = vecfind(run.rgrid.y_rho(:,1), ...
+                                 run.eddy.my(tt));
+                    zz(tt) = run.zeta(ix,iy,tt);
+                end
+
+                hplt(ff) = plot(ndtime(1:tt), zz);
+            end
+
+            legend(hplt, names);
+            runArray.reset_colors(corder_backup);
+        end
+
         function [] = check_fittraj(runArray)
 
             %corder_backup = runArray.sorted_colors;
