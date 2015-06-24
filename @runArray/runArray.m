@@ -431,7 +431,9 @@ classdef runArray < handle
 
                 [~,~,tind] = run.locate_resistance;
 
-                hplt(ff) = plot(ndtime(1:tt), XXX);
+                vec = run.eddy.mass(:,1);
+                hplt(ff) = plot(ndtime, vec);
+                plot(ndtime(tind), vec(tind), 'kx');
             end
 
             legend(hplt, names);
@@ -583,7 +585,8 @@ classdef runArray < handle
 
                 [~,~,tind] = run.locate_resistance;
 
-                hplt(ff) = plot(ndtime(1:tt), run.eddy.Lgauss);
+                hplt(ff) = plot(ndtime, run.eddy.Lgauss);
+                plot(ndtime(tind), run.eddy.Lgauss(tind), 'kx');
             end
 
             legend(hplt, names);
@@ -608,20 +611,22 @@ classdef runArray < handle
                 %run.fit_traj();
                 run.traj = [];
 
+                loc = 2;
+
                 names{kk} = runArray.getname(ii);
                 [~,~,tind] = run.locate_resistance();
                 tvec = run.time/run.eddy.turnover;
 
                 subplot(121)
-                vec = run.eddy.KE(:,1);
+                vec = run.eddy.KE(:,loc);
                 %hplt(ff) = plot(avg1(tvec), ...
                 %                smooth(diff(vec)./diff(tvec')./vec(1),30));
-                hplt(kk) = plot(tvec, vec./vec(1), 'Color', [1 1 1]*0.5);
+                hplt(kk) = plot(tvec, vec./vec(1)); %, 'Color', [1 1 1]*0.5);
                 plot(tvec(tind), vec(tind)./vec(1), 'kx');
 
                 subplot(122)
-                vec = run.eddy.PE(:,1);
-                plot(tvec, vec./vec(1), 'Color', [1 1 1]*0.5);
+                vec = run.eddy.PE(:,loc);
+                plot(tvec, vec./vec(1)) %, 'Color', [1 1 1]*0.5);
                 %hplt(ff) = plot(avg1(tvec), ...
                 %                smooth(diff(vec)./diff(tvec')./vec(1),30));
                 plot(tvec(tind), vec(tind)./vec(1), 'kx');

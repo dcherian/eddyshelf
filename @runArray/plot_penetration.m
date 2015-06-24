@@ -78,6 +78,8 @@ function [] = plot_penetration(runArray, ax, choices)
             tinds = [];
         end
 
+        [~,~,tind] = run.locate_resistance;
+
         % normalization for axes
         xnorm = run.eddy.vor.dia(1)/2;
         ynorm = run.eddy.vor.dia(1)/2; run.eddy.my(1) - run.bathy.xsb;

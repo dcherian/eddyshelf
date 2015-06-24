@@ -17,8 +17,8 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     end
 
     % eddy contours?
-    rhocontourplot = 0; % plot eddy drho contour too?
-    vorcontourplot = 0; % vorticity contour
+    rhocontourplot = 1; % plot eddy drho contour too?
+    vorcontourplot = 1; % vorticity contour
     sshplot = 0; % plot ssh-contour too?
     dyeplot = 0; % plot eddye contour too?
 
