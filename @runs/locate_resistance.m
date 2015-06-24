@@ -46,6 +46,11 @@ function [xx,yy,tind] = locate_resistance(runs, nsmooth, factor)
     tind = find(vv > 0, 1, 'first');
     tind = tind + imin;
 
+    if tind >= (length(runs.eddy.my)-10)
+        disp(['WARNING: ' runs.name ' - Location within ten timesteps ' ...
+                            'of end']);
+    end
+
     xx = runs.eddy.mx(tind);
     yy = runs.eddy.my(tind);
 
