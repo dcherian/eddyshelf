@@ -131,10 +131,10 @@ function [] = plot_eddye(runs, days)
                                   {bathyax loc loc}, [], runs.rgrid, 'his');
 
             ax3(ii) = subplot(1, nt, ii);
-            contourf(yz/1000, zmat, zd-zback);
+            contourf(yz, zmat, zd-zback);
             shading flat;
             hold on
-            contour(yz/1000, zmat, ed, 1, 'k', ...
+            contour(yz, zmat, ed, 1, 'k', ...
                     'LineWidth', 2);
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
             colorbar;
@@ -152,9 +152,9 @@ function [] = plot_eddye(runs, days)
 
             ax4(ii) = subplot(1, nt, ii);
             if runs.bathy.axis == 'y'
-                contourf(yz/1000, zmat, u);
+                contourf(yz, zmat, u);
             else
-                contourf(yz(2:end-1,:)/1000, zmat(2:end-1,:), avg1(u,1));
+                contourf(yz(2:end-1,:), zmat(2:end-1,:), avg1(u,1));
             end
             shading flat;
             hold all
@@ -165,9 +165,17 @@ function [] = plot_eddye(runs, days)
             %         'Color', [1 1 1]*0.3, 'LineWidth', 2);
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
             colorbar; center_colorbar;
+
+            if exist('hf2', 'var')
+                contour(yz, zmat, drho, ...
+                        [1 1]* runs.eddy.drhothreshssh(1), ...
+                        'Color', [1 1 1]*0, 'LineWidth', 2);
+            end
+
             caxis( [-1 1] * max(abs(u(:))));
             title(['day' num2str(days(ii))]);
             xlabel([upper(runs.bathy.axis) '(km)']);
+
             if plot_pbot
                 pbvec = pb.pbot(iloc,:,tindices(ii));
                 pbvec = pbvec ./ max(abs(pbvec(:)));
@@ -183,9 +191,9 @@ function [] = plot_eddye(runs, days)
                                   {bathyax loc loc}, [], runs.rgrid, 'his');
             ax5(ii) = subplot(1, nt, ii);
             if runs.bathy.axis == 'y'
-                contourf(yz(2:end-1,:)/1000, zmat(2:end-1,:), avg1(v,1));
+                contourf(yz(2:end-1,:), zmat(2:end-1,:), avg1(v,1));
             else
-                contourf(yz/1000, zmat, v);
+                contourf(yz, zmat, v);
             end
             shading flat;
             hold on
@@ -193,6 +201,13 @@ function [] = plot_eddye(runs, days)
                     'LineWidth', 2);
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
             colorbar; center_colorbar;
+
+            if exist('hf2', 'var')
+                contour(yz, zmat, drho, ...
+                        [1 1]* runs.eddy.drhothresh(1), ...
+                        'Color', [1 1 1]*0, 'LineWidth', 2);
+            end
+            keyboard;
             xlabel([upper(runs.bathy.axis) '(km)']);
             caxis( [-1 1] * max(abs(v(:))));
             title(['day' num2str(days(ii))]);
