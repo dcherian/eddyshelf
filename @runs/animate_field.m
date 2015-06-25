@@ -104,6 +104,14 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         addcsdye = 0;
     end
 
+    if strcmpi(name, 'pbot')
+        if isempty(runs.pbot)
+            runs.read_pbot;
+        end
+        varname = 'pbot';
+        titlestr = 'Bottom pressure';
+    end
+
     % read eddye if required
     if (dyeplot && isempty(runs.eddsurf)) || strcmpi(name, 'eddye')
         runs.read_eddsurf(t0, ntimes);

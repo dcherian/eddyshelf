@@ -29,7 +29,7 @@ properties
     % eddy track data
     eddy; noeddy;
     % bottom torque calculations
-    bottom; angmom;
+    bottom; angmom; pbot;
     % tanh trajectory fit
     traj; res;
     % wnoise metric
@@ -979,6 +979,18 @@ methods
         liney(0);
         linex(tind);
         linkaxes(ax, 'x');
+    end
+
+    function [] = read_pbot(runs)
+        fname = [runs.dir '/mombudget.mat'];
+
+        if exist(fname, 'file')
+            temp = load(fname, 'pbot');
+            runs.pbot = temp.pbot;
+        else
+            error(['No mombudget.mat file. Run bottom_torque ' ...
+                   'first']);
+        end
     end
 
     function [] = read_zeta(runs, t0, ntimes)
@@ -5420,18 +5432,26 @@ methods
     function [hplot] = plot_surf(runs,varname,plottype,tt)
         if ~exist('tt','var'), tt = 1; end
 
-        range = ['runs.spng.sx1:runs.spng.sx2,' ...
-                 'runs.spng.sy1:runs.spng.sy2'];
+        if ~strcmpi(varname, 'pbot')
+            range = ['runs.spng.sx1:runs.spng.sx2,' ...
+                     'runs.spng.sy1:runs.spng.sy2'];
+            axrange  = range;
+            eval(['zend = runs.' varname '(' range ',end);']);
+        else
+            range = ':,:';
+            axrange = ['runs.spng.sx1+2:runs.spng.sx2-2,' ...
+                       'runs.spng.sy1+1:runs.spng.sy2-2'];
+            zend = runs.pbot(:,:,end);
+        end
 
-        eval(['zend = runs.' varname '(' range ',end);']);
         if ~isnan(zend)
             crange = double([min(zend(:)) max(zend(:))]);
             caxis(crange);
         end
 
         if strcmpi(plottype,'pcolor')
-            eval(['hplot = pcolor(runs.rgrid.xr(' range ')/1000,' ...
-                  'runs.rgrid.yr(' range ')/1000,' ...
+            eval(['hplot = pcolor(runs.rgrid.xr(' axrange ')/1000,' ...
+                  'runs.rgrid.yr(' axrange ')/1000,' ...
                   'double(runs.' varname '(' range ',tt)));']);
             if runs.makeVideo
                 shading interp;
@@ -5454,10 +5474,19 @@ methods
         end
     end
     function update_surf(runs,varname,handle,tt)
-        range = ['runs.spng.sx1:runs.spng.sx2,' ...
-                 'runs.spng.sy1:runs.spng.sy2'];
 
-        eval(['zend = runs.' varname '(' range ',end);']);
+        if ~strcmpi(varname, 'pbot')
+            range = ['runs.spng.sx1:runs.spng.sx2,' ...
+                     'runs.spng.sy1:runs.spng.sy2'];
+            axrange  = range;
+            eval(['zend = runs.' varname '(' range ',end);']);
+        else
+            range = ':,:';
+            axrange = ['runs.spng.sx1+2:runs.spng.sx2-2,' ...
+                       'runs.spng.sy1+1:runs.spng.sy2-2'];
+            zend = runs.pbot(:,:,end);
+        end
+
         if ~isnan(zend)
             crange = double([min(zend(:)) max(zend(:))]);
         end
