@@ -166,230 +166,239 @@ function [] = bottom_torque(runs)
     ipstrat = squeeze(sum(avg1(pstrat,3) .* dzmat0, 3));
     clear dzmat0;
 
-    % read data from start
-    pbot = (nan(size(zeta)));
-    AM = pbot; ipres = pbot;
-    masku = logical(zeros(size(zeta)));
-    maskp = masku;
+    if exist([runs.dir '/mombudget.mat'], 'file')
+        choice = input('mombudget.mat found. Recalculate? ');
+    else
+        choice = 1;
+    end
 
-    keyboard;
+    if choice
+        % read data from start
+        pbot = (nan(size(zeta)));
+        AM = pbot; ipres = pbot;
+        masku = logical(zeros(size(zeta)));
+        maskp = masku;
 
-    for i=0:iend-1
-        disp(['==== Iteration : ' num2str(i+1) '/' num2str(iend)  ...
-                   ' ====']);
+        for i=0:iend-1
+            disp(['==== Iteration : ' num2str(i+1) '/' num2str(iend)  ...
+                  ' ====']);
 
-        tstart = tindices(1) + i*slab*dt;
-        tend = tindices(1) -1 + (i+1)*slab*dt;
+            tstart = tindices(1) + i*slab*dt;
+            tend = tindices(1) -1 + (i+1)*slab*dt;
 
-        % now read density and eddye fields
-        rho = dc_roms_read_data(hisname, 'rho', [tstart tend], volumer, [], ...
-                                runs.rgrid, 'his') + 1000;
+            % now read density and eddye fields
+            rho = dc_roms_read_data(hisname, 'rho', [tstart tend], volumer, [], ...
+                                    runs.rgrid, 'his') + 1000;
 
-        tsave = (1+i*slab) + (0:size(rho,4)-1);
-        assert(size(rho,4) == length(tsave));
+            tsave = (1+i*slab) + (0:size(rho,4)-1);
+            assert(size(rho,4) == length(tsave));
 
-        % pretty certain that this is correct. zwmat equals zeta at
-        % surface and H at bottom.
-        if flags.use_time_varying_dz
-            tic;
-            disp('Calculating time varying dz');
-            zwmat = (nan(size(rho) + [0 0 1 0]));
-            if flags.use_prsgrd
-                zrmat = (nan(size(rho)));
-            end
-            for tt=1:size(rho,4)
-                zwmat(:,:,:,tt) = (( ...
-                    set_depth(2,4,runs.rgrid.theta_s,runs.rgrid.theta_b, ...
-                                runs.rgrid.Tcline,runs.rgrid.N,5,H,...
-                                zeta(:,:,tsave(tt)), 0)));
+            % pretty certain that this is correct. zwmat equals zeta at
+            % surface and H at bottom.
+            if flags.use_time_varying_dz
+                tic;
+                disp('Calculating time varying dz');
+                zwmat = (nan(size(rho) + [0 0 1 0]));
                 if flags.use_prsgrd
-                    zrmat(:,:,:,tt) = (( ...
-                        set_depth(2,4,runs.rgrid.theta_s,runs.rgrid.theta_b, ...
-                                    runs.rgrid.Tcline,runs.rgrid.N,1,H,...
-                                    zeta(:,:,tsave(tt)), 0)));
+                    zrmat = (nan(size(rho)));
                 end
+                for tt=1:size(rho,4)
+                    zwmat(:,:,:,tt) = (( ...
+                        set_depth(2,4,runs.rgrid.theta_s,runs.rgrid.theta_b, ...
+                                    runs.rgrid.Tcline,runs.rgrid.N,5,H,...
+                                    zeta(:,:,tsave(tt)), 0)));
+                    if flags.use_prsgrd
+                        zrmat(:,:,:,tt) = (( ...
+                            set_depth(2,4,runs.rgrid.theta_s,runs.rgrid.theta_b, ...
+                                        runs.rgrid.Tcline,runs.rgrid.N,1,H,...
+                                        zeta(:,:,tsave(tt)), 0)));
+                    end
+                end
+                toc;
             end
-            toc;
-        end
 
-        %%%%%%% first, bottom pressure
-        % this version is crappy.
-        %irhofull = flipdim(cumsum(flipdim( (rho) .* diff(zwmat,1,3), ...
-        %                                         3),3),3);
+            %%%%%%% first, bottom pressure
+            % this version is crappy.
+            %irhofull = flipdim(cumsum(flipdim( (rho) .* diff(zwmat,1,3), ...
+            %                                         3),3),3);
 
-        % avoid some roundoff errors?
-        % p = g/ρ0 * (ρ0 *(η-z) + ∫ (ρ-ρ0) dz from z to η)
-        irhoanom = flipdim(cumsum(flipdim( (rho-rho0) .* diff(zwmat,1,3), ...
-                                           3),3),3);
-        pres = g./rho0 .*(bsxfun(@plus, rho0 .* ...
+            % avoid some roundoff errors?
+            % p = g/ρ0 * (ρ0 *(η-z) + ∫ (ρ-ρ0) dz from z to η)
+            irhoanom = flipdim(cumsum(flipdim( (rho-rho0) .* diff(zwmat,1,3), ...
+                                               3),3),3);
+            pres = g./rho0 .*(bsxfun(@plus, rho0 .* ...
                                      permute(zeta(:,:,tsave), [1 2 4 3]), ...
                                      irhoanom));
 
-        % bottom pressure anomaly
-        pbot(:,:,tsave) = (bsxfun(@minus, squeeze(pres(:,:,1,:)), ...
-                                        pstrat(:,:,1,:)));
-        % integrated pressure anomaly
-        pres(:,:,end+1,:) = 0;
-        ipres(:,:,tsave) = bsxfun(@minus, ...
-                                  squeeze(sum(avg1(pres,3) .* diff(zwmat,1,3), 3)), ...
-                                  ipstrat);
-        pres(:,:,end,:) = [];
+            % bottom pressure anomaly
+            pbot(:,:,tsave) = (bsxfun(@minus, squeeze(pres(:,:,1,:)), ...
+                                      pstrat(:,:,1,:)));
+            % integrated pressure anomaly
+            pres(:,:,end+1,:) = 0;
+            ipres(:,:,tsave) = bsxfun(@minus, ...
+                                      squeeze(sum(avg1(pres,3) .* diff(zwmat,1,3), 3)), ...
+                                      ipstrat);
+            pres(:,:,end,:) = [];
 
-        % agrees with above!
-        %irhoanom(:,:,end+1,:) = 0;
-        %IRp = g./rho0 .* squeeze(sum(avg1(irhoanom,3) .* diff(zwmat,1,3), 3));
-        %ipres2(:,:,tsave) = g*zeta(:,:,tsave) .* ...
-        %    bsxfun(@plus, zeta(:,:,tsave), H) + bsxfun(@minus, IRp , 0);
-        %irhoanom(:,:,end,:) = [];
-        % agrees well with pres(:,:,1,:)
-        %pbot2(:,:,tsave) = bsxfun(@plus, g.*permute(zeta(:,:,tsave), [1 2 4 3]), ...
-        %                        g./rho0 .* sum( (rho-rho0).* ...
-        %                                        diff(zwmat,1,3), 3));
+            % agrees with above!
+            %irhoanom(:,:,end+1,:) = 0;
+            %IRp = g./rho0 .* squeeze(sum(avg1(irhoanom,3) .* diff(zwmat,1,3), 3));
+            %ipres2(:,:,tsave) = g*zeta(:,:,tsave) .* ...
+            %    bsxfun(@plus, zeta(:,:,tsave), H) + bsxfun(@minus, IRp , 0);
+            %irhoanom(:,:,end,:) = [];
+            % agrees well with pres(:,:,1,:)
+            %pbot2(:,:,tsave) = bsxfun(@plus, g.*permute(zeta(:,:,tsave), [1 2 4 3]), ...
+            %                        g./rho0 .* sum( (rho-rho0).* ...
+            %                                        diff(zwmat,1,3), 3));
 
-        % drho = bsxfun(@minus, rho, mean(rho,1));
-        % dpres = bsxfun(@minus, pres, pres(end,:,:,:));
-        % ix = 1; (tsave(tt)) + 0;
-        % tt = 5; figure;
-        % ax(1) = subplot(121);
-        % zmat = squeeze(avg1(zwmat(ix,:,:,tt), 3));
-        % ymat = repmat(yvec',[1 size(zmat,2)])/1000;
-        % contourf(ymat, zmat, squeeze(rho(ix,:,:,tt)), 30);
-        % %caxis([min(drho(:)) max(drho(:))]);
-        % %center_colorbar;
-        % ax(2) = subplot(122);
-        % contourf(ymat, zmat, squeeze(eddye(ix,:,:,tt)), 30);
-        % center_colorbar;
-        % linkaxes(ax,'xy');
+            % drho = bsxfun(@minus, rho, mean(rho,1));
+            % dpres = bsxfun(@minus, pres, pres(end,:,:,:));
+            % ix = 1; (tsave(tt)) + 0;
+            % tt = 5; figure;
+            % ax(1) = subplot(121);
+            % zmat = squeeze(avg1(zwmat(ix,:,:,tt), 3));
+            % ymat = repmat(yvec',[1 size(zmat,2)])/1000;
+            % contourf(ymat, zmat, squeeze(rho(ix,:,:,tt)), 30);
+            % %caxis([min(drho(:)) max(drho(:))]);
+            % %center_colorbar;
+            % ax(2) = subplot(122);
+            % contourf(ymat, zmat, squeeze(eddye(ix,:,:,tt)), 30);
+            % center_colorbar;
+            % linkaxes(ax,'xy');
 
-        % figure;
-        % % interpolate to depths
-        % zint = flip(-400:20:-100);
-        % for kk=1:length(zint)
-        %     for jj=1:size(pres,2)
-        %         zvec = avg1(squeeze(zwmat(imx(tsave(tt))+dx,jj,:,tt)));
-        %         pvec = squeeze(pres(imx(tsave(tt))+dx,jj,:,tt));
-        %         pint(jj,kk) = interp1(zvec, pvec, zint(kk));
-        %     end
-        % end
-        % plot(yvec/1000, bsxfun(@minus, pint, pint(end,:)));
-        % %plot(yvec/1000, squeeze(dpres(imx(tsave(tt))+dx,:,1:15, ...
-        % %                             tt)));
-        % liney(0);linex([runs.bathy.xsb runs.bathy.xsl]/1000);
-        % linex(runs.eddy.my(tsave(tt))/1000);
+            % figure;
+            % % interpolate to depths
+            % zint = flip(-400:20:-100);
+            % for kk=1:length(zint)
+            %     for jj=1:size(pres,2)
+            %         zvec = avg1(squeeze(zwmat(imx(tsave(tt))+dx,jj,:,tt)));
+            %         pvec = squeeze(pres(imx(tsave(tt))+dx,jj,:,tt));
+            %         pint(jj,kk) = interp1(zvec, pvec, zint(kk));
+            %     end
+            % end
+            % plot(yvec/1000, bsxfun(@minus, pint, pint(end,:)));
+            % %plot(yvec/1000, squeeze(dpres(imx(tsave(tt))+dx,:,1:15, ...
+            % %                             tt)));
+            % liney(0);linex([runs.bathy.xsb runs.bathy.xsl]/1000);
+            % linex(runs.eddy.my(tsave(tt))/1000);
 
-        % removing mean zeta changes pbot by 1e-9 only.
-        % using p_η = gη -> p_η η_y = gη η_y ~ O(1e-8), so not
-        % much difference.
-        % trapezoidal integration makes no difference
-        %irhotrap = squeeze(sum(dzmat .* avg1(rho,3),3));
+            % removing mean zeta changes pbot by 1e-9 only.
+            % using p_η = gη -> p_η η_y = gη η_y ~ O(1e-8), so not
+            % much difference.
+            % trapezoidal integration makes no difference
+            %irhotrap = squeeze(sum(dzmat .* avg1(rho,3),3));
 
-        %%%%%%%%% now, angular momentum
-        ubar = dc_roms_read_data(hisname, 'ubar', [tstart tend], ...
-                                 volumer, [], runs.rgrid, 'his', 'single');
+            %%%%%%%%% now, angular momentum
+            ubar = dc_roms_read_data(hisname, 'ubar', [tstart tend], ...
+                                     volumer, [], runs.rgrid, 'his', 'single');
 
-        vbar = dc_roms_read_data(hisname, 'vbar', [tstart tend], ...
-                                 volumer, [], runs.rgrid, 'his', 'single');
+            vbar = dc_roms_read_data(hisname, 'vbar', [tstart tend], ...
+                                     volumer, [], runs.rgrid, 'his', 'single');
 
-        U = ubar .* bsxfun(@plus, zeta(:,:,tsave), H);
-        V = vbar .* bsxfun(@plus, zeta(:,:,tsave), H);
+            U = ubar .* bsxfun(@plus, zeta(:,:,tsave), H);
+            V = vbar .* bsxfun(@plus, zeta(:,:,tsave), H);
 
-        if flags.mom_budget
-            u = avg1(dc_roms_read_data(hisname, 'u', [tstart tend], ...
-                                       volumeu, [], runs.rgrid, 'his', ...
-                                       'double'),1);
-            v = avg1(dc_roms_read_data(hisname, 'v', [tstart tend], ...
-                                       volumev, [], runs.rgrid, 'his', ...
-                                       'double'),2);
+            if flags.mom_budget
+                u = avg1(dc_roms_read_data(hisname, 'u', [tstart tend], ...
+                                           volumeu, [], runs.rgrid, 'his', ...
+                                           'double'),1);
+                v = avg1(dc_roms_read_data(hisname, 'v', [tstart tend], ...
+                                           volumev, [], runs.rgrid, 'his', ...
+                                           'double'),2);
 
-            U2 = squeeze(sum(u.*u.*diff(zwmat,1,3),3));
-            V2 = squeeze(sum(v.*v.*diff(zwmat,1,3),3));
-            UV = squeeze(sum(u.*v.*diff(zwmat,1,3),3));
+                U2 = squeeze(sum(u.*u.*diff(zwmat,1,3),3));
+                V2 = squeeze(sum(v.*v.*diff(zwmat,1,3),3));
+                UV = squeeze(sum(u.*v.*diff(zwmat,1,3),3));
 
-            clear ubar vbar u v
+                clear ubar vbar u v
+            end
+
+            [~, AM(:,:,tsave)] = flowfun(xvec, yvec, U, V);
+
+            AM = single(AM);
+            % if i == 0
+            %     amcrit = amcrit .* squeeze(max(max(AM(:,:,1),[],1),[], ...
+            %                                    2));
+            % end
+
+            % get proper pressure & velocity regions
+            masku(:,:,tsave) = find_mask(AM(:,:,tsave), amcrit, imx(tsave), ...
+                                         imy(tsave));
+
+            if flags.mom_budget
+                f0U(:,:,tsave) = f0 .* U;
+                byU(:,:,tsave) = bsxfun(@times, U, bymat);
+
+                dvdt(:,:,tsave(2:end)-1) = bsxfun(@rdivide, diff(V,1,3), ....
+                                                  permute(diff(runs.time(tsave)), [3 1 2]));
+
+                duvdx(:,:,tsave) = bsxfun(@rdivide, diff(UV,1,1), diff(xvec));
+
+                dv2dy(:,:,tsave) = bsxfun(@rdivide, diff(V2,1,2), diff(yvec));
+
+                % f0U(tsave) = integrate(xvec, yvec, f0 .* U .* masku(:,:,tsave));
+                % byU(tsave) = integrate(xvec, yvec, masku(:,:,tsave) .* ...
+                %                        bsxfun(@times, U, bymat));
+
+                % dvdt(tsave(2:end)-1) = integrate(xvec, yvec, (avg1(masku(:,:,tsave),3)>0) .* ...
+                %                  bsxfun(@rdivide, diff(V,1,3), ....
+                %                         permute(diff(runs.time(tsave)), [3 1 ...
+                %                     2])))';
+
+                % duvdx(tsave) = integrate(avg1(xvec),yvec, ...
+                %                          bsxfun(@rdivide, ...
+                %                                 diff(UV,1,1), diff(xvec)) ...
+                %                          .* (avg1(masku(:,:,tsave),1)>0));
+
+                % dv2dy(tsave) = integrate(xvec,avg1(yvec), ...
+                %                          bsxfun(@rdivide, ...
+                %                                 diff(V2,1,2), diff(yvec)) ...
+                %                          .* (avg1(masku(:,:,tsave),2) > 0));
+
+                % duvdy(tsave) = integrate(xvec,avg1(yvec), ...
+                %                          bsxfun(@rdivide, ...
+                %                                 diff(UV,1,2), diff(yvec)) ...
+                %                          .* (avg1(masku(:,:,tsave),2) > 0));
+
+                % du2dx(tsave) = integrate(avg1(xvec),yvec, ...
+                %                          bsxfun(@rdivide, ...
+                %                                 diff(U2,1,1), diff(xvec)) ...
+                %                          .* (avg1(masku(:,:,tsave),1) > 0));
+
+            end
+
+            % somehow remove background gradient post-boundary layer adjustment
+            % if flags.subtract_edge % remove western / eastern edge signal
+            %     pres = bsxfun(@minus, pres, ...
+            %                   (pres(1,:,:,:) + pres(end,:,:,:))/2);
+            % end
+            % if flags.subtract_mean
+            %     % determine mean outside the AM contour
+            %     pmean = nanmean(fillnan(bsxfun(@times, pres, ...
+            %                                    permute(~masku(:,:,tsave), [1 2 4 3])), ...
+            %                             0), 1);
+            %     pres = bsxfun(@minus, pres, pmean);
+            % end
+            %if i == 0
+            %    pcrit = pcrit .* squeeze(max(max(ipres(:,:,1),[],1),[], ...
+            %                                   2));
+            %end
+
+            %maskp = masku;
+            % get proper pressure & velocity regions
+            %maskp(:,:,tsave) = find_mask(ipres(:,:,tsave), pcrit, imx(tsave), ...
+            %                             imy(tsave));
         end
 
-        [~, AM(:,:,tsave)] = flowfun(xvec, yvec, U, V);
+        clear rho zwmat dipdy pres
 
-        AM = single(AM);
-        % if i == 0
-        %     amcrit = amcrit .* squeeze(max(max(AM(:,:,1),[],1),[], ...
-        %                                    2));
-        % end
-
-        % get proper pressure & velocity regions
-        masku(:,:,tsave) = find_mask(AM(:,:,tsave), amcrit, imx(tsave), ...
-                                     imy(tsave));
-
-        if flags.mom_budget
-            f0U(:,:,tsave) = f0 .* U;
-            byU(:,:,tsave) = bsxfun(@times, U, bymat);
-
-            dvdt(:,:,tsave(2:end)-1) = bsxfun(@rdivide, diff(V,1,3), ....
-                                    permute(diff(runs.time(tsave)), [3 1 2]));
-
-            duvdx(:,:,tsave) = bsxfun(@rdivide, diff(UV,1,1), diff(xvec));
-
-            dv2dy(:,:,tsave) = bsxfun(@rdivide, diff(V2,1,2), diff(yvec));
-
-            % f0U(tsave) = integrate(xvec, yvec, f0 .* U .* masku(:,:,tsave));
-            % byU(tsave) = integrate(xvec, yvec, masku(:,:,tsave) .* ...
-            %                        bsxfun(@times, U, bymat));
-
-            % dvdt(tsave(2:end)-1) = integrate(xvec, yvec, (avg1(masku(:,:,tsave),3)>0) .* ...
-            %                  bsxfun(@rdivide, diff(V,1,3), ....
-            %                         permute(diff(runs.time(tsave)), [3 1 ...
-            %                     2])))';
-
-            % duvdx(tsave) = integrate(avg1(xvec),yvec, ...
-            %                          bsxfun(@rdivide, ...
-            %                                 diff(UV,1,1), diff(xvec)) ...
-            %                          .* (avg1(masku(:,:,tsave),1)>0));
-
-            % dv2dy(tsave) = integrate(xvec,avg1(yvec), ...
-            %                          bsxfun(@rdivide, ...
-            %                                 diff(V2,1,2), diff(yvec)) ...
-            %                          .* (avg1(masku(:,:,tsave),2) > 0));
-
-            % duvdy(tsave) = integrate(xvec,avg1(yvec), ...
-            %                          bsxfun(@rdivide, ...
-            %                                 diff(UV,1,2), diff(yvec)) ...
-            %                          .* (avg1(masku(:,:,tsave),2) > 0));
-
-            % du2dx(tsave) = integrate(avg1(xvec),yvec, ...
-            %                          bsxfun(@rdivide, ...
-            %                                 diff(U2,1,1), diff(xvec)) ...
-            %                          .* (avg1(masku(:,:,tsave),1) > 0));
-
-        end
-
-        % somehow remove background gradient post-boundary layer adjustment
-        % if flags.subtract_edge % remove western / eastern edge signal
-        %     pres = bsxfun(@minus, pres, ...
-        %                   (pres(1,:,:,:) + pres(end,:,:,:))/2);
-        % end
-        % if flags.subtract_mean
-        %     % determine mean outside the AM contour
-        %     pmean = nanmean(fillnan(bsxfun(@times, pres, ...
-        %                                    permute(~masku(:,:,tsave), [1 2 4 3])), ...
-        %                             0), 1);
-        %     pres = bsxfun(@minus, pres, pmean);
-        % end
-        %if i == 0
-        %    pcrit = pcrit .* squeeze(max(max(ipres(:,:,1),[],1),[], ...
-        %                                   2));
-        %end
-
-        %maskp = masku;
-        % get proper pressure & velocity regions
-        %maskp(:,:,tsave) = find_mask(ipres(:,:,tsave), pcrit, imx(tsave), ...
-        %                             imy(tsave));
+        hash = githash([mfilename('fullpath') '.m']);
+        save([runs.dir '/mombudget.mat'], 'f0U', 'byU', 'pbot', 'ipres', 'duvdx', ...
+             'dv2dy', 'AM', 'dvdt', 'hash');
+    else
+        load([runs.dir '/mombudget.mat']);
+        disp('Loaded from mombudget.mat');
     end
-
-    clear rho zwmat dipdy pres
-
-    hash = githash([mfilename('fullpath') '.m']);
-    save([runs.dir '/mombudget.mat'], 'f0U', 'byU', 'pbot', 'ipres', 'duvdx', ...
-         'dv2dy', 'AM', 'dvdt', 'hash');
 
     ipresfull = ipres;
     AMfull = AM;
@@ -399,11 +408,9 @@ function [] = bottom_torque(runs)
         vars = {'f0U','byU','pbot','ipres','duvdx','dv2dy','AM','dvdt'};
 
         for ii=1:length(vars)
-            eval([vars{ii} ' = bsxfun(@minus, ' vars{ii} ', ' vars{ii} '(end,:,:));']);
+            eval([vars{ii} ' = bsxfun(@minus, ' vars{ii} ', ' vars{ii} '(1,:,:));']);
         end
     end
-
-    keyboard;
 
     iU = cumtrapz(yvec, f0U/f0, 2); % crude streamfunction estimate
     %iV = cumtrapz(xvec, V, 1); % crude streamfunction estimate
@@ -490,7 +497,7 @@ function [] = bottom_torque(runs)
     bottom.dvdt = dvdtvec;
     bottom.pcrit = pcrit;
     bottom.amcrit = amcrit;
-    bottom.time = tvec .* ndt;
+    bottom.time = tvec;
     bottom.flags = flags;
 
     bottom.comment = ['(pressure, angmom) = volume integrated ' ...
@@ -519,8 +526,8 @@ function [] = bottom_torque(runs)
         t0 = 10;
         tt = t0;
         hp = pcolor(xvec, yvec, double(var(:,:,tt)'));
-        %caxis([-1 1]*1e-5);
-        cbfreeze;center_colorbar; shading flat; hold all;
+        caxis([-1 1]*1e-5);
+        center_colorbar; shading flat; hold all;
         plot(runs.eddy.mx, runs.eddy.my, 'k');
         hc = plot(runs.eddy.mx(tt), runs.eddy.my(tt), 'k*');
         plot(runs.eddy.mx, runs.eddy.my - runs.eddy.vor.dia/2, 'k');
