@@ -44,12 +44,12 @@ function [] = plot_sections(runArray, varname, ndtimes)
 
             yscale = run.rrdeep;
             zscale = run.eddy.Lgauss(1);
-            if strcmpi(varname, 'rho') || strcmpi(varname, 'u')
-                ymat = repmat(run.rgrid.y_rho(:,1), [1 run.rgrid.N]);
-                zmat = run.rgrid.z_r(:,:,1)';
-            else
+            if strcmpi(varname, 'v')
                 ymat = repmat(run.rgrid.y_v(:,1), [1 run.rgrid.N]);
                 zmat = run.rgrid.z_v(:,:,1)';
+            else
+                ymat = repmat(run.rgrid.y_rho(:,1), [1 run.rgrid.N]);
+                zmat = run.rgrid.z_r(:,:,1)';
             end
 
             axind = sub2ind([nruns nt], ii,tt);
@@ -59,11 +59,20 @@ function [] = plot_sections(runArray, varname, ndtimes)
                 ax(axind) = subplot(1,nt,tt);
             end
 
+            vol = {'x' num2str(run.eddy.mx(tind(tt))) ...
+                                    num2str(run.eddy.mx(tind(tt)))};
+
             % read in variable
+            if strcmpi(varname, 'rhoanom')
+                rback = dc_roms_read_data(run.dir, 'rho', 1, ...
+                                        {'x' 1 1}, [], run.rgrid, 'his');
+                varname = 'rho';
+            end
             var = dc_roms_read_data(run.dir, varname, tind(tt), ...
-                                   {'x' num2str(run.eddy.mx(tind(tt))) ...
-                                num2str(run.eddy.mx(tind(tt)))}, [], ...
-                                   run.rgrid, 'his');
+                                    vol, [], run.rgrid, 'his');
+            if exist('rback', 'var')
+                var = bsxfun(@minus, var, rback);
+            end
 
             % plot variable
             pcolorcen((ymat-run.bathy.xsb)./run.rrdeep, ...
@@ -116,7 +125,7 @@ function [] = plot_sections(runArray, varname, ndtimes)
 
             if runs_on_one_fig
                 %title(['S_\alpha = ', num2str(run.bathy.S_sl)]);
-                title(runArray.name{ii});
+                title(runArray.name{ff});
                 set(gca, 'TickDir', 'out');
                 set(gca, 'box', 'on');
                 set(gcf, 'renderer', 'zbuffer');
