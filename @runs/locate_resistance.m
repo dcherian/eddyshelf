@@ -8,7 +8,7 @@ function [xx,yy,tind] = locate_resistance(runs, nsmooth, factor)
     debug_plot = 0;
 
     if ~exist('factor', 'var'), factor = 1/4; end
-    if ~exist('nsmooth', 'var'), nsmooth = 6; end
+    if ~exist('nsmooth', 'var'), nsmooth = 10; end
     % number of points to smooth over.
     npts = (nsmooth*runs.eddy.turnover/86400);
 
