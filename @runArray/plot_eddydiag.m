@@ -10,7 +10,7 @@ function [] = plot_eddydiag(runArray)
     corder_backup = runArray.sorted_colors;
 
     % vertical scale
-    hfig1 = figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all
+    hfig1 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all
 
     % center track
     hfig2 = []; %figure; hold all;
@@ -45,7 +45,7 @@ function [] = plot_eddydiag(runArray)
         ii = runArray.filter(ff);
 
         run = runArray.array(ii);
-        asp = run.eddy.hcen./(run.eddy.vor.dia/2);
+        %asp = run.eddy.hcen./(run.eddy.vor.dia/2);
 
         %tscale = run.tscale; find_approx(asp, 0.5, 1);
         %ndtime = run.eddy.t/tscale * 86400;
@@ -132,12 +132,12 @@ function [] = plot_eddydiag(runArray)
             subplot(3,1,1)
             try
                 Rh = run.eddy.V./run.params.phys.beta./run.eddy.Ls.^2;
-                plot(ndtime, run.eddy.Ro);
+                plot(ndtime, run.eddy.rhossh.Ro);
             catch ME
                 warning('didn''t plot');
             end
             subplot(3,1,2)
-            hgplt5(ff) = plot(ndtime, run.eddy.Ls/1000);
+            hgplt5(ff) = plot(ndtime, run.eddy.rhossh.dia/2/1000);
             subplot(3,1,3)
             if ~isfield(run.params.nondim, 'S_sl')
                 run.params.nondim.S_sl = 0;
@@ -210,9 +210,9 @@ function [] = plot_eddydiag(runArray)
         if ~isempty(hfig9)
             figure(hfig9)
             subplot(211)
-            hgplt9(ff) = plot(ndtime, run.eddy.cvx./run.eddy.V);
+            hgplt9(ff) = plot(ndtime, run.eddy.rhovor.cvx./run.eddy.V(1));
             subplot(212)
-            plot(ndtime, run.eddy.cvy./run.eddy.V);
+            plot(ndtime, run.eddy.rhovor.cvy./run.eddy.V(1));
         end
     end
 
