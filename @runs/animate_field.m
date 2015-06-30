@@ -90,6 +90,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     if ~exist('ntimes', 'var'), ntimes = length(runs.time); end
     if ~exist('t0', 'var'), t0 = 1; end
+    if isempty(t0), [~,~,t0] = runs.locate_resistance; end
 
     ix = runs.spng.sx1:runs.spng.sx2;
     iy = runs.spng.sy1:runs.spng.sy2;
@@ -110,6 +111,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         end
         varname = 'pbot';
         titlestr = 'Bottom pressure';
+        addcsdye = 0;
     end
 
     % read eddye if required
@@ -269,7 +271,9 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     end
 
     % mark point
-    hpt = plot(px(ii), py(ii), 'kx', 'MarkerSize', 22);
+    if pointplot
+        hpt = plot(px(ii), py(ii), 'kx', 'MarkerSize', 22);
+    end
 
     % misc stuff
     ht = runs.set_title(titlestr,ii);
