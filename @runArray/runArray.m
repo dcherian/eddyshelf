@@ -173,6 +173,7 @@ classdef runArray < handle
 
             for ii=1:length(runArray.filter)
                 run = runArray.array(runArray.filter(ii));
+                [~,~,tind] = run.locate_resistance;
                 out = eval(['run.' command]);
                 if ~ischar(out)
                     out = num2str(out);
@@ -429,10 +430,20 @@ classdef runArray < handle
                 names{ff} = runArray.name{ii};
                 ndtime = run.eddy.t*86400 / run.eddy.turnover;
 
+                clear vec vec2
+
                 [~,~,tind] = run.locate_resistance;
 
-                vec = run.eddy.mass(:,1);
-                hplt(ff) = plot(ndtime, vec);
+                thresh = 0.2;
+                Tnorm = abs(bsxfun(@rdivide, run.eddy.T, ...
+                                   run.eddy.T(:,end)));
+                for tt=1:size(Tnorm,1)
+                    ind = find_approx(Tnorm(tt,:), thresh, 1);
+                    vec2(tt) = run.eddy.zT(tt,ind) * -1;
+                end
+                vec = vec2;
+                hplt = plot(ndtime, vec);
+                plot(ndtime, run.eddy.hcen);
                 plot(ndtime(tind), vec(tind), 'kx');
             end
 
@@ -447,8 +458,8 @@ classdef runArray < handle
 
             corder_backup = runArray.sorted_colors;
 
-            %figure; hold all;
-            %insertAnnotation('runArray.plot_test3');
+            figure; hold all;
+            insertAnnotation('runArray.plot_test3');
 
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
@@ -458,16 +469,69 @@ classdef runArray < handle
                 %tind = run.traj.tind;
                 [~,~,tind] = run.locate_resistance(10,1/2);
                 tvec = run.time/run.eddy.turnover;
-
-                run.animate_field('eddye', [], tind, 1);
-                title(names{ff});
-
-                %plot(tvec, run.eddy.Lgauss);
-                %plot(tvec(tind), run.eddy.Lgauss(tind), 'kx');
+                
+                vec = run.eddy.Vb;
+                plot(tvec, vec)
+                plot(tvec(tind), vec(tind), 'kx');
             end
             %legend(hplt, names);
 
             runArray.reset_colors(corder_backup);
+        end
+
+        function [] = plot_hT(runArray)
+        % Estimate vertical scale using ΔT at eddy center.
+            corder_backup = runArray.sorted_colors;
+
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            hf = figure; hold all
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
+                run = runArray.array(ii);
+                names{ff} = runArray.name{ii};
+                ndtime = run.eddy.t*86400 / run.eddy.turnover;
+
+                clear vec vec2
+
+                [~,~,tind] = run.locate_resistance;
+
+                thresh = 0.1;
+                Tnorm = abs(bsxfun(@rdivide, run.eddy.T, ...
+                                   run.eddy.T(:,end)));
+                for tt=1:size(Tnorm,1)
+                    ind = find_approx(Tnorm(tt,:), thresh, 1);
+                    vec2(tt) = run.eddy.zT(tt,ind);
+                end
+                vec = vec2;
+                hplt = plot(ndtime, vec);
+                %plot(ndtime, run.eddy.hcen);
+                plot(ndtime(tind), vec(tind), 'kx');
+            end
+
+            legend(hplt, names);
+            runArray.reset_colors(corder_backup);
+        end
+
+        function [] = plot_field(runArray, varname, tind)
+
+            n = length(runArray.filter);
+
+            if length(tind) == 1
+                tind = tind * ones([1 n]);
+            end
+
+            figure;
+            a = mod(n, 2) + 1;
+            for ff = 1:length(runArray.filter)
+                run = runArray.array(runArray.filter(ff));
+
+                tt = find_approx(run.ndtime, tind(ff));
+                hax = subplot(a,2,ff);
+                run.animate_field(varname, hax, tt, 1);
+            end
         end
 
         function [] = plot_zetacyc(runArray)
@@ -590,6 +654,7 @@ classdef runArray < handle
             end
 
             legend(hplt, names);
+            beautify;
             runArray.reset_colors(corder_backup);
         end
 
@@ -611,7 +676,7 @@ classdef runArray < handle
                 %run.fit_traj();
                 run.traj = [];
 
-                loc = 2;
+                loc = 1;
 
                 names{kk} = runArray.getname(ii);
                 [~,~,tind] = run.locate_resistance();
@@ -619,16 +684,12 @@ classdef runArray < handle
 
                 subplot(121)
                 vec = run.eddy.KE(:,loc);
-                %hplt(ff) = plot(avg1(tvec), ...
-                %                smooth(diff(vec)./diff(tvec')./vec(1),30));
                 hplt(kk) = plot(tvec, vec./vec(1)); %, 'Color', [1 1 1]*0.5);
                 plot(tvec(tind), vec(tind)./vec(1), 'kx');
 
                 subplot(122)
                 vec = run.eddy.PE(:,loc);
                 plot(tvec, vec./vec(1)) %, 'Color', [1 1 1]*0.5);
-                %hplt(ff) = plot(avg1(tvec), ...
-                %                smooth(diff(vec)./diff(tvec')./vec(1),30));
                 plot(tvec(tind), vec(tind)./vec(1), 'kx');
 
                 kk = kk+1;
