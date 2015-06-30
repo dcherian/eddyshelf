@@ -4,7 +4,7 @@ function [diags, plotx] = print_diag(runArray, name)
     end
 
     if ~strcmpi(name, 'nondim') && ~strcmpi(name, 'beta gyre') ...
-            && ~strcmpi(name, 'bfric')
+            && ~strcmpi(name, 'bfric') && ~strcmpi(name, 'hbl')
         plots = 1;
     else
         plots = 0;
@@ -324,8 +324,22 @@ function [diags, plotx] = print_diag(runArray, name)
         %%%%% bottom friction
         if strcmpi(name, 'bfric')
             rdrg = run.params.misc.rdrg;
-            tscale = 1./(beta.*Lx(1));
-            diags(ff) = rdrg./hcen(1) .* tscale;
+            tscale = run.eddy.turnover; 1./(beta.*Lx(1)); % [s]
+            ftscale = hcen(1)./rdrg; % [s]
+            diags(ff) = tscale./ftscale;
+            % this is correct.
+            % if tscale ≫  frictional tscale,
+            % friction will kill the wave.
+        end
+
+        if strcmpi(name, 'hbl')
+            vi = run.eddy.V(1);
+            s = run.bathy.S_sl;
+            N = sqrt(N2);
+            Ri = 0.4;
+
+            L = 1/2 * (-1 + sqrt(1 + 4*Ri*s^2));
+            diags(ff) = -vi/(s*N) * L;
         end
 
         %%%%% β gyre timescale
