@@ -21,7 +21,7 @@ function [] = plot_sections(runArray, varname, ndtimes)
 
     % multiple runs on same figure? set to 1
     % multiple timesteps on same figure? set to 0
-    runs_on_one_fig = 1;
+    runs_on_one_fig = 0;
 
     for tt = 1:nt
         if runs_on_one_fig
@@ -29,6 +29,10 @@ function [] = plot_sections(runArray, varname, ndtimes)
         end
 
         for ii = 1:nruns
+            if ~runs_on_one_fig
+                figure;
+            end
+
             ff = runArray.filter(ii);
             run = runArray.array(ff);
             name = runArray.getname(ff);
@@ -41,15 +45,19 @@ function [] = plot_sections(runArray, varname, ndtimes)
                 run.fit_traj(1.5);
                 tind = run.traj.tind;
             end
+            tind = ndtimes;
 
             yscale = run.rrdeep;
             zscale = run.eddy.Lgauss(1);
             if strcmpi(varname, 'v')
                 ymat = repmat(run.rgrid.y_v(:,1), [1 run.rgrid.N]);
                 zmat = run.rgrid.z_v(:,:,1)';
+                xloc = num2str(run.eddy.mx(tind(tt)) - ...
+                               run.eddy.vor.dia(tind(tt))/2);
             else
                 ymat = repmat(run.rgrid.y_rho(:,1), [1 run.rgrid.N]);
                 zmat = run.rgrid.z_r(:,:,1)';
+                xloc = num2str(run.eddy.mx(tind(tt)));
             end
 
             axind = sub2ind([nruns nt], ii,tt);
@@ -59,8 +67,7 @@ function [] = plot_sections(runArray, varname, ndtimes)
                 ax(axind) = subplot(1,nt,tt);
             end
 
-            vol = {'x' num2str(run.eddy.mx(tind(tt))) ...
-                                    num2str(run.eddy.mx(tind(tt)))};
+            vol = {'x' xloc xloc};
 
             % read in variable
             if strcmpi(varname, 'rhoanom')
