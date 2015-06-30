@@ -248,6 +248,12 @@ toc;
 
 fprintf('\n Initialization - %4.1f MB \n\n', monitor_memory_whos);
 
+%% Bottom drag
+if flags.rdrg
+    S.rdrg = bfric.rdrg0 + yrmat(:,:,1) * bfric.drdy;
+    write_params_to_ini(INI_NAME, bfric);
+end
+
 %% Bathymetry + Coriolis + more grid stuff
 % Coriolis with beta. f = f0 @ y=ymid
 fnew = phys.f0*ones(size(S.x_rho));
@@ -2069,7 +2075,15 @@ else
     ncwrite(GRID_NAME, 'y_v',         S.y_v);
     ncwrite(GRID_NAME, 'x_psi',       S.x_psi);
     ncwrite(GRID_NAME, 'y_psi',       S.y_psi);
-end,
+end
+% Spatially varying bottom drag?
+if flags.rdrg
+    nccreate(GRID_NAME, 'rdrag', 'Dimensions', {'xi_rho', 'eta_rho'});
+    ncwrite(GRID_NAME, 'rdrag', S.rdrg);
+end
+if flags.rdrg2
+    ncwrite(GRID_NAME, 'rdrag2', S.rdrg2);
+end
 fprintf('\n Grid stuff written \n');
 toc;
 
