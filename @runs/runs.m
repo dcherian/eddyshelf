@@ -984,9 +984,16 @@ methods
     function [] = read_pbot(runs)
         fname = [runs.dir '/mombudget.mat'];
 
+
+        imnx = runs.spng.sx1+2; imxx = runs.spng.sx2-2;
+        imny = 2; imxy = runs.spng.sy2-2;
+        slbot = diff(runs.rgrid.h',1,2)./diff(runs.rgrid.y_rho',1, ...
+                                              2);
+        slbot = avg1(slbot(imnx:imxx, imny-1:imxy),2);
+
         if exist(fname, 'file')
             temp = load(fname, 'pbot');
-            runs.pbot = temp.pbot;
+            runs.pbot = bsxfun(@times, temp.pbot, slbot > 0.65*max(slbot(:)));
         else
             error(['No mombudget.mat file. Run bottom_torque ' ...
                    'first']);
@@ -5064,9 +5071,11 @@ methods
         if runs.bathy.axis == 'x'
             stride = [sxy 1 sz st];
             temper = dc_roms_read_data(runs.dir,varname,[t0 st Inf], ...
-                            {'y' iymin iymax},stride);
+                            {'y' iymin iymax},stride,runs.rgrid, ...
+                                       'his', 'single');
             strat = dc_roms_read_data(runs.dir,varname,[1 1], ...
-                            {'y' Inf Inf},stride);
+                            {'y' Inf Inf},stride, runs.rgrid, 'his', ...
+                                      'single');
 
             temper = bsxfun(@minus,temper,permute(strat,[1 3 2]));
             %temper = roms_read_data(runs.dir,varname,[1 iymin 1 t0], ...
@@ -5079,9 +5088,11 @@ methods
         else
             stride = [1 sxy sz st];
             temper = dc_roms_read_data(runs.dir,varname,[t0 st Inf], ...
-                            {'x' ixmin ixmax},stride);
+                            {'x' ixmin ixmax},stride, runs.rgrid, ...
+                                       'his', 'single');
             strat = dc_roms_read_data(runs.dir,varname,[1 1], ...
-                            {'y' Inf Inf},stride);
+                            {'y' Inf Inf},stride, runs.rgrid, 'his', ...
+                                      'single');
             temper = bsxfun(@minus,temper,permute(strat,[3 1 2]));
                         %temper = roms_read_data(runs.dir,varname,[ixmin 1  1 t0], ...
             %                ceil([ixmax-ixmin+1 Inf Inf Inf]./stride),stride);
