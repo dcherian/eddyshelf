@@ -316,7 +316,8 @@ vscales.plot_fluxes;
 folders = { ...
     ... %'runew-34', 'runew-5341', 'runew-5343'
     ... %'runew-6341', 'runew-56341', 'runew-56341-2', ...
-    'runew-64361', 'runew-564361', 'runew-564361-2', ...
+    'runew-64361', ...
+    'runew-564361', 'runew-564361-2', 'runew-564361-3', ...
     'runew-64361-fb', 'runew-564361-fb', ...
     'runew-64461-3', 'runew-5644613-1/', ...
           };
@@ -328,24 +329,23 @@ for ii=1:bfrics.len
     tind = find_approx(run.eddy.t/run.eddy.tscale*86400, 1);
     %bfrics.name{ii} = num2str(bfrics.array(ii).params.misc.rdrg);
     bfrics.name{ii} = num2str(diags(ii));
+    track_eddy(bfrics.array(ii));
 end
 
+%%
+tind = [];
 figure;
-run = bfrics.array(1);
-contourf(run.eddy.xr(:,1)/1000, run.time/run.eddy.tscale, ...
-         run.csflux.shelf', 40);
-shading flat
-clim = caxis; colorbar;
-limy = ylim;
-limx = xlim;
-figure;
-run = bfrics.array(6);
-contourf(run.eddy.xr(:,1)/1000, run.time/run.eddy.tscale, ...
-         run.csflux.shelf', 40);
-shading flat
-caxis(clim); colorbar;
-xlim(limx);
-ylim(limy);
+hax = subplot(122);
+bfrics.array(2).animate_field('pbot', hax, tind, 1); clim = caxis;
+hax = subplot(121);
+bfrics.array(1).animate_field('pbot', hax, tind, 1); caxis(clim);
+
+%%
+var = 'rhoanom';
+bfrics.filter = 1; bfrics.plot_sections(var, 117);
+title(bfrics.array(bfrics.filter).name);
+bfrics.filter = 2; bfrics.plot_sections(var, 142)
+title(bfrics.array(bfrics.filter).name);
 
 %% MISC
 for ii=2:vscales.len
