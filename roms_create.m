@@ -820,9 +820,8 @@ if flags.eddy
     linex((yrmat(1,ind,1) - eddy.dia/2)/1000);
     linex(bathy.xsb/1000);
 
-    disp(['beta/beta_t = ' ...
+    input(['beta/beta_t = ' ...
          num2str(phys.beta * eddy.depth./bathy.sl_slope./phys.f0) ' | Continue?']);
-    pause;
 
     % check for consistency, just in case
     if ~flags.flat_bottom
@@ -845,7 +844,7 @@ if flags.eddy
         if eddy.a == 3
             xtra = (2.3)*eddy.dia/2;
         else
-            xtra = 2.8 * eddy.dia/2;
+            xtra = 3 * eddy.dia/2;
         end
     end
 
@@ -1245,7 +1244,7 @@ if flags.eddy
             vs1,tsl,ceil(eddy.cx/1000+vx*tsl),tsb,ceil(eddy.cx/ ...
                                                        1000+vx*tsb));
 
-        input('Continue?');
+
     end
 
     %% check plots
@@ -1286,6 +1285,7 @@ if flags.eddy
     if flags.front
         linkaxes([axt(4) axt(7) axt(8)],'xy');
     end
+    input('Continue?');
 %     if flags.front
 %         cbfreeze(hcb,'off');
 %        spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))

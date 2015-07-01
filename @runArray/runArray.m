@@ -649,8 +649,16 @@ classdef runArray < handle
 
                 [~,~,tind] = run.locate_resistance;
 
-                hplt(ff) = plot(ndtime, run.eddy.Lgauss);
-                plot(ndtime(tind), run.eddy.Lgauss(tind), 'kx');
+                vec = run.eddy.Lgauss./run.eddy.hcen;
+                hplt(ff) = plot(ndtime, vec);
+                plot(ndtime(tind), vec(tind), 'kx');
+            end
+
+            legend(hplt, names);
+            beautify;
+            runArray.reset_colors(corder_backup);
+        end
+
         function [] = plot_ts(runArray, tsname)
         % plot time series
             corder_backup = runArray.sorted_colors;

@@ -132,12 +132,12 @@ function [] = plot_eddydiag(runArray)
             subplot(3,1,1)
             try
                 Rh = run.eddy.V./run.params.phys.beta./run.eddy.Ls.^2;
-                plot(ndtime, run.eddy.rhossh.Ro);
+                plot(ndtime, run.eddy.rhovor.Ro);
             catch ME
                 warning('didn''t plot');
             end
             subplot(3,1,2)
-            hgplt5(ff) = plot(ndtime, run.eddy.rhossh.dia/2/1000);
+            hgplt5(ff) = plot(ndtime, run.eddy.rhovor.dia/2/1000);
             subplot(3,1,3)
             if ~isfield(run.params.nondim, 'S_sl')
                 run.params.nondim.S_sl = 0;

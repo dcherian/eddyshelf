@@ -17,7 +17,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     end
 
     % eddy contours?
-    rhocontourplot = 1; % plot eddy drho contour too?
+    rhocontourplot = 0; % plot eddy drho contour too?
     vorcontourplot = 1; % vorticity contour
     sshplot = 0; % plot ssh-contour too?
     dyeplot = 0; % plot eddye contour too?
@@ -34,11 +34,11 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     % time series?
     enfluxplot = 0; % plot AS energy flux ?
     vecplot = 0; % plot some time vector (assign tvec and vec);
-    pointplot = 1; % mark some point on the map
+    pointplot = 0; % mark some point on the map
 
     % extra contours
     addcsdye = 1; % add csdye to eddye plot?
-    addzeta = 1; % overlay zeta contours
+    addzeta = 0; % overlay zeta contours
 
     if pointplot
         px = (runs.eddy.mx + runs.eddy.vor.dia(1))/1000;
@@ -61,8 +61,8 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         %locx = []; locy = [];
 
         tvec = runs.eddy.t;
-        vec = runs.eddy.vol(:,1);
-        laby = 'Volume (m^3)';
+        vec = runs.eddy.cvy;
+        laby = 'cvy'
         locx = []; locy = [];
 
         %%% asflux time series

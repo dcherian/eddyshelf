@@ -68,6 +68,7 @@ function [] = plot_sections(runArray, varname, ndtimes)
             end
 
             vol = {'x' xloc xloc};
+            y0 = run.eddy.cy(tind); % run.bathy.xsb
 
             % read in variable
             if strcmpi(varname, 'rhoanom')
@@ -82,7 +83,7 @@ function [] = plot_sections(runArray, varname, ndtimes)
             end
 
             % plot variable
-            pcolorcen((ymat-run.bathy.xsb)./run.rrdeep, ...
+            pcolorcen((ymat-y0)./run.rrdeep, ...
                       zmat./zscale, var);
             liney(-1*run.eddy.Lgauss(tind(tt))/zscale);
 
@@ -113,7 +114,7 @@ function [] = plot_sections(runArray, varname, ndtimes)
 
             % patch bathymetry
             patch(([run.rgrid.y_rho(:,1); min(run.rgrid.y_rho(:,1))] ...
-                   - run.bathy.xsb)./yscale, ...
+                   - y0)./yscale, ...
                   -1*[min(run.rgrid.h(:)); run.rgrid.h(:,1)]./zscale, 'k');
 
             % initial profile
@@ -153,10 +154,12 @@ function [] = plot_sections(runArray, varname, ndtimes)
         else
             suplabel('t', run.name);
         end
-        [~, hx] = suplabel(['Distance from shelfbreak / Deformation ' ...
-                            'radius'], 'x', supAxes);
-        [~, hy] = suplabel('Depth / Initial vertical scale', 'y', supAxes);
-        set(hx, 'fontSize', 18);
-        set(hy, 'fontSize', 18);
+        if runs_on_one_fig
+            [~, hx] = suplabel(['Distance from shelfbreak / Deformation ' ...
+                                'radius'], 'x', supAxes);
+            [~, hy] = suplabel('Depth / Initial vertical scale', 'y', supAxes);
+            set(hx, 'fontSize', 18);
+            set(hy, 'fontSize', 18);
+        end
     end
 end
