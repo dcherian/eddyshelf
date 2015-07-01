@@ -3,7 +3,7 @@
 % quantities through the center of the eddies
 % each figure shows multiple timesteps for a given field _for a
 % given run_.
-function [] = plot_sections(runArray, varname, ndtimes)
+function [hh] = plot_sections(runArray, varname, ndtimes)
 
     if isempty(runArray.filter)
         runArray.filter = 1:length(runArray.array);
@@ -16,12 +16,12 @@ function [] = plot_sections(runArray, varname, ndtimes)
         nt = 1;
     end
 
-    cmap = cbrewer('div','RdYlBu', 32);
+    cmap = flipud(cbrewer('div','RdYlBu', 32));
     %cmap = cbrewer('seq','Reds',32);
 
     % multiple runs on same figure? set to 1
     % multiple timesteps on same figure? set to 0
-    runs_on_one_fig = 0;
+    runs_on_one_fig = 1;
 
     for tt = 1:nt
         if runs_on_one_fig
@@ -40,24 +40,23 @@ function [] = plot_sections(runArray, varname, ndtimes)
             if exist('ndtimes', 'var')
                 ndtime = run.ndtime;
                 % find required tindices
-                tind = vecfind(ndtime, ndtimes);
+                tind = find_approx(ndtime, ndtimes(tt));
             else
                 run.fit_traj(1.5);
                 tind = run.traj.tind;
             end
-            tind = ndtimes;
 
             yscale = run.rrdeep;
             zscale = run.eddy.Lgauss(1);
             if strcmpi(varname, 'v')
                 ymat = repmat(run.rgrid.y_v(:,1), [1 run.rgrid.N]);
                 zmat = run.rgrid.z_v(:,:,1)';
-                xloc = num2str(run.eddy.mx(tind(tt)) - ...
-                               run.eddy.vor.dia(tind(tt))/2);
+                xloc = num2str(run.eddy.mx(tind) - ...
+                               run.eddy.vor.dia(tind)/2);
             else
                 ymat = repmat(run.rgrid.y_rho(:,1), [1 run.rgrid.N]);
                 zmat = run.rgrid.z_r(:,:,1)';
-                xloc = num2str(run.eddy.mx(tind(tt)));
+                xloc = num2str(run.eddy.mx(tind));
             end
 
             axind = sub2ind([nruns nt], ii,tt);
@@ -76,16 +75,19 @@ function [] = plot_sections(runArray, varname, ndtimes)
                                         {'x' 1 1}, [], run.rgrid, 'his');
                 varname = 'rho';
             end
-            var = dc_roms_read_data(run.dir, varname, tind(tt), ...
+            var = dc_roms_read_data(run.dir, varname, tind, ...
                                     vol, [], run.rgrid, 'his');
             if exist('rback', 'var')
                 var = bsxfun(@minus, var, rback);
             end
 
             % plot variable
-            pcolorcen((ymat-y0)./run.rrdeep, ...
-                      zmat./zscale, var);
-            liney(-1*run.eddy.Lgauss(tind(tt))/zscale);
+            [c0,h0] = contourf((ymat-y0)./run.rrdeep, zmat./zscale, ...
+                               var, 40);
+            hh(ii) = h0;
+            hh(ii).LevelList = hh(1).LevelList;
+
+            liney(round(-1*run.eddy.Lgauss(tind)/zscale, 2, 'significant'));
 
             if ii == 1
                 clim = caxis;
@@ -103,13 +105,13 @@ function [] = plot_sections(runArray, varname, ndtimes)
             [ymat2,zmat2] = ndgrid(linspace(limy(1),limy(2),100), ...
                                      linspace(limz(1),limz(2),1000));
             % initial profile
-            prof = exp(-((ymat2-run.eddy.my(tind(tt)))./ ...
+            prof = exp(-((ymat2-run.eddy.my(tind))./ ...
                          run.eddy.vor.dia(1)*2).^2) .* ...
                    exp(-(zmat2./run.eddy.Lgauss(1)).^2);
             % current profile
-            prof2 = exp(-((ymat2-run.eddy.my(tind(tt)))./ ...
+            prof2 = exp(-((ymat2-run.eddy.my(tind))./ ...
                          run.eddy.vor.dia(tt)*2).^2) .* ...
-                   exp(-(zmat2./run.eddy.Lgauss(tind(tt))).^2);
+                   exp(-(zmat2./run.eddy.Lgauss(tind)).^2);
             hold on
 
             % patch bathymetry
@@ -152,7 +154,7 @@ function [] = plot_sections(runArray, varname, ndtimes)
         if runs_on_one_fig
             %            suplabel('t', ['ndtime = ' num2str(ndtime)], supAxes);
         else
-            suplabel('t', run.name);
+            % suplabel('t', run.name);
         end
         if runs_on_one_fig
             [~, hx] = suplabel(['Distance from shelfbreak / Deformation ' ...
@@ -161,5 +163,6 @@ function [] = plot_sections(runArray, varname, ndtimes)
             set(hx, 'fontSize', 18);
             set(hy, 'fontSize', 18);
         end
+        title(['ndtime = ', num2str(ndtimes(tt))]);
     end
 end

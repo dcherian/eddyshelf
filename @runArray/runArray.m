@@ -659,6 +659,24 @@ classdef runArray < handle
             runArray.reset_colors(corder_backup);
         end
 
+        function [] = plot_section_loc(runArray, varname, loc)
+        % given a location in (km) plot sections
+            fold = runArray.filter;
+            for ff=1:length(fold)
+                run = runArray.array(fold(ff));
+
+                tind = find_approx(run.eddy.my, loc);
+
+                runArray.filter = fold(ff);
+                hh(ff) = runArray.plot_sections(varname, tind);
+                hh(ff).LevelList = hh(1).LevelList;
+                hf(ff) = gcf;
+            end
+
+            linkfig(hf, 'xy');
+            runArray.filter = fold;
+        end
+
         function [] = plot_ts(runArray, tsname)
         % plot time series
             corder_backup = runArray.sorted_colors;
