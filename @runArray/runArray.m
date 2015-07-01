@@ -668,6 +668,7 @@ classdef runArray < handle
             end
 
             hf = figure; hold all
+            insertAnnotation([runArray.name '.plot_ts(' tsname ')']);
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
@@ -682,6 +683,7 @@ classdef runArray < handle
             end
 
             legend(hplt, names);
+            title(tsname);
             beautify;
             runArray.reset_colors(corder_backup);
         end
