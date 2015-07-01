@@ -422,6 +422,8 @@ methods
             % remove needless h-matrix
             runs.eddy.h = [];
 
+            runs.eddy.Ro = runs.eddy.vor.Ro;
+
             % calculate βL/f
             dA = 1./runs.rgrid.pm' .* 1./runs.rgrid.pn';
             betal = fillnan(runs.eddy.vormask, 0) .* ...
