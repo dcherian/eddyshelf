@@ -651,6 +651,26 @@ classdef runArray < handle
 
                 hplt(ff) = plot(ndtime, run.eddy.Lgauss);
                 plot(ndtime(tind), run.eddy.Lgauss(tind), 'kx');
+        function [] = plot_ts(runArray, tsname)
+        % plot time series
+            corder_backup = runArray.sorted_colors;
+
+            if isempty(runArray.filter)
+                runArray.filter = 1:runArray.len;
+            end
+
+            hf = figure; hold all
+            for ff=1:length(runArray.filter)
+                ii = runArray.filter(ff);
+                run = runArray.array(ii);
+                names{ff} = runArray.name{ii};
+                ndtime = run.eddy.t*86400 / run.eddy.turnover;
+
+                [~,~,tind] = run.locate_resistance;
+
+                eval(['vec = run.' tsname ';']);
+                hplt(ff) = plot(ndtime, vec);
+                plot(ndtime(tind), vec(tind), 'kx');
             end
 
             legend(hplt, names);
