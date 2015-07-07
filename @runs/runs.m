@@ -422,7 +422,9 @@ methods
             % remove needless h-matrix
             runs.eddy.h = [];
 
-            runs.eddy.Ro = runs.eddy.vor.Ro;
+            if isfield(runs.eddy.vor, 'Ro')
+                runs.eddy.Ro = runs.eddy.vor.Ro;
+            end
 
             % calculate βL/f
             dA = 1./runs.rgrid.pm' .* 1./runs.rgrid.pn';
@@ -846,6 +848,19 @@ methods
 
         legend('energy flux', 'eddy center', 'long wave speed', ...
                'estimated speed', 'Location', 'SouthWest');
+    end
+
+    function [] = predict_waterdepth(runs)
+        Lz = runs.eddy.Lgauss(1);
+        beta = runs.params.phys.beta;
+        beta_t = runs.bathy.sl_slope * runs.params.phys.f0 ./ ...
+                 Lz;
+
+        % 1 - erf(H/Lz) = m (β/β_t) + c
+        m = 1.38;
+        c = 0.046;
+
+        H = erfinv( 1 - (m*beta/beta_t + c)) * Lz
     end
 
     function [] = plot_sponge_enflux(runs)
@@ -3328,8 +3343,8 @@ methods
         end
 
         % step topography phase speed estimate
-        cp = runs.params.phys.f0 * runs.bathy.xsb * (runs.bathy.hsl ...
-                                                     - runs.bathy.hsb)./runs.bathy.hsl;
+        cp = runs.params.phys.f0 * runs.bathy.xsb * ...
+             (runs.bathy.hsl - runs.bathy.hsb)./runs.bathy.hsl;
 
         if flag_v
             figure;
