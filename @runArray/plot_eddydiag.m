@@ -51,6 +51,9 @@ function [] = plot_eddydiag(runArray)
         %ndtime = run.eddy.t/tscale * 86400;
         run.fit_traj(1.0);
         [~,~,tind] = run.locate_resistance;
+        tsl = find_approx(run.eddy.my, run.bathy.xsl, 1);
+        tse = find_approx(run.eddy.my - run.eddy.vor.dia(1)/2, ...
+                                  run.bathy.xsl, 1);
         ndtime = run.eddy.t*86400 ./ run.eddy.turnover;
         if isempty(runArray.name)
             name{ff} = run.name;
@@ -212,7 +215,15 @@ function [] = plot_eddydiag(runArray)
             subplot(211)
             hgplt9(ff) = plot(ndtime, run.eddy.rhovor.cvx./run.eddy.V(1));
             subplot(212)
-            plot(ndtime, run.eddy.rhovor.cvy./run.eddy.V(1));
+            plot(ndtime, run.eddy.rhovor.cvy./run.eddy.V(1), 'Color', ...
+                 hgplt9(ff).Color);
+            plot(ndtime(tind), run.eddy.rhovor.cvy(tind)./run.eddy.V(1), ...
+                 'kx');
+            plot(ndtime(tsl), run.eddy.rhovor.cvy(tsl)./run.eddy.V(1), ...
+                  '.', 'Color', hgplt9(ff).Color, 'MarkerSize', ...
+                 34);
+            plot(ndtime(tse), run.eddy.rhovor.cvy(tse)./run.eddy.V(1), ...
+                 'o', 'Color', hgplt9(ff).Color, 'MarkerSize', 14);
         end
     end
 
