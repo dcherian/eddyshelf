@@ -21,7 +21,7 @@ function [hh] = plot_sections(runArray, varname, ndtimes)
 
     % multiple runs on same figure? set to 1
     % multiple timesteps on same figure? set to 0
-    runs_on_one_fig = 1;
+    runs_on_one_fig = 0;
 
     for tt = 1:nt
         if runs_on_one_fig
@@ -46,8 +46,10 @@ function [hh] = plot_sections(runArray, varname, ndtimes)
                 tind = run.traj.tind;
             end
 
-            yscale = run.rrdeep;
+            yscale = run.eddy.vor.dia(1)/2;
             zscale = run.eddy.Lgauss(1);
+            y0 = run.eddy.my(tind); % run.bathy.xsb
+
             if strcmpi(varname, 'v')
                 ymat = repmat(run.rgrid.y_v(:,1), [1 run.rgrid.N]);
                 zmat = run.rgrid.z_v(:,:,1)';
@@ -59,6 +61,8 @@ function [hh] = plot_sections(runArray, varname, ndtimes)
                 xloc = num2str(run.eddy.mx(tind));
             end
 
+            ynorm = (ymat - y0)./yscale;
+
             axind = sub2ind([nruns nt], ii,tt);
             if runs_on_one_fig
                 ax(axind) = subplot(1,nruns,ii);
@@ -67,27 +71,27 @@ function [hh] = plot_sections(runArray, varname, ndtimes)
             end
 
             vol = {'x' xloc xloc};
-            y0 = run.eddy.cy(tind); % run.bathy.xsb
 
             % read in variable
             if strcmpi(varname, 'rhoanom')
                 rback = dc_roms_read_data(run.dir, 'rho', 1, ...
                                         {'x' 1 1}, [], run.rgrid, 'his');
-                varname = 'rho';
-            end
-            var = dc_roms_read_data(run.dir, varname, tind, ...
-                                    vol, [], run.rgrid, 'his');
-            if exist('rback', 'var')
+                var = dc_roms_read_data(run.dir, 'rho', tind, ...
+                                        vol, [], run.rgrid, 'his');
                 var = bsxfun(@minus, var, rback);
+            else
+                var = dc_roms_read_data(run.dir, varname, tind, ...
+                                        vol, [], run.rgrid, 'his');
             end
 
             % plot variable
-            [c0,h0] = contourf((ymat-y0)./run.rrdeep, zmat./zscale, ...
-                               var, 40);
+            [c0,h0] = contourf(ynorm, zmat./zscale, var, 40);
             hh(ii) = h0;
             hh(ii).LevelList = hh(1).LevelList;
 
-            liney(round(-1*run.eddy.Lgauss(tind)/zscale, 2, 'significant'));
+            liney(round(-1*run.eddy.Lgauss(tind)/zscale, 2, ...
+                        'significant'));
+            linex(0);
 
             if ii == 1
                 clim = caxis;
@@ -147,6 +151,10 @@ function [hh] = plot_sections(runArray, varname, ndtimes)
                 title(['ndtime = ', num2str(ndtimes(tt))]);
             end
 
+            if axind > 1
+                ax(axind).XTick = ax(1).XTick;
+                ax(axind).YTick = ax(1).YTick;
+            end
         end
         linkaxes(ax, 'xy');
 
