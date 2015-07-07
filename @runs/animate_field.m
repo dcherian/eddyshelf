@@ -114,6 +114,24 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         addcsdye = 0;
     end
 
+    if strcmpi(name, 'betagyre')
+        if ~isfield(runs.eddy, 'betagyre')
+            runs.betagyre;
+        end
+        varname = 'eddy.betagyre';
+        titlestr = 'Asymmetric streamfn';
+        addcsdye = 0;
+    end
+
+    if strcmpi(name, 'vor')
+        if isempty(runs.vorsurf)
+            runs.calc_vorsurf;
+        end
+        varname = 'vorsurf';
+        titlestr = 'Vorticity';
+        addcsdye = 0;
+    end
+
     % read eddye if required
     if (dyeplot && isempty(runs.eddsurf)) || strcmpi(name, 'eddye')
         runs.read_eddsurf(t0, ntimes);
