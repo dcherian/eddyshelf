@@ -11,9 +11,10 @@
 g = @squareg;
 c = -1;
 a = 2;
-f = '0.5*(y-1) + 2*u.^3'; % y0 = 1
+f = '+1.5*(y-1) + 2*u.^3'; % y0 = 1
 
 bc = @(x) (1+tanh(x*5))/2;
+n = 256;
 
 %% Boundary Conditions
 % Plot the geometry and display the edge labels for use in the boundary
@@ -22,6 +23,8 @@ figure;
 pdegplot(g, 'edgeLabels', 'on');
 axis([-1.1 1.1 -1.1 1.1]);
 title 'Geometry With Edge Labels Displayed'
+
+[p,e,t] = poimesh(g, n);
 
 % Create a pde entity for a PDE with a single dependent variable
 pb = pde(1);
@@ -38,10 +41,10 @@ pb.BoundaryConditions = [b1 b2 b3 b4];
 %% Solve Using Both Fast Poisson Solver and Standard Solver
 % We solve using both the fast Poisson solver that is implemented in
 % |poisolv| and  the standard solver that is implemented in |assempde|.
-n = 256;
+
 tic;
 u = pdenonlin(pb,p,e,t,c,a,f,'jacobian','lumped','report', 'on', ...
-              'Tol', 4e-4);
+              'Tol', 1e-4);
 tstandard = toc;
 fprintf('%-5d|%15.5g\n',n,tstandard);
 
