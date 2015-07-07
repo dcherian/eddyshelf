@@ -647,11 +647,18 @@ classdef runArray < handle
                 names{ff} = runArray.name{ii};
                 ndtime = run.eddy.t*86400 / run.eddy.turnover;
 
+                tsl = find_approx(run.eddy.my, run.bathy.xsl, 1);
+                tse = find_approx(run.eddy.my - run.eddy.vor.dia(1)/2, ...
+                                  run.bathy.xsl, 1);
                 [~,~,tind] = run.locate_resistance;
 
-                vec = run.eddy.Lgauss./run.eddy.hcen;
+                vec = run.eddy.Lgauss; %./run.eddy.hcen;
                 hplt(ff) = plot(ndtime, vec);
                 plot(ndtime(tind), vec(tind), 'kx');
+                plot(ndtime(tsl), vec(tsl), '.', 'MarkerSize', 34, ...
+                     'Color', hplt(ff).Color);
+                plot(ndtime(tse), vec(tse), 'o', 'MarkerSize', 14, ...
+                     'Color', hplt(ff).Color);
             end
 
             legend(hplt, names);
