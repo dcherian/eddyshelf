@@ -34,6 +34,7 @@ function [xx,yy,tind] = locate_resistance(runs, nsmooth, factor)
     end
     ndtime = runs.eddy.t*86400./runs.eddy.turnover;
     vel = sgn * [0; diff(cen)./diff(smooth(runs.eddy.t', npts))];
+    %vel = sgn * smooth(runs.eddy.rhovor.cvy, npts);
 
     % locate minimum, i.e., max. southward/westward speed
     % but limit search to first 'n' turnover time scales

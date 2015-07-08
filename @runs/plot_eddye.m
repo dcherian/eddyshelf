@@ -10,13 +10,14 @@ function [] = plot_eddye(runs, days)
 
     [~,~,tind] = runs.locate_resistance;
     % hack for when I'm trying to provide non-dimensional times
-    if all(days < 1)
-        tindices = vecfind(runs.ndtime, days);
-    else
-        tindices = vecfind(runs.time/86400, days)
-    end
+    %if all(days < 1)
+    %tindices = vecfind(runs.ndtime, days);
+    tindices = tind;
+        %else
+        %tindices = vecfind(runs.time/86400, days)
+        %end
 
-    tindices = [1 tind];
+    %tindices = [1 tind];
     days = runs.eddy.t(tindices);
 
     nt = length(tindices);
@@ -25,7 +26,7 @@ function [] = plot_eddye(runs, days)
     hf2 = figure; maximize();% - rho
     %hf3 = figure; maximize();% - zdye
     hf4 = figure; maximize();% - u
-    %hf5 = figure; maximize();% - v
+    hf5 = figure; maximize();% - v
     %zdback = double(squeeze(ncread(runs.out_file, runs.zdname, ...
     %                               [1 1 1 1], [1 Inf Inf
     %                               1])));

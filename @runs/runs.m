@@ -2060,6 +2060,7 @@ methods
             plot(runs.eddy.t);
             plot(runs.csflux.time/86400);
         catch ME
+            disp(ME);
         end
         legend('time', 'eddy.time', 'csflux.time');
     end

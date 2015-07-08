@@ -63,10 +63,10 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         %laby = 'dE/dt';
         %locx = []; locy = [];
 
-        tvec = runs.eddy.t;
-        vec = runs.eddy.cvy;
-        laby = 'cvy'
-        locx = []; locy = [];
+        %tvec = runs.eddy.t;
+        %vec = runs.eddy.cvy;
+        %laby = 'cvy'
+        %locx = []; locy = [];
 
         %%% asflux time series
         %tvec = runs.asflux.time/runs.tscale;
