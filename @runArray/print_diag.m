@@ -28,6 +28,7 @@ function [diags, plotx] = print_diag(runArray, name)
         labx = ' '; laby = ' ';
         clr = 'k';
         error = [];
+        parameterize = 0;
         titlestr = name;
     end
 
@@ -423,6 +424,7 @@ function [diags, plotx] = print_diag(runArray, name)
             plotx(ff) = beta/beta_t./(1-beta/beta_t);
             errorbarflag = 0; kozak = 1;
             name_points = 1; line_45 = 0;
+            parameterize = 1;
             slope = num2str(round(alpha*1e3));
 
             if errorbarflag
@@ -458,47 +460,6 @@ function [diags, plotx] = print_diag(runArray, name)
             laby = '$$\frac{U_b}{U_s} = 1 - \mathrm{erf}(\frac{H}{L_z^0})$$';
             labx = '$$\beta/\beta_t$$';
             %if ff == 1, hax = subplot(121); hold all; end
-
-            % parameterization
-            if ff == length(runArray.filter)
-                limx = xlim;
-                limy = ylim;
-
-                xvec = linspace(0.5*min(plotx(:)), 1*max(plotx), 100);
-
-                P = polyfit(plotx, diags, 1);
-                %[P,Pint] = regress(diags', [plotx' ones(size(plotx'))], ...
-                %                   0.05);
-                c = P(1);
-
-                rmse = sqrt(mean((diags - c*plotx - P(2)).^2));
-
-                hplt = plot(xvec, c*xvec + P(2), '--', ...
-                            'Color', [1 1 1]*0.75);
-                hleg = legend(hplt, ['$$ \frac{U_b}{U_s} = ' ...
-                                    '1 - \mathrm{erf}(\frac{H}{L_z^0}) ' ...
-                                    '= ' num2str(c,3) ' \frac{\beta}{\' ...
-                                    'beta_t} + ' num2str(P(2),2) '$$ ' ...
-                                    '; rmse = ' num2str(rmse,3)], ...
-                              'Location', 'SouthEast');
-                set(hleg, 'interpreter', 'latex');
-
-                % 45° plot
-                % subplot(122);
-                % insertAnnotation(annostr);
-                % param1 = c*plotx;
-                % rmse1 = sum(diags-param1).^2;
-                % plot(diags, param1, 'k*');
-                % line45;
-                % xlabel(['Diagnostic $$1 - \mathrm{erf}(\frac{H}{L_z^0}) ' ...
-                %         '$$'], 'interpreter', 'latex');
-                % ylabel('Parameterization', 'interpreter', ...
-                %        'latex');
-                % beautify;
-                % set(gcf, 'renderer', 'zbuffer');
-
-                % %title(paramstr, 'interpreter', 'latex');
-            end
         end
 
         if strcmpi(name, 'btrq')
@@ -634,6 +595,7 @@ function [diags, plotx] = print_diag(runArray, name)
             % plot(run.eddy.Ro(tind), paramerr, '*');
             % xlabel('Ro'); ylabel('paramerr');
 
+            parameterize = 1;
             errorbarflag = 1; name_points = 1; line_45 = 0;
             laby = 'Flux (mSv)';
             labx = 'Parameterization (mSv)';
@@ -830,6 +792,27 @@ function [diags, plotx] = print_diag(runArray, name)
         runArray.reset_colors(cb);
     end
 
+    if parameterize && plots
+        limx = xlim;
+        limy = ylim;
+
+        xvec = linspace(0.5*min(plotx(:)), 1*max(plotx), 100);
+
+        P = polyfit(plotx, diags, 1);
+        %[P,Pint] = regress(diags', [plotx' ones(size(plotx'))], ...
+        %                   0.05);
+        c = P(1);
+
+        rmse = sqrt(mean((diags - c*plotx - P(2)).^2));
+
+        hparam = plot(xvec, c*xvec + P(2), '--', ...
+                      'Color', [1 1 1]*0.75);
+        hleg = legend(hparam, ['y = ' num2str(c, '%.2f') 'x + ' ...
+                            num2str(P(2), '%.2f') '; rmse = ' num2str(rmse,3)], ...
+                      'Location', 'NorthWest');
+
+    end
+
     if plots
         figure(hfig);
         maximize(); drawnow; pause(1);
@@ -850,6 +833,16 @@ function [diags, plotx] = print_diag(runArray, name)
         if strcmpi(name, 'shelf flux')
             figure(hfig);
             axis square;
+        end
+
+        if strcmpi(name, 'bottom torque')
+            hleg = legend(hparam, ['$$ \frac{U_b}{U_s} = ' ...
+                            '1 - \mathrm{erf}(\frac{H}{L_z^0}) ' ...
+                            '= ' num2str(c,3) ' \frac{\beta}{\' ...
+                            'beta_t} + ' num2str(P(2),2) '$$ ' ...
+                            '; rmse = ' num2str(rmse,3)], ...
+                      'Location', 'SouthEast');
+            set(hleg, 'interpreter', 'latex');
         end
 
         beautify([20 24 30]);
