@@ -182,7 +182,9 @@ classdef runArray < handle
                 catch ME
                     out = 'failed';
                 end
-                disp([run.name ' | ' out]);
+
+                disp([num2str(runArray.filter(ii)) ' | ' ...
+                      run.name ' | ' out]);
             end
         end
 

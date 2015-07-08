@@ -782,7 +782,7 @@ function [diags, plotx] = print_diag(runArray, name)
             end
         end
 
-        disp([run.name ' | ' name ' = ' diagstr ' | plotx ' ...
+        disp([num2str(ii,'%02d') ' | ' run.name ' | ' name ' = ' diagstr ' | plotx ' ...
               '= ' num2str(plotx(ff))]);
     end
 
