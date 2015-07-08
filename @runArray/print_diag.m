@@ -4,7 +4,8 @@ function [diags, plotx] = print_diag(runArray, name)
     end
 
     if ~strcmpi(name, 'nondim') && ~strcmpi(name, 'beta gyre') ...
-            && ~strcmpi(name, 'bfric') && ~strcmpi(name, 'hbl')
+            && ~strcmpi(name, 'bfric') && ~strcmpi(name, 'hbl') ...
+            && ~strcmpi(name, 'arrest')
         plots = 1;
     else
         plots = 0;
@@ -321,10 +322,25 @@ function [diags, plotx] = print_diag(runArray, name)
             laby = 'dE/dt';
         end
 
+        %%%%% buoyancy arrest
+        if strcmpi(name, 'arrest')
+            try
+                Q = V(1) * Lx(1) * Lz(1);
+                r = run.params.misc.rdrg;
+                c5 = 39; % 39 (inflow) or 96 (outflow)
+                d = sqrt(N2)/f0 * r / V(1); % C_D N/f
+
+                diags(ff) = c5/d * (1+Sa^2)/Sa^2 * ...
+                    (abs(Q)/hcen(tind)/f0)/3000;
+            catch ME
+                diags(ff) = NaN;
+            end
+        end
+
         %%%%% bottom friction
         if strcmpi(name, 'bfric')
             rdrg = run.params.misc.rdrg;
-            tscale = run.eddy.turnover; 1./(beta.*Lx(1)); % [s]
+            tscale = 1./(beta.*Lx(1)); % [s]
             ftscale = hcen(1)./rdrg; % [s]
             diags(ff) = tscale./ftscale;
             % this is correct.
