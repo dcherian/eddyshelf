@@ -174,9 +174,13 @@ classdef runArray < handle
             for ii=1:length(runArray.filter)
                 run = runArray.array(runArray.filter(ii));
                 [~,~,tind] = run.locate_resistance;
-                out = eval(['run.' command]);
-                if ~ischar(out)
-                    out = num2str(out);
+                try
+                    out = eval(['run.' command]);
+                    if ~ischar(out)
+                        out = num2str(out);
+                    end
+                catch ME
+                    out = 'failed';
                 end
                 disp([run.name ' | ' out]);
             end
