@@ -624,7 +624,16 @@ function [diags, plotx] = print_diag(runArray, name)
 
             diags(ff) = avgflux/1000;
             error(ff) = err/1000;
-            plotx(ff) =  Ls(1) * V(1) * run.bathy.hsb/1000; transscl;
+            plotx(ff) = V(tind) * run.bathy.hsb/1000; transscl;
+        end
+
+        if strcmpi(name, 'streamervel')
+            [avgflux, ~] = run.calc_avgflux;
+            diags(ff) = avgflux./Lx(1)./hsb;
+            plotx(ff) = V(1);
+
+            laby = 'Mean streamer velocity (m/s)';
+            labx = 'Eddy velocity scale (m/s)';
         end
 
         %%%%%%%%%%%%%%%%%%%% deprecated
