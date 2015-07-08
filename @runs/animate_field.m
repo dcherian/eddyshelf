@@ -7,7 +7,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     dt = 3;
 
-    csfluxplot = 0; % 0 = no flux plot
+    csfluxplot = 1; % 0 = no flux plot
                     % 1 = instantaneous x-profile;
     asfluxplot = 0; % 0 = no flux plot
                     % 1 = instantaneous y-profile;
@@ -387,10 +387,10 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         end
 
         if csfluxplot == 1
+            shelfxt = runs.csflux.shelfxt(ix-1, :, 1);
             hflux = plot(runs.rgrid.xr(ix,1)/1000, ...
-                         runs.csflux.shelfxt(ix-1, ii));
-            ylim([min(runs.csflux.shelfxt(:)) ...
-                  max(runs.csflux.shelfxt(:))]);
+                         shelfxt(:, ii));
+            ylim([min(shelfxt(:)) max(shelfxt(:))]);
             hee = linex(runs.eddy.vor.ee(ii)/1000);
             oldpos = get(ax, 'Position');
             newpos = get(ax2, 'Position');
@@ -455,9 +455,9 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
             %           1, -1*runs.eddy.vor.angle(ii)*pi/180);
             %delete(hline);
             if ~isempty(runs.csflux) && csfluxplot > 0
-                set(hee_zeta, 'XData', [1 1]* runs.eddy.vor.ee(ii)/ ...
-                              1000);
-                axes(ax);
+                %set(hee_zeta, 'XData', [1 1]* runs.eddy.vor.ee(ii)/ ...
+                %              1000);
+                %axes(ax);
                 %hline = drawLine(L);
             end
 
@@ -505,7 +505,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
                     set(htime, 'XData', [1 1]*runs.csflux.time(ii)/ ...
                                86400);
                 else
-                    set(hflux, 'YData', runs.csflux.shelfxt(:,ii));
+                    set(hflux, 'YData', shelfxt(:,ii));
                     set(hee, 'XData', [1 1]*runs.eddy.vor.ee(ii)/1000);
                 end
             end
