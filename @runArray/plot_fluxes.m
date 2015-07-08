@@ -3,7 +3,7 @@ function [] = plot_fluxes(runArray)
     hfig1 = figure; subplot(2,1,1); hold all; % shelf water flux time series
     subplot(2,1,2); hold all;
 
-    hfig2 = figure; hold all % vertical structure / baroclinicity
+    hfig2 = []; %figure; hold all % vertical structure / baroclinicity
     % subplot(2,2,1); hold all
     % subplot(2,2,2); hold all
     % subplot(2,2,3); hold all
@@ -43,6 +43,9 @@ function [] = plot_fluxes(runArray)
         fluxscl = 1e6;Ue * Le * He;
         transscl = 1;fluxscl * (2*Le/Ue);
 
+        % total transport
+        ttrans = max(abs(run.csflux.west.itrans.shelf(:,1)));
+
         ndtime = run.ndtime; %run.csflux.time/run.tscale
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SHELF WATER
         if ~isempty(hfig1)
@@ -55,9 +58,6 @@ function [] = plot_fluxes(runArray)
             subplot(2,1,2)
             plot(ndtime, ...
                  run.csflux.west.itrans.shelf(:,1)/transscl);
-
-            % total transport
-            ttrans = max(abs(run.csflux.west.itrans.shelf(:,1)));
         end
 
         %%%%%% BAROCLINICITY
@@ -124,7 +124,8 @@ function [] = plot_fluxes(runArray)
         if ~isempty(hfig5)
             figure(hfig5)
             tind = run.csflux.tscaleind;
-            matrix = run.csflux.shelfxt(:,:,1);
+            matrix = run.csflux.shelfxt(:,:,1) ...
+                     .* 1; run.csflux.westmask;
             xr = run.rgrid.x_rho(1,:)';
             nt = size(matrix,2);
             Lx = run.eddy.vor.dia(1);
@@ -139,10 +140,10 @@ function [] = plot_fluxes(runArray)
                 xvec = run.rgrid.x_rho(1,2:end-1)' - run.eddy.mx(tt);
                 mati(:,tt) = interp1(xvec, matrix(:,tt), xi);
             end
-            %pcolorcen(xi, [1:nt], mati');
+
             % integrate in time
-            shelfx = trapz(run.eddy.t, mati./ttrans, 2);
-            hgplt5(ff) = plot(xi./Lx, shelfx);
+            shelfx = trapz(run.csflux.time, repnan(mati, 0), 2);
+            hgplt5(ff) = plot(xi./Lx, shelfx./ttrans);
         end
     end
 
@@ -158,6 +159,7 @@ function [] = plot_fluxes(runArray)
         ylabel('Total volume transported');
         xlabel('Non-dimensional time');
         legend(hgplt1, names);
+        liney(0);
         beautify;
     end
 
@@ -217,6 +219,7 @@ function [] = plot_fluxes(runArray)
         xlabel('(X - X_e)/L_x');
         ylabel('Normalized flux');
         linex([-1 0 1]); liney(0);
+        xlim([-2 2]);
         legend(hgplt5, names);
         beautify;
     end
