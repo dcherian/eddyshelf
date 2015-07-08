@@ -574,11 +574,6 @@ function [diags, plotx] = print_diag(runArray, name)
                 continue;
             end
 
-            if ff == 1 || ~exist('hfig_fluxerr', 'var')
-                hfig_fluxerr = figure; hold on;
-            end
-
-
             %transscl = 0.075 * g/f0 .* run.eddy.amp(ind) .* hsb/1000;
             transscl = 0.035 * Lx(1) * V(1) * hsb / 1000;
 
@@ -590,6 +585,9 @@ function [diags, plotx] = print_diag(runArray, name)
                        num2str(transscl)];
 
             % plot error
+            %if ff == 1 || ~exist('hfig_fluxerr', 'var')
+            %    hfig_fluxerr = figure; hold on;
+            %end
             % paramerr = avgflux/1000 - transscl;
             % figure(hfig_fluxerr)
             % plot(run.eddy.Ro(tind), paramerr, '*');
@@ -602,13 +600,13 @@ function [diags, plotx] = print_diag(runArray, name)
 
             diags(ff) = avgflux/1000;
             error(ff) = err/1000;
-            plotx(ff) = V(tind) * run.bathy.hsb/1000; transscl;
+            plotx(ff) = Lx(tind) * V(tind) * run.bathy.hsb/1000; transscl;
         end
 
         if strcmpi(name, 'streamervel')
             [avgflux, ~] = run.calc_avgflux;
             diags(ff) = avgflux./Lx(1)./hsb;
-            plotx(ff) = V(1);
+            plotx(ff) = V(run.csflux.tscaleind);
 
             laby = 'Mean streamer velocity (m/s)';
             labx = 'Eddy velocity scale (m/s)';
