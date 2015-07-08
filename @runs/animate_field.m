@@ -19,8 +19,11 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     % eddy contours?
     rhocontourplot = 0; % plot eddy drho contour too?
     vorcontourplot = 1; % vorticity contour
+    csdcontourplot = 1; % contour csd contours
     sshplot = 0; % plot ssh-contour too?
     dyeplot = 0; % plot eddye contour too?
+
+    csdcontours = [runs.bathy.xsb];
 
     % eddy diagnostics
     drawtrack = 1; % plot eddy track?
@@ -152,6 +155,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         if strcmpi(name, 'csdye')
             varname = 'csdsurf';
             titlestr = 'Cross-shelf dye';
+            addcsdye = 0;
         end
     end
 
@@ -457,6 +461,10 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
             if addzeta
                 runs.update_surf('zeta', hzeta, ii);
+            end
+
+            if csdcontourplot
+                runs.update_surf('csdsurf', hcsd, ii);
             end
 
             if pointplot

@@ -5515,17 +5515,14 @@ methods
             zend = runs.pbot(:,:,end);
         end
 
-        if ~isnan(zend)
-            crange = double([min(zend(:)) max(zend(:))]);
-        end
-
         try
             eval(['set(handle,''CData'',double(runs.' varname '(' ...
                   range ',tt)))']);
         catch ME
+            levels = handle.LevelList;
             eval(['set(handle,''ZData'',double(runs.' varname '(' ...
                   range ',tt)))']);
-            handle.LevelList = linspace(crange(1),crange(2), 10);
+            handle.LevelList = levels;
         end
     end
 
