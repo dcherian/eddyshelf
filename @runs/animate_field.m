@@ -241,6 +241,13 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     hold on;
     colorbar; center_colorbar;
 
+    if csdcontourplot
+        hcsd = runs.plot_surf('csdsurf', 'contour', ii);
+        hcsd.LevelList = csdcontours;
+        hcsd.Color = 'k';
+        hcsd.LineWidth = 2;
+    end
+
     if strcmpi(name, 'ubot') || strcmpi(name, 'vbot')
         eval(['cmax = max(abs(runs.' varname '(:)));']);
         caxis([-1 1].*cmax);
