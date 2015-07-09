@@ -91,9 +91,11 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         addcsdye = 0;
     end
 
-    if ~exist('ntimes', 'var'), ntimes = length(runs.time); end
     if ~exist('t0', 'var'), t0 = 1; end
     if isempty(t0), [~,~,t0] = runs.locate_resistance; end
+    if ~exist('ntimes', 'var')
+        ntimes = length(runs.time) - t0 + 1;
+    end
 
     ix = runs.spng.sx1:runs.spng.sx2;
     iy = runs.spng.sy1:runs.spng.sy2;
@@ -450,7 +452,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     if ntimes > 1
         runs.video_update();
-        for ii = t0+1:dt:ntimes
+        for ii = t0+1:dt:t0+ntimes-1
             %L = createLine(runs.eddy.vor.cx(ii)/1000, runs.eddy.vor.cy(ii)/1000, ...
             %           1, -1*runs.eddy.vor.angle(ii)*pi/180);
             %delete(hline);
