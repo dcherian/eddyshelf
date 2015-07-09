@@ -38,6 +38,7 @@ function [diags, plotx] = print_diag(runArray, name)
         runName = runArray.getname(ii);
 
         ptName = runName;
+        clr = 'k'; % reset color
 
         % some commonly used variables
         tind = run.tscaleind;
