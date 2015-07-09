@@ -442,7 +442,7 @@ function [eddy] = eddy_diag(zeta, vor, rho, ...
     opt.amp_thresh = 0.001; % Amplitude threshold (in m)
     % minimum eddy rad. = 5 km, maximum = 100 km
     opt.low_n  = floor(pi*(5e3)^2/dx/dy);       % minimum number of pixels in eddy
-    opt.high_n = floor(pi*(100e3)^2/dx/dy);     % maximum number of pixels in eddy
+    opt.high_n = floor(pi*(200e3)^2/dx/dy);     % maximum number of pixels in eddy
     opt.connectivity = 8;  % either 4 or 8
     opt.max_dist = 400*1000;
     if isnan(thresh)
