@@ -16,13 +16,22 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         asindex = [1 2];
     end
 
+    % time series?
+    enfluxplot = 0; % plot AS energy flux ?
+    vecplot = 1; % plot some time vector (assign tvec and vec);
+    pointplot = 0; % mark some point on the map
+
     % eddy contours?
     rhocontourplot = 0; % plot eddy drho contour too?
     vorcontourplot = 1; % vorticity contour
-    csdcontourplot = 1; % contour csd contours
     sshplot = 0; % plot ssh-contour too?
     dyeplot = 0; % plot eddye contour too?
 
+    % extra contours
+    addcsdye = 1; % add csdye to eddye plot?
+    addzeta = 0; % overlay zeta contours
+
+    csdcontourplot = 1; % contour csd contours
     csdcontours = [runs.bathy.xsb];
 
     % eddy diagnostics
@@ -33,15 +42,6 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     % grid diagnostics
     telesplot = 0;  % plot lines where grid stretching starts
                     % and ends
-
-    % time series?
-    enfluxplot = 0; % plot AS energy flux ?
-    vecplot = 0; % plot some time vector (assign tvec and vec);
-    pointplot = 0; % mark some point on the map
-
-    % extra contours
-    addcsdye = 1; % add csdye to eddye plot?
-    addzeta = 0; % overlay zeta contours
 
     if pointplot
         px = (runs.eddy.mx + runs.eddy.vor.dia(1))/1000;
@@ -230,10 +230,10 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     end
 
     if subplots_flag == 'x'
-        ax = subplot(5,1,[1 2 3]);
+        ax(1) = subplot(5,1,[1 2 3]);
     else
         if subplots_flag == 'y'
-            ax = subplot(1,3,[1 2]);
+            ax(1) = subplot(1,3,[1 2]);
         end
     end
     ii=t0;
@@ -309,11 +309,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     % misc stuff
     ht = runs.set_title(titlestr,ii);
     xlabel('X (km)');ylabel('Y (km)');
-    if isempty(subplots_flag)
-        axis image;
-    else
-        %axis equal;
-    end
+    axis image;
 
     if strcmpi(name, 'zeta')
         if dyeplot
@@ -334,7 +330,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     end
     maximize(gcf); pause(0.2);
     beautify([16 16 18]);
-    ax = gca;
+    ax(1) = gca;
     htext = text(0.05,0.9, ...
                  ['t = ' num2str(runs.time(ii)/86400, '%.0f') ' days'], ...
                  'Units', 'normalized');
@@ -347,7 +343,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     % second plot
     if subplots_flag == 'x'
-        ax2 = subplot(5,1,[4 5]);
+        ax(2) = subplot(5,1,[4 5]);
         if vecplot
             hvec = plot(tvec, vec);
             htime = linex(tvec(ii));
@@ -394,11 +390,11 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
                          shelfxt(:, ii));
             ylim([min(shelfxt(:)) max(shelfxt(:))]);
             hee = linex(runs.eddy.vor.ee(ii)/1000);
-            oldpos = get(ax, 'Position');
-            newpos = get(ax2, 'Position');
+            oldpos = get(ax(1), 'Position');
+            newpos = get(ax(2), 'Position');
             newpos(3) = oldpos(3);
-            set(ax2, 'Position', newpos);
-            linkaxes([ax ax2], 'x');
+            set(ax(2), 'Position', newpos);
+            linkaxes(ax, 'x');
             liney(0);
             xlabel('X (km)');
             title('\int v(x,z,t)dz (m^2/s)');
