@@ -766,7 +766,9 @@ function [out] = detect_eddy(maskin, zeta, opt, grd)
         % Criterion 8 - low 'rectangularity' - gets rid of rectangles
         % that are sometime picked up
         rectarea = props.BoundingBox(3) * props.BoundingBox(4);
-        if props.Area/rectarea > 0.85, continue; end
+        if props.Area/rectarea > 0.85 && regions.NumObjects > 1
+            continue;
+        end
 
         % store eddy properties for return
         out.cx = dx/2 + props.WeightedCentroid(2) * dx;
