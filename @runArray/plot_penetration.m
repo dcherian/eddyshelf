@@ -73,7 +73,8 @@ function [] = plot_penetration(runArray, ax, choices)
 
         ndtime = run.eddy.t * 86400 / run.eddy.turnover;
         if mark_timestamp
-            tinds = vecfind(run.eddy.t, [dt:dt:max(run.eddy.t)]);
+            % tinds = vecfind(run.eddy.t, [dt:dt:max(run.eddy.t)]);
+            tinds = cut_nan(vecfind(run.ndtime, 85));
         else
             tinds = [];
         end
