@@ -759,17 +759,6 @@ function [out] = detect_eddy(maskin, zeta, opt, grd)
                              'BoundingBox', 'WeightedCentroid', ...
                              'Area', 'Solidity', 'Orientation');
 
-        % Criterion 7 - solidity must be good - helps get rid of some
-        % thin 'isthumuses'
-        %if props.Solidity  < 0.75, continue; end
-
-        % Criterion 8 - low 'rectangularity' - gets rid of rectangles
-        % that are sometime picked up
-        rectarea = props.BoundingBox(3) * props.BoundingBox(4);
-        if props.Area/rectarea > 0.85 && regions.NumObjects > 1
-            continue;
-        end
-
         % store eddy properties for return
         out.cx = dx/2 + props.WeightedCentroid(2) * dx;
         out.cy = dy/2 + props.WeightedCentroid(1) * dy;
