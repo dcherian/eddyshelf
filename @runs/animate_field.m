@@ -7,7 +7,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     dt = 3;
 
-    csfluxplot = 1; % 0 = no flux plot
+    csfluxplot = 0; % 0 = no flux plot
                     % 1 = instantaneous x-profile;
     asfluxplot = 0; % 0 = no flux plot
                     % 1 = instantaneous y-profile;
@@ -74,10 +74,10 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         %locx = runs.asflux.x(2); locy = [];
 
         %%% cross-sb shelf water flux
-        %tvec = runs.csflux.time/86400;
-        %vec = runs.csflux.shelf.west.shelf;
-        %laby = 'Shelf water flux (m^3/s)';
-        %locy = runs.bathy.xsb/1000; locx = [];
+        tvec = runs.csflux.time/86400;
+        vec = runs.csflux.west.shelf(:,1);
+        laby = 'Shelf water flux (m^3/s)';
+        locy = runs.bathy.xsb/1000; locx = [];
 
         %%% area plot
         %vec = runs.eddy.vor.lmin .* runs.eddy.vor.lmaj;

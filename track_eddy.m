@@ -173,7 +173,7 @@ function [eddy] = track_eddy(dir1)
             cx0 = nan;
             cy0 = nan;
         else
-            if tt == 546,
+            if tt == 394,
                 %keyboard % for debugging
             end
             mask = nan(sz);
