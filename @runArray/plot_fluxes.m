@@ -94,7 +94,7 @@ function [] = plot_fluxes(runArray)
                 zvec = run.csflux.west.shelfwater.vertbins(:,1) ./ ...
                        run.bathy.hsb;
                 bc = baroclinicity(zvec, profile);
-                hgplt2(ff) = plot(profile, zvec);
+                hgplt2(ff) = plot(profile, zvec, 'Color', hgplt1(ff).Color);
                 names2{ff} =  [names{ff} ' | bc = ' num2str(bc,'%.3f')];
             catch ME
                 keyboard;
@@ -112,8 +112,8 @@ function [] = plot_fluxes(runArray)
             metric = run.bathy.h(1,ind)./run.bathy.hsb .* ...
                      (1+run.rgrid.f(run.bathy.isb,1)./run.rgrid.f(ind,1))';
 
-            hgplt3(ff) = plot(ndtime, ...
-                              (run.bathy.xsb - env)./run.rrdeep);
+            hgplt3(ff) = plot(ndtime, (run.bathy.xsb - env), ...
+                              'Color', hgplt1(ff).Color);
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EDDY WATER
@@ -122,11 +122,13 @@ function [] = plot_fluxes(runArray)
             subplot(2,1,1)
             hgplt4(ff) = plot(ndtime(1:end-2), ...
                               smooth((run.csflux.east.eddy(1:end-2, ...
-                                                           1))/fluxscl, 3));
+                                                           1))/fluxscl, ...
+                                     3), 'Color', hgplt1(ff).Color);
 
             subplot(2,1,2)
             plot(ndtime, ...
-                 run.csflux.east.itrans.eddy(:,1)/transscl);
+                 run.csflux.east.itrans.eddy(:,1)/transscl, ...
+                 'Color', hgplt1(ff).Color);
         end
 
         %%%%%%%%%%%%%%%%%%%%% ALONG SHELF STRUCTURE
@@ -152,7 +154,7 @@ function [] = plot_fluxes(runArray)
 
             % integrate in time
             shelfx = trapz(run.csflux.time, repnan(mati, 0), 2);
-            hgplt5(ff) = plot(xi./Lx, shelfx./ttrans);
+            hgplt5(ff) = plot(xi./Lx, shelfx./ttrans, 'Color', hgplt1(ff).Color);
         end
     end
 
