@@ -22,6 +22,10 @@ function [] = plot_fluxes(runArray)
 
     nsmooth = 1;
 
+    % integrate velocity profile from surface to z=-H
+    syms Vint V0 z H Lz0;
+    Vint(V0, Lz0, H) = V0 * int( 1 - erf(z/Lz0), z, -H, 0);
+
     for ff=1:length(runArray.filter)
         ii = runArray.filter(ff);
 
@@ -38,13 +42,15 @@ function [] = plot_fluxes(runArray)
         end
 
         tind = find_approx(run.ndtime, 1.5, 1);
-        Ue = run.eddy.V(tind);
-        He = run.bathy.hsb;
-        Le = run.eddy.vor.dia(1)/2;
-        vol0 = He * (Le)^2;
+        Lz = run.eddy.Lgauss(1);
+        hsb = run.bathy.hsb;
 
-        fluxscl = Ue * Le * He;
-        transscl = vol0;
+        Ue = run.eddy.V(tind);
+        He = hsb;
+        Le = run.eddy.vor.dia(1)/2;
+
+        fluxscl = double(Vint(Ue, Lz, hsb)) * Le;
+        transscl = He * Le^2;
 
         % total transport
         ttrans = max(abs(run.csflux.west.itrans.shelf(:,1)));
