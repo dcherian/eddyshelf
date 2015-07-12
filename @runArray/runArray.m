@@ -525,7 +525,9 @@ classdef runArray < handle
 
             n = length(runArray.filter);
 
-            if length(tind) == 1
+            if ~exist('tind', 'var'), tind = []; end
+
+            if length(tind) == 1 && ~ischar(tind)
                 tind = tind * ones([1 n]);
             end
 
@@ -534,9 +536,16 @@ classdef runArray < handle
             for ff = 1:length(runArray.filter)
                 run = runArray.array(runArray.filter(ff));
 
-                tt = find_approx(run.ndtime, tind(ff));
+                if strcmpi(tind, 'max flux')
+                    [~,tindex] = run.calc_maxflux;
+                end
+
+                if ~ischar(tind)
+                    tindex = tind(ff);
+                end
+
                 hax = subplot(a,2,ff);
-                run.animate_field(varname, hax, tt, 1);
+                run.animate_field(varname, hax, tindex, 1);
             end
         end
 
