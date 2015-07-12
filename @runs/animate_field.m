@@ -212,6 +212,11 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         end
     end
 
+    % if provided with axis handle, then assume no subplots
+    if ~isempty(hax)
+        subplots_flag = [];
+    end
+
     % process addcsdye
     if strcmpi(name, 'eddye') && addcsdye
         tind = t0:t0+ntimes-1;
