@@ -9,16 +9,18 @@ function [] = plot_fluxes(runArray)
     % subplot(2,2,3); hold all
     % subplot(2,2,4); hold all
 
-    hfig3 = []; %figure; hold all; % envelope
+    hfig3 = figure; hold all; % envelope
 
-    hfig4 = []; %figure; subplot(2,1,1); hold all; % eddy water flux
-                %subplot(2,1,2); hold all
+    hfig4 = figure; subplot(2,1,1); hold all; % eddy water flux
+            subplot(2,1,2); hold all
 
     hfig5 = figure; hold on;% along shelf structure
 
     if isempty(runArray.filter)
         runArray.filter = 1:runArray.len;
     end
+
+    nsmooth = 1;
 
     for ff=1:length(runArray.filter)
         ii = runArray.filter(ff);
@@ -136,7 +138,7 @@ function [] = plot_fluxes(runArray)
             figure(hfig5)
             tind = run.csflux.tscaleind;
             matrix = run.csflux.shelfxt(:,:,1) ...
-                     .* 1; run.csflux.westmask;
+                     .* 1; %run.csflux.westmask;
             xr = run.rgrid.x_rho(1,:)';
             nt = size(matrix,2);
             Lx = run.eddy.vor.dia(1);
