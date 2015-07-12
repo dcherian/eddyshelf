@@ -45,6 +45,9 @@ function [avgflux, err] = calc_avgflux(runs)
     avgflux = b(2);
     err = abs(bint(2) - b(2));
 
+    runs.csflux.avgflux = avgflux;
+    runs.csflux.err = err;
+
     % plot fit
     %figure; hold all;
     %plot(tvec/86400, true, '*');
