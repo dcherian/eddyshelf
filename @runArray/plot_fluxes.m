@@ -38,26 +38,35 @@ function [] = plot_fluxes(runArray)
         tind = find_approx(run.ndtime, 1.5, 1);
         Ue = run.eddy.V(tind);
         He = run.bathy.hsb;
-        Le = run.eddy.vor.dia(tind)/2;
+        Le = run.eddy.vor.dia(1)/2;
+        vol0 = He * (Le)^2;
 
-        fluxscl = 1e6;Ue * Le * He;
-        transscl = 1;fluxscl * (2*Le/Ue);
+        fluxscl = Ue * Le * He;
+        transscl = vol0;
 
         % total transport
         ttrans = max(abs(run.csflux.west.itrans.shelf(:,1)));
 
-        ndtime = run.ndtime; %run.csflux.time/run.tscale
+        ndtime = run.csflux.time/run.eddy.turnover;
+
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SHELF WATER
         if ~isempty(hfig1)
             figure(hfig1)
             subplot(2,1,1)
+            [maxf, maxi] = run.calc_maxflux;
             hgplt1(ff) = plot(ndtime(1:end-2), ...
                               smooth((run.csflux.west.shelf(1:end-2, ...
-                                                            1))/fluxscl, 3));
+                                                            1))/fluxscl, nsmooth));
+            plot(ndtime(maxi), maxf/fluxscl, 'x', ...
+                 'Color', hgplt1(ff).Color);
 
             subplot(2,1,2)
             plot(ndtime, ...
-                 run.csflux.west.itrans.shelf(:,1)/transscl);
+                 run.csflux.west.itrans.shelf(:,1)/transscl, ...
+                 'Color', hgplt1(ff).Color);
+        else
+            colors = get(gca, 'ColorOrder');
+            hgplt1(ff).Color = colors(ff,:);
         end
 
         %%%%%% BAROCLINICITY
@@ -151,12 +160,13 @@ function [] = plot_fluxes(runArray)
     if ~isempty(hfig1)
         figure(hfig1)
         subplot(2,1,1)
-        ylabel('Flux of shelf water (Sv)');
+        title('Shelf water');
+        ylabel('Flux / Eddy Flux above sb');
         liney(0, [], [1 1 1]*0.75);
         beautify;
 
         subplot(2,1,2)
-        ylabel('Total volume transported');
+        ylabel('Vol_{transport}/ Vol_{eddy}');
         xlabel('Non-dimensional time');
         legend(hgplt1, names);
         liney(0);
@@ -196,7 +206,7 @@ function [] = plot_fluxes(runArray)
     if ~isempty(hfig3)
         figure(hfig3)
         xlabel('Non-dimensional time');
-        ylabel('isobath most on-shore source of water / h_{sb}');
+        ylabel('Distance from shelfbreak');
         legend(hgplt3, names);
         beautify;
     end
@@ -204,13 +214,16 @@ function [] = plot_fluxes(runArray)
     if ~isempty(hfig4)
         figure(hfig4)
         subplot(2,1,1);
-        ylabel('Flux of eddy water (Sv)');
+        title('Eddy water');
+        ylabel('Flux / Eddy flux above sb');
+        liney(0);
         legend(hgplt4, names);
         beautify;
 
         subplot(2,1,2);
-        ylabel('Total volume transported (m^3)');
+        ylabel('Vol_{transport}/Vol_{eddy}');
         xlabel('Non-dimensional time');
+        liney(0);
         beautify;
     end
 
