@@ -778,9 +778,8 @@ function [out] = detect_eddy(maskin, zeta, opt, grd)
                 hold on;
                 contour(maskreg', 1, 'k', 'LineWidth', 2);
                 caxis(clim);
-                plot(grd.cxn1/1000, grd.cyn1/1000, '*');
-                plot(out.cx/1000, out.cy/1000, ...
-                     'k*');
+                plot(grd.cxn1/dx, grd.cyn1/dy, '*');
+                plot(out.cx/dx, out.cy/dy, 'k*');
                 legend('zeta','current contour', 'earlier center', ['present ' ...
                                     'center']);
                 answer = input([' enter 0 to skip this region, 1 to ' ...
