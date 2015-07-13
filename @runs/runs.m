@@ -998,6 +998,52 @@ methods
         linkaxes(ax, 'x');
     end
 
+    function [fluxscl] = eddyfluxscale(runs)
+
+    % integrate velocity profile from surface to z=-H
+        syms Vint z x;
+        Lz = runs.eddy.Lgauss(1);
+        H = runs.bathy.hsb;
+        V0 = runs.eddy.V(runs.csflux.tscaleind);
+        Lx = runs.eddy.vor.dia(1)/2;
+
+        fluxscl = double(V0 * int(exp(-x/Lx)^2, 0, Lx) ...
+                  * int(1 - erf(z/Lz), z, -H, 0));
+    end
+
+    function [] = streamerstruct(runs)
+
+        tind = runs.csflux.tscaleind;
+        matrix = runs.csflux.shelfxt(:,:,1) .* runs.csflux.westmask;
+        xr = runs.rgrid.x_rho(1,:)';
+        nt = size(matrix,2);
+
+        % x-grid to interpolate on to
+        dx = bsxfun(@minus, xr, runs.eddy.mx);
+        xmax = max(abs(dx(:)));
+        xi = [-1 * xmax: 1000 : xmax]';
+
+        mati = nan([length(xi) nt]);
+        for tt = [1:nt]
+            xvec = runs.rgrid.x_rho(1,2:end-1)' - runs.eddy.mx(tt);
+            mati(:,tt) = interp1(xvec, matrix(:,tt), xi);
+        end
+
+        % integrate in time
+        ttrans = max(abs(runs.csflux.west.itrans.shelf(:,1)));
+        shelfx = trapz(runs.csflux.time, repnan(mati, 0), 2);
+        assert((trapz(xi, shelfx) - ttrans) < 0.05*ttrans);
+
+        runs.csflux.shelfx.flux = shelfx;
+        [y0, X] = gauss_fit(xi, runs.csflux.shelfx.flux, 0);
+        runs.csflux.shelfx.xi = xi;
+        runs.csflux.shelfx.Lx = X;
+        runs.csflux.shelfx.y0 = y0;
+        runs.csflux.shelfx.comment = ['[y0, Lx] = gauss_fit | flux = ' ...
+                            'along-shelf structure | xi = x-vector ' ...
+                            'for flux'];
+    end
+
     function [] = read_pbot(runs)
         fname = [runs.dir '/mombudget.mat'];
 
