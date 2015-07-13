@@ -570,6 +570,46 @@ function [diags, plotx] = print_diag(runArray, name)
 
 
         %%%%% shelf flux
+        if strcmpi(name, 'max flux')
+            if ~isfield(run.csflux, 'time')
+                continue;
+            end
+
+            ind = run.csflux.tscaleind;
+
+            %run.streamerstruct;
+            transscl = V(tind) * hsb * run.rrshelf * pi;
+
+            [maxflux, maxloc] = run.calc_maxflux;
+
+            % colorize
+            if round(hsb/Lz(1),2) > 0.13
+                clr = 'r';
+            end
+            if round(hsb/Lz(1),2) < 0.13
+                clr = 'b';
+            end
+
+            % plot error
+            %if ff == 1 || ~exist('hfig_fluxerr', 'var')
+            %    hfig_fluxerr = figure; hold on;
+            %end
+            % paramerr = avgflux/1000 - transscl;
+            % figure(hfig_fluxerr)
+            % plot(run.eddy.Ro(tind), paramerr, '*');
+            % xlabel('Ro'); ylabel('paramerr');
+
+            parameterize = 1;
+            errorbarflag = 0; name_points = 1; line_45 = 0;
+            laby = 'Shelf water max flux (mSv)';
+            labx = 'Eddy flux above H_{sb} (mSv)';
+
+            diags(ff) = maxflux/1e3;
+            plotx(ff) = transscl/1e3;
+
+            % diagstr = [num2str(maxflux/1000,'%.2f') ' mSv'];
+        end
+
         if strcmpi(name, 'shelf flux')
             if ~isfield(run.csflux, 'time')
                 continue;
@@ -765,7 +805,7 @@ function [diags, plotx] = print_diag(runArray, name)
             % add run names
             if name_points
                 text(plotx(ff), diags(ff), ptName, 'FontSize', ...
-                     16, 'Rotation', 0, 'Color', clr, ...
+                     12, 'Rotation', 0, 'Color', clr, ...
                      'VerticalAlignment','Bottom');
             end
             if ff == 1
@@ -808,7 +848,7 @@ function [diags, plotx] = print_diag(runArray, name)
                       'Color', [1 1 1]*0.75);
         hleg = legend(hparam, ['y = ' num2str(c, '%.2f') 'x + ' ...
                             num2str(P(2), '%.2f') '; rmse = ' num2str(rmse,3)], ...
-                      'Location', 'NorthWest');
+                      'Location', 'SouthEast');
 
     end
 
@@ -829,7 +869,7 @@ function [diags, plotx] = print_diag(runArray, name)
             pbaspect([1.618 1 1]);
         end
 
-        if strcmpi(name, 'shelf flux')
+        if strcmpi(name, 'shelf flux') || strcmpi(name, 'max flux')
             figure(hfig);
             axis square;
         end
