@@ -575,7 +575,7 @@ function [diags, plotx] = print_diag(runArray, name)
                 continue;
             end
 
-            ind = run.csflux.tscaleind;
+            tind = run.csflux.tscaleind;
 
             %run.streamerstruct;
             transscl = V(tind) * hsb * run.rrshelf * pi;
@@ -602,7 +602,7 @@ function [diags, plotx] = print_diag(runArray, name)
             parameterize = 1;
             errorbarflag = 0; name_points = 1; line_45 = 0;
             laby = 'Shelf water max flux (mSv)';
-            labx = 'Eddy flux above H_{sb} (mSv)';
+            labx = 'V_{eddy} H_{sb} L_R^{shelf} (mSv)';
 
             diags(ff) = maxflux/1e3;
             plotx(ff) = transscl/1e3;
