@@ -598,24 +598,29 @@ function [eddy] = eddy_diag(zeta, vor, rho, ...
             eddy.thresh = threshold;
 
             % find 0 rel. vor (max. speed) contour within SSH mask
-            eddy.vor = detect_eddy(vor.*eddy.mask < 0, zeta, opt, ...
-                                   grd);
+            try
+                eddy.vor = detect_eddy(vor.*eddy.mask < 0, zeta, opt, ...
+                                       grd);
 
-            % drhothresh based on ssh mask if it doesn't exist
-            if isempty(rthresh.ssh)
-                rthresh.ssh = squeeze(nanmax(nanmax( ...
-                    rho .* fillnan(eddy.mask,0), [], 1), [], 2));
+                % drhothresh based on ssh mask if it doesn't exist
+                if isempty(rthresh.ssh)
+                    rthresh.ssh = squeeze(nanmax(nanmax( ...
+                        rho .* fillnan(eddy.mask,0), [], 1), [], 2));
 
-                rthresh.vor = squeeze(nanmax(nanmax( ...
-                    rho .* fillnan(eddy.vor.mask,0), [], 1), [], 2));
+                    rthresh.vor = squeeze(nanmax(nanmax( ...
+                        rho .* fillnan(eddy.vor.mask,0), [], 1), [], 2));
+                end
+                eddy.rhovor = detect_eddy(rho < rthresh.vor, zeta, opt, grd);
+                eddy.rhossh = detect_eddy(rho < rthresh.ssh, zeta, ...
+                                          opt, grd);
+                flag_found = 1;
+                fprintf('Eddy found with threshold %.3f \n', threshold);
+            catch ME
+                flag_found = 0;
             end
-            eddy.rhovor = detect_eddy(rho < rthresh.vor, zeta, opt, grd);
-            eddy.rhossh = detect_eddy(rho < rthresh.ssh, zeta, opt, grd);
 
-            flag_found = 1;
-            fprintf('Eddy found with threshold %.3f \n', threshold);
             % stop when eddy is found
-            break;
+            if flag_found, break; end
         end
 
         if exist('flag_found','var') && flag_found == 1
