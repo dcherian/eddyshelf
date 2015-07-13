@@ -332,14 +332,30 @@ methods
                 ./ runs.params.phys.f0^2 ./ (runs.eddy.vor.dia/2).^2;
 
             % eddy turnover time scale
-            runs.eddy.turnover = (runs.eddy.vor.dia(1)/2)./runs.eddy.V(1);
+            try
+                runs.eddy.turnover = (runs.eddy.vor.dia(1)/2)./ ...
+                    runs.eddy.V(1);
+            catch ME
+                runs.eddy.turnover = (runs.eddy.vor.dia(1)/2)./ ...
+                    runs.params.eddy.U;
+            end
 
             % non-dimensionalized time
             runs.ndtime = runs.time ./ runs.eddy.turnover;
 
             % save memory by converting masks to logical
             runs.eddy.mask = logical(repnan(runs.eddy.mask, 0));
-            runs.eddy.vormask = logical(repnan(runs.eddy.vormask,0));
+            runs.eddy.vormask = logical(repnan(runs.eddy.vormask, ...
+                                               0));
+            try
+                runs.eddy.vor.mask = logical(repnan(runs.eddy.vor.mask, ...
+                                                    0));
+                runs.eddy.rhovor.mask = logical(repnan(runs.eddy.rhovor.mask, ...
+                                                       0));
+                runs.eddy.rhossh.mask = logical(repnan(runs.eddy.rhossh.mask, ...
+                                                       0));
+            catch ME
+            end
 
             % drhothresh based on ssh mask if it doesn't exist
             if ~isfield(runs.eddy, 'drhothreshssh')
@@ -427,16 +443,18 @@ methods
             end
 
             % calculate βL/f
-            dA = 1./runs.rgrid.pm' .* 1./runs.rgrid.pn';
-            betal = fillnan(runs.eddy.vormask, 0) .* ...
-                    abs(bsxfun(@minus, runs.rgrid.f(2:end-1,2:end-1)', ...
-                       permute(runs.eddy.fcen, [3 2 1])))/2;
-            betaldA = bsxfun(@times, betal, dA(2:end-1,2:end-1));
+            try
+                dA = 1./runs.rgrid.pm' .* 1./runs.rgrid.pn';
+                betal = fillnan(runs.eddy.vormask, 0) .* ...
+                        abs(bsxfun(@minus, runs.rgrid.f(2:end-1,2:end-1)', ...
+                                   permute(runs.eddy.fcen, [3 2 1])))/2;
+                betaldA = bsxfun(@times, betal, dA(2:end-1,2:end-1));
 
-            runs.eddy.betahat = squeeze(nansum(nansum(betaldA, 1), 2))' ./ ...
-                runs.eddy.vor.area ./ runs.eddy.fcen';
-            runs.eddy.Rh = runs.eddy.Ro ./ runs.eddy.betahat;
-
+                runs.eddy.betahat = squeeze(nansum(nansum(betaldA, 1), 2))' ./ ...
+                    runs.eddy.vor.area ./ runs.eddy.fcen';
+                runs.eddy.Rh = runs.eddy.Ro ./ runs.eddy.betahat;
+            catch ME
+            end
             if isfield(runs.eddy, 'KE')
                 if size(runs.eddy.KE,1) == 1
                     runs.eddy.KE = runs.eddy.KE';
