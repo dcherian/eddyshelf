@@ -22,10 +22,6 @@ function [] = plot_fluxes(runArray)
 
     nsmooth = 1;
 
-    % integrate velocity profile from surface to z=-H
-    syms Vint V0 z H Lz0;
-    Vint(V0, Lz0, H) = V0 * int( 1 - erf(z/Lz0), z, -H, 0);
-
     for ff=1:length(runArray.filter)
         ii = runArray.filter(ff);
 
@@ -45,11 +41,10 @@ function [] = plot_fluxes(runArray)
         Lz = run.eddy.Lgauss(1);
         hsb = run.bathy.hsb;
 
-        Ue = run.eddy.V(tind);
         He = hsb;
         Le = run.eddy.vor.dia(1)/2;
 
-        fluxscl = double(Vint(Ue, Lz, hsb)) * Le;
+        fluxscl = run.eddyfluxscale;
         transscl = He * Le^2;
 
         % total transport
@@ -142,27 +137,14 @@ function [] = plot_fluxes(runArray)
         %%%%%%%%%%%%%%%%%%%%% ALONG SHELF STRUCTURE
         if ~isempty(hfig5)
             figure(hfig5)
-            tind = run.csflux.tscaleind;
-            matrix = run.csflux.shelfxt(:,:,1) ...
-                     .* 1; %run.csflux.westmask;
-            xr = run.rgrid.x_rho(1,:)';
-            nt = size(matrix,2);
-            Lx = run.eddy.vor.dia(1);
-
-            % x-grid to interpolate on to
-            dx = bsxfun(@minus, xr, run.eddy.mx);
-            xmax = max(abs(dx(:)));
-            xi = -1 * xmax: 1000 : xmax;
-
-            mati = nan([length(xi) nt]);
-            for tt = [1:nt]
-                xvec = run.rgrid.x_rho(1,2:end-1)' - run.eddy.mx(tt);
-                mati(:,tt) = interp1(xvec, matrix(:,tt), xi);
+            Lx = run.eddy.vor.dia(1)/2;
+            if ~isfield(run.csflux, 'shelfx')
+                run.streamerstruct;
             end
-
-            % integrate in time
-            shelfx = trapz(run.csflux.time, repnan(mati, 0), 2);
-            hgplt5(ff) = plot(xi./Lx, shelfx./ttrans, 'Color', hgplt1(ff).Color);
+            xi = run.csflux.shelfx.xi;
+            shelfx = run.csflux.shelfx.flux;
+            hgplt5(ff) = plot(xi./Lx, shelfx./ttrans, 'Color', ...
+                              hgplt1(ff).Color);
         end
     end
 
