@@ -7,7 +7,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     dt = 3;
 
-    csfluxplot = 0; % 0 = no flux plot
+    csfluxplot = 1; % 0 = no flux plot
                     % 1 = instantaneous x-profile;
     asfluxplot = 0; % 0 = no flux plot
                     % 1 = instantaneous y-profile;
@@ -18,7 +18,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     % time series?
     enfluxplot = 0; % plot AS energy flux ?
-    vecplot = 1; % plot some time vector (assign tvec and vec);
+    vecplot = 0; % plot some time vector (assign tvec and vec);
     pointplot = 0; % mark some point on the map
 
     % eddy contours?
@@ -192,6 +192,10 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         runs.read_velsurf(t0, ntimes);
     end
 
+    if ~strcmpi(name, 'eddye')
+        addcsdye = 0;
+    end
+
     if isempty(titlestr)
         titlestr = ['Surface ' name];
     end
@@ -247,6 +251,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     hz = runs.plot_surf(varname, 'pcolor', ii);
     hold on;
     colorbar; center_colorbar;
+    clim = caxis;
 
     if csdcontourplot
         hcsd = runs.plot_surf('csdsurf', 'contour', ii);
@@ -283,10 +288,8 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     % zeta too?
     if addzeta
-        clim = caxis;
         hzeta = runs.plot_surf('zeta','contour', ii);
         set(hzeta, 'Color', 'k', 'LineWidth', 2);
-        caxis(clim);
     end
 
     % plot eddy contours
@@ -333,6 +336,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     if vecplot
         linex(locx); liney(locy);
     end
+    caxis(clim); % restore colorbar limits
     maximize(gcf); pause(0.2);
     beautify([16 16 18]);
     ax(1) = gca;

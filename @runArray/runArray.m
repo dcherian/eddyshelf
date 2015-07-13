@@ -532,7 +532,7 @@ classdef runArray < handle
             end
 
             figure;
-            a = mod(n, 2) + 1;
+            a = ceil(n/2);
             for ff = 1:length(runArray.filter)
                 run = runArray.array(runArray.filter(ff));
 

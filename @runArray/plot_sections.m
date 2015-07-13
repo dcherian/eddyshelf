@@ -42,13 +42,12 @@ function [hh] = plot_sections(runArray, varname, ndtimes)
                 % find required tindices
                 tind = find_approx(ndtime, ndtimes(tt));
             else
-                run.fit_traj(1.5);
-                tind = run.traj.tind;
+                [~,~,tind] = run.locate_resistance;
             end
 
             yscale = run.eddy.vor.dia(1)/2;
             zscale = run.eddy.Lgauss(1);
-            y0 = run.eddy.my(tind); % run.bathy.xsb
+            y0 = run.bathy.xsb; %run.eddy.my(tind); %
 
             if strcmpi(varname, 'v')
                 ymat = repmat(run.rgrid.y_v(:,1), [1 run.rgrid.N]);
