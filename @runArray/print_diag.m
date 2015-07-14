@@ -24,6 +24,7 @@ function [diags, plotx] = print_diag(runArray, name)
         name_points = 1; % name points by default
         line_45 = 0; %no 45° line by default
         errorbarflag = 0; % use errorbar() instead of plot()
+        logscale = 0;
         kozak = 0; % fancy Kozak scatterplot
         labx = ' '; laby = ' ';
         clr = 'k';
@@ -857,6 +858,11 @@ function [diags, plotx] = print_diag(runArray, name)
         maximize(); drawnow; pause(1);
         set(gcf, 'renderer', 'painters');
         if line_45, line45(hax); end
+
+        if logscale
+            set(gca, 'XScale', 'log');
+            set(gca, 'YScale', 'log');
+        end
 
         if kozak
             ax2 = kozakscatterplot(hax, [min(plotx) max(plotx)], ...
