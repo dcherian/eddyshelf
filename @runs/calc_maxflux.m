@@ -4,6 +4,11 @@ function [maxflux, maxloc] = calc_maxflux(runs)
     debug = 0;
     
     ind = runs.csflux.tscaleind;
+    % This smoothing is used only to make peak detection work
+    % better. i.e., this makes maxloc a better estimate neglecting
+    % some smaller peaks that might occur earlier.
+    % The maxflux value is from the actual *unsmoothed*  time
+    % series at time index "maxloc"
     nsmooth = 10;
 
     % flux vector for applicable time
@@ -19,7 +24,6 @@ function [maxflux, maxloc] = calc_maxflux(runs)
     [~,locs] = findpeaks(fluxvec);
     
     maxloc = locs(1);
-    maxflux = fluxvec(maxloc);
 
     % correct time shift
     maxloc = maxloc + ind - 1;
@@ -32,6 +36,7 @@ function [maxflux, maxloc] = calc_maxflux(runs)
         title(runs.name);
     end
 
+    maxflux = runs.csflux.west.shelf(maxloc,1);
     runs.csflux.maxflux = maxflux;
     runs.csflux.maxloc = maxloc;
 end
