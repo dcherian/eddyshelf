@@ -1031,35 +1031,55 @@ methods
 
     function [] = streamerstruct(runs)
 
+        debug = 0;
+
         tind = runs.csflux.tscaleind;
         matrix = runs.csflux.shelfxt(:,:,1) .* runs.csflux.westmask;
         xr = runs.rgrid.x_rho(1,:)';
         nt = size(matrix,2);
 
+        [~,nt] = runs.calc_maxflux;
+
+        cen = runs.eddy.mx;
         % x-grid to interpolate on to
-        dx = bsxfun(@minus, xr, runs.eddy.mx);
+        dx = bsxfun(@minus, xr, cen);
         xmax = max(abs(dx(:)));
-        xi = [-1 * xmax: 1000 : xmax]';
+        xi = [-1 * xmax: 2000 : xmax]';
 
         mati = nan([length(xi) nt]);
         for tt = [1:nt]
-            xvec = runs.rgrid.x_rho(1,2:end-1)' - runs.eddy.mx(tt);
+            xvec = runs.rgrid.x_rho(1,2:end-1)' - cen(tt);
             mati(:,tt) = interp1(xvec, matrix(:,tt), xi);
         end
 
         % integrate in time
         ttrans = max(abs(runs.csflux.west.itrans.shelf(:,1)));
-        shelfx = trapz(runs.csflux.time, repnan(mati, 0), 2);
-        assert((trapz(xi, shelfx) - ttrans) < 0.05*ttrans);
+        shelfx = trapz(runs.csflux.time(1:nt), repnan(mati, 0), 2);
+        assert((trapz(xi, shelfx) - ttrans) < 0.01*ttrans);
 
         runs.csflux.shelfx.flux = shelfx;
-        [y0, X] = gauss_fit(xi, runs.csflux.shelfx.flux, 0);
+        [y0, X, x0] = gauss_fit(xi, runs.csflux.shelfx.flux, debug);
+        if debug, title(runs.name); end
+        runs.csflux.shelfx.shelfxti = mati;
         runs.csflux.shelfx.xi = xi;
         runs.csflux.shelfx.Lx = X;
         runs.csflux.shelfx.y0 = y0;
+        runs.csflux.shelfxx.x0 = x0;
         runs.csflux.shelfx.comment = ['[y0, Lx] = gauss_fit | flux = ' ...
                             'along-shelf structure | xi = x-vector ' ...
-                            'for flux'];
+                            'for flux | shelfxti = interpolated ' ...
+                            'to grid with eddy center as origin'];
+    end
+
+    function [] = plot_shelfxt(runs)
+
+        runs.streamerstruct;
+        shelfxti = runs.csflux.shelfx.shelfxti;
+        xi = runs.csflux.shelfx.xi;
+        ti = runs.csflux.time/86400;
+
+        figure;
+        contourf(xi, ti, shelfxti');
     end
 
     function [] = read_pbot(runs)
