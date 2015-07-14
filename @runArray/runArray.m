@@ -166,7 +166,7 @@ classdef runArray < handle
             end
         end
 
-        function [] = print_params(runArray, command)
+        function [out] = print_params(runArray, command)
             if isempty(runArray.filter)
                 runArray.filter = 1:runArray.len;
             end
@@ -177,14 +177,15 @@ classdef runArray < handle
                 try
                     out = eval(['run.' command]);
                     if ~ischar(out)
-                        out = num2str(out);
+                        outstr = num2str(out);
                     end
                 catch ME
-                    out = 'failed';
+                    out = NaN;
+                    outstr = 'failed';
                 end
 
                 disp([num2str(runArray.filter(ii)) ' | ' ...
-                      run.name ' | ' out]);
+                      run.name ' | ' outstr]);
             end
         end
 
