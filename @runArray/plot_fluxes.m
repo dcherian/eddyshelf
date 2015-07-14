@@ -20,6 +20,8 @@ function [] = plot_fluxes(runArray)
         runArray.filter = 1:runArray.len;
     end
 
+    corder_backup = runArray.sorted_colors;
+
     nsmooth = 1;
 
     for ff=1:length(runArray.filter)
@@ -223,9 +225,12 @@ function [] = plot_fluxes(runArray)
         figure(hfig5)
         xlabel('(X - X_e)/L_x');
         ylabel('Normalized flux');
+        title('\int v(x,z,t) dz dt');
         linex([-1 0 1]); liney(0);
         xlim([-2 2]);
         legend(hgplt5, names);
         beautify;
     end
+
+    runArray.reset_colors(corder_backup);
 end
