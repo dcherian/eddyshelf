@@ -877,11 +877,6 @@ function [diags, plotx] = print_diag(runArray, name)
             pbaspect([1.618 1 1]);
         end
 
-        if strcmpi(name, 'shelf flux') || strcmpi(name, 'max flux')
-            figure(hfig);
-            axis square;
-        end
-
         if strcmpi(name, 'bottom torque')
             hleg = legend(hparam, ['$$ \frac{U_b}{U_s} = ' ...
                             '1 - \mathrm{erf}(\frac{H}{L_z^0}) ' ...
@@ -890,6 +885,13 @@ function [diags, plotx] = print_diag(runArray, name)
                             '; rmse = ' num2str(rmse,3)], ...
                       'Location', 'SouthEast');
             set(hleg, 'interpreter', 'latex');
+        end
+
+        if strcmpi(name, 'shelf flux') || strcmpi(name, 'max flux')
+            figure(hfig);
+            axis square;
+            xlim([0 max(xlim)]);
+            ylim([0 max(ylim)]);
         end
 
         beautify([20 24 30]);
