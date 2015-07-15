@@ -410,7 +410,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         end
     end
     if subplots_flag == 'y'
-        ax2 = subplot(1,3,3);
+        ax(2) = subplot(1,3,3);
 
         % AS fluxes
         if asfluxplot == 1
@@ -449,7 +449,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
             axes(ax)
             linex(runs.asflux.x(asindex)/1000);
 
-            linkaxes([ax ax2], 'y');
+            linkaxes(ax, 'y');
         end
 
         beautify;
@@ -507,7 +507,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
             % shelfwater flux plots
             if ~isempty(runs.csflux) && csfluxplot == 1
-                axis(ax2);
+                axis(ax(2));
                 if exist('htime', 'var')
                     set(htime, 'XData', [1 1]*runs.csflux.time(ii)/ ...
                                86400);
@@ -519,7 +519,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
             % AS eddy water flux plots
             if ~isempty(runs.asflux) && asfluxplot == 1
-                axis(ax2);
+                axis(ax(2));
                 if exist('htime', 'var')
                     set(htime, 'XData', [1 1]*runs.asflux.time(ii)/ ...
                                86400);
