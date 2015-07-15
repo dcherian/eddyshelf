@@ -1214,7 +1214,8 @@ methods
                              6);
         end
 
-        opt = 'zy';
+        if ischar(times), nt = 1; else nt = length(times); end
+        opt = 'zx';
         velname = opt(1);
         axname = opt(2); % name of axis for plot;
 
@@ -1224,15 +1225,20 @@ methods
         cmap = cmap(3:end,:,:); % chuck out lightest colors
         hold all;
 
-        for ii=1:length(times)
-            tind = find_approx(runs.time/86400, times(ii), 1);
+        for ii=1:nt
+            if strcmpi(times, 'max flux')
+                [~,tind] = runs.calc_maxflux;
+                times = runs.eddy.t(tind);
+            else
+                tind = find_approx(runs.time/86400, times(ii), 1);
+            end
 
             if axname == 'y'
                 ref = runs.eddy.my(tind); % 0 for x-axis
                 loc = runs.eddy.mx(tind);
                 locax = 'x';
             else
-                ref = runs.eddy.cx(tind);
+                ref = runs.eddy.mx(tind);
                 loc = runs.bathy.xsb; %runs.eddy.cy(tind);
                 locax = 'y';
             end
@@ -1260,8 +1266,6 @@ methods
                                     num2str(loc) num2str(loc); ...
                                     'z' runs.rgrid.N ...
                                     runs.rgrid.N}));
-
-
             end
 
             if velname == 'u'
@@ -1281,16 +1285,16 @@ methods
             % normalized vectors to plot
             xvec = (axvec - ref)/axscale;
             vvec = vel./vmax;
-            %vvec = vvec - vvec(1);
+            vvec = vvec - vvec(1);
             % plot
             if velname == 'z'
-                hplt = plot(xvec, vvec, '-', 'Color', cmap(ii,:));
+                hplt(ii) = plot(xvec, vvec, '-', 'Color', cmap(ii,:));
             else
-                hplt = plot(xvec, abs(vvec), '-', 'Color', cmap(ii,:));
+                hplt(ii) = plot(xvec, (vvec), '-', 'Color', cmap(ii,:));
             end
 
-            addlegend(hplt, [num2str(times(ii)) ' | ' ...
-                             num2str(vvec(runs.bathy.isb)) ' ' units]);
+            names{ii} = [num2str(times(ii)) ' | ' ...
+                         num2str(vvec(runs.bathy.isb), '%0.2f') ' ' units];
             if axname == 'y'
                 plot(xvec(runs.bathy.isb), vvec(runs.bathy.isb), ...
                      'b*');
@@ -1308,7 +1312,7 @@ methods
         vel = avg1(exp(-(xvec-1).^2/2));
         [vmax,indmax] = max(abs(vel));
         %plot(avg1(xvec)./xvec(indmax), vel./vmax, 'r');
-
+        legend(hplt, names, 'Location', 'NorthWest');
         ylabel([velname ' ./ max(' velname ')'])
         xlabel([upper(axname) ' Distance from center / (radius)']);
         title([velname ' | ' runs.name]);
