@@ -30,7 +30,7 @@ function [] = csfluxes(runs, ftype)
 
     % sort out isobaths across which to calculate transports
     Y = max(runs.rgrid.y_rho(:));
-    loc = [runs.bathy.xsb runs.bathy.xsl]; %linspace(runs.bathy.xsb, runs.bathy.xsl, 4);
+    loc = linspace(runs.bathy.xsb, runs.bathy.xsl, 4);
     if runs.params.bathy.axis == 'x'
         csvelid = 'u';
         asvelid = 'v';
@@ -55,9 +55,6 @@ function [] = csfluxes(runs, ftype)
 
     sz = size(runs.sponge);
 
-    loc = loc(1:2);
-    indices = indices(1:2);
-
     % save locations
     runs.csflux.x = loc;
     % save indices for locations - w.r.t INTERIOR RHO POINTS
@@ -67,7 +64,8 @@ function [] = csfluxes(runs, ftype)
 
     runs.csflux.comment = ['shelf / slope / eddy= which water mass am I ', ...
                         ' targeting? |\n (x,ix,h) = (location, index, depth) ' ...
-                        'at which I''m calculating transport |\n '];
+                        'at which I''m calculating transport |\n ' ...
+                        'Slope(kk) = water onshore of loc(kk)'];
 
     % how much of the time vector should I read?
     if isfield(runs.eddy, 'tend')
@@ -80,7 +78,7 @@ function [] = csfluxes(runs, ftype)
     if strcmpi(ftype, 'his')
         time = dc_roms_read_data(runs.dir, 'ocean_time', [1 tinf], {}, [], ...
                                  [], 'his');
-        if length(time) ~= length(runs.eddy.t)
+        if length(time) ~= length(runs.eddy.t(1:runs.eddy.tend))
             t0 = find_approx(time, runs.time(tstart), 1);
             if bathyax == 2
                 cxi = interp1(runs.eddy.t(tstart:end)*86400, runs.eddy.vor.ee(tstart:end), ...
@@ -225,8 +223,7 @@ function [] = csfluxes(runs, ftype)
 
         % define water masses
         shelfmask = (csdye < runs.bathy.xsb);
-        slopemask = (csdye >= runs.bathy.xsb) & ...
-            (csdye <= runs.bathy.xsl);
+        slopemask = (csdye <= loc(kk));
         eddymask = eddye > runs.eddy_thresh;
 
         if do_energy
