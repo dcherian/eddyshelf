@@ -24,7 +24,7 @@ function [diags, plotx] = print_diag(runArray, name)
         name_points = 1; % name points by default
         line_45 = 0; %no 45° line by default
         errorbarflag = 0; % use errorbar() instead of plot()
-        logscale = 0;
+        logscale = 0; strip_ew = 1;
         kozak = 0; % fancy Kozak scatterplot
         labx = ' '; laby = ' ';
         clr = 'k';
@@ -805,6 +805,8 @@ function [diags, plotx] = print_diag(runArray, name)
 
             % add run names
             if name_points
+                if strip_ew, ptName = ptName(4:end); end
+
                 text(plotx(ff), diags(ff), ptName, 'FontSize', ...
                      12, 'Rotation', 0, 'Color', clr, ...
                      'VerticalAlignment','Bottom');
