@@ -140,13 +140,23 @@ function [] = plot_fluxes(runArray)
         if ~isempty(hfig5)
             figure(hfig5)
             Lx = run.eddy.vor.dia(1)/2;
-            if ~isfield(run.csflux, 'shelfx')
+            %if ~isfield(run.csflux, 'shelfx')
                 run.streamerstruct;
-            end
+                %end
             xi = run.csflux.shelfx.xi;
             shelfx = run.csflux.shelfx.flux;
             hgplt5(ff) = plot(xi./Lx, shelfx./ttrans, 'Color', ...
                               hgplt1(ff).Color);
+        end
+
+        %%%%%%%%%%%%%%%%%%%%%%%% STREAMER VELOCITY
+        if ~isempty(hfig6)
+            figure(hfig6)
+            vxt = run.csflux.shelfxt(:,:,1) .* ...
+                  run.csflux.westmask./run.bathy.hsb;
+
+            hgplt6(ff) = plot(ndtime, max(vxt,[],1)./run.eddy.V(1), ...
+                              'Color', hgplt1(ff).Color);
         end
     end
 
@@ -229,6 +239,14 @@ function [] = plot_fluxes(runArray)
         linex([-1 0 1]); liney(0);
         xlim([-2 2]);
         legend(hgplt5, names);
+        beautify;
+    end
+
+    if ~isempty(hfig6)
+        figure(hfig6)
+        ylabel('Max shelf water velocity');
+        liney(0);
+        legend(hgplt6, names);
         beautify;
     end
 
