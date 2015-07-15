@@ -49,8 +49,8 @@ function [] = csfluxes(runs, ftype)
 
         % append sponge edge to existing values
         sy2 = runs.spng.sy2;
-        indices = [indices sy2];
-        loc = [loc runs.eddy.yr(1, sy2)];
+        % indices = [indices sy2];
+        % loc = [loc runs.eddy.yr(1, sy2)];
     end
 
     sz = size(runs.sponge);
