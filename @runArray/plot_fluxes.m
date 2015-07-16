@@ -1,9 +1,10 @@
-function [] = plot_fluxes(runArray)
+function [] = plot_fluxes(runArray, index)
 
-    hfig1 = figure; subplot(2,1,1); hold all; % shelf water flux time series
-    subplot(2,1,2); hold all;
+    if ~exist('index', 'var'), index = 2; end
+    hfig1 = figure; ax1(1) = subplot(2,1,1); hold all; % shelf water flux time series
+            ax1(2) = subplot(2,1,2); hold all;
 
-    hfig2 = []; %figure; hold all % vertical structure / baroclinicity
+    hfig2 = figure; hold all % vertical structure / baroclinicity
     % subplot(2,2,1); hold all
     % subplot(2,2,2); hold all
     % subplot(2,2,3); hold all
@@ -12,9 +13,11 @@ function [] = plot_fluxes(runArray)
     hfig3 = figure; hold all; % envelope
 
     hfig4 = figure; subplot(2,1,1); hold all; % eddy water flux
-            subplot(2,1,2); hold all
+    subplot(2,1,2); hold all
 
     hfig5 = figure; hold on;% along shelf structure
+
+    hfig6 = figure; hold on; % streamer velocity
 
     if isempty(runArray.filter)
         runArray.filter = 1:runArray.len;
@@ -46,29 +49,26 @@ function [] = plot_fluxes(runArray)
         He = hsb;
         Le = run.eddy.vor.dia(1)/2;
 
-        fluxscl = run.eddyfluxscale;
-        transscl = He * Le^2;
+        fluxscl = 1; %run.eddyfluxscale;
+        transscl = 1; He * Le^2;
 
-        % total transport
-        ttrans = max(abs(run.csflux.west.itrans.shelf(:,1)));
+        fluxvec = run.csflux.west.slope(:,index);
+        ifluxvec = run.csflux.west.itrans.slope(:,index);
+        ttrans = max(abs(ifluxvec));
 
         ndtime = run.csflux.time/run.eddy.turnover;
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SHELF WATER
         if ~isempty(hfig1)
             figure(hfig1)
-            subplot(2,1,1)
-            [maxf, maxi] = run.calc_maxflux;
-            hgplt1(ff) = plot(ndtime(1:end-2), ...
-                              smooth((run.csflux.west.shelf(1:end-2, ...
-                                                            1))/fluxscl, nsmooth));
+            axes(ax1(1));
+            [maxf, maxi] = run.calc_maxflux(fluxvec);
+            hgplt1(ff) = plot(ndtime, ...
+                              smooth(fluxvec/fluxscl, nsmooth));
             plot(ndtime(maxi), maxf/fluxscl, 'x', ...
                  'Color', hgplt1(ff).Color);
-
-            subplot(2,1,2)
-            plot(ndtime, ...
-                 run.csflux.west.itrans.shelf(:,1)/transscl, ...
-                 'Color', hgplt1(ff).Color);
+            axes(ax1(2));
+            plot(ndtime, ifluxvec/transscl, 'Color', hgplt1(ff).Color);
         else
             colors = get(gca, 'ColorOrder');
             hgplt1(ff).Color = colors(ff,:);
@@ -94,10 +94,9 @@ function [] = plot_fluxes(runArray)
 
                 %subplot(2,2,4)
                 profile = ...
-                    run.csflux.west.shelfwater.vertitrans(:,1)./ ...
-                    ttrans;
-                zvec = run.csflux.west.shelfwater.vertbins(:,1) ./ ...
-                       run.bathy.hsb;
+                    run.csflux.west.slopewater.vertitransw(:,index)./ ttrans;
+                vertbins = run.csflux.west.vertbins(:,index);
+                zvec = vertbins./ max(abs(vertbins));
                 bc = baroclinicity(zvec, profile);
                 hgplt2(ff) = plot(profile, zvec, 'Color', hgplt1(ff).Color);
                 names2{ff} =  [names{ff} ' | bc = ' num2str(bc,'%.3f')];
@@ -111,13 +110,13 @@ function [] = plot_fluxes(runArray)
         if ~isempty(hfig3)
             figure(hfig3)
             % change from envelope to depth
-            env = run.csflux.west.shelfwater.envelope;
+            env = run.csflux.west.slopewater.envelope(:,index);
             env(isnan(env)) = max(env);
             ind = vecfind(run.rgrid.y_rho(:,1), env);
-            metric = run.bathy.h(1,ind)./run.bathy.hsb .* ...
-                     (1+run.rgrid.f(run.bathy.isb,1)./run.rgrid.f(ind,1))';
+            %metric = run.bathy.h(1,ind)./run.bathy.hsb .* ...
+            %         (1+run.rgrid.f(run.bathy.isb,1)./run.rgrid.f(ind,1))';
 
-            hgplt3(ff) = plot(ndtime, (run.bathy.xsb - env), ...
+            hgplt3(ff) = plot(ndtime, (run.csflux.x(index) - env), ...
                               'Color', hgplt1(ff).Color);
         end
 
@@ -125,14 +124,14 @@ function [] = plot_fluxes(runArray)
         if ~isempty(hfig4)
             figure(hfig4)
             subplot(2,1,1)
-            hgplt4(ff) = plot(ndtime(1:end-2), ...
-                              smooth((run.csflux.east.eddy(1:end-2, ...
-                                                           1))/fluxscl, ...
+            hgplt4(ff) = plot(ndtime, ...
+                              smooth((run.csflux.east.eddy(:, ...
+                                                           index))/fluxscl, ...
                                      nsmooth), 'Color', hgplt1(ff).Color);
 
             subplot(2,1,2)
             plot(ndtime, ...
-                 run.csflux.east.itrans.eddy(:,1)/transscl, ...
+                 run.csflux.east.itrans.eddy(:,index)/transscl, ...
                  'Color', hgplt1(ff).Color);
         end
 
@@ -141,18 +140,18 @@ function [] = plot_fluxes(runArray)
             figure(hfig5)
             Lx = run.eddy.vor.dia(1)/2;
             %if ~isfield(run.csflux, 'shelfx')
-                run.streamerstruct;
+                run.streamerstruct(index);
                 %end
-            xi = run.csflux.shelfx.xi;
-            shelfx = run.csflux.shelfx.flux;
-            hgplt5(ff) = plot(xi./Lx, shelfx./ttrans, 'Color', ...
+            xi = run.csflux.slopex.xi;
+            slopex = run.csflux.slopex.flux;
+            hgplt5(ff) = plot(xi./Lx, slopex./ttrans, 'Color', ...
                               hgplt1(ff).Color);
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%% STREAMER VELOCITY
         if ~isempty(hfig6)
             figure(hfig6)
-            vxt = run.csflux.shelfxt(:,:,1) .* ...
+            vxt = run.csflux.slopext(:,:,1) .* ...
                   run.csflux.westmask./run.bathy.hsb;
 
             hgplt6(ff) = plot(ndtime, max(vxt,[],1)./run.eddy.V(1), ...
@@ -161,10 +160,11 @@ function [] = plot_fluxes(runArray)
     end
 
     pause(1); drawnow;
+    locstr = num2str(run.csflux.ndloc(index), 2);
     if ~isempty(hfig1)
         figure(hfig1)
         subplot(2,1,1)
-        title('Shelf water');
+        title(['Slope water | ND isobath = ', locstr]);
         ylabel('Flux / Eddy Flux above sb');
         liney(0, [], [1 1 1]*0.75);
         beautify;
@@ -202,7 +202,7 @@ function [] = plot_fluxes(runArray)
         limx = xlim;
         xlim([0 limx(2)]);
         xlabel('Normalized volume transported');
-        ylabel('Vertical bin / Shelfbreak depth');
+        ylabel('Vertical bin / Water depth');
         legend(hgplt2, names2, 'Location', 'SouthWest');
         beautify;
     end
@@ -218,7 +218,7 @@ function [] = plot_fluxes(runArray)
     if ~isempty(hfig4)
         figure(hfig4)
         subplot(2,1,1);
-        title('Eddy water');
+        title(['Eddy water | ND isobath = ', locstr]);
         ylabel('Flux / Eddy flux above sb');
         liney(0);
         legend(hgplt4, names);

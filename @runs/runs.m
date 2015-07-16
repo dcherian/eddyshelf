@@ -1022,23 +1022,22 @@ methods
         syms Vint z x;
         Lz = runs.eddy.Lgauss(1);
         H = runs.bathy.hsb;
-        V0 = runs.eddy.V(runs.csflux.tscaleind);
+        V0 = runs.eddy.V(runs.csflux.maxloc);
         Lx = runs.eddy.vor.dia(1)/2;
 
         fluxscl = double(V0 * int(exp(-x/Lx)^2, 0, Lx) ...
                   * int(1 - erf(z/Lz), z, -H, 0));
     end
 
-    function [] = streamerstruct(runs)
+    function [] = streamerstruct(runs, index)
 
         debug = 0;
 
-        tind = runs.csflux.tscaleind;
-        matrix = runs.csflux.shelfxt(:,:,1) .* runs.csflux.westmask;
+        matrix = runs.csflux.slopext(:,:,index); % .* runs.csflux.westmask;
         xr = runs.rgrid.x_rho(1,:)';
         nt = size(matrix,2);
 
-        [~,nt] = runs.calc_maxflux;
+        [~,nt] = runs.calc_maxflux(runs.csflux.west.slope(:,index));
 
         cen = runs.eddy.mx;
         % x-grid to interpolate on to
@@ -1053,33 +1052,33 @@ methods
         end
 
         % integrate in time
-        ttrans = max(abs(runs.csflux.west.itrans.shelf(:,1)));
-        shelfx = trapz(runs.csflux.time(1:nt), repnan(mati, 0), 2);
-        assert((trapz(xi, shelfx) - ttrans) < 0.01*ttrans);
+        ttrans = max(abs(runs.csflux.west.itrans.slope(:,index)));
+        slopex = trapz(runs.csflux.time(1:nt), repnan(mati, 0), 2);
+        assert((trapz(xi, slopex) - ttrans) < 0.01*ttrans);
 
-        runs.csflux.shelfx.flux = shelfx;
-        [y0, X, x0] = gauss_fit(xi, runs.csflux.shelfx.flux, debug);
+        runs.csflux.slopex.flux = slopex;
+        [y0, X, x0] = gauss_fit(xi, runs.csflux.slopex.flux, debug);
         if debug, title(runs.name); end
-        runs.csflux.shelfx.shelfxti = mati;
-        runs.csflux.shelfx.xi = xi;
-        runs.csflux.shelfx.Lx = X;
-        runs.csflux.shelfx.y0 = y0;
-        runs.csflux.shelfxx.x0 = x0;
-        runs.csflux.shelfx.comment = ['[y0, Lx] = gauss_fit | flux = ' ...
+        runs.csflux.slopex.slopexti = mati;
+        runs.csflux.slopex.xi = xi;
+        runs.csflux.slopex.Lx = X;
+        runs.csflux.slopex.y0 = y0;
+        runs.csflux.slopexx.x0 = x0;
+        runs.csflux.slopex.comment = ['[y0, Lx] = gauss_fit | flux = ' ...
                             'along-shelf structure | xi = x-vector ' ...
-                            'for flux | shelfxti = interpolated ' ...
+                            'for flux | slopexti = interpolated ' ...
                             'to grid with eddy center as origin'];
     end
 
-    function [] = plot_shelfxt(runs)
+    function [] = plot_slopext(runs)
 
         runs.streamerstruct;
-        shelfxti = runs.csflux.shelfx.shelfxti;
-        xi = runs.csflux.shelfx.xi;
+        slopexti = runs.csflux.slopex.slopexti;
+        xi = runs.csflux.slopex.xi;
         ti = runs.csflux.time/86400;
 
         figure;
-        contourf(xi, ti, shelfxti');
+        contourf(xi, ti, slopexti');
     end
 
     function [] = read_pbot(runs)
