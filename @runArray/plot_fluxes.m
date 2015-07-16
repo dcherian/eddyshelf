@@ -37,10 +37,13 @@ function [] = plot_fluxes(runArray, index)
             continue;
         end
 
-        if isempty(run.csflux)
+        if isempty(run.csflux) || ...
+            index > length(run.csflux.x)
             disp(['Skipping ' run.name]);
             continue;
         end
+
+        locstr = num2str(run.csflux.ndloc(index), 2);
 
         tind = find_approx(run.ndtime, 1.5, 1);
         Lz = run.eddy.Lgauss(1);
@@ -151,18 +154,30 @@ function [] = plot_fluxes(runArray, index)
         %%%%%%%%%%%%%%%%%%%%%%%% STREAMER VELOCITY
         if ~isempty(hfig6)
             figure(hfig6)
-            vxt = run.csflux.slopext(:,:,1) .* ...
+            vxt = run.csflux.slopext(:,:,index) .* ...
                   run.csflux.westmask./run.bathy.hsb;
 
             hgplt6(ff) = plot(ndtime, max(vxt,[],1)./run.eddy.V(1), ...
                               'Color', hgplt1(ff).Color);
         end
+
+        %%%%%%%%%%%%%%%%%%%%%%%% CROSS-SHORE BINS
+        if ~isempty(hfig7)
+            figure(hfig7)
+            [~,R,restind] = run.locate_resistance;
+            xsb = run.bathy.xsb;
+            R = R - xsb;
+
+            bins = avg1(run.csflux.west.bins{index}, 2);
+            itrans = run.csflux.west.slopewater.itrans{index};
+            hgplt7(ff) = plot((bins-xsb)./R, itrans./ttrans);
+        end
     end
 
     pause(1); drawnow;
-    locstr = num2str(run.csflux.ndloc(index), 2);
     if ~isempty(hfig1)
         figure(hfig1)
+        insertAnnotation('runArray.plot_fluxes');
         subplot(2,1,1)
         title(['Slope water | ND isobath = ', locstr]);
         ylabel('Flux / Eddy Flux above sb');
@@ -198,17 +213,20 @@ function [] = plot_fluxes(runArray, index)
         %ylabel('Vertical bin (m)');
 
         %subplot(2,2,4)
+        insertAnnotation('runArray.plot_fluxes');
         ylim([-1 0]);
         limx = xlim;
         xlim([0 limx(2)]);
         xlabel('Normalized volume transported');
         ylabel('Vertical bin / Water depth');
-        legend(hgplt2, names2, 'Location', 'SouthWest');
+        title(['ND isobath = ', locstr]);
+        legend(hgplt2, names2, 'Location', 'SouthEast');
         beautify;
     end
 
     if ~isempty(hfig3)
         figure(hfig3)
+        insertAnnotation('runArray.plot_fluxes');
         xlabel('Non-dimensional time');
         ylabel('Distance from shelfbreak');
         legend(hgplt3, names);
@@ -217,6 +235,7 @@ function [] = plot_fluxes(runArray, index)
 
     if ~isempty(hfig4)
         figure(hfig4)
+        insertAnnotation('runArray.plot_fluxes');
         subplot(2,1,1);
         title(['Eddy water | ND isobath = ', locstr]);
         ylabel('Flux / Eddy flux above sb');
@@ -233,6 +252,7 @@ function [] = plot_fluxes(runArray, index)
 
     if ~isempty(hfig5)
         figure(hfig5)
+        insertAnnotation('runArray.plot_fluxes');
         xlabel('(X - X_e)/L_x');
         ylabel('Normalized flux');
         title('\int v(x,z,t) dz dt');
@@ -244,6 +264,7 @@ function [] = plot_fluxes(runArray, index)
 
     if ~isempty(hfig6)
         figure(hfig6)
+        insertAnnotation('runArray.plot_fluxes');
         ylabel('Max shelf water velocity');
         liney(0);
         legend(hgplt6, names);
