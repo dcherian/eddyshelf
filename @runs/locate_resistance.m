@@ -38,10 +38,10 @@ function [xx,yy,tind] = locate_resistance(runs, nsmooth, factor)
 
     % locate minimum, i.e., max. southward/westward speed
     % but limit search to first 'n' turnover time scales
-
-    it = find_approx(ndtime, 60);
-    %[mn, imin] = min(vel(5:it));
-    [mn, imin] = min(vel(:));
+    it = find_approx(ndtime, 10);
+    ind0 = find(vel(it:end) > 0, 1, 'first');
+    [mn, imin] = min(vel(5:ind0));
+    %[mn, imin] = min(vel(:));
 
     vv = vel(imin:end) - mn * factor;
     tind = find(vv > 0, 1, 'first');
