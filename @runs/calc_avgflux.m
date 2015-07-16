@@ -1,17 +1,17 @@
-function [avgflux, err] = calc_avgflux(runs)
+function [avgflux, err] = calc_avgflux(runs, fluxvec)
 
-    ind = runs.csflux.tscaleind;
+    [start,stop] = runs.flux_tindices(fluxvec);
     nsmooth = 1;
+
+    ifluxvec = cumtrapz(runs.csflux.time, fluxvec);
 
     % flux vector for applicable time
     % convert everything to double since I'm
     % dealing with large numbers here (time in
     % seconds) and integrated flux (m^3)
-    fluxvec = double(smooth( ...
-        runs.csflux.west.shelf(ind:end,1), nsmooth));
-    ifluxvec = double(smooth( ...
-        runs.csflux.west.itrans.shelf(ind:end,1), nsmooth));
-    tvec = double(runs.csflux.time(ind:end));
+    fluxvec = double(smooth(fluxvec(start:stop), nsmooth));
+    ifluxvec = double(smooth(ifluxvec(start:stop), nsmooth));
+    tvec = double(runs.csflux.time(start:stop));
 
     % change origin
     ifluxvec = (ifluxvec - ifluxvec(1));
@@ -39,8 +39,7 @@ function [avgflux, err] = calc_avgflux(runs)
     err = err(2); % standard error
 
     %%%%%%%%%%% use MATLAB regress
-    [b, bint, r, rint, stats] = ...
-        regress(ifluxvec, E);
+    [b, bint, r, rint, stats] = regress(ifluxvec, E);
 
     avgflux = b(2);
     err = abs(bint(2) - b(2));
