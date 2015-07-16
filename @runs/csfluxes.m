@@ -30,7 +30,18 @@ function [] = csfluxes(runs, ftype)
 
     % sort out isobaths across which to calculate transports
     Y = max(runs.rgrid.y_rho(:));
-    loc = linspace(runs.bathy.xsb, runs.bathy.xsl, 4);
+
+    % Non-dimensional isobath = (y_{isobath} - y_{sb})/(Eddy center
+    % location)
+    xsb = runs.bathy.xsb; xsl = runs.bathy.xsl;
+    [~,R,restind] = runs.locate_resistance;
+    R = R - xsb;
+    runs.csflux.ndloc = linspace(0,2,7);
+    loc = runs.csflux.ndloc* R + xsb;
+    runs.csflux.ndloc(loc > xsl) = [];
+    loc(loc > xsl) = [];
+    runs.animate_field('zeta',[],restind,1); liney(loc/1000, [], 'r');
+
     if runs.params.bathy.axis == 'x'
         csvelid = 'u';
         asvelid = 'v';
