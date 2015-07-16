@@ -37,6 +37,7 @@ function [] = csfluxes(runs, ftype)
     [~,R,restind] = runs.locate_resistance;
     R = R - xsb;
     runs.csflux.ndloc = linspace(0,2,7);
+    runs.csflux.R = R;
     loc = runs.csflux.ndloc* R + xsb;
     runs.csflux.ndloc(loc > xsl) = [];
     loc(loc > xsl) = [];
@@ -142,11 +143,13 @@ function [] = csfluxes(runs, ftype)
     runs.csflux.east.itrans.eddy = nan(szflux);
 
     runs.csflux.west.slopewater.trans = cell(nloc);
+    runs.csflux.east.slopewater.vtrans = cell(nloc);
     runs.csflux.west.slopewater.itrans = cell(nloc);
     runs.csflux.west.slopewater.bins = cell(nloc);
     runs.csflux.west.slopewater.envelope = nan([tinf nloc]);
 
     runs.csflux.east.slopewater.trans = cell(nloc);
+    runs.csflux.east.slopewater.vtrans = cell(nloc);
     runs.csflux.east.slopewater.itrans = cell(nloc);
     runs.csflux.east.slopewater.bins = cell(nloc);
     runs.csflux.east.slopewater.envelope = nan([tinf nloc]);
@@ -417,6 +420,16 @@ function [] = csfluxes(runs, ftype)
                     nansum(bsxfun(@times, bsxfun(@times, bintrans, ...
                                                  permute(eastmask, ...
                                                          [1 3 2])), dx),1),2));
+
+            % fn (z,t,bin)
+            runs.csflux.west.slopewater.vtrans{kk}(:,t0:tinf, mmm) = ...
+                squeeze(nansum(bsxfun(@times, bsxfun(@times, bintrans, ...
+                                                     permute(westmask, ...
+                                                             [1 3 2])), dx),1));
+            runs.csflux.east.slopewater.vtrans{kk}(:,t0:tinf, mmm) = ...
+                squeeze(nansum(bsxfun(@times, bsxfun(@times, bintrans, ...
+                                                     permute(eastmask, ...
+                                                             [1 3 2])), dx),1));
         end
 
         % save envelope for across-shelfbreak only = f(time,loc)

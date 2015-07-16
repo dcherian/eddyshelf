@@ -2,7 +2,7 @@
 function [maxflux, maxloc] = calc_maxflux(runs, fluxin)
 
     debug = 0;
-    
+
     iflux = cumtrapz(runs.csflux.time, fluxin);
     [start,stop] = runs.flux_tindices(fluxin);
 
