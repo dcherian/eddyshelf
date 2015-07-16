@@ -17,7 +17,9 @@ function [] = plot_fluxes(runArray, index)
 
     hfig5 = figure; hold on;% along shelf structure
 
-    hfig6 = figure; hold on; % streamer velocity
+    hfig6 = []; %figure; hold on; % streamer velocity
+
+    hfig7 = figure; hold on; % cross-shore bins
 
     if isempty(runArray.filter)
         runArray.filter = 1:runArray.len;
@@ -250,6 +252,7 @@ function [] = plot_fluxes(runArray, index)
         beautify;
     end
 
+    pause(0.5);
     if ~isempty(hfig5)
         figure(hfig5)
         insertAnnotation('runArray.plot_fluxes');
@@ -257,7 +260,7 @@ function [] = plot_fluxes(runArray, index)
         ylabel('Normalized flux');
         title('\int v(x,z,t) dz dt');
         linex([-1 0 1]); liney(0);
-        xlim([-2 2]);
+        xlim([-1 1]*6);
         legend(hgplt5, names);
         beautify;
     end
@@ -268,6 +271,18 @@ function [] = plot_fluxes(runArray, index)
         ylabel('Max shelf water velocity');
         liney(0);
         legend(hgplt6, names);
+        beautify;
+    end
+
+    pause(0.5);
+    if ~isempty(hfig7)
+        figure(hfig7)
+        insertAnnotation('runArray.plot_fluxes');
+        linex(0, 'shelfbreak');
+        linex(str2double(locstr), locstr);
+        legend(hgplt7, names, 'Location', 'NorthWest');
+        ylabel('Transport');
+        xlabel('Source (y/R)');
         beautify;
     end
 
