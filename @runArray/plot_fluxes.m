@@ -99,7 +99,7 @@ function [] = plot_fluxes(runArray, index)
 
                 %subplot(2,2,4)
                 profile = ...
-                    run.csflux.west.slopewater.vertitransw(:,index)./ ttrans;
+                    run.csflux.west.slopewater.vertitrans(:,index)./ ttrans;
                 vertbins = run.csflux.west.vertbins(:,index);
                 zvec = vertbins./ max(abs(vertbins));
                 bc = baroclinicity(zvec, profile);

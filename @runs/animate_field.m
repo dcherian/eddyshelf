@@ -32,7 +32,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     addzeta = 0; % overlay zeta contours
 
     csdcontourplot = 1; % contour csd contours
-    csdcontours = [runs.bathy.xsb];
+    csdcontours = runs.csflux.x;
 
     % eddy diagnostics
     drawtrack = 1; % plot eddy track?
@@ -75,8 +75,8 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
         %%% cross-sb shelf water flux
         tvec = runs.csflux.time/86400;
-        vec = runs.csflux.west.shelf(:,1);
-        laby = 'Shelf water flux (m^3/s)';
+        vec = runs.csflux.west.slope;
+        laby = 'Slope water flux (m^3/s)';
         locy = runs.bathy.xsb/1000; locx = [];
 
         %%% area plot
@@ -152,7 +152,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     % read csdye if required
     if (dyeplot && isempty(runs.csdsurf)) || strcmpi(name, 'csdye') ...
-            || (strcmpi(name, 'eddye') && addcsdye == 1)
+            || (strcmpi(name, 'eddye') && addcsdye == 1) || csdcontourplot
         runs.read_csdsurf(t0, ntimes);
         if strcmpi(name, 'csdye')
             varname = 'csdsurf';
@@ -394,10 +394,10 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         end
 
         if csfluxplot == 1
-            shelfxt = runs.csflux.shelfxt(ix-1, :, 1);
+            slopext = runs.csflux.slopext(ix-1, :, index);
             hflux = plot(runs.rgrid.xr(ix,1)/1000, ...
-                         shelfxt(:, ii));
-            ylim([min(shelfxt(:)) max(shelfxt(:))]);
+                         slopext(:, ii));
+            ylim([min(slopext(:)) max(slopext(:))]);
             hee = linex(runs.eddy.vor.ee(ii)/1000);
             oldpos = get(ax(1), 'Position');
             newpos = get(ax(2), 'Position');
@@ -505,14 +505,14 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
                 set(hedd2, 'ZData', runs.eddsurf(ix,iy,ii)');
             end
 
-            % shelfwater flux plots
+            % slopewater flux plots
             if ~isempty(runs.csflux) && csfluxplot == 1
                 axis(ax(2));
                 if exist('htime', 'var')
                     set(htime, 'XData', [1 1]*runs.csflux.time(ii)/ ...
                                86400);
                 else
-                    set(hflux, 'YData', shelfxt(:,ii));
+                    set(hflux, 'YData', slopext(:,ii));
                     set(hee, 'XData', [1 1]*runs.eddy.vor.ee(ii)/1000);
                 end
             end

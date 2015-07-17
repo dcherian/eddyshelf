@@ -178,6 +178,8 @@ classdef runArray < handle
                     out = eval(['run.' command]);
                     if ~ischar(out)
                         outstr = num2str(out);
+                    else
+                        outstr = out;
                     end
                 catch ME
                     out = NaN;
