@@ -1029,45 +1029,54 @@ methods
                   * int(1 - erf(z/Lz), z, -H, 0));
     end
 
-    function [] = streamerstruct(runs, index)
+    function [] = streamerstruct(runs)
 
         debug = 0;
 
-        matrix = runs.csflux.slopext(:,:,index); % .* runs.csflux.westmask;
         xr = runs.rgrid.x_rho(1,:)';
-        nt = size(matrix,2);
-
-        [~,nt] = runs.calc_maxflux(runs.csflux.west.slope(:,index));
-
         cen = runs.eddy.mx;
         % x-grid to interpolate on to
         dx = bsxfun(@minus, xr, cen);
         xmax = max(abs(dx(:)));
         xi = [-1 * xmax: 2000 : xmax]';
 
-        mati = nan([length(xi) nt]);
-        for tt = [1:nt]
-            xvec = runs.rgrid.x_rho(1,2:end-1)' - cen(tt);
-            mati(:,tt) = interp1(xvec, matrix(:,tt), xi);
+        runs.csflux.slopex = [];
+
+        for index=1:length(runs.csflux.ndloc)
+            matrix = runs.csflux.slopext(:,:,index); % .*
+                                                     % runs.csflux.westmask;
+            nt = size(matrix,2);
+
+            %[~,nt] = runs.calc_maxflux(runs.csflux.west.slope(:,index));
+
+            mati = nan([length(xi) nt]);
+            for tt = [1:nt]
+                xvec = runs.rgrid.x_rho(1,2:end-1)' - cen(tt);
+                mati(:,tt) = interp1(xvec, matrix(:,tt), xi);
+            end
+
+            % integrate in time
+            %ttrans = max(abs(runs.csflux.west.itrans.slope(:,index)));
+            slopex = trapz(runs.csflux.time(1:nt), repnan(mati, 0), 2);
+            %assert((trapz(xi, slopex) - ttrans) < 0.01*ttrans);
+
+            runs.csflux.slopex.flux(:,index) = slopex;
+            [y0, X, x0] = gauss_fit(xi, runs.csflux.slopex.flux(:,index), debug);
+            if debug, title(runs.name); end
+            runs.csflux.slopex.slopexti(:,:,index)= mati;
+            runs.csflux.slopex.Lx(index) = X;
+            runs.csflux.slopex.y0(index) = y0;
+            runs.csflux.slopex.x0(index) = x0;
         end
 
-        % integrate in time
-        ttrans = max(abs(runs.csflux.west.itrans.slope(:,index)));
-        slopex = trapz(runs.csflux.time(1:nt), repnan(mati, 0), 2);
-        assert((trapz(xi, slopex) - ttrans) < 0.01*ttrans);
-
-        runs.csflux.slopex.flux = slopex;
-        [y0, X, x0] = gauss_fit(xi, runs.csflux.slopex.flux, debug);
-        if debug, title(runs.name); end
-        runs.csflux.slopex.slopexti = mati;
+        runs.csflux.slopex.nt = nt;
         runs.csflux.slopex.xi = xi;
-        runs.csflux.slopex.Lx = X;
-        runs.csflux.slopex.y0 = y0;
-        runs.csflux.slopexx.x0 = x0;
         runs.csflux.slopex.comment = ['[y0, Lx] = gauss_fit | flux = ' ...
-                            'along-shelf structure | xi = x-vector ' ...
+                            'along-shelf structure(x,index) | xi = x-vector ' ...
                             'for flux | slopexti = interpolated ' ...
-                            'to grid with eddy center as origin'];
+                            'to grid with eddy center as origin | ' ...
+                            'nt = number of timesteps this has been calculated ' ...
+                            'for.']
     end
 
     function [] = plot_slopext(runs)
