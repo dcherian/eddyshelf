@@ -28,11 +28,13 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     dyeplot = 0; % plot eddye contour too?
 
     % extra contours
-    addcsdye = 1; % add csdye to eddye plot?
+    addcsdye = 0; % add csdye to eddye plot?
     addzeta = 0; % overlay zeta contours
 
     csdcontourplot = 1; % contour csd contours
     csdcontours = runs.csflux.x;
+    modify_bathy = 1; % modify bathymetric contours to show
+                      % isobaths corresponding to csdcontours?
 
     % eddy diagnostics
     drawtrack = 1; % plot eddy track?
@@ -256,7 +258,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     if csdcontourplot
         hcsd = runs.plot_surf('csdsurf', 'contour', ii);
         hcsd.LevelList = csdcontours;
-        hcsd.Color = 'k';
+        hcsd.Color = [1 1 1]*0.7;
         hcsd.LineWidth = 2;
     end
 
@@ -267,6 +269,17 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     % bathy
     hbathy = runs.plot_bathy('contour', [1 1 1]*0.7);
+    if csdcontourplot && modify_bathy
+        if runs.bathy.axis == 'y'
+            ax = runs.rgrid.y_rho(:,1);
+            hvec = runs.bathy.h(1,:);
+        else
+            ax = runs.rgrid.x_rho(1,:);
+            hvec = runs.bathy.h(:,1);
+        end
+        ind = vecfind(ax, csdcontours);
+        hbathy{1}.LevelList = round(hvec(ind));
+    end
 
     % plot track
     if drawtrack
