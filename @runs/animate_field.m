@@ -252,7 +252,8 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     % plot field
     hz = runs.plot_surf(varname, 'pcolor', ii);
     hold on;
-    colorbar; center_colorbar;
+    colorbar;
+    if ~strcmpi(name, 'csdye'), center_colorbar; end
     clim = caxis;
 
     if csdcontourplot
