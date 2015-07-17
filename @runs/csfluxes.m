@@ -142,16 +142,16 @@ function [] = csfluxes(runs, ftype)
     runs.csflux.east.itrans.slope = nan(szflux);
     runs.csflux.east.itrans.eddy = nan(szflux);
 
-    runs.csflux.west.slopewater.trans = cell(nloc);
-    runs.csflux.east.slopewater.vtrans = cell(nloc);
-    runs.csflux.west.slopewater.itrans = cell(nloc);
-    runs.csflux.west.slopewater.bins = cell(nloc);
+    runs.csflux.west.bins = cell([1 nloc]);
+
+    runs.csflux.west.slopewater.trans = cell([1 nloc]);
+    runs.csflux.east.slopewater.vtrans = cell([1 nloc]);
+    runs.csflux.west.slopewater.itrans = cell([1 nloc]);
     runs.csflux.west.slopewater.envelope = nan([tinf nloc]);
 
-    runs.csflux.east.slopewater.trans = cell(nloc);
-    runs.csflux.east.slopewater.vtrans = cell(nloc);
-    runs.csflux.east.slopewater.itrans = cell(nloc);
-    runs.csflux.east.slopewater.bins = cell(nloc);
+    runs.csflux.east.slopewater.trans = cell([1 nloc]);
+    runs.csflux.east.slopewater.vtrans = cell([1 nloc]);
+    runs.csflux.east.slopewater.itrans = cell([1 nloc]);
     runs.csflux.east.slopewater.envelope = nan([tinf nloc]);
 
     runs.csflux.west.slopezt = nan([runs.rgrid.N tinf nloc]);
