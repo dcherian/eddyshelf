@@ -1554,7 +1554,26 @@ methods
          ow = (ux-vy).^2 + (vx+uy).^2 - (vx-uy).^2;
 
 
-    end
+     end
+
+     function [] = plot_csfluxes(runs)
+
+         runs.streamerstruct;
+
+         R = runs.eddy.vor.dia(1)/2;
+         flux = runs.csflux.slopex.flux;
+
+         figure;
+         insertAnnotation([runs.name '.plot_csfluxes']);
+         hold on;
+         plot(runs.csflux.slopex.xi/R, ...
+              bsxfun(@rdivide, flux, max(flux, [], 1)));
+         legend(cellstr(num2str(runs.csflux.ndloc', '%0.2f')));
+         xlabel('(X - X_0)/L_x');
+         ylabel('Time integrated Flux / Max');
+         linex(0); liney(0);
+         beautify;
+     end
 
     % plot eddy parameters with time - good for comparison
     function [] = eddyevol(runs)
