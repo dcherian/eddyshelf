@@ -83,45 +83,46 @@ function [] = csfluxes(runs, ftype)
     if isfield(runs.eddy, 'tend')
         tinf = runs.eddy.tend;
     else
-        tinf = Inf;
+        tinf = length(runs.time);
     end
+
+    time = runs.time(1:tinf);
+    t0 = 1;
 
     % interpolate center locations
-    if strcmpi(ftype, 'his')
-        time = dc_roms_read_data(runs.dir, 'ocean_time', [1 tinf], {}, [], ...
-                                 [], 'his');
-        if length(time) ~= length(runs.eddy.t(1:runs.eddy.tend))
-            t0 = find_approx(time, runs.time(tstart), 1);
-            if bathyax == 2
-                cxi = interp1(runs.eddy.t(tstart:end)*86400, runs.eddy.vor.ee(tstart:end), ...
-                              time(t0:end));
-            else
-                cxi = interp1(runs.eddy.t(tstart:end)*86400, runs.eddy.vor.se(tstart:end), ...
-                              time(t0:end));
-            end
-        else
-            t0 = tstart;
-            if bathyax == 2
-                cxi = runs.eddy.vor.ee(tstart:end);
-            else
-                cxi = runs.eddy.vor.se(tstart:end);
-            end
-        end
-    else
-        if strcmpi(ftype, 'avg')
-            t0 = tstart;
-            time = runs.time;
-            if bathyax == 2
-                cxi = runs.eddy.vor.ee(t0:end);
-            else
-                cxi = runs.eddy.vor.se(t0:end);
-            end
-        end
-    end
-
-    if isinf(tinf)
-        tinf = length(time);
-    end
+    % Don't think this is required anymore. I don't use average
+    % files at all.
+    % if strcmpi(ftype, 'his')
+    %     time = dc_roms_read_data(runs.dir, 'ocean_time', [1 tinf], {}, [], ...
+    %                              [], 'his');
+    %     if length(time) ~= length(runs.eddy.t(1:runs.eddy.tend))
+    %         t0 = find_approx(time, runs.time(tstart), 1);
+    %         if bathyax == 2
+    %             cxi = interp1(runs.eddy.t(tstart:end)*86400, runs.eddy.vor.ee(tstart:end), ...
+    %                           time(t0:end));
+    %         else
+    %             cxi = interp1(runs.eddy.t(tstart:end)*86400, runs.eddy.vor.se(tstart:end), ...
+    %                           time(t0:end));
+    %         end
+    %     else
+    %         t0 = tstart;
+    %         if bathyax == 2
+    %             cxi = runs.eddy.vor.ee(tstart:end);
+    %         else
+    %             cxi = runs.eddy.vor.se(tstart:end);
+    %         end
+    %     end
+    % else
+    %     if strcmpi(ftype, 'avg')
+    %         t0 = tstart;
+    %         time = runs.time;
+    %         if bathyax == 2
+    %             cxi = runs.eddy.vor.ee(t0:end);
+    %         else
+    %             cxi = runs.eddy.vor.se(t0:end);
+    %         end
+    %     end
+    % end
 
     % size for initialization
     nloc = length(loc);
@@ -153,6 +154,11 @@ function [] = csfluxes(runs, ftype)
     runs.csflux.east.slopewater.vtrans = cell([1 nloc]);
     runs.csflux.east.slopewater.itrans = cell([1 nloc]);
     runs.csflux.east.slopewater.envelope = nan([tinf nloc]);
+
+    runs.csflux.slopext  = nan(szfluxxt);
+    runs.csflux.eddyxt   = nan(szfluxxt);
+    runs.csflux.westmask = nan(szfluxxt);
+    runs.csflux.eastmask = nan(szfluxxt);
 
     runs.csflux.west.slopezt = nan([runs.rgrid.N tinf nloc]);
     runs.csflux.west.eddyzt = nan([runs.rgrid.N tinf nloc]);
@@ -198,21 +204,6 @@ function [] = csfluxes(runs, ftype)
         spongemask = ~runs.sponge(1,2:end-1)';
     end
 
-    % east and west (w.r.t eddy center) masks
-    % cxi here = eastern edge because export occurs west of the eastern edge
-    % dimensions - (along-shore) x time
-    if bathyax == 2
-        westmask = bsxfun(@times, ...
-                          bsxfun(@lt, runs.eddy.xr(:,1), cxi(t0:tinf)), ...
-                          spongemask);
-    else
-        westmask = bsxfun(@times, ...
-                          bsxfun(@gt, runs.eddy.yr(1,:)', cxi(t0:tinf)), ...
-                          spongemask);
-    end
-    eastmask = bsxfun(@times, 1 - westmask, ...
-                      spongemask);
-
     % for integrated transport diagnostics
     dt = [time(2)-time(1) diff(time)];
 
@@ -220,6 +211,37 @@ function [] = csfluxes(runs, ftype)
     for kk=1:length(indices)
         disp(['Doing isobath ' num2str(kk) '/', ...
               num2str(length(indices))]);
+
+        if kk == 1
+            % cxi here = eastern edge because export occurs west of the eastern edge
+            % dimensions - (along-shore) x time
+            % The problem is that this is sensitive to contour
+            % detection.
+            if bathyax == 2
+                cxi = runs.eddy.vor.ee(tstart:end);
+            else
+                cxi = runs.eddy.vor.se(tstart:end);
+            end
+        else
+            if bathyax == 2
+                cxi = runs.eddy.mx(tstart:end);
+            else
+                cxi = runs.eddy.my(tstart:end);
+            end
+        end
+
+        % east and west (w.r.t cxi) masks
+        if bathyax == 2
+            westmask = bsxfun(@times, ...
+                              bsxfun(@lt, runs.eddy.xr(:,1), cxi(t0:tinf)), ...
+                              spongemask);
+        else
+            westmask = bsxfun(@times, ...
+                              bsxfun(@gt, runs.eddy.yr(1,:)', cxi(t0:tinf)), ...
+                              spongemask);
+        end
+        eastmask = bsxfun(@times, 1 - westmask, ...
+                          spongemask);
 
         % read along-shore section of cross-shore vel.
         % dimensions = (x/y , z , t )
@@ -517,6 +539,9 @@ function [] = csfluxes(runs, ftype)
                 bsxfun(@times, rvcsflux .* eastmask, ...
                        1./runs.rgrid.pm(1,2:end-1)'),1))';
         end
+
+        runs.csflux.westmask(:,:,kk) = westmask;
+        runs.csflux.eastmask(:,:,kk) = eastmask;
     end
 
     % process energy for all locations
@@ -535,10 +560,6 @@ function [] = csfluxes(runs, ftype)
 
     % save fluxes
     runs.csflux.time = time;
-    %runs.asflux.time = time;
-
-    runs.csflux.westmask = westmask;
-    runs.csflux.eastmask = eastmask;
 
     hash = githash([mfilename('fullpath') '.m']);
     runs.csflux.hash = hash;
