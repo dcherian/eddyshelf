@@ -34,14 +34,24 @@ function [] = csfluxes(runs, ftype)
     % Non-dimensional isobath = (y_{isobath} - y_{sb})/(Eddy center
     % location)
     xsb = runs.bathy.xsb; xsl = runs.bathy.xsl;
-    [~,R,restind] = runs.locate_resistance;
+    if runs.bathy.axis == 'y'
+        [~,R,restind] = runs.locate_resistance;
+    else
+        [R,~,restind] = runs.locate_resistance;
+    end
+    if isempty(R), return; end
     R = R - xsb;
     runs.csflux.ndloc = linspace(0,2,7);
     runs.csflux.R = R;
     loc = runs.csflux.ndloc* R + xsb;
     runs.csflux.ndloc(loc > xsl) = [];
     loc(loc > xsl) = [];
-    runs.animate_field('zeta',[],restind,1); liney(loc/1000, [], 'r');
+    runs.animate_field('zeta',[],restind,1);
+    if runs.bathy.axis == 'y'
+        liney(loc/1000, [], 'r');
+    else
+        linex(loc/1000, [], 'r');
+    end
 
     if runs.params.bathy.axis == 'x'
         csvelid = 'u';
@@ -51,8 +61,8 @@ function [] = csfluxes(runs, ftype)
 
         % append sponge edge to existing values
         sy2 = runs.spng.sx2;
-        indices = [indices sy2];
-        loc = [loc runs.eddy.xr(sy2, 1)];
+        % indices = [indices sy2];
+        % loc = [loc runs.eddy.xr(sy2, 1)];
     else
         csvelid = 'v';
         asvelid = 'u';
