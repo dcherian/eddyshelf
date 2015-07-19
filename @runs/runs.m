@@ -1057,7 +1057,7 @@ methods
 
             % integrate in time
             %ttrans = max(abs(runs.csflux.west.itrans.slope(:,index)));
-            slopex = trapz(runs.csflux.time(1:nt), repnan(mati, 0), 2);
+            slopex = trapz(double(runs.csflux.time(1:nt)), repnan(mati, 0), 2);
             %assert((trapz(xi, slopex) - ttrans) < 0.01*ttrans);
 
             runs.csflux.slopex.flux(:,index) = slopex;
@@ -3480,8 +3480,7 @@ methods
                 hold on
                 plot(runs.eddy.vor.cx/1000, runs.eddy.t*86400 / runs.eddy.tscale);
                 plot(runs.eddy.vor.ee/1000, runs.eddy.t*86400 / runs.eddy.tscale);
-                plot(runs.eddy.vor.we/1000, runs.eddy.t*86400 / ...
-                     runs.eddy.tscale);
+                plot(runs.eddy.vor.we/1000, runs.eddy.t*86400 / runs.eddy.tscale);
 
                 limx = xlim;
                 xvec = limx(1):10:limx(2);
