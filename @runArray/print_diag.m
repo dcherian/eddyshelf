@@ -1,4 +1,6 @@
-function [diags, plotx] = print_diag(runArray, name)
+function [diags, plotx] = print_diag(runArray, name, hax)
+
+    if ~exist('hax', 'var'), hax = []; end
     if isempty(runArray.filter)
         runArray.filter = 1:runArray.len;
     end
@@ -16,15 +18,21 @@ function [diags, plotx] = print_diag(runArray, name)
     plotx = diags;
 
     if plots
-        hfig = figure;
+        if isempty(hax)
+            hfig = figure;
+            hax = gca; % default axes
+        else
+            hfig = gcf;
+        end
+
         % add function call as annotation
         insertAnnotation(['runArray.print_diag(' name ')']);
         hold all;
-        hax = gca; % default axes
         name_points = 1; % name points by default
         line_45 = 0; %no 45° line by default
         errorbarflag = 0; % use errorbar() instead of plot()
         logscale = 0; strip_ew = 1;
+        force_0intercept = 0;
         kozak = 0; % fancy Kozak scatterplot
         labx = ' '; laby = ' ';
         clr = 'k';
@@ -840,12 +848,17 @@ function [diags, plotx] = print_diag(runArray, name)
 
         xvec = linspace(0.5*min(plotx(:)), 1*max(plotx), 100);
 
-        P = polyfit(plotx, diags, 1);
-        %[P,Pint] = regress(diags', [plotx' ones(size(plotx'))], ...
-        %                   0.05);
-        c = P(1);
+        if ~force_0intercept
+            P = polyfit(cut_nan(plotx), cut_nan(diags), 1);
+            %[P,Pint] = regress(diags', [plotx' ones(size(plotx'))], ...
+            %                   0.05);
+        else
+            P(1) = cut_nan(plotx')\cut_nan(diags');
+            P(2) = 0;
+        end
 
-        rmse = sqrt(mean((diags - c*plotx - P(2)).^2));
+        c = P(1);
+        rmse = sqrt(nanmean((diags - c*plotx - P(2)).^2));
 
         hparam = plot(xvec, c*xvec + P(2), '--', ...
                       'Color', [1 1 1]*0.75);
