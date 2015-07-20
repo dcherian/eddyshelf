@@ -11,7 +11,7 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin)
     % some smaller peaks that might occur earlier.
     % The maxflux value is from the actual *unsmoothed*  time
     % series at time index "maxloc"
-    nsmooth = 5;
+    nsmooth = 10;
 
     % flux vector for applicable time
     % convert everything to double since I'm
