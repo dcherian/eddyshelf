@@ -1079,15 +1079,66 @@ methods
                             'for.'];
     end
 
-    function [] = plot_slopext(runs)
+    function [] = plot_fluxes(runs)
 
-        runs.streamerstruct;
-        slopexti = runs.csflux.slopex.slopexti;
-        xi = runs.csflux.slopex.xi;
+        hfig1 = []; %figure;
+        hfig2 = []; % figure
+        hfig3 = figure;
+
+        n = length(runs.csflux.x);
         ti = runs.csflux.time/86400;
 
-        figure;
-        contourf(xi, ti, slopexti');
+        if ~isempty(hfig1)
+            figure(hfig1); % streamer vertical structure
+            insertAnnotation([runs.name '.plot_fluxes']);
+            plot(runs.csflux.west.slopewater.vertitrans, ...
+                 runs.csflux.west.vertbins);
+            liney(-1 * runs.bathy.hsb);
+            legend(cellstr(num2str(runs.csflux.h')), ...
+                   'Location', 'SouthEast');
+            beautify;
+            title(runs.name);
+            axis square;
+        end
+
+        if ~isempty(hfig2)
+            runs.streamerstruct;
+
+            figure(hfig2); % hovmoeller plot of fluxes (x,t)
+            insertAnnotation([runs.name '.plot_fluxes']);
+            for index=1:n
+                slopexti = runs.csflux.slopex.slopexti(:,:,index);
+                xi = runs.csflux.slopex.xi;
+
+                subplot(2,ceil(n/2),index)
+                pcolorcen(xi/1000, ti, slopexti');
+                xlabel('X - X_{eddy} (km)'); ylabel('Time (days)');
+                title(['Y = ' num2str(runs.csflux.x(index)/1000, '%.2f'), ...
+                       ' km | H = ' num2str(runs.csflux.h(index), '%d') ...
+                       ' m | ' runs.name]);
+                hold on;
+                plot((runs.eddy.vor.we-runs.eddy.mx)/1000, ti);
+                plot((runs.eddy.vor.ee-runs.eddy.mx)/1000, ti);
+                center_colorbar;
+                linex(0);
+            end
+        end
+
+        if ~isempty(hfig3)
+            figure(hfig3); % hovmoeller plot of fluxes (z,t)
+            insertAnnotation([runs.name '.plot_fluxes']);
+            for index=1:n
+                zvec = runs.csflux.west.vertbins(:,index);
+                slopezt = runs.csflux.west.slopezt(:,:,index);
+
+                subplot(2,ceil(n/2),index)
+                pcolorcen(ti, zvec, slopezt);
+                center_colorbar;
+                title(['Y = ' num2str(runs.csflux.x(index)/1000, '%.2f'), ...
+                       ' km | H = ' num2str(runs.csflux.h(index), '%d') ...
+                       ' m | ' runs.name]);
+            end
+        end
     end
 
     function [] = read_pbot(runs)
