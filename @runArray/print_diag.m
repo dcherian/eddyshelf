@@ -582,18 +582,111 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
 
         %%%%% shelf flux
         if strcmpi(name, 'max flux')
-            if ~isfield(run.csflux, 'time')
+            if isempty(args)
+                locindex = 3;
+            else
+                locindex = args(1);
+            end
+
+            if ~isfield(run.csflux, 'time') || ...
+                    locindex > size(run.csflux.west.slope, 2)
+                disp(['Skipping ' run.name]);
                 continue;
             end
 
-            tind = run.csflux.tscaleind;
+            [maxflux, maxloc] = ...
+                run.calc_maxflux(run.csflux.west.slope(:,locindex));
 
-            %run.streamerstruct;
-            transscl = V(tind) * hsb * run.rrshelf * pi;
+            maxflux = max(run.csflux.west.slope(:,locindex));
+            tind = maxloc;
 
-            [maxflux, maxloc] = run.calc_maxflux;
+            H = run.csflux.h(locindex);
+
+            %[V0, L, x0] = run.fit_vel(tind);
+            V0 = run.eddy.V(1) / 0.43;
+            R = run.csflux.R;
+            L = run.eddy.vor.dia(1)/2;
+            Lz0 = Lz(1);
+
+            yoR = run.csflux.ndloc(locindex); % y/R - used in csflux
+            y0oL = R/L * (1 - yoR); % y0/L - used in derivation
+            xfrac = sqrt(1 - y0oL^2);
+
+            syms x z;
+            fluxscl = -1 * abs(V0) * ...
+                      int(x/L*exp(-(x/L)^2), -Inf, -xfrac*L) * exp(-y0oL^2) ...
+                      * int(1 - erf(z/Lz0), z, -H, 0);
+
+            norm = 1e3;
+            transscl = double(fluxscl)/norm;
+            %transscl = run.eddyfluxscale;
 
             % colorize
+            crit = 0.40;
+            if round(hsb/Lz(1),2) > crit
+                clr = 'r';
+            end
+            if round(hsb/Lz(1),2) < crit
+                clr = 'b';
+            end
+
+            parameterize = 1; logscale = 0;
+            force_0intercept = 0;
+            errorbarflag = 1; name_points = 0; line_45 = 0;
+            laby = 'Slope water max flux (mSv)';
+            labx = 'Volume flux in eddy (mSv)';
+            titlestr = [titlestr ' | ND isobath = ' ...
+                        num2str(run.csflux.ndloc(:,locindex))];
+
+            diags(ff) = maxflux/norm;
+            plotx(ff) = transscl;
+            error(ff) = 0.075*diags(ff);
+        end
+
+        if strcmpi(name, 'avg flux')
+            locindex = 3;
+
+            if ~isfield(run.csflux, 'time') || ...
+                    locindex > size(run.csflux.west.slope, 2)
+                continue;
+            end
+
+            [avgflux, err] = ...
+                run.calc_avgflux(run.csflux.west.slope(:,locindex));
+
+            H = run.csflux.h(locindex);
+            R = run.csflux.R;
+            V0 = V(1)/ 0.43;
+            L = run.eddy.vor.dia(1)/2;
+            Lz0 = Lz(1);
+
+            yoR = run.csflux.ndloc(locindex); % y/R - used in csflux
+            y0oL = R/L * (1 - yoR); % y0/L - used in derivation
+            xfrac = sqrt(1 - y0oL^2);
+
+            syms x z;
+            fluxscl = -1 * V0 * ...
+                      int(x/L*exp(-(x/L)^2), -Inf, -xfrac*L) * exp(-y0oL^2) ...
+                      * int(1 - erf(z/Lz0), z, -H, 0);
+
+            %transscl = 0.075 * g/f0 .* run.eddy.amp(ind) .* hsb/1000;
+            %transscl = 0.023 * Lx(1) * V(tind) * hsb / 1000 + 0.0;
+            transscl = double(fluxscl); %V(1) * H * Lx(1);
+
+            diagstr = [num2str(avgflux/1000,'%.2f') '±' ...
+                       num2str(err/1000,'%.2f') ' mSv | scale = ' ...
+                       num2str(transscl)];
+
+            % colorize
+            if run.bathy.S_sh ~= 0
+                % ptName = 'sh';
+                clr = 'g';
+            end
+            %if run.params.misc.rdrg ~= 0
+            %    % ptName = 'f';
+            %    clr = 'r';
+            %end
+
             if round(hsb/Lz(1),2) > 0.13
                 clr = 'r';
             end
@@ -601,40 +694,9 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
                 clr = 'b';
             end
 
-            % plot error
-            %if ff == 1 || ~exist('hfig_fluxerr', 'var')
-            %    hfig_fluxerr = figure; hold on;
+            %if run.params.nondim.eddy.Rh < 10
+            %    clr = 'b';
             %end
-            % paramerr = avgflux/1000 - transscl;
-            % figure(hfig_fluxerr)
-            % plot(run.eddy.Ro(tind), paramerr, '*');
-            % xlabel('Ro'); ylabel('paramerr');
-
-            parameterize = 1;
-            errorbarflag = 0; name_points = 1; line_45 = 0;
-            laby = 'Shelf water max flux (mSv)';
-            labx = 'V_{eddy} H_{sb} L_R^{shelf} (mSv)';
-
-            diags(ff) = maxflux/1e3;
-            plotx(ff) = transscl/1e3;
-
-            % diagstr = [num2str(maxflux/1000,'%.2f') ' mSv'];
-        end
-
-        if strcmpi(name, 'shelf flux')
-            if ~isfield(run.csflux, 'time')
-                continue;
-            end
-
-            %transscl = 0.075 * g/f0 .* run.eddy.amp(ind) .* hsb/1000;
-            transscl = 0.035 * Lx(1) * V(1) * hsb / 1000;
-
-            [avgflux, err] = run.calc_avgflux;
-
-            run.eddy.paramflux = avgflux;
-            diagstr = [num2str(avgflux/1000,'%.2f') '±' ...
-                       num2str(err/1000,'%.2f') ' mSv | scale = ' ...
-                       num2str(transscl)];
 
             % plot error
             %if ff == 1 || ~exist('hfig_fluxerr', 'var')
@@ -649,19 +711,27 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
             errorbarflag = 1; name_points = 1; line_45 = 0;
             laby = 'Flux (mSv)';
             labx = 'Parameterization (mSv)';
+            titlestr = [titlestr ' | ND isobath = ' ...
+                        num2str(run.csflux.ndloc(:,locindex))];
 
             diags(ff) = avgflux/1000;
             error(ff) = err/1000;
-            plotx(ff) = Lx(tind) * V(tind) * run.bathy.hsb/1000; transscl;
+            plotx(ff) = transscl;
         end
 
         if strcmpi(name, 'streamervel')
             [avgflux, ~] = run.calc_avgflux;
-            diags(ff) = avgflux./Lx(1)./hsb;
-            plotx(ff) = V(run.csflux.tscaleind);
+            [maxflux, maxloc] = run.calc_maxflux;
 
+            vxt = run.csflux.shelfxt(:,:,1) .* ...
+                  run.csflux.westmask./run.bathy.hsb;
+
+            diags(ff) = mean(vxt(:,maxloc) .* (vxt(:,maxloc) > 0));
+            plotx(ff) = V(tind);
+
+            parameterize = 1;
             laby = 'Mean streamer velocity (m/s)';
-            labx = 'Eddy velocity scale (m/s)';
+            labx = 'V(tind)';
         end
 
         %%%%%%%%%%%%%%%%%%%% deprecated
@@ -932,7 +1002,7 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
             set(hleg, 'interpreter', 'latex');
         end
 
-        if strcmpi(name, 'shelf flux') || strcmpi(name, 'max flux')
+        if strcmpi(name, 'avg flux') || strcmpi(name, 'max flux')
             figure(hfig);
             axis square;
             xlim([0 max(xlim)]);
