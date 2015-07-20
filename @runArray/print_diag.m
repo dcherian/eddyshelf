@@ -851,23 +851,53 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
         xvec = linspace(0.5*min(plotx(:)), 1*max(plotx), 100);
 
         if ~force_0intercept
-            P = polyfit(cut_nan(plotx), cut_nan(diags), 1);
-            %[P,Pint] = regress(diags', [plotx' ones(size(plotx'))], ...
-            %                   0.05);
+            E = [plotx' ones(size(plotx'))];
+
+            %P = polyfit(cut_nan(plotx), cut_nan(diags), 1);
+            [P,Pint,R,Rint,stats] = regress(diags', E, 0.05);
         else
-            P(1) = cut_nan(plotx')\cut_nan(diags');
+            E = cut_nan(plotx');
+            P(1) = E\cut_nan(diags');
             P(2) = 0;
         end
+
+        % [Q,R] = qr(E,0);
+        % S = inv(R);
+        % ETEI = S*S';
+        % % assuming noise vector (res) is white
+        % P2 = ETEI * E' * var(res) * E * ETEI;
+        % errfit = sqrt(diag(P2));
+        % errfit = errfit(2); % standard error
 
         c = P(1);
         rmse = sqrt(nanmean((diags - c*plotx - P(2)).^2));
 
+
         hparam = plot(xvec, c*xvec + P(2), '--', ...
                       'Color', [1 1 1]*0.75);
-        hleg = legend(hparam, ['y = ' num2str(c, '%.2f') 'x + ' ...
-                            num2str(P(2), '%.2f') '; rmse = ' num2str(rmse,3)], ...
-                      'Location', 'SouthEast');
+        slopestr = num2str(c, '%.2f');
+        intstr = num2str(P(2), '%.2f');
 
+        if exist('Pint', 'var')
+            hparam(2) = plot(xvec, Pint(1,1) * xvec + Pint(2,1), ...
+                             'Color', [1 1 1]*0.75);
+            hparam(3) = plot(xvec, Pint(1,2) * xvec + Pint(2,2), ...
+                             'Color', [1 1 1]*0.75);
+
+            slopestr = [slopestr '\pm' ...
+                        num2str(abs(Pint(1,1)-P(1)), '%.2f')];
+            intstr = [intstr '\pm' ...
+                      num2str(abs(Pint(2,1)-P(2)), '%.2f')];
+        end
+
+        hleg = legend(hparam(1), ['y = (' slopestr ') x + (' ...
+                            intstr '); rmse = ' num2str(rmse,3)], ...
+               'Location', 'SouthEast');
+
+        uistack(hparam, 'bottom');
+
+        if exist('stats', 'var')
+            disp(['stats = ' num2str(stats)]);
     end
 
     if plots
