@@ -1,6 +1,8 @@
-function [diags, plotx] = print_diag(runArray, name, hax)
+function [diags, plotx] = print_diag(runArray, name, args, hax)
 
+    if ~exist('args', 'var'), args = []; end
     if ~exist('hax', 'var'), hax = []; end
+
     if isempty(runArray.filter)
         runArray.filter = 1:runArray.len;
     end
