@@ -7,10 +7,6 @@ function [] = plot_fluxes(runArray, isobath, source)
             ax1(2) = subplot(2,1,2); hold all;
 
     hfig2 = []; %figure; hold all % vertical structure / baroclinicity
-    % subplot(2,2,1); hold all
-    % subplot(2,2,2); hold all
-    % subplot(2,2,3); hold all
-    % subplot(2,2,4); hold all
 
     hfig3 = []; %figure; hold all; % envelope
 
@@ -84,36 +80,16 @@ function [] = plot_fluxes(runArray, isobath, source)
         %%%%%% BAROCLINICITY
         if ~isempty(hfig2)
             figure(hfig2)
-            try
-                % find location of center at t=1.5 (arbitrary
-                % choice)
-                %                    xnd = (run.csflux.west.shelfwater.bins)./run.rrshelf;
-                %                    subplot(2,2,1)
-                %hgplt = plot(xnd, run.csflux.west.shelfwater.itrans);
-
-                %subplot(2,2,2)
-                %plot(xnd, run.csflux.west.shelfwater.itrans ...
-                %             ./ttrans);
-
-                %subplot(2,2,3)
-                %plot(run.csflux.west.shelfwater.vertitrans, ...
-                %     run.csflux.west.shelfwater.vertbins);
-
-                %subplot(2,2,4)
-                profile = ...
-                    run.csflux.west.slopewater.vertitrans(:,isobath,source)./ ttrans;
-                vertbins = run.csflux.vertbins(:,isobath);
-                zvec = vertbins./ max(abs(vertbins));
-                zind = find_approx(vertbins, -1*run.bathy.hsb);
-                bc = baroclinicity(zvec, profile);
-                hgplt2(ff) = plot(profile, zvec, 'Color', hgplt1(ff).Color);
-                plot(profile(zind), zvec(zind), 'x', ...
-                     'Color', hgplt1(ff).Color);
-                names2{ff} =  [names{ff} ' | bc = ' num2str(bc,'%.3f')];
-            catch ME
-                keyboard;
-                disp(ME)
-            end
+            profile = ...
+                run.csflux.west.slopewater.vertitrans(:,isobath,source)./ ttrans;
+            vertbins = run.csflux.vertbins(:,isobath);
+            zvec = vertbins./ max(abs(vertbins));
+            zind = find_approx(vertbins, -1*run.bathy.hsb);
+            bc = baroclinicity(zvec, profile);
+            hgplt2(ff) = plot(profile, zvec, 'Color', hgplt1(ff).Color);
+            plot(profile(zind), zvec(zind), 'x', ...
+                 'Color', hgplt1(ff).Color);
+            names2{ff} =  [names{ff} ' | bc = ' num2str(bc,'%.3f')];
         end
 
         %%%%%%%%%%%%% ENVELOPE
