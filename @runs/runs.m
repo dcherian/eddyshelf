@@ -4258,9 +4258,7 @@ methods
         ht = title(['Surface vorticity @ t = ' ...
                     num2str(runs.time(tt)/86400) ' days']);
         ax = gca;
-        htext = text(0.05,0.9, ...
-                     ['t = ' num2str(runs.time(tt)/86400) ' days'], ...
-                     'Units', 'normalized');
+        runs.add_timelabel(tt);
         colormap(flipud(cbrewer('div','RdBu',20)));
         beautify([18 18 20]);
 
@@ -4274,8 +4272,7 @@ methods
             set(ht,'String',['Surface vorticity | t = ' ...
                              num2str(runs.time(tt)/86400) ' ' ...
                              'days']);
-            set(htext,'String', ['t = ' num2str(runs.time(tt)/86400) ...
-                                ' days']);
+            runs.update_timelabel(tt);
             runs.video_update();
             pause(0.05);
         end
@@ -5801,6 +5798,15 @@ methods
                   range ',tt)))']);
             handle.LevelList = levels;
         end
+    end
+
+    function [htext] = add_timelabel(runs, tt)
+       htext = text(0.05,0.9, ...
+                     ['t = ' num2str(runs.time(tt)/86400) ' days'], ...
+                     'Units', 'normalized');
+   end
+   function [] = update_timelabel(runs, htext, tt)
+       htext.String = ['t = ' num2str(runs.time(tt)/86400) ' days'];
     end
 
 

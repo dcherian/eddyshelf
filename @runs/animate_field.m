@@ -363,9 +363,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     maximize(gcf); pause(0.2);
     beautify([16 16 18]);
     ax(1) = gca;
-    htext = text(0.05,0.9, ...
-                 ['t = ' num2str(runs.time(ii)/86400, '%.0f') ' days'], ...
-                 'Units', 'normalized');
+    htext = runs.add_timelabel(ii);
 
     if addcsdye
         caxis([-1 1]*1.5);
@@ -560,7 +558,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
             end
 
             % update time label
-            htext.String = ['t = ' num2str(runs.time(ii)/86400) ' days'];
+            runs.update_timelabel(htext, ii);
             runs.video_update();
             pause(1);
         end
