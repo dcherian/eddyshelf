@@ -644,29 +644,35 @@ methods
         liney(0); linex(runs.ndtime(runs.traj.tind-t0));
     end
 
-    function [] = plot_velprofiles(runs)
+    function [] = plot_velprofiles(runs, vname)
+
+        if ~exist('vname', 'var'), vname = 'u'; end
 
         [~,~,tind] = runs.locate_resistance();
 
-        it = [1 tind];
+        it = 1:10:tind;
 
-        ix = vecfind(runs.rgrid.x_rho(1,:), runs.eddy.mx(it));
-        iy = vecfind(runs.rgrid.y_rho(:,1), ...
-                     runs.eddy.my(it) - runs.eddy.vor.lmin(it)/3);
+        if vname == 'u'
+            ix = vecfind(runs.rgrid.x_rho(1,:), runs.eddy.mx(it));
+            iy = vecfind(runs.rgrid.y_rho(:,1), ...
+                         runs.eddy.my(it) - runs.eddy.vor.lmin(it)/3);
+        else
+            ix = vecfind(runs.rgrid.x_rho(1,:), ...
+                         runs.eddy.mx(it) - runs.eddy.vor.lmin(it)/3);
+            iy = vecfind(runs.rgrid.y_rho(:,1), runs.eddy.my(it));
 
-        corder_backup = get(0, 'DefaultAxesColorOrder');
-        set(0, 'DefaultAxesLineStyleorder','-');
-        set(0, 'DefaultAxesColorOrder', brighten(cbrewer('seq','Reds',length(it)), ...
-                                                 -0.5));
+        end
+
         hf = figure; hold all
+        lightDarkLines(length(it));
         t0 = 1;
         for tt=1:length(it)
             tt
-            u = dc_roms_read_data(runs.dir, 'u', it(tt), {'x' ix(tt) ...
+            u = dc_roms_read_data(runs.dir, vname, it(tt), {'x' ix(tt) ...
                                 ix(tt); 'y' iy(tt) iy(tt)}, [], ...
                                   runs.rgrid, 'his');
             figure(hf);
-            plot(abs(u./u(end)), ...
+            plot((u./u(end)), ...
                  runs.rgrid.z_u(:,iy(tt),ix(tt)) ./ runs.eddy.Lgauss(1));
         end
 
@@ -677,12 +683,9 @@ methods
         legend(hplt, '1 - erf(|z|/Lz)', 'Location', 'SouthEast');
         ylabel('z/L_z'); xlabel('U(z)/U(0)'); title(runs.name);
 
-        runs.animate_field('u', [], it(end), 1);
-        plot(runs.rgrid.x_rho(1,ix(end))/1000, ...
-             runs.rgrid.y_rho(iy(end),1)/1000, 'kx');
-
-        set(0, 'DefaultAxesColorOrder', corder_backup);
-        set(0,'DefaultAxesLineStyleOrder',{'-','--','-.'});
+        %runs.animate_field('u', [], it(end), 1);
+        %plot(runs.rgrid.x_rho(1,ix(end))/1000, ...
+        %     runs.rgrid.y_rho(iy(end),1)/1000, 'kx');
     end
 
     function [] = plot_dEdt(runs)
