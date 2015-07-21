@@ -158,7 +158,7 @@ function [] = csfluxes(runs, ftype)
     runs.csflux.west.slopewater.trans = cell([1 nloc nloc]);
     runs.csflux.east.slopewater.vtrans = cell([1 nloc nloc]);
     runs.csflux.west.slopewater.itrans = cell([1 nloc nloc]);
-    runs.csflux.west.slopewater.envelope = nan([tinf nloc nloc]);
+    runs.csflux.west.slopewater.envelope = nan([tinf nloc]);
 
     runs.csflux.east.slopewater.trans = cell([1 nloc nloc]);
     runs.csflux.east.slopewater.vtrans = cell([1 nloc nloc]);
