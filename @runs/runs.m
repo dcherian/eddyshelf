@@ -1092,9 +1092,10 @@ methods
 
         n = length(isobath);
 
-        hfig1 = []; %figure;
-        hfig2 = []; %figure;
-        hfig3 = figure;
+        hfig1 = figure; % streamer vertical structure
+        hfig2 = []; %figure; % hovemoeller plots (x,t)
+        hfig3 = []; %figure; % hovmoeller plots (z,t)
+        hfig4 = figure; % flux time-series
 
         if ~isempty(hfig1)
             figure(hfig1); % streamer vertical structure
@@ -1147,6 +1148,17 @@ methods
                        ' km | H = ' num2str(runs.csflux.h(index), '%d') ...
                        ' m | ' runs.name]);
             end
+        end
+
+        if ~isempty(hfig4)
+            figure(hfig4)
+            insertAnnotation([runs.name '.plot_fluxes']);
+            lightDarkLines(n);
+            plot(ti, runs.csflux.west.slope(:,isobath, source));
+            legend(cellstr(num2str(runs.csflux.h')), ...
+                   'Location', 'NorthWest');
+            title(runs.name);
+            beautify;
         end
     end
 
