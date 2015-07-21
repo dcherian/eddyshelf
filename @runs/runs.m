@@ -3488,6 +3488,50 @@ methods
         liney(mean(runs.eddy.mvx(tind:end)) * 1000/86400);
     end
 
+    function [V0, Lx, x0] = fit_vel(runs, tind)
+
+        if runs.bathy.axis == 'y'
+            loc = num2str(runs.eddy.my(tind));
+            cen = runs.eddy.mx(tind);
+            xvec = runs.rgrid.x_rho(1,:);
+            vstr = 'v';
+        else
+            loc = num2str(runs.eddy.mx(tind));
+            cen = runs.eddy.my(tind);
+            xvec = run.rgrid.y_rho(:,1);
+            vstr = 'u';
+        end
+
+        vvec = dc_roms_read_data(runs.dir, vstr, tind, ...
+                                 {runs.bathy.axis loc loc; ...
+                            'z' runs.rgrid.N runs.rgrid.N}, ...
+                                 [], runs.rgrid, 'his', 'double');
+
+        [V0, Lx, x0] = gauss_der_fit(xvec-cen, vvec', 0);
+    end
+
+    function [] = ideal_flux_profile(runs)
+
+        index = 2;
+        hsb = runs.bathy.hsb;
+        xsb = runs.bathy.xsb;
+        alpha = runs.bathy.sl_slope;
+        L =  runs.eddy.vor.dia(1)/2;
+        Lz = runs.eddy.Lgauss(1);
+
+        profile = ...
+            runs.csflux.west.slopewater.vertitrans(:,index);
+        vertbins = runs.csflux.west.vertbins(:,index);
+        zvec = vertbins./ max(abs(vertbins));
+
+        yt = runs.rgrid.y_rho(vecfind(runs.bathy.h(1,:), - ...
+                                      vertbins),1) / L;
+        y0 = runs.csflux.x(index)/L;
+
+        plot((erf(y0) - erf(yt)) .* (1 - erf(vertbins/Lz)), vertbins);
+
+    end
+
     function [] = calc_cen_flux(runs)
 
         % calculate transport as fn of vertical depth - west of
