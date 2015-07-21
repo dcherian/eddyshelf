@@ -186,7 +186,7 @@ classdef runArray < handle
                     outstr = 'failed';
                 end
 
-                disp([num2str(runArray.filter(ii)) ' | ' ...
+                disp([num2str(runArray.filter(ii), '%02d') ' | ' ...
                       run.name ' | ' outstr]);
             end
         end

@@ -644,29 +644,35 @@ methods
         liney(0); linex(runs.ndtime(runs.traj.tind-t0));
     end
 
-    function [] = plot_velprofiles(runs)
+    function [] = plot_velprofiles(runs, vname)
+
+        if ~exist('vname', 'var'), vname = 'u'; end
 
         [~,~,tind] = runs.locate_resistance();
 
-        it = [1 tind];
+        it = 1:10:tind;
 
-        ix = vecfind(runs.rgrid.x_rho(1,:), runs.eddy.mx(it));
-        iy = vecfind(runs.rgrid.y_rho(:,1), ...
-                     runs.eddy.my(it) - runs.eddy.vor.lmin(it)/3);
+        if vname == 'u'
+            ix = vecfind(runs.rgrid.x_rho(1,:), runs.eddy.mx(it));
+            iy = vecfind(runs.rgrid.y_rho(:,1), ...
+                         runs.eddy.my(it) - runs.eddy.vor.lmin(it)/3);
+        else
+            ix = vecfind(runs.rgrid.x_rho(1,:), ...
+                         runs.eddy.mx(it) - runs.eddy.vor.lmin(it)/3);
+            iy = vecfind(runs.rgrid.y_rho(:,1), runs.eddy.my(it));
 
-        corder_backup = get(0, 'DefaultAxesColorOrder');
-        set(0, 'DefaultAxesLineStyleorder','-');
-        set(0, 'DefaultAxesColorOrder', brighten(cbrewer('seq','Reds',length(it)), ...
-                                                 -0.5));
+        end
+
         hf = figure; hold all
+        lightDarkLines(length(it));
         t0 = 1;
         for tt=1:length(it)
             tt
-            u = dc_roms_read_data(runs.dir, 'u', it(tt), {'x' ix(tt) ...
+            u = dc_roms_read_data(runs.dir, vname, it(tt), {'x' ix(tt) ...
                                 ix(tt); 'y' iy(tt) iy(tt)}, [], ...
                                   runs.rgrid, 'his');
             figure(hf);
-            plot(abs(u./u(end)), ...
+            plot((u./u(end)), ...
                  runs.rgrid.z_u(:,iy(tt),ix(tt)) ./ runs.eddy.Lgauss(1));
         end
 
@@ -677,12 +683,9 @@ methods
         legend(hplt, '1 - erf(|z|/Lz)', 'Location', 'SouthEast');
         ylabel('z/L_z'); xlabel('U(z)/U(0)'); title(runs.name);
 
-        runs.animate_field('u', [], it(end), 1);
-        plot(runs.rgrid.x_rho(1,ix(end))/1000, ...
-             runs.rgrid.y_rho(iy(end),1)/1000, 'kx');
-
-        set(0, 'DefaultAxesColorOrder', corder_backup);
-        set(0,'DefaultAxesLineStyleOrder',{'-','--','-.'});
+        %runs.animate_field('u', [], it(end), 1);
+        %plot(runs.rgrid.x_rho(1,ix(end))/1000, ...
+        %     runs.rgrid.y_rho(iy(end),1)/1000, 'kx');
     end
 
     function [] = plot_dEdt(runs)
@@ -1038,56 +1041,170 @@ methods
         % x-grid to interpolate on to
         dx = bsxfun(@minus, xr, cen);
         xmax = max(abs(dx(:)));
-        xi = [-1 * xmax: 2000 : xmax]';
+        xi = [-1 * xmax: 1000 : xmax]';
 
         runs.csflux.slopex = [];
 
-        for index=1:length(runs.csflux.ndloc)
-            matrix = runs.csflux.slopext(:,:,index); % .*
-                                                     % runs.csflux.westmask;
-            nt = size(matrix,2);
+        for src = 1:length(runs.csflux.ndloc)
+            for isobath=1:length(runs.csflux.ndloc)
+                matrix = runs.csflux.slopext(:,:,isobath, src);
+                nt = size(matrix,2);
 
-            %[~,nt] = runs.calc_maxflux(runs.csflux.west.slope(:,index));
+                %[~,nt] = runs.calc_maxflux(runs.csflux.west.slope(:,isobath));
 
-            mati = nan([length(xi) nt]);
-            for tt = [1:nt]
-                xvec = runs.rgrid.x_rho(1,2:end-1)' - cen(tt);
-                mati(:,tt) = interp1(xvec, matrix(:,tt), xi);
+                mati = nan([length(xi) nt]);
+                for tt = [1:nt]
+                    xvec = runs.rgrid.x_rho(1,2:end-1)' - cen(tt);
+                    mati(:,tt) = interp1(xvec, matrix(:,tt), xi);
+                end
+
+                % integrate in time
+                slopex = trapz(double(runs.csflux.time(1:nt)), repnan(mati, 0), 2);
+
+                runs.csflux.slopex.slopexti(:,:,isobath,src) = mati;
+                runs.csflux.slopex.flux(:,isobath,src) = slopex;
+                % this fit makes no sense without applying westmask.
+                % [y0, X, x0] = ...
+                %     gauss_fit(xi, runs.csflux.slopex.flux(:,isobath,src), debug);
+                % if debug, title(runs.name); end
+                % runs.csflux.slopex.Lx(isobath,src) = X;
+                % runs.csflux.slopex.y0(isobath,src) = y0;
+                % runs.csflux.slopex.x0(isobath,src) = x0;
             end
-
-            % integrate in time
-            %ttrans = max(abs(runs.csflux.west.itrans.slope(:,index)));
-            slopex = trapz(runs.csflux.time(1:nt), repnan(mati, 0), 2);
-            %assert((trapz(xi, slopex) - ttrans) < 0.01*ttrans);
-
-            runs.csflux.slopex.flux(:,index) = slopex;
-            [y0, X, x0] = gauss_fit(xi, runs.csflux.slopex.flux(:,index), debug);
-            if debug, title(runs.name); end
-            runs.csflux.slopex.slopexti(:,:,index)= mati;
-            runs.csflux.slopex.Lx(index) = X;
-            runs.csflux.slopex.y0(index) = y0;
-            runs.csflux.slopex.x0(index) = x0;
         end
 
         runs.csflux.slopex.nt = nt;
         runs.csflux.slopex.xi = xi;
         runs.csflux.slopex.comment = ['[y0, Lx] = gauss_fit | flux = ' ...
-                            'along-shelf structure(x,index) | xi = x-vector ' ...
+                            'along-shelf structure(x,isobath,source) | xi = x-vector ' ...
                             'for flux | slopexti = interpolated ' ...
                             'to grid with eddy center as origin | ' ...
                             'nt = number of timesteps this has been calculated ' ...
                             'for.'];
     end
 
-    function [] = plot_slopext(runs)
+    function [] = plot_fluxes(runs, source, isobath)
 
-        runs.streamerstruct;
-        slopexti = runs.csflux.slopex.slopexti;
-        xi = runs.csflux.slopex.xi;
+        n = length(runs.csflux.x);
         ti = runs.csflux.time/86400;
 
-        figure;
-        contourf(xi, ti, slopexti');
+        % source of water
+        if ~exist('source', 'var'), source = 1; end
+        % across which isobath
+        if ~exist('isobath', 'var'), isobath = 1:n; end
+
+        n = length(isobath);
+
+        hfig1 = []; %figure; % streamer vertical structure
+        hfig2 = []; %figure; % hovemoeller plots (x,t)
+        hfig3 = []; %figure; % hovmoeller plots (z,t)
+        hfig4 = []; %figure; % flux time-series
+        hfig5 = figure; % cross-sections
+
+        if ~isempty(hfig1)
+            figure(hfig1); % streamer vertical structure
+            insertAnnotation([runs.name '.plot_fluxes']);
+            lightDarkLines(n);
+            plot(runs.csflux.west.slopewater.vertitrans(:,isobath,source), ...
+                 runs.csflux.vertbins(:,isobath));
+            liney(-1 * runs.bathy.hsb);
+            legend(cellstr(num2str(runs.csflux.h')), ...
+                   'Location', 'SouthEast');
+            beautify;
+            title(runs.name);
+            axis square;
+        end
+
+        if ~isempty(hfig2)
+            runs.streamerstruct;
+
+            figure(hfig2); % hovmoeller plot of fluxes (x,t)
+            insertAnnotation([runs.name '.plot_fluxes']);
+            for index=isobath
+                slopexti = runs.csflux.slopex.slopexti(:,:,index,source);
+                xi = runs.csflux.slopex.xi;
+
+                subplot(2,ceil(n/2),index)
+                pcolorcen(xi/1000, ti, slopexti');
+                xlabel('X - X_{eddy} (km)'); ylabel('Time (days)');
+                title(['Y = ' num2str(runs.csflux.x(index)/1000, '%.2f'), ...
+                       ' km | H = ' num2str(runs.csflux.h(index), '%d') ...
+                       ' m | ' runs.name]);
+                hold on;
+                plot((runs.eddy.vor.we-runs.eddy.mx)/1000, ti);
+                plot((runs.eddy.vor.ee-runs.eddy.mx)/1000, ti);
+                center_colorbar;
+                linex(0);
+            end
+        end
+
+        if ~isempty(hfig3)
+            figure(hfig3); % hovmoeller plot of fluxes (z,t)
+            insertAnnotation([runs.name '.plot_fluxes']);
+            for index=isobath
+                zvec = runs.csflux.vertbins(:,index);
+                slopezt = runs.csflux.west.slopezt(:,:,index,source);
+
+                subplot(2,ceil(n/2),index)
+                pcolorcen(ti, zvec, slopezt);
+                center_colorbar;
+                title(['Y = ' num2str(runs.csflux.x(index)/1000, '%.2f'), ...
+                       ' km | H = ' num2str(runs.csflux.h(index), '%d') ...
+                       ' m | ' runs.name]);
+            end
+        end
+
+        if ~isempty(hfig4)
+            figure(hfig4)
+            insertAnnotation([runs.name '.plot_fluxes']);
+            lightDarkLines(n);
+            plot(ti, runs.csflux.west.slope(:,isobath, source));
+            legend(cellstr(num2str(runs.csflux.h')), ...
+                   'Location', 'NorthWest');
+            title(runs.name);
+            beautify;
+        end
+
+        if ~isempty(hfig5)
+            insertAnnotation([runs.name '.plot_fluxes']);
+            ix = runs.csflux.ix(isobath);
+            tindex = 290;
+
+            % copied from csfluxes.m
+            csvel = squeeze(avg1( ...
+                dc_roms_read_data(runs.dir, 'v', tindex, ...
+                                  {runs.bathy.axis ix-1 ix}, [], runs.rgrid, ...
+                                  'his', 'single'), 2));
+            csvel = csvel(2:end-1,:,:,:);
+
+            % process cross-shelf dye
+            csdye = dc_roms_read_data(runs.dir, runs.csdname, ...
+                                      tindex, {runs.bathy.axis ix+1 ix+1}, ...
+                                      [], runs.rgrid, 'his', 'single');
+            csdye = csdye(2:end-1,:,:);
+
+            zvec = runs.rgrid.z_r(:, ix+1, 1);
+            xvec = runs.rgrid.x_rho(1,2:end-1)/1000 - runs.eddy.mx(tindex)/1000;
+
+            mask = fillnan(bsxfun(@times, csdye < runs.csflux.x(isobath), ...
+                   runs.csflux.westmask(:,tindex,isobath)),0)';
+
+            ax(1) = subplot(211);
+            pcolorcen(xvec, zvec, csvel' .* mask);
+            runs.add_timelabel(tindex);
+            xlabel('X - X_{eddy} (km)'); ylabel('Z (m)');
+            title('v (m/s)');
+            center_colorbar;
+
+            ax(2) = subplot(212);
+            pcolorcen(xvec, zvec, csdye' .* mask/1000);
+            colorbar;
+            xlabel('X - X_{eddy} (km)'); ylabel('Z (m)');
+            title('Cross-shelf dye (km)');
+            runs.add_timelabel(tindex);
+            linkaxes(ax, 'xy');
+            xlim([min(xlim) 0]);
+        end
     end
 
     function [] = read_pbot(runs)
@@ -3428,6 +3545,93 @@ methods
         liney(mean(runs.eddy.mvx(tind:end)) * 1000/86400);
     end
 
+    function [V0, Lx, x0] = fit_vel(runs, tind)
+
+        if runs.bathy.axis == 'y'
+            loc = num2str(runs.eddy.my(tind));
+            cen = runs.eddy.mx(tind);
+            xvec = runs.rgrid.x_rho(1,:);
+            vstr = 'v';
+        else
+            loc = num2str(runs.eddy.mx(tind));
+            cen = runs.eddy.my(tind);
+            xvec = run.rgrid.y_rho(:,1);
+            vstr = 'u';
+        end
+
+        vvec = dc_roms_read_data(runs.dir, vstr, tind, ...
+                                 {runs.bathy.axis loc loc; ...
+                            'z' runs.rgrid.N runs.rgrid.N}, ...
+                                 [], runs.rgrid, 'his', 'double');
+
+        [V0, Lx, x0] = gauss_der_fit(xvec-cen, vvec', 0);
+    end
+
+    function [] = ideal_flux_profile(runs)
+
+        index = 2;
+        hsb = runs.bathy.hsb;
+        xsb = runs.bathy.xsb;
+        alpha = runs.bathy.sl_slope;
+        L =  runs.eddy.vor.dia(1)/2;
+        Lz = runs.eddy.Lgauss(1);
+
+        profile = ...
+            runs.csflux.west.slopewater.vertitrans(:,index);
+        vertbins = runs.csflux.west.vertbins(:,index);
+        zvec = vertbins./ max(abs(vertbins));
+
+        yt = runs.rgrid.y_rho(vecfind(runs.bathy.h(1,:), - ...
+                                      vertbins),1) / L;
+        y0 = runs.csflux.x(index)/L;
+
+        plot((erf(y0) - erf(yt)) .* (1 - erf(vertbins/Lz)), vertbins);
+
+    end
+
+    function [] = calc_cen_flux(runs)
+
+        % calculate transport as fn of vertical depth - west of
+        % eddy only - f(z,t)
+        if runs.bathy.axis == 'y'
+            dx = 1./runs.rgrid.pm(1,2:end-1)';
+        else
+            dx = 1./runs.rgrid.pn(2:end-1,1);
+        end
+
+        t0 = 1;
+        tinf = size(runs.csflux.slopext, 2);
+        if runs.bathy.axis == 'y'
+            spongemask = ~runs.sponge(2:end-1,1);
+        else
+            spongemask = ~runs.sponge(1,2:end-1)';
+        end
+
+        if runs.bathy.axis == 'y'
+            cxi = runs.eddy.mx(t0:end);
+            xvec = runs.rgrid.x_rho(1,2:end-1)';
+        else
+            cxi = runs.eddy.my(t0:end);
+            xvec = runs.rgrid.y_rho(2:end-1,1);
+        end
+
+        if runs.bathy.axis == 'y'
+            westmask = bsxfun(@times, ...
+                              bsxfun(@lt, runs.eddy.xr(:,1), cxi(t0:tinf)), ...
+                              spongemask);
+        else
+            westmask = bsxfun(@times, ...
+                              bsxfun(@gt, runs.eddy.yr(1,:)', cxi(t0:tinf)), ...
+                              spongemask);
+        end
+        eastmask = bsxfun(@times, 1 - westmask, spongemask);
+
+        runs.csflux.cenflux.slopext = bsxfun(@times, runs.csflux.slopext, ...
+                                                  westmask);
+        runs.csflux.cenflux.slope = squeeze( ...
+            trapz(xvec, runs.csflux.cenflux.slopext, 1));
+    end
+
     function [] = csvel_hov(runs, iz, loc)
         if ~exist('loc', 'var') || isempty(loc)
             loc = [-30 -20 -10 0] * 1000 + runs.bathy.xsb;
@@ -3480,8 +3684,7 @@ methods
                 hold on
                 plot(runs.eddy.vor.cx/1000, runs.eddy.t*86400 / runs.eddy.tscale);
                 plot(runs.eddy.vor.ee/1000, runs.eddy.t*86400 / runs.eddy.tscale);
-                plot(runs.eddy.vor.we/1000, runs.eddy.t*86400 / ...
-                     runs.eddy.tscale);
+                plot(runs.eddy.vor.we/1000, runs.eddy.t*86400 / runs.eddy.tscale);
 
                 limx = xlim;
                 xvec = limx(1):10:limx(2);
@@ -4097,9 +4300,7 @@ methods
         ht = title(['Surface vorticity @ t = ' ...
                     num2str(runs.time(tt)/86400) ' days']);
         ax = gca;
-        htext = text(0.05,0.9, ...
-                     ['t = ' num2str(runs.time(tt)/86400) ' days'], ...
-                     'Units', 'normalized');
+        runs.add_timelabel(tt);
         colormap(flipud(cbrewer('div','RdBu',20)));
         beautify([18 18 20]);
 
@@ -4113,8 +4314,7 @@ methods
             set(ht,'String',['Surface vorticity | t = ' ...
                              num2str(runs.time(tt)/86400) ' ' ...
                              'days']);
-            set(htext,'String', ['t = ' num2str(runs.time(tt)/86400) ...
-                                ' days']);
+            runs.update_timelabel(tt);
             runs.video_update();
             pause(0.05);
         end
@@ -5640,6 +5840,15 @@ methods
                   range ',tt)))']);
             handle.LevelList = levels;
         end
+    end
+
+    function [htext] = add_timelabel(runs, tt)
+       htext = text(0.05,0.9, ...
+                     ['t = ' num2str(runs.time(tt)/86400) ' days'], ...
+                     'Units', 'normalized');
+   end
+   function [] = update_timelabel(runs, htext, tt)
+       htext.String = ['t = ' num2str(runs.time(tt)/86400) ' days'];
     end
 
 

@@ -7,9 +7,10 @@ function [start, stop] = flux_tindices(runs, flux)
 
     ind = 1;
 
-    % start where flux is 25% of max. and stop where
+    % start where integrated transport is 5% of max. and stop where
     % integrated transport is 95% of max.
-    start = ind + find(abs(flux(ind:end)) > 0.05 * max(abs(flux(ind:end))), ...
-                       1, 'first');
-    stop = find_approx(abs(itrans), 0.95 * max(abs(itrans)), 1);
+    %start = ind + find(abs(flux(ind:end)) > 0.25 * max(abs(flux(ind:end))), ...
+    %                   1, 'first');
+    start = find_approx(abs(itrans), 0.05 * max(abs(itrans)), 1);
+    stop = find_approx(abs(itrans), 0.90 * max(abs(itrans)), 1);
 end

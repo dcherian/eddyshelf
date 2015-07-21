@@ -1,5 +1,8 @@
 function [avgflux, err] = calc_avgflux(runs, fluxvec)
 
+    debug = 1;
+    use_wunsch = 0;
+
     [start,stop] = runs.flux_tindices(fluxvec);
     nsmooth = 1;
 
@@ -19,38 +22,46 @@ function [avgflux, err] = calc_avgflux(runs, fluxvec)
 
     E = [ones(size(tvec))' tvec'];
 
-    %%%%%%%%%%% See Wunsch(1996) pg. 116
-    % P matrix
-    x = E\ifluxvec;
-    intercept = x(1);
-    avgflux = x(2);
-    true = ifluxvec; est = intercept + avgflux .* ...
-           (tvec-tvec(1))';
+    if use_wunsch
+        %%%%%%%%%%% See Wunsch(1996) pg. 116
+        x = E\ifluxvec;
+        intercept = x(1);
+        avgflux = x(2);
+    else
+        %%%%%%%%%%% use MATLAB regress
+        [b, bint, r, rint, stats] = regress(ifluxvec, E);
+        intercept = b(1);
+        avgflux = b(2);
+        err = abs(bint(2) - b(2));
+    end
+
+    true = ifluxvec;
+    est = intercept + avgflux .* (tvec-tvec(1))';
     res = true-est;
-    % (E' * E) ^-1
-    %ETEI = inv(E'*E);
-    % from http://blogs.mathworks.com/loren/2007/05/16/purpose-of-inv/
-    [Q,R] = qr(E,0);
-    S = inv(R);
-    ETEI = S*S';
-    % assuming noise vector (res) is white
-    P = ETEI * E' * var(res) * E * ETEI;
-    err = sqrt(diag(P));
-    err = err(2); % standard error
 
-    %%%%%%%%%%% use MATLAB regress
-    [b, bint, r, rint, stats] = regress(ifluxvec, E);
-
-    avgflux = b(2);
-    err = abs(bint(2) - b(2));
+    if use_wunsch
+        % (E' * E) ^-1
+        %ETEI = inv(E'*E);
+        % from http://blogs.mathworks.com/loren/2007/05/16/purpose-of-inv/
+        [Q,R] = qr(E,0);
+        S = inv(R);
+        ETEI = S*S';
+        % assuming noise vector (res) is white
+        P = ETEI * E' * var(res) * E * ETEI;
+        err = sqrt(diag(P));
+        err = err(2); % standard error
+    end
 
     runs.csflux.avgflux = avgflux;
     runs.csflux.err = err;
 
     % plot fit
-    %figure; hold all;
-    %plot(tvec/86400, true, '*');
-    %plot(tvec/86400, est); plot(tvec/86400, res); liney(0);
+    if debug
+        figure; hold all;
+        plot(tvec/86400, true, '*');
+        plot(tvec/86400, est); plot(tvec/86400, res); liney(0);
+        title(runs.name);
+    end
 
     %[c,lags] = xcorr(fluxvec - mean(fluxvec(:)), 'coef');
     %plot(lags, c); linex(0); liney(0);

@@ -21,7 +21,7 @@ function [hh] = plot_sections(runArray, varname, ndtimes)
 
     % multiple runs on same figure? set to 1
     % multiple timesteps on same figure? set to 0
-    runs_on_one_fig = 0;
+    runs_on_one_fig = 1;
 
     for tt = 1:nt
         if runs_on_one_fig
@@ -45,9 +45,9 @@ function [hh] = plot_sections(runArray, varname, ndtimes)
                 [~,~,tind] = run.locate_resistance;
             end
 
-            yscale = run.eddy.vor.dia(1)/2;
-            zscale = run.eddy.Lgauss(1);
-            y0 = run.bathy.xsb; %run.eddy.my(tind); %
+            yscale = run.eddy.vor.dia(1)/2
+            zscale = run.eddy.Lgauss(1)
+            y0 = run.eddy.my(tind); %
 
             if strcmpi(varname, 'v')
                 ymat = repmat(run.rgrid.y_v(:,1), [1 run.rgrid.N]);

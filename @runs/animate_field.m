@@ -7,7 +7,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     dt = 3;
 
-    csfluxplot = 1; % 0 = no flux plot
+    csfluxplot = 0; % 0 = no flux plot
                     % 1 = instantaneous x-profile;
     asfluxplot = 0; % 0 = no flux plot
                     % 1 = instantaneous y-profile;
@@ -18,7 +18,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     % time series?
     enfluxplot = 0; % plot AS energy flux ?
-    vecplot = 0; % plot some time vector (assign tvec and vec);
+    vecplot = 1; % plot some time vector (assign tvec and vec);
     pointplot = 0; % mark some point on the map
 
     % eddy contours?
@@ -28,11 +28,17 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     dyeplot = 0; % plot eddye contour too?
 
     % extra contours
-    addcsdye = 1; % add csdye to eddye plot?
+    addcsdye = 0; % add csdye to eddye plot?
     addzeta = 0; % overlay zeta contours
 
     csdcontourplot = 1; % contour csd contours
-    csdcontours = runs.csflux.x;
+    try
+        csdcontours = runs.csflux.x;
+    catch ME
+        csdcontourplot = 0;
+    end
+    modify_bathy = 1; % modify bathymetric contours to show
+                      % isobaths corresponding to csdcontours?
 
     % eddy diagnostics
     drawtrack = 1; % plot eddy track?
@@ -49,41 +55,46 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     end
 
     if vecplot
-        %%% integrated energy asflux
-        %tvec = runs.eddy.t;
-        %vec = (runs.asflux.ikeflux(:,3) + runs.asflux.ipeflux(:,3) ...
-        %      - runs.asflux.ikeflux(:,2) - runs.asflux.ipeflux(:,2));
-        %laby = 'Integrated energy flux';
-        %locx = runs.asflux.x(2:3)/1000; locy = [];
+        try
+            %%% integrated energy asflux
+            %tvec = runs.eddy.t;
+            %vec = (runs.asflux.ikeflux(:,3) + runs.asflux.ipeflux(:,3) ...
+            %      - runs.asflux.ikeflux(:,2) - runs.asflux.ipeflux(:,2));
+            %laby = 'Integrated energy flux';
+            %locx = runs.asflux.x(2:3)/1000; locy = [];
 
-        %%% dE/dt
-        %tvec = avg1(runs.eddy.t);
-        %vec = smooth(diff(runs.eddy.KE + runs.eddy.PE)./ ...
-        %             diff(runs.eddy.t*86400), 4);
-        %laby = 'dE/dt';
-        %locx = []; locy = [];
+            %%% dE/dt
+            %tvec = avg1(runs.eddy.t);
+            %vec = smooth(diff(runs.eddy.KE + runs.eddy.PE)./ ...
+            %             diff(runs.eddy.t*86400), 4);
+            %laby = 'dE/dt';
+            %locx = []; locy = [];
 
-        %tvec = runs.eddy.t;
-        %vec = runs.eddy.cvy;
-        %laby = 'cvy'
-        %locx = []; locy = [];
+            %tvec = runs.eddy.t;
+            %vec = runs.eddy.cvy;
+            %laby = 'cvy'
+            %locx = []; locy = [];
 
-        %%% asflux time series
-        %tvec = runs.asflux.time/runs.tscale;
-        %vec = runs.asflux.ikeflux(:,2);
-        %locx = runs.asflux.x(2); locy = [];
+            %%% asflux time series
+            %tvec = runs.asflux.time/runs.tscale;
+            %vec = runs.asflux.ikeflux(:,2);
+            %locx = runs.asflux.x(2); locy = [];
 
-        %%% cross-sb shelf water flux
-        tvec = runs.csflux.time/86400;
-        vec = runs.csflux.west.slope;
-        laby = 'Slope water flux (m^3/s)';
-        locy = runs.bathy.xsb/1000; locx = [];
+            %%% cross-sb shelf water flux
+            tvec = runs.csflux.time/86400;
+            vec = runs.csflux.west.slope;
+            laby = 'Slope water flux (m^3/s)';
+            locy = runs.bathy.xsb/1000; locx = [];
 
-        %%% area plot
-        %vec = runs.eddy.vor.lmin .* runs.eddy.vor.lmaj;
-        %tvec = runs.eddy.t;
-        %laby = 'Surface area (m^2)';
-        %locx = []; locy = [];
+            %%% area plot
+            %vec = runs.eddy.vor.lmin .* runs.eddy.vor.lmaj;
+            %tvec = runs.eddy.t;
+            %laby = 'Surface area (m^2)';
+            %locx = []; locy = [];
+        catch ME
+            disp('vecplot failed!');
+            vecplot = 0;
+        end
     end
 
     % over flat bottom, addcsdye makes no sense
@@ -250,13 +261,14 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     % plot field
     hz = runs.plot_surf(varname, 'pcolor', ii);
     hold on;
-    colorbar; center_colorbar;
+    colorbar;
+    if ~strcmpi(name, 'csdye'), center_colorbar; end
     clim = caxis;
 
     if csdcontourplot
         hcsd = runs.plot_surf('csdsurf', 'contour', ii);
         hcsd.LevelList = csdcontours;
-        hcsd.Color = 'k';
+        hcsd.Color = [1 1 1]*0.7;
         hcsd.LineWidth = 2;
     end
 
@@ -267,6 +279,17 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     % bathy
     hbathy = runs.plot_bathy('contour', [1 1 1]*0.7);
+    if csdcontourplot && modify_bathy
+        if runs.bathy.axis == 'y'
+            ax = runs.rgrid.y_rho(:,1);
+            hvec = runs.bathy.h(1,:);
+        else
+            ax = runs.rgrid.x_rho(1,:);
+            hvec = runs.bathy.h(:,1);
+        end
+        ind = vecfind(ax, csdcontours);
+        hbathy{1}.LevelList = round(hvec(ind));
+    end
 
     % plot track
     if drawtrack
@@ -340,9 +363,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     maximize(gcf); pause(0.2);
     beautify([16 16 18]);
     ax(1) = gca;
-    htext = text(0.05,0.9, ...
-                 ['t = ' num2str(runs.time(ii)/86400, '%.0f') ' days'], ...
-                 'Units', 'normalized');
+    htext = runs.add_timelabel(ii);
 
     if addcsdye
         caxis([-1 1]*1.5);
@@ -537,7 +558,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
             end
 
             % update time label
-            htext.String = ['t = ' num2str(runs.time(ii)/86400) ' days'];
+            runs.update_timelabel(htext, ii);
             runs.video_update();
             pause(1);
         end
