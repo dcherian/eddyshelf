@@ -155,6 +155,8 @@ function [] = csfluxes(runs, ftype)
 
     runs.csflux.west.bins = cell([1 nloc]);
 
+    runs.csflux.west.slopewater.vmax = nan([tinf nloc]);
+
     runs.csflux.west.slopewater.trans = cell([1 nloc nloc]);
     runs.csflux.east.slopewater.vtrans = cell([1 nloc nloc]);
     runs.csflux.west.slopewater.itrans = cell([1 nloc nloc]);
@@ -163,7 +165,7 @@ function [] = csfluxes(runs, ftype)
     runs.csflux.east.slopewater.trans = cell([1 nloc nloc]);
     runs.csflux.east.slopewater.vtrans = cell([1 nloc nloc]);
     runs.csflux.east.slopewater.itrans = cell([1 nloc nloc]);
-    runs.csflux.east.slopewater.envelope = nan([tinf nloc nloc]);
+    runs.csflux.east.slopewater.envelope = nan([tinf nloc]);
 
     runs.csflux.slopext  = nan(szfluxxt);
     runs.csflux.eddyxt   = nan(szfluxxt);
@@ -469,6 +471,13 @@ function [] = csfluxes(runs, ftype)
                 runs.csflux.eddy.ipefluxxt(:,:,kk) = squeeze(trapz(zvec, ...
                                                                   eddymask .* ...
                                                                   peflux,2));
+            end
+
+            if ll == kk
+                temp = bsxfun(@times, squeeze(slopemask .* csvel), ...
+                              permute(westmask, [1 3 2]));
+                runs.csflux.west.slopewater.vmax(:,kk) = ...
+                    squeeze(nanmax(nanmax(abs(temp), [], 1), [], 2));
             end
 
             % calculate transport as fn of vertical depth - west of
