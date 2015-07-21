@@ -1095,10 +1095,11 @@ methods
 
         n = length(isobath);
 
-        hfig1 = figure; % streamer vertical structure
+        hfig1 = []; %figure; % streamer vertical structure
         hfig2 = []; %figure; % hovemoeller plots (x,t)
         hfig3 = []; %figure; % hovmoeller plots (z,t)
-        hfig4 = figure; % flux time-series
+        hfig4 = []; %figure; % flux time-series
+        hfig5 = figure; % cross-sections
 
         if ~isempty(hfig1)
             figure(hfig1); % streamer vertical structure
@@ -1162,6 +1163,47 @@ methods
                    'Location', 'NorthWest');
             title(runs.name);
             beautify;
+        end
+
+        if ~isempty(hfig5)
+            insertAnnotation([runs.name '.plot_fluxes']);
+            ix = runs.csflux.ix(isobath);
+            tindex = 290;
+
+            % copied from csfluxes.m
+            csvel = squeeze(avg1( ...
+                dc_roms_read_data(runs.dir, 'v', tindex, ...
+                                  {runs.bathy.axis ix-1 ix}, [], runs.rgrid, ...
+                                  'his', 'single'), 2));
+            csvel = csvel(2:end-1,:,:,:);
+
+            % process cross-shelf dye
+            csdye = dc_roms_read_data(runs.dir, runs.csdname, ...
+                                      tindex, {runs.bathy.axis ix+1 ix+1}, ...
+                                      [], runs.rgrid, 'his', 'single');
+            csdye = csdye(2:end-1,:,:);
+
+            zvec = runs.rgrid.z_r(:, ix+1, 1);
+            xvec = runs.rgrid.x_rho(1,2:end-1)/1000 - runs.eddy.mx(tindex)/1000;
+
+            mask = fillnan(bsxfun(@times, csdye < runs.csflux.x(isobath), ...
+                   runs.csflux.westmask(:,tindex,isobath)),0)';
+
+            ax(1) = subplot(211);
+            pcolorcen(xvec, zvec, csvel' .* mask);
+            runs.add_timelabel(tindex);
+            xlabel('X - X_{eddy} (km)'); ylabel('Z (m)');
+            title('v (m/s)');
+            center_colorbar;
+
+            ax(2) = subplot(212);
+            pcolorcen(xvec, zvec, csdye' .* mask/1000);
+            colorbar;
+            xlabel('X - X_{eddy} (km)'); ylabel('Z (m)');
+            title('Cross-shelf dye (km)');
+            runs.add_timelabel(tindex);
+            linkaxes(ax, 'xy');
+            xlim([min(xlim) 0]);
         end
     end
 
