@@ -962,7 +962,7 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
 
         hleg = legend(hparam(1), ['y = (' slopestr ') x + (' ...
                             intstr '); rmse = ' num2str(rmse,3)], ...
-               'Location', 'SouthEast');
+                      'Location', 'SouthEast');
 
         uistack(hparam, 'bottom');
 
