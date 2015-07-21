@@ -1038,61 +1038,70 @@ methods
         % x-grid to interpolate on to
         dx = bsxfun(@minus, xr, cen);
         xmax = max(abs(dx(:)));
-        xi = [-1 * xmax: 2000 : xmax]';
+        xi = [-1 * xmax: 1000 : xmax]';
 
         runs.csflux.slopex = [];
 
-        for index=1:length(runs.csflux.ndloc)
-            matrix = runs.csflux.slopext(:,:,index); % .*
-                                                     % runs.csflux.westmask;
-            nt = size(matrix,2);
+        for src = 1:length(runs.csflux.ndloc)
+            for isobath=1:length(runs.csflux.ndloc)
+                matrix = runs.csflux.slopext(:,:,isobath, src);
+                nt = size(matrix,2);
 
-            %[~,nt] = runs.calc_maxflux(runs.csflux.west.slope(:,index));
+                %[~,nt] = runs.calc_maxflux(runs.csflux.west.slope(:,isobath));
 
-            mati = nan([length(xi) nt]);
-            for tt = [1:nt]
-                xvec = runs.rgrid.x_rho(1,2:end-1)' - cen(tt);
-                mati(:,tt) = interp1(xvec, matrix(:,tt), xi);
+                mati = nan([length(xi) nt]);
+                for tt = [1:nt]
+                    xvec = runs.rgrid.x_rho(1,2:end-1)' - cen(tt);
+                    mati(:,tt) = interp1(xvec, matrix(:,tt), xi);
+                end
+
+                % integrate in time
+                slopex = trapz(double(runs.csflux.time(1:nt)), repnan(mati, 0), 2);
+
+                runs.csflux.slopex.slopexti(:,:,isobath,src) = mati;
+                runs.csflux.slopex.flux(:,isobath,src) = slopex;
+                % this fit makes no sense without applying westmask.
+                % [y0, X, x0] = ...
+                %     gauss_fit(xi, runs.csflux.slopex.flux(:,isobath,src), debug);
+                % if debug, title(runs.name); end
+                % runs.csflux.slopex.Lx(isobath,src) = X;
+                % runs.csflux.slopex.y0(isobath,src) = y0;
+                % runs.csflux.slopex.x0(isobath,src) = x0;
             end
-
-            % integrate in time
-            %ttrans = max(abs(runs.csflux.west.itrans.slope(:,index)));
-            slopex = trapz(double(runs.csflux.time(1:nt)), repnan(mati, 0), 2);
-            %assert((trapz(xi, slopex) - ttrans) < 0.01*ttrans);
-
-            runs.csflux.slopex.flux(:,index) = slopex;
-            [y0, X, x0] = gauss_fit(xi, runs.csflux.slopex.flux(:,index), debug);
-            if debug, title(runs.name); end
-            runs.csflux.slopex.slopexti(:,:,index)= mati;
-            runs.csflux.slopex.Lx(index) = X;
-            runs.csflux.slopex.y0(index) = y0;
-            runs.csflux.slopex.x0(index) = x0;
         end
 
         runs.csflux.slopex.nt = nt;
         runs.csflux.slopex.xi = xi;
         runs.csflux.slopex.comment = ['[y0, Lx] = gauss_fit | flux = ' ...
-                            'along-shelf structure(x,index) | xi = x-vector ' ...
+                            'along-shelf structure(x,isobath,source) | xi = x-vector ' ...
                             'for flux | slopexti = interpolated ' ...
                             'to grid with eddy center as origin | ' ...
                             'nt = number of timesteps this has been calculated ' ...
                             'for.'];
     end
 
-    function [] = plot_fluxes(runs)
-
-        hfig1 = []; %figure;
-        hfig2 = []; % figure
-        hfig3 = figure;
+    function [] = plot_fluxes(runs, source, isobath)
 
         n = length(runs.csflux.x);
         ti = runs.csflux.time/86400;
 
+        % source of water
+        if ~exist('source', 'var'), source = 1; end
+        % across which isobath
+        if ~exist('isobath', 'var'), isobath = 1:n; end
+
+        n = length(isobath);
+
+        hfig1 = []; %figure;
+        hfig2 = []; %figure;
+        hfig3 = figure;
+
         if ~isempty(hfig1)
             figure(hfig1); % streamer vertical structure
             insertAnnotation([runs.name '.plot_fluxes']);
-            plot(runs.csflux.west.slopewater.vertitrans, ...
-                 runs.csflux.west.vertbins);
+            lightDarkLines(n);
+            plot(runs.csflux.west.slopewater.vertitrans(:,isobath,source), ...
+                 runs.csflux.vertbins(:,isobath));
             liney(-1 * runs.bathy.hsb);
             legend(cellstr(num2str(runs.csflux.h')), ...
                    'Location', 'SouthEast');
@@ -1106,8 +1115,8 @@ methods
 
             figure(hfig2); % hovmoeller plot of fluxes (x,t)
             insertAnnotation([runs.name '.plot_fluxes']);
-            for index=1:n
-                slopexti = runs.csflux.slopex.slopexti(:,:,index);
+            for index=isobath
+                slopexti = runs.csflux.slopex.slopexti(:,:,index,source);
                 xi = runs.csflux.slopex.xi;
 
                 subplot(2,ceil(n/2),index)
@@ -1127,9 +1136,9 @@ methods
         if ~isempty(hfig3)
             figure(hfig3); % hovmoeller plot of fluxes (z,t)
             insertAnnotation([runs.name '.plot_fluxes']);
-            for index=1:n
-                zvec = runs.csflux.west.vertbins(:,index);
-                slopezt = runs.csflux.west.slopezt(:,:,index);
+            for index=isobath
+                zvec = runs.csflux.vertbins(:,index);
+                slopezt = runs.csflux.west.slopezt(:,:,index,source);
 
                 subplot(2,ceil(n/2),index)
                 pcolorcen(ti, zvec, slopezt);

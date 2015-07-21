@@ -1,25 +1,27 @@
-function [] = plot_fluxes(runArray, index)
+function [] = plot_fluxes(runArray, isobath, source)
 
-    if ~exist('index', 'var'), index = 2; end
+    if ~exist('isobath', 'var'), isobath = 2; end
+    if ~exist('source', 'var'), source = 2; end
+
     hfig1 = figure; ax1(1) = subplot(2,1,1); hold all; % shelf water flux time series
             ax1(2) = subplot(2,1,2); hold all;
 
-    hfig2 = figure; hold all % vertical structure / baroclinicity
+    hfig2 = []; %figure; hold all % vertical structure / baroclinicity
     % subplot(2,2,1); hold all
     % subplot(2,2,2); hold all
     % subplot(2,2,3); hold all
     % subplot(2,2,4); hold all
 
-    hfig3 = figure; hold all; % envelope
+    hfig3 = []; %figure; hold all; % envelope
 
-    hfig4 = figure; subplot(2,1,1); hold all; % eddy water flux
-    subplot(2,1,2); hold all
+    hfig4 = []; %figure; subplot(2,1,1); hold all; % eddy water flux
+                % subplot(2,1,2); hold all
 
-    hfig5 = figure; hold on;% along shelf structure
+    hfig5 = []; %figure; hold on;% along shelf structure
 
     hfig6 = []; %figure; hold on; % streamer velocity
 
-    hfig7 = figure; hold on; % cross-shore bins
+    hfig7 = []; %figure; hold on; % cross-shore bins
 
     if isempty(runArray.filter)
         runArray.filter = 1:runArray.len;
@@ -40,12 +42,12 @@ function [] = plot_fluxes(runArray, index)
         end
 
         if isempty(run.csflux) || ...
-            index > length(run.csflux.x)
+            isobath > length(run.csflux.x)
             disp(['Skipping ' run.name]);
             continue;
         end
 
-        locstr = num2str(run.csflux.ndloc(index), 2);
+        locstr = num2str(run.csflux.ndloc(isobath), 2);
 
         tind = find_approx(run.ndtime, 1.5, 1);
         Lz = run.eddy.Lgauss(1);
@@ -57,8 +59,8 @@ function [] = plot_fluxes(runArray, index)
         fluxscl = 1; %run.eddyfluxscale;
         transscl = 1; He * Le^2;
 
-        fluxvec = run.csflux.west.slope(:,index);
-        ifluxvec = run.csflux.west.itrans.slope(:,index);
+        fluxvec = run.csflux.west.slope(:,isobath, source);
+        ifluxvec = run.csflux.west.itrans.slope(:,isobath, source);
         ttrans = max(abs(ifluxvec));
 
         ndtime = run.csflux.time/run.eddy.turnover;
@@ -99,11 +101,14 @@ function [] = plot_fluxes(runArray, index)
 
                 %subplot(2,2,4)
                 profile = ...
-                    run.csflux.west.slopewater.vertitrans(:,index)./ ttrans;
-                vertbins = run.csflux.west.vertbins(:,index);
+                    run.csflux.west.slopewater.vertitrans(:,isobath,source)./ ttrans;
+                vertbins = run.csflux.vertbins(:,isobath);
                 zvec = vertbins./ max(abs(vertbins));
+                zind = find_approx(vertbins, -1*run.bathy.hsb);
                 bc = baroclinicity(zvec, profile);
                 hgplt2(ff) = plot(profile, zvec, 'Color', hgplt1(ff).Color);
+                plot(profile(zind), zvec(zind), 'x', ...
+                     'Color', hgplt1(ff).Color);
                 names2{ff} =  [names{ff} ' | bc = ' num2str(bc,'%.3f')];
             catch ME
                 keyboard;
@@ -115,13 +120,13 @@ function [] = plot_fluxes(runArray, index)
         if ~isempty(hfig3)
             figure(hfig3)
             % change from envelope to depth
-            env = run.csflux.west.slopewater.envelope(:,index);
+            env = run.csflux.west.slopewater.envelope(:,isobath,1);
             env(isnan(env)) = max(env);
             ind = vecfind(run.rgrid.y_rho(:,1), env);
             %metric = run.bathy.h(1,ind)./run.bathy.hsb .* ...
             %         (1+run.rgrid.f(run.bathy.isb,1)./run.rgrid.f(ind,1))';
 
-            hgplt3(ff) = plot(ndtime, (run.csflux.x(index) - env), ...
+            hgplt3(ff) = plot(ndtime, (run.csflux.x(isobath) - env), ...
                               'Color', hgplt1(ff).Color);
         end
 
@@ -130,34 +135,46 @@ function [] = plot_fluxes(runArray, index)
             figure(hfig4)
             subplot(2,1,1)
             hgplt4(ff) = plot(ndtime, ...
-                              smooth((run.csflux.east.eddy(:, ...
-                                                           index))/fluxscl, ...
+                              smooth((run.csflux.east.eddy(:, isobath))/fluxscl, ...
                                      nsmooth), 'Color', hgplt1(ff).Color);
 
             subplot(2,1,2)
             plot(ndtime, ...
-                 run.csflux.east.itrans.eddy(:,index)/transscl, ...
+                 run.csflux.east.itrans.eddy(:,isobath)/transscl, ...
                  'Color', hgplt1(ff).Color);
         end
 
         %%%%%%%%%%%%%%%%%%%%% ALONG SHELF STRUCTURE
         if ~isempty(hfig5)
+            if ~isfield(run.csflux, 'shelfx')
+                run.streamerstruct;
+            end
+
             figure(hfig5)
-            Lx = run.eddy.vor.dia(1)/2;
-            %if ~isfield(run.csflux, 'shelfx')
-                run.streamerstruct(index);
-                %end
+            R = run.csflux.R;
+            L = run.eddy.vor.dia(1)/2;
+            Lz0 = Lz(1);
             xi = run.csflux.slopex.xi;
-            slopex = run.csflux.slopex.flux;
-            hgplt5(ff) = plot(xi./Lx, slopex./ttrans, 'Color', ...
+
+            yoR = run.csflux.ndloc(isobath); % y/R - used in csflux
+            y0oL = R/L * (1 - yoR); % y0/L - used in derivation
+            xfrac = sqrt(1 - y0oL^2);
+
+            xloc = find_approx(xi./L, -xfrac, 1);
+
+            xi = run.csflux.slopex.xi;
+            slopex = run.csflux.slopex.flux(:,isobath, source);
+            hgplt5(ff) = plot(xi./L, slopex./ttrans, 'Color', ...
                               hgplt1(ff).Color);
+            plot(xi(xloc)./L, slopex(xloc)./ttrans, 'x', ...
+                 'Color', hgplt1(ff).Color);
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%% STREAMER VELOCITY
         if ~isempty(hfig6)
             figure(hfig6)
-            vxt = run.csflux.slopext(:,:,index) .* ...
-                  run.csflux.westmask./run.bathy.hsb;
+            vxt = run.csflux.slopext(:,:,isobath,source) .* ...
+                  run.csflux.westmask(:,:,isobath)./run.bathy.hsb;
 
             hgplt6(ff) = plot(ndtime, max(vxt,[],1)./run.eddy.V(1), ...
                               'Color', hgplt1(ff).Color);
@@ -170,8 +187,8 @@ function [] = plot_fluxes(runArray, index)
             xsb = run.bathy.xsb;
             R = R - xsb;
 
-            bins = avg1(run.csflux.west.bins{index}, 2);
-            itrans = run.csflux.west.slopewater.itrans{index};
+            bins = avg1(run.csflux.west.bins{isobath}, 2);
+            itrans = run.csflux.west.slopewater.itrans{isobath};
             hgplt7(ff) = plot((bins-xsb)./R, itrans./ttrans);
         end
     end
