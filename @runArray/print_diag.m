@@ -583,43 +583,56 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
         %%%%% shelf flux
         if strcmpi(name, 'max flux')
             if isempty(args)
-                locindex = 3;
+                isobath = 3;
             else
-                locindex = args(1);
+                isobath = args(1);
             end
 
             if ~isfield(run.csflux, 'time') || ...
-                    locindex > size(run.csflux.west.slope, 2)
+                    isobath > size(run.csflux.west.slope, 2)
                 disp(['Skipping ' run.name]);
                 continue;
             end
 
             [maxflux, maxloc] = ...
-                run.calc_maxflux(run.csflux.west.slope(:,locindex));
+                run.calc_maxflux(run.csflux.west.slope(:,isobath, isobath));
 
-            maxflux = max(run.csflux.west.slope(:,locindex));
-            tind = maxloc;
+            if isnan(maxflux), continue; end
 
-            H = run.csflux.h(locindex);
+            %if ~isfield(run.eddy, 'rhovor'), continue; end
 
-            %[V0, L, x0] = run.fit_vel(tind);
-            V0 = run.eddy.V(1) / 0.43;
+            % maxflux = max(run.csflux.west.slope(:,isobath, isobath));
+            H = run.csflux.h(isobath);
+
+            tind = 1; maxloc;
+            %[V1, L, x0] = run.fit_vel(tind);
+            % V1/V0 = 2.3 quite dependably
+            %V0 = V1*2.3;
+            V0 = run.eddy.V(tind) * 2.33;
+            % distance of eddy center from shelfbreak
             R = run.csflux.R;
-            L = run.eddy.vor.dia(1)/2;
-            Lz0 = Lz(1);
+            % vor.dia is radius to max vel =
+            L = run.eddy.vor.dia(tind)/2;
+            Lz0 = Lz(tind);
 
-            yoR = run.csflux.ndloc(locindex); % y/R - used in csflux
-            y0oL = R/L * (1 - yoR); % y0/L - used in derivation
+            % I can make slope ~ 1 by
+            % V0 * 0.1
+            % xfrac * 2
+            yoR = run.csflux.ndloc(isobath); % y/R - used in csflux
+            y0oL =  R/L * (1 - yoR); % y0/L - used in derivation
             xfrac = sqrt(1 - y0oL^2);
 
             syms x z;
-            fluxscl = -1 * abs(V0) * ...
-                      int(x/L*exp(-(x/L)^2), -Inf, -xfrac*L) * exp(-y0oL^2) ...
-                      * int(1 - erf(z/Lz0), z, -H, 0);
+            %            fluxscl = -1 * abs(V0) * ...
+            %          int(x/L*exp(-(x/L)^2), -Inf, -xfrac*L) * exp(-y0oL^2) ...
+            %          * int(1 - erf(-z/Lz0), z, -H, 0);
+            fluxscl = abs(V0) * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
+                      * int(1 - erf(-z/Lz0), z, -H, 0);
+            %fluxscl = abs(V0) * L * exp(-xfrac)* exp(-y0oL^2) ...
+            %          * int(1 - erf(-z/Lz0), z, -H, 0);
 
             norm = 1e3;
             transscl = double(fluxscl)/norm;
-            %transscl = run.eddyfluxscale;
 
             % colorize
             crit = 0.40;
@@ -632,15 +645,15 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
 
             parameterize = 1; logscale = 0;
             force_0intercept = 0;
-            errorbarflag = 1; name_points = 0; line_45 = 0;
+            errorbarflag = 1; name_points = 1; line_45 = 0;
             laby = 'Slope water max flux (mSv)';
             labx = 'Volume flux in eddy (mSv)';
             titlestr = [titlestr ' | ND isobath = ' ...
-                        num2str(run.csflux.ndloc(:,locindex))];
+                        num2str(run.csflux.ndloc(:,isobath))];
 
             diags(ff) = maxflux/norm;
             plotx(ff) = transscl;
-            error(ff) = 0.075*diags(ff);
+            error(ff) = 0.10*diags(ff);
         end
 
         if strcmpi(name, 'avg flux')
@@ -941,7 +954,6 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
 
         c = P(1);
         rmse = sqrt(nanmean((diags - c*plotx - P(2)).^2));
-
 
         hparam = plot(xvec, c*xvec + P(2), '--', ...
                       'Color', [1 1 1]*0.75);
