@@ -1168,14 +1168,17 @@ methods
         if ~isempty(hfig5)
             insertAnnotation([runs.name '.plot_fluxes']);
             ix = runs.csflux.ix(isobath);
-            tindex = 290;
+            [~,tindex] = runs.calc_maxflux(...
+                runs.csflux.west.slope(:,isobath,isobath));;
+
+            vnorm = runs.eddy.V(tindex);
 
             % copied from csfluxes.m
             csvel = squeeze(avg1( ...
                 dc_roms_read_data(runs.dir, 'v', tindex, ...
                                   {runs.bathy.axis ix-1 ix}, [], runs.rgrid, ...
                                   'his', 'single'), 2));
-            csvel = csvel(2:end-1,:,:,:);
+            csvel = csvel(2:end-1,:,:,:) ./ vnorm;
 
             % process cross-shelf dye
             csdye = dc_roms_read_data(runs.dir, runs.csdname, ...
@@ -1183,26 +1186,56 @@ methods
                                       [], runs.rgrid, 'his', 'single');
             csdye = csdye(2:end-1,:,:);
 
-            zvec = runs.rgrid.z_r(:, ix+1, 1);
-            xvec = runs.rgrid.x_rho(1,2:end-1)/1000 - runs.eddy.mx(tindex)/1000;
-
             mask = fillnan(bsxfun(@times, csdye < runs.csflux.x(isobath), ...
                    runs.csflux.westmask(:,tindex,isobath)),0)';
 
+            tind = 1; tindex;
+            syms z;
+            V0 = runs.eddy.V(tind);
+            R = runs.csflux.R;
+            L = runs.eddy.vor.dia(tind)/2;
+            Lz = runs.eddy.Lgauss(tind);
+            H = runs.csflux.h(isobath);
+            yoR = runs.csflux.ndloc(isobath); % y/R - used in csflux
+            y0oL =  R/L * (1 - yoR); % y0/L - used in derivation
+            xfrac = -sqrt(1 - y0oL^2);
+
+            zvec = runs.rgrid.z_r(:, ix+1, 1);
+            xvec = (runs.rgrid.x_rho(1,2:end-1) - runs.eddy.mx(tindex)) ...
+                   ./ L;
+
+            % profile I am assuming
+            videal = bsxfun(@times, ...
+                            -V0/vnorm * (xvec) .* exp(-xvec.^2 -y0oL^2), ...
+                            (1 - erf(-zvec/Lz)));
+            idmask = repmat(xvec < xfrac, [runs.rgrid.N 1]);
+
+            flux = runs.csflux.west.slope(tindex,isobath,isobath)./ ...
+                   L./vnorm/H
+            vtrue = trapz(xvec, trapz(zvec/H, repnan(csvel' .* mask,0), 1), 2)
+            vest = trapz(xvec, trapz(zvec/H, videal .* idmask, 1), 2)
+            fluxscl = double(V0 * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
+                      * int(1 - erf(-z/Lz), z, -H, 0))/vnorm/L/H
+
             ax(1) = subplot(211);
-            pcolorcen(xvec, zvec, csvel' .* mask);
+            [~,h1] = contourf(xvec, zvec, csvel' .* mask);
+            hold on
+            [~,h2] = contour(xvec, zvec, videal .* idmask, 20, 'b');
+            h2.LevelList = h1.LevelList;
             runs.add_timelabel(tindex);
-            xlabel('X - X_{eddy} (km)'); ylabel('Z (m)');
+            xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
             title('v (m/s)');
+            linex(xfrac);
             center_colorbar;
 
             ax(2) = subplot(212);
             pcolorcen(xvec, zvec, csdye' .* mask/1000);
             colorbar;
-            xlabel('X - X_{eddy} (km)'); ylabel('Z (m)');
+            xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
             title('Cross-shelf dye (km)');
             runs.add_timelabel(tindex);
             linkaxes(ax, 'xy');
+            linex(xfrac);
             xlim([min(xlim) 0]);
         end
     end
