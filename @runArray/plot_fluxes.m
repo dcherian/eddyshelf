@@ -61,6 +61,8 @@ function [] = plot_fluxes(runArray, isobath, source)
 
         ndtime = run.csflux.time/run.eddy.turnover;
 
+        [~,R,restind] = run.locate_resistance;
+
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SHELF WATER
         if ~isempty(hfig1)
             figure(hfig1)
@@ -149,17 +151,24 @@ function [] = plot_fluxes(runArray, isobath, source)
         %%%%%%%%%%%%%%%%%%%%%%%% STREAMER VELOCITY
         if ~isempty(hfig6)
             figure(hfig6)
-            vxt = run.csflux.slopext(:,:,isobath,source) .* ...
-                  run.csflux.westmask(:,:,isobath)./run.bathy.hsb;
+            L = run.eddy.vor.dia(1)/2;
+            yoR = run.csflux.ndloc; % y/R - used in csflux
+            y0oL =  R/L * (1 - yoR) % y0/L - used in derivation
 
-            hgplt6(ff) = plot(ndtime, max(vxt,[],1)./run.eddy.V(1), ...
-                              'Color', hgplt1(ff).Color);
+            clear vnd
+            for kk=1:length(yoR)
+                [start, stop] = ...
+                    run.flux_tindices(run.csflux.west.slopewater.vmax(:,kk));
+                vnd(kk) = mean(bsxfun(@rdivide, ...
+                                      run.csflux.west.slopewater.vmax(start:stop,kk), ...
+                                      run.eddy.V(1)'), 1);
+            end
+            hgplt6(ff) = plot(y0oL, vnd, 'Color', [1 1 1]*0.75);
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%% CROSS-SHORE BINS
         if ~isempty(hfig7)
             figure(hfig7)
-            [~,R,restind] = run.locate_resistance;
             xsb = run.bathy.xsb;
             R = R - xsb;
 
@@ -261,9 +270,10 @@ function [] = plot_fluxes(runArray, isobath, source)
     if ~isempty(hfig6)
         figure(hfig6)
         insertAnnotation('runArray.plot_fluxes');
-        ylabel('Max shelf water velocity');
+        ylabel('Max shelf water velocity / Eddy velocity');
+        xlabel('y_0/L');
         liney(0);
-        legend(hgplt6, names);
+        % legend(hgplt6, names);
         beautify;
     end
 
