@@ -657,23 +657,23 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
         end
 
         if strcmpi(name, 'avg flux')
-            locindex = 3;
+            isobath = 3;
 
             if ~isfield(run.csflux, 'time') || ...
-                    locindex > size(run.csflux.west.slope, 2)
+                    isobath > size(run.csflux.west.slope, 2)
                 continue;
             end
 
             [avgflux, err] = ...
-                run.calc_avgflux(run.csflux.west.slope(:,locindex));
+                run.calc_avgflux(run.csflux.west.slope(:,isobath, isobath));
 
-            H = run.csflux.h(locindex);
+            H = run.csflux.h(isobath);
             R = run.csflux.R;
             V0 = V(1)/ 0.43;
             L = run.eddy.vor.dia(1)/2;
             Lz0 = Lz(1);
 
-            yoR = run.csflux.ndloc(locindex); % y/R - used in csflux
+            yoR = run.csflux.ndloc(isobath); % y/R - used in csflux
             y0oL = R/L * (1 - yoR); % y0/L - used in derivation
             xfrac = sqrt(1 - y0oL^2);
 
@@ -725,7 +725,7 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
             laby = 'Flux (mSv)';
             labx = 'Parameterization (mSv)';
             titlestr = [titlestr ' | ND isobath = ' ...
-                        num2str(run.csflux.ndloc(:,locindex))];
+                        num2str(run.csflux.ndloc(:,isobath))];
 
             diags(ff) = avgflux/1000;
             error(ff) = err/1000;
