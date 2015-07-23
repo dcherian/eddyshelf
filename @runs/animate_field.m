@@ -33,7 +33,8 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     csdcontourplot = 1; % contour csd contours
     try
-        csdcontours = runs.csflux.x;
+        isobath = [3 5 7];
+        csdcontours = runs.csflux.x(isobath);
     catch ME
         csdcontourplot = 0;
     end
@@ -82,7 +83,11 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
             %%% cross-sb shelf water flux
             tvec = runs.csflux.time/86400;
-            vec = runs.csflux.west.slope;
+            for kkk=1:length(isobath)
+                vec(:,kkk) = runs.csflux.west.slope(:,isobath(kkk), ...
+                                                    isobath(kkk));
+            end
+
             laby = 'Slope water flux (m^3/s)';
             locy = runs.bathy.xsb/1000; locx = [];
 
@@ -268,7 +273,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     if csdcontourplot
         hcsd = runs.plot_surf('csdsurf', 'contour', ii);
         hcsd.LevelList = csdcontours;
-        hcsd.Color = [1 1 1]*0.7;
+        hcsd.Color = [1 1 1]*0.5;
         hcsd.LineWidth = 2;
     end
 
