@@ -1095,11 +1095,14 @@ methods
 
         n = length(isobath);
 
+        [~,~,restind] = runs.locate_resistance;
+
         hfig1 = []; %figure; % streamer vertical structure
-        hfig2 = []; %figure; % hovemoeller plots (x,t)
+        hfig2 = []; %figure; % hovmoeller plots (x,t)
         hfig3 = []; %figure; % hovmoeller plots (z,t)
-        hfig4 = []; %figure; % flux time-series
-        hfig5 = figure; % cross-sections
+        hfig4 = figure; % flux time-series
+        hfig5 = figure; % flux time-series at isobath
+        hfig6 = []; %figure; % cross-sections
 
         if ~isempty(hfig1)
             figure(hfig1); % streamer vertical structure
@@ -1166,10 +1169,34 @@ methods
         end
 
         if ~isempty(hfig5)
+            figure(hfig5)
+            insertAnnotation([runs.name '.plot_fluxes']);
+            lightDarkLines(n);
+            for ii=1:length(isobath)
+                hplt(ii) = plot(ti, ...
+                                runs.csflux.west.slope(:,isobath(ii), ...
+                                                       isobath(ii)));
+                [~, maxloc] = runs.calc_maxflux( ...
+                    runs.csflux.west.slope(:,isobath(ii), ...
+                                           isobath(ii)));
+                plot(ti(maxloc), runs.csflux.west.slope(maxloc,isobath(ii), ...
+                                                        isobath(ii)), ...
+                     'kx')
+            end
+            linex(ti(restind));
+            legend(hplt, cellstr(num2str(runs.csflux.h')), ...
+                   'Location', 'NorthWest');
+            title(runs.name);
+            beautify;
+        end
+
+        if ~isempty(hfig6)
             insertAnnotation([runs.name '.plot_fluxes']);
             ix = runs.csflux.ix(isobath);
             [~,tindex] = runs.calc_maxflux(...
                 runs.csflux.west.slope(:,isobath,isobath));;
+
+            tindex = 250;
 
             vnorm = runs.eddy.V(tindex);
 
@@ -1218,10 +1245,11 @@ methods
                       * int(1 - erf(-z/Lz), z, -H, 0))/vnorm/L/H
 
             ax(1) = subplot(211);
-            [~,h1] = contourf(xvec, zvec, csvel' .* mask);
+            [~,h1] = contourf(xvec, zvec, csvel', 20);
             hold on
             [~,h2] = contour(xvec, zvec, videal .* idmask, 20, 'b');
             h2.LevelList = h1.LevelList;
+            contour(xvec, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
             runs.add_timelabel(tindex);
             xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
             title('v (m/s)');
