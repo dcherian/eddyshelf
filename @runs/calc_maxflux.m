@@ -11,7 +11,7 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin)
     % some smaller peaks that might occur earlier.
     % The maxflux value is from the actual *unsmoothed*  time
     % series at time index "maxloc"
-    nsmooth = 10;
+    nsmooth = 1;
 
     % flux vector for applicable time
     % convert everything to double since I'm
@@ -20,7 +20,7 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin)
     fluxvec = double(smooth(fluxin(start:stop), nsmooth));
     tvec = double(runs.csflux.time(start:stop));
 
-    mpp = 0.05; % min. peak prominence
+    mpp = 0.03; % min. peak prominence
     mpw = 6; % peaker wider than mpw points
     [~,locs] = findpeaks(fluxvec, ...
                          'MinPeakProminence', mpp*max(fluxvec(:)), ...
