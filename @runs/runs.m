@@ -1268,6 +1268,25 @@ methods
         end
     end
 
+    function [] = plot_maxfluxloc(runs)
+
+        hf = figure; hold all;
+        for isobath = 1:length(runs.csflux.x)
+            [~,maxloc] = runs.calc_maxflux( ...
+                runs.csflux.west.slope(:,isobath,isobath));
+            figure(hf);
+            plot(runs.csflux.ndloc(isobath), ...
+                 (runs.eddy.my(maxloc) - runs.csflux.x(isobath)) ...
+                 / runs.eddy.vor.dia(1) * 2, 'kx');
+        end
+
+        title(['Distance of eddy center from isobath at time instant ' ...
+               'of max flux']);
+        ylabel('(X_{eddy} - X_{isobath})/L_{eddy}');
+        xlabel('y/R');
+        beautify;
+    end
+
     function [] = read_pbot(runs)
         fname = [runs.dir '/mombudget.mat'];
 
