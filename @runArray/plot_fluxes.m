@@ -3,8 +3,8 @@ function [] = plot_fluxes(runArray, isobath, source)
     if ~exist('isobath', 'var'), isobath = 2; end
     if ~exist('source', 'var'), source = 2; end
 
-    hfig1 = figure; ax1(1) = subplot(2,1,1); hold all; % shelf water flux time series
-            ax1(2) = subplot(2,1,2); hold all;
+    hfig1 = []; %figure; ax1(1) = subplot(2,1,1); hold all; % shelf water flux time series
+                % ax1(2) = subplot(2,1,2); hold all;
 
     hfig2 = []; %figure; hold all % vertical structure / baroclinicity
 
@@ -15,7 +15,7 @@ function [] = plot_fluxes(runArray, isobath, source)
 
     hfig5 = []; %figure; hold on;% along shelf structure
 
-    hfig6 = []; %figure; hold on; % streamer velocity
+    hfig6 = figure; hold on; % streamer velocity
 
     hfig7 = []; %figure; hold on; % cross-shore bins
 
@@ -151,20 +151,25 @@ function [] = plot_fluxes(runArray, isobath, source)
 
         %%%%%%%%%%%%%%%%%%%%%%%% STREAMER VELOCITY
         if ~isempty(hfig6)
-            figure(hfig6)
-            L = run.eddy.vor.dia(1)/2;
+            figure(hfig6);
+
             yoR = run.csflux.ndloc; % y/R - used in csflux
-            y0oL =  R/L * (1 - yoR) % y0/L - used in derivation
 
             clear vnd
             for kk=1:length(yoR)
                 [start, stop] = ...
                     run.flux_tindices(run.csflux.west.slopewater.vmax(:,kk));
-                vnd(kk) = mean(bsxfun(@rdivide, ...
-                                      run.csflux.west.slopewater.vmax(start:stop,kk), ...
-                                      run.eddy.V(1)'), 1);
+                [vsmax,maxind] = ...
+                    max(run.csflux.west.slopewater.vmax(start:stop,kk), [],1);
+                % swirl velocity at ζ = 0 contour
+                vscale = sqrt(2/exp(1))*run.eddy.V(start+maxind-1);
+                vnd(kk) = vsmax/vscale;
+
+                L = run.eddy.vor.dia(1)/2;
+                y0oL(kk) =  R/L * (yoR(kk)-1); % y0/L - used in derivation
             end
-            hgplt6(ff) = plot(y0oL, vnd, 'Color', [1 1 1]*0.75);
+            color = hgplt1(ff).Color; [1 1 1]*0.75;
+            hgplt6(ff) = plot(y0oL, vnd, 'Color', color);
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%% CROSS-SHORE BINS
@@ -270,10 +275,13 @@ function [] = plot_fluxes(runArray, isobath, source)
     if ~isempty(hfig6)
         figure(hfig6)
         insertAnnotation('runArray.plot_fluxes');
-        ylabel('Max shelf water velocity / Eddy velocity');
+        ylabel('Max shelf water velocity / Eddy velocity (vor=0)');
         xlabel('y_0/L');
         liney(0);
-        % legend(hgplt6, names);
+        legend(hgplt6, names);
+
+        yL = linspace(min(xlim),max(xlim), 40);
+        plot(yL, exp(-yL.^2));
         beautify;
     end
 
