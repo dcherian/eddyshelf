@@ -155,7 +155,7 @@ function [] = plot_fluxes(runArray, isobath, source)
 
             yoR = run.csflux.ndloc; % y/R - used in csflux
 
-            clear vnd
+            clear vnd y0oL
             for kk=1:length(yoR)
                 [start, stop] = ...
                     run.flux_tindices(run.csflux.west.slopewater.vmax(:,kk));
@@ -168,7 +168,7 @@ function [] = plot_fluxes(runArray, isobath, source)
                 L = run.eddy.vor.dia(1)/2;
                 y0oL(kk) =  R/L * (yoR(kk)-1); % y0/L - used in derivation
             end
-            color = hgplt1(ff).Color; [1 1 1]*0.75;
+            color = [1 1 1]*0.75;hgplt1(ff).Color;
             hgplt6(ff) = plot(y0oL, vnd, 'Color', color);
         end
 
@@ -278,10 +278,16 @@ function [] = plot_fluxes(runArray, isobath, source)
         ylabel('Max shelf water velocity / Eddy velocity (vor=0)');
         xlabel('y_0/L');
         liney(0);
-        legend(hgplt6, names);
+        % legend(hgplt6, names);
 
         yL = linspace(min(xlim),max(xlim), 40);
-        plot(yL, exp(-yL.^2));
+        amp = 0.8;
+        da = 0.15;
+        hp = plot(yL, bsxfun(@times, [amp amp-da amp+da]', exp(-yL.^2)), ...
+                  'Color', 'k', 'LineStyle', '-');
+        legend(hp, [num2str(amp) '\pm' num2str(da) ' e^{-(y/' ...
+                            'l)^2}']);
+        ylim([0 1]);
         beautify;
     end
 
