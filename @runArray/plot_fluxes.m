@@ -61,7 +61,8 @@ function [] = plot_fluxes(runArray, isobath, source)
 
         ndtime = run.csflux.time/run.eddy.turnover;
 
-        [~,R,restind] = run.locate_resistance;
+        R = run.csflux.R;
+        [~,~,restind] = run.locate_resistance;
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SHELF WATER
         if ~isempty(hfig1)
@@ -170,7 +171,6 @@ function [] = plot_fluxes(runArray, isobath, source)
         if ~isempty(hfig7)
             figure(hfig7)
             xsb = run.bathy.xsb;
-            R = R - xsb;
 
             bins = avg1(run.csflux.west.bins{isobath}, 2);
             itrans = run.csflux.west.slopewater.itrans{isobath};
