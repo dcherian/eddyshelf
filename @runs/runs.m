@@ -5936,7 +5936,7 @@ methods
 
 
     function [hplot] = plot_eddy_contour(runs,plottype,tt)
-        ix = max([runs.spng.sx1:runs.spng.sx2],1);
+        ix = max([runs.spng.sx1:runs.spng.sx2]-1,1);
         iy = max([runs.spng.sy1:runs.spng.sy2]-1,1);
 
         hold on;
@@ -5945,7 +5945,7 @@ methods
     end
 
     function update_eddy_contour(runs,handle,tt)
-        ix = max([runs.spng.sx1:runs.spng.sx2],1);
+        ix = max([runs.spng.sx1:runs.spng.sx2]-1,1);
         iy = max([runs.spng.sy1:runs.spng.sy2]-1,1);
 
         for ii=1:length(handle)
@@ -5961,7 +5961,7 @@ methods
 
 
     function [hplot] = plot_rho_contour(runs,plottype,tt)
-        ix = max([runs.spng.sx1:runs.spng.sx2],1);
+        ix = max([runs.spng.sx1:runs.spng.sx2]-1,1);
         iy = max([runs.spng.sy1:runs.spng.sy2]-1,1);
 
         mask = ((runs.rhosurf(2:end-1,2:end-1,tt) - runs.rbacksurf) < ...
@@ -5974,7 +5974,7 @@ methods
                             'LineWidth',1);
     end
     function update_rho_contour(runs,handle,tt)
-        ix = max([runs.spng.sx1:runs.spng.sx2],1);
+        ix = max([runs.spng.sx1:runs.spng.sx2]-1,1);
         iy = max([runs.spng.sy1:runs.spng.sy2]-1,1);
 
         mask = ((runs.rhosurf(2:end-1,2:end-1,tt) - runs.rbacksurf) < ...
@@ -5982,8 +5982,7 @@ methods
 
         for ii=1:length(handle)
             try
-                set(handle(ii),'ZData', ...
-                               double(mask(ix,iy)));
+                set(handle(ii),'ZData', double(mask(ix,iy)));
             catch ME
                 disp(ME.message);
             end
@@ -5992,7 +5991,7 @@ methods
 
 
     function [hplot] = plot_eddy_sshcontour(runs,plottype,tt)
-        ix = max([runs.spng.sx1:runs.spng.sx2],1);
+        ix = max([runs.spng.sx1:runs.spng.sx2]-1,1);
         iy = max([runs.spng.sy1:runs.spng.sy2]-1,1);
 
         hold on;
@@ -6003,7 +6002,7 @@ methods
     end
 
     function update_eddy_sshcontour(runs,handle,tt)
-        ix = max([runs.spng.sx1:runs.spng.sx2],1);
+        ix = max([runs.spng.sx1:runs.spng.sx2]-1,1);
         iy = max([runs.spng.sy1:runs.spng.sy2]-1,1);
 
         for ii=1:length(handle)
