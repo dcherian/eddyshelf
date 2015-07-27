@@ -11,7 +11,7 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin)
     % some smaller peaks that might occur earlier.
     % The maxflux value is from the actual *unsmoothed*  time
     % series at time index "maxloc"
-    nsmooth = 1;
+    nsmooth = 10;
 
     % flux vector for applicable time
     % convert everything to double since I'm
@@ -37,7 +37,7 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin)
         title(runs.name);
     end
 
-    if isempty(locs)
+    if isempty(locs) || length(locs) == 1
         maxloc = NaN;
         maxflux = NaN;
         disp(['Couldn''t find maxflux for ' runs.name]);
@@ -45,7 +45,25 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin)
     end
 
     % select the first peak.
-    maxloc = locs(1);
+    maxloc = locs(2);
+
+    % low Rh runs seem to lose annulus fluid earlier.
+    % for really deep shelfbreak runs, the second peak
+    % is artificially small because of the splitting.
+    if ~isempty(findstr(runs.name, 'ew-0')) | ...
+            ~isempty(findstr(runs.name, '1_wider'))
+        maxloc = locs(1);
+    end
+    if strfind(runs.name, 'ew-40')
+        maxloc = locs(1);
+    end
+
+    % For some reason there is a secondary peak.
+    % This might be fixed with a peak width criterion
+    % but that might screw up something else.
+    if strcmpi(runs.name, 'ew-35')
+        maxloc = locs(3);
+    end
 
     % correct time shift
     maxloc = maxloc + start - 1;
