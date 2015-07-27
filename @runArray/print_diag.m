@@ -612,8 +612,8 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
             % distance of eddy center from shelfbreak
             R = run.csflux.R;
             % vor.dia is radius to max vel =
-            L = run.eddy.vor.dia(tind)/2;
-            Lz0 = Lz(tind);
+            L = run.eddy.Ls(1)/2;
+            Lz0 = Lz(maxloc);
 
             % I can make slope ~ 1 by
             % V0 * 0.1
@@ -645,7 +645,7 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
 
             parameterize = 1; logscale = 0;
             force_0intercept = 0;
-            errorbarflag = 1; name_points = 1; line_45 = 0;
+            errorbarflag = 0; name_points = 1; line_45 = 0;
             laby = 'Slope water max flux (mSv)';
             labx = 'Volume flux in eddy (mSv)';
             titlestr = [titlestr ' | ND isobath = ' ...
