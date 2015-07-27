@@ -1083,6 +1083,19 @@ methods
                             'for.'];
     end
 
+    function [] = plot_checkmaxflux(runs, isobath)
+
+        fluxvec = runs.csflux.west.slope(:,isobath,isobath);
+        figure;
+        ax = subplot(211);
+        [maxflux, maxloc] = runs.calc_maxflux(fluxvec);
+        runs.animate_field('v', ax, maxloc, 1);
+
+        subplot(212);
+        plot(runs.csflux.time/86400, fluxvec);
+        linex(runs.csflux.time(maxloc)/86400);
+    end
+
     function [] = plot_fluxes(runs, source, isobath)
 
         n = length(runs.csflux.x);
