@@ -34,6 +34,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     csdcontourplot = 1; % contour csd contours
     try
         isobath = [3 5 7];
+        isobath(isobath > length(runs.csflux.x)) = [];
         csdcontours = runs.csflux.x(isobath);
     catch ME
         csdcontourplot = 0;

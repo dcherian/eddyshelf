@@ -1,6 +1,6 @@
 function [avgflux, err] = calc_avgflux(runs, fluxvec)
 
-    debug = 1;
+    debug = 0;
     use_wunsch = 0;
 
     [start,stop] = runs.flux_tindices(fluxvec);

@@ -614,21 +614,24 @@ methods
     end
 
     function [] = plot_test1(runs)
-
-        if isempty(runs.zeta), runs.read_zeta; end
-
-        imx = vecfind(runs.rgrid.x_rho(1,:), runs.eddy.mx);
-        for tt=1:size(runs.zeta,3)
-            zetamat(:,tt) = runs.zeta(imx(tt),:,tt);
-        end
-        zy = (diff(zetamat,1,1));
-        animate(zetamat'); center_colorbar;
-        linex(runs.traj.tind);
-
+        vmagn = hypot(avg1(runs.usurf(:,:,1),2), ...
+                      avg1(runs.vsurf(:,:,1),1));
         figure;
-        plot(max(zy,[],1)); hold all;
-        plot(-1*min(zy,[],1));
-        linex(runs.traj.tind);
+        pcolorcen(runs.rgrid.xvor, runs.rgrid.yvor, vmagn);
+        clim = caxis;
+        hold on
+        contour(runs.rgrid.x_v, runs.rgrid.y_v, ...
+                  runs.vsurf(:,:,1)');
+        contour(runs.rgrid.xvor, runs.rgrid.yvor, ...
+                runs.vorsurf(:,:,1), [1 1]*0, 'b');
+        caxis(clim);
+        linex(runs.eddy.mx(1));
+        % this should be zero vorticity contour
+        linex([-1 1] * runs.eddy.vor.dia(1)/2 + runs.eddy.mx(1));
+        % this should be peak of radial velocity and cartesian v
+        linex([-1 1]/sqrt(2) * runs.eddy.vor.dia(1)/2 + ...
+              runs.eddy.mx(1));
+        center_colorbar;
     end
 
     function [] = plot_btrq(runs)
@@ -1022,14 +1025,14 @@ methods
     function [fluxscl] = eddyfluxscale(runs)
 
     % integrate velocity profile from surface to z=-H
+        tind = runs.csflux.maxloc;
         syms Vint z x;
         Lz = runs.eddy.Lgauss(1);
-        H = runs.bathy.hsb;
-        V0 = runs.eddy.V(runs.csflux.maxloc);
+        V0 = runs.eddy.V();
         Lx = runs.eddy.vor.dia(1)/2;
 
         fluxscl = double(V0 * int(exp(-x/Lx)^2, 0, Lx) ...
-                  * int(1 - erf(z/Lz), z, -H, 0));
+                  * int(1 - erf(z/Lz), z, -Lz, 0));
     end
 
     function [] = streamerstruct(runs)
@@ -1113,7 +1116,7 @@ methods
         hfig1 = []; %figure; % streamer vertical structure
         hfig2 = []; %figure; % hovmoeller plots (x,t)
         hfig3 = []; %figure; % hovmoeller plots (z,t)
-        hfig4 = figure; % flux time-series
+        hfig4 = []; %figure; % flux time-series
         hfig5 = figure; % flux time-series at isobath
         hfig6 = []; %figure; % cross-sections
 
@@ -1196,10 +1199,12 @@ methods
                                                         isobath(ii)), ...
                      'kx')
             end
-            linex(ti(restind));
+            linex(ti(restind), 'resistance');
             legend(hplt, cellstr(num2str(runs.csflux.h')), ...
                    'Location', 'NorthWest');
             title(runs.name);
+            ylabel('Flux (m^3/s)');
+            xlabel('Time');
             beautify;
         end
 
@@ -1209,7 +1214,7 @@ methods
             [~,tindex] = runs.calc_maxflux(...
                 runs.csflux.west.slope(:,isobath,isobath));;
 
-            tindex = 250;
+            % tindex = 250;
 
             vnorm = runs.eddy.V(tindex);
 
@@ -1229,9 +1234,9 @@ methods
             mask = fillnan(bsxfun(@times, csdye < runs.csflux.x(isobath), ...
                    runs.csflux.westmask(:,tindex,isobath)),0)';
 
-            tind = 1; tindex;
+            tind = tindex;
             syms z;
-            V0 = runs.eddy.V(tind);
+            V0 = runs.eddy.V(tind) * 2.33;
             R = runs.csflux.R;
             L = runs.eddy.vor.dia(tind)/2;
             Lz = runs.eddy.Lgauss(tind);
@@ -1284,6 +1289,7 @@ methods
     function [] = plot_maxfluxloc(runs)
 
         hf = figure; hold all;
+        insertAnnotation([runs.name '.plot_maxfluxloc']);
         for isobath = 1:length(runs.csflux.x)
             [~,maxloc] = runs.calc_maxflux( ...
                 runs.csflux.west.slope(:,isobath,isobath));
@@ -1717,7 +1723,7 @@ methods
 
     end
 
-   %% analysis
+    %% analysis
 
     function [] = plot_simplepv(runs)
        % this function contours the qgpv approximation of the
