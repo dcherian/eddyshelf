@@ -1326,7 +1326,7 @@ methods
 
         % read zeta
         if ntimes == 1
-            tind = [t0 t0+1];
+            tind = [t0 t0];
         else
             tind = [1 length(runs.time)];
         end
@@ -1351,7 +1351,7 @@ methods
 
         % read zeta
         if ntimes == 1
-            tind = [t0 t0+1];
+            tind = [t0 t0];
         else
             tind = [1 length(runs.time)];
         end
@@ -1378,7 +1378,7 @@ methods
 
         % read zeta
         if ntimes == 1
-            tind = [t0 t0+1];
+            tind = [1 1]*t0;
         else
             tind = [1 length(runs.time)];
         end
@@ -1553,7 +1553,7 @@ methods
         if ~exist('ntimes', 'var'), ntimes = Inf; end
 
         if ntimes == 1
-            tind = [t0 t0+1];
+            tind = [t0 t0];
         else
             tind = [1 length(runs.time)];
         end
