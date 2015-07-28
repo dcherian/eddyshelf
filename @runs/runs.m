@@ -1117,8 +1117,9 @@ methods
         hfig2 = []; %figure; % hovmoeller plots (x,t)
         hfig3 = []; %figure; % hovmoeller plots (z,t)
         hfig4 = []; %figure; % flux time-series
-        hfig5 = figure; % flux time-series at isobath
-        hfig6 = []; %figure; % cross-sections
+        hfig5 = []; %figure; % flux time-series at isobath
+        hfig6 = figure; % cross-sections
+        hfig7 = []; %figure; % streamer vmax
 
         if ~isempty(hfig1)
             figure(hfig1); % streamer vertical structure
@@ -1210,11 +1211,12 @@ methods
 
         if ~isempty(hfig6)
             insertAnnotation([runs.name '.plot_fluxes']);
+            if length(isobath) > 1
+                error('Specify a *single* isobath!');
+            end
             ix = runs.csflux.ix(isobath);
             [~,tindex] = runs.calc_maxflux(...
                 runs.csflux.west.slope(:,isobath,isobath));;
-
-            % tindex = 250;
 
             vnorm = runs.eddy.V(tindex);
 
@@ -1234,12 +1236,12 @@ methods
             mask = fillnan(bsxfun(@times, csdye < runs.csflux.x(isobath), ...
                    runs.csflux.westmask(:,tindex,isobath)),0)';
 
-            tind = tindex;
-            syms z;
+            tind = 1; tindex;
+            syms x z;
             V0 = runs.eddy.V(tind) * 2.33;
             R = runs.csflux.R;
-            L = runs.eddy.vor.dia(tind)/2;
-            Lz = runs.eddy.Lgauss(tind);
+            L = runs.eddy.rhovor.dia(tind)/2;
+            Lz = runs.eddy.Lgauss(tindex);
             H = runs.csflux.h(isobath);
             yoR = runs.csflux.ndloc(isobath); % y/R - used in csflux
             y0oL =  R/L * (1 - yoR); % y0/L - used in derivation
@@ -1298,11 +1300,28 @@ methods
             pcolorcen(xvec, zvec, csdye' .* mask/1000);
             colorbar;
             xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
-            title('Cross-shelf dye (km)');
+            title(['Cross-shelf dye (km) | ' runs.name]);
             runs.add_timelabel(tindex);
             linkaxes(ax, 'xy');
             linex(xfrac);
+            liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
+            liney(-1 * runs.bathy.hsb, 'h_{sb}');
             xlim([min(xlim) 0]);
+        end
+
+        if ~isempty(hfig7)
+            figure(hfig7)
+            lightDarkLines(length(runs.csflux.ix));
+            plot(runs.csflux.time/86400, ...
+                 runs.csflux.west.slopewater.vmax(:,isobath) ./ ...
+                 runs.eddy.V(1));
+            liney(1);
+            legend(cellstr(num2str(runs.csflux.ndloc(isobath)')), ...
+                   'Location', 'NorthWest');
+            title(runs.name);
+            ylabel('Max streamer velocity / eddy velocity scale');
+            xlabel('Time (days)');
+            beautify;
         end
     end
 
