@@ -26,7 +26,7 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin)
                          'MinPeakProminence', mpp*max(fluxvec(:)), ...
                          'MinPeakWidth', mpw);
 
-    if debug || isempty(locs)
+    if debug | isempty(locs)
         figure;
         findpeaks(fluxvec, ...
                   'MinPeakProminence', mpp*max(fluxvec(:)), ...
@@ -37,21 +37,19 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin)
         title(runs.name);
     end
 
-    if isempty(locs) || length(locs) == 1
+    if isempty(locs)
         maxloc = NaN;
         maxflux = NaN;
         disp(['Couldn''t find maxflux for ' runs.name]);
         return;
     end
 
-    % select the first peak.
-    maxloc = locs(2);
-
     % low Rh runs seem to lose annulus fluid earlier.
     % for really deep shelfbreak runs, the second peak
     % is artificially small because of the splitting.
     if ~isempty(findstr(runs.name, 'ew-0')) | ...
-            ~isempty(findstr(runs.name, '1_wider'))
+            ~isempty(findstr(runs.name, '1_wider')) | ...
+            ~isempty(findstr(runs.name, '3_wider'))
         maxloc = locs(1);
     end
     if strfind(runs.name, 'ew-40')
@@ -64,6 +62,11 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin)
     if strcmpi(runs.name, 'ew-35')
         maxloc = locs(3);
     end
+
+    % select the second peak by default
+    % This should, in general, correspond to annulus fluid
+    % being shed
+    if ~exist('maxloc', 'var'), maxloc = locs(2); end
 
     % correct time shift
     maxloc = maxloc + start - 1;
