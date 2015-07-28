@@ -181,6 +181,15 @@ function [] = plot_fluxes(runArray, isobath, source)
             itrans = run.csflux.west.slopewater.itrans{isobath};
             hgplt7(ff) = plot((bins-xsb)./R, itrans./ttrans);
         end
+
+        %%%%%%%%%%%%%%%%%%%%%%%%% STREAMER MAX VEL
+        if ~isempty(hfig8)
+            figure(hfig8)
+            [start,~] = run.flux_tindices(run.csflux.west.slope(:,isobath,isobath));
+            hgplt8(ff) = plot(run.csflux.time/run.csflux.time(start), ...
+                              run.csflux.west.slopewater.vmax(:,isobath) ...
+                              / run.eddy.V(1), 'Color', hgplt1(ff).Color);
+        end
     end
 
     pause(1); drawnow;
@@ -300,6 +309,14 @@ function [] = plot_fluxes(runArray, isobath, source)
         legend(hgplt7, names, 'Location', 'NorthWest');
         ylabel('Transport');
         xlabel('Source (y/R)');
+        beautify;
+    end
+
+    if ~isempty(hfig8)
+        figure(hfig8)
+        legend(hgplt8, names, 'Location', 'NorthWest');
+        xlabel('Time (days)');
+        ylabel('Max streamer velocity / eddy velocity');
         beautify;
     end
 
