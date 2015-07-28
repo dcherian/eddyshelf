@@ -622,14 +622,44 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
             y0oL =  R/L * (1 - yoR); % y0/L - used in derivation
             xfrac = sqrt(1 - y0oL^2);
 
-            syms x z;
+            ix = run.csflux.ix(isobath);
+            zvec = run.rgrid.z_r(:, ix+1, 1);
+            xvec = (run.rgrid.x_rho(1,2:end-1) - run.eddy.mx(maxloc));
+
+            %xfrac2 = -sqrt(1 - y0oL^2 - (zvec./Lz).^2);
+            %xfrac2(~isreal(xfrac2)) = 0;
+
+            % eddy profile
+            eddmask = bsxfun(@le, abs(xvec/L), sqrt(1-y0oL^2-(zvec./Lz0).^2));
+            % mask to integrate over
+            inmask = bsxfun(@and, xvec < 0, 1 - eddmask)';
+
+            % inmask = bsxfun(@and, inmask, xvec'/L < -xfrac);
+
+            % profile I am assuming
+            videal = bsxfun(@times, ...
+                            -V0 * (xvec/L) .* exp(-(xvec/L).^2 -y0oL^2), ...
+                            (1 - erf(-zvec/Lz0)))';
+            fluxscl = trapz(zvec, trapz(xvec, videal .* inmask, 1), 2);
+            % idmask = repmat(xvec < xfrac, [runs.rgrid.N 1]);
+
+            % if ~exist('gaussprof', 'var')
+            %     syms x z;
+            %     % (x,z) velocity profile
+            %     gaussprof(x,z) = exp(-(x/L)^2) * (1-erf(-z/Lz0));
+            %     % bounding contour of ρ = ρ_0/e
+            %     z0 = Lz0 * sqrt(1 - y0oL^2 - (x/L)^2);
+            % end
+            % fluxscl = V0 * exp(-y0oL^2) * ( ...
+            %     double(int(int(gaussprof, z, -H, 0), x, -Inf, 0)) - ...
+            %     double(int(int(gaussprof, z, -z0,0), x, -L*xfrac, 0)));
+
             %            fluxscl = -1 * abs(V0) * ...
             %          int(x/L*exp(-(x/L)^2), -Inf, -xfrac*L) * exp(-y0oL^2) ...
             %          * int(1 - erf(-z/Lz0), z, -H, 0);
-            fluxscl = abs(V0) * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
-                      * int(1 - erf(-z/Lz0), z, -H, 0);
-            %fluxscl = abs(V0) * L * exp(-xfrac)* exp(-y0oL^2) ...
-            %          * int(1 - erf(-z/Lz0), z, -H, 0);
+            %syms x z
+            %fluxscl = abs(V0) * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
+            %          * int(1 - erf(-z/Lz0), z, -H, 0); % works well
 
             norm = 1e3;
             transscl = double(fluxscl)/norm;
