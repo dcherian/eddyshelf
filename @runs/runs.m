@@ -1249,28 +1249,48 @@ methods
             xvec = (runs.rgrid.x_rho(1,2:end-1) - runs.eddy.mx(tindex)) ...
                    ./ L;
 
+            %xfrac2 = -sqrt(1 - y0oL^2 - (zvec./Lz).^2);
+            %xfrac2(~isreal(xfrac2)) = 0;
+            % eddy profile
+            eddmask = bsxfun(@le, abs(xvec), sqrt(1-y0oL^2-(zvec./Lz).^2));
+            % mask to integrate over
+            inmask = bsxfun(@and, xvec < 0, 1 - eddmask);
+
             % profile I am assuming
             videal = bsxfun(@times, ...
                             -V0/vnorm * (xvec) .* exp(-xvec.^2 -y0oL^2), ...
                             (1 - erf(-zvec/Lz)));
-            idmask = repmat(xvec < xfrac, [runs.rgrid.N 1]);
+            % idmask = repmat(xvec < xfrac, [runs.rgrid.N 1]);
 
+            % diagnosed flux
             flux = runs.csflux.west.slope(tindex,isobath,isobath)./ ...
-                   L./vnorm/H
-            vtrue = trapz(xvec, trapz(zvec/H, repnan(csvel' .* mask,0), 1), 2)
-            vest = trapz(xvec, trapz(zvec/H, videal .* idmask, 1), 2)
+                   L./vnorm/H * vnorm * L * H
+            % should agree with above
+            vtrue = trapz(xvec, trapz(zvec/H, repnan(csvel' .* ...
+                                                     mask,0), 1), ...
+                          2) * vnorm * L * H
+            vest = trapz(xvec, trapz(zvec/H, repnan(videal .* mask, 0), 1), ...
+                         2) * vnorm * L * H
             fluxscl = double(V0 * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
-                      * int(1 - erf(-z/Lz), z, -H, 0))/vnorm/L/H
+                      * int(1 - erf(-z/Lz), z, -H, 0))
+
+            % gaussprof(x,z) = exp(-(x/L)^2) * (1-erf(-z/Lz));
+            % % bounding contour of ρ = ρ_0/e
+            % z0 = Lz * sqrt(1 - y0oL^2 - (x/L)^2);
+            % dz0dx = sqrt(1 + diff(z0,x).^2);
+            % fluxscl2 = V0 * exp(-y0oL^2)/vnorm/L/H * ( ...
+            %     double(int(int(gaussprof, z, -H, 0), x, -Inf, 0)) - ...
+            %     double(int(int(gaussprof * dz0dx, z, -z0,0), x, L*xfrac, 0)))
 
             ax(1) = subplot(211);
             [~,h1] = contourf(xvec, zvec, csvel', 20);
             hold on
-            [~,h2] = contour(xvec, zvec, videal .* idmask, 20, 'b');
+            [~,h2] = contour(xvec, zvec, videal .* inmask, 20, 'b');
             h2.LevelList = h1.LevelList;
             contour(xvec, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
             runs.add_timelabel(tindex);
             xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
-            title('v (m/s)');
+            title(['v (m/s) | ' runs.name]);
             linex(xfrac);
             center_colorbar;
 
