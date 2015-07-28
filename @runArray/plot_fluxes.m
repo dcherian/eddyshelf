@@ -56,10 +56,12 @@ function [] = plot_fluxes(runArray, isobath, source)
         transscl = 1; He * Le^2;
 
         fluxvec = run.csflux.west.slope(:,isobath, source);
+        [start,stop] = run.flux_tindices(fluxvec);
         ifluxvec = run.csflux.west.itrans.slope(:,isobath, source);
         ttrans = max(abs(ifluxvec));
 
-        ndtime = run.csflux.time/run.eddy.turnover;
+        % ndtime = run.csflux.time/run.eddy.turnover;
+        ndtime = run.csflux.time/run.csflux.time(start);
 
         R = run.csflux.R;
         [~,~,restind] = run.locate_resistance;
@@ -168,7 +170,7 @@ function [] = plot_fluxes(runArray, isobath, source)
                 L = run.eddy.vor.dia(1)/2;
                 y0oL(kk) =  R/L * (yoR(kk)-1); % y0/L - used in derivation
             end
-            color = [1 1 1]*0.75;hgplt1(ff).Color;
+            color =  hgplt1(ff).Color;[1 1 1]*0.75;
             hgplt6(ff) = plot(y0oL, vnd, 'Color', color);
         end
 
@@ -186,7 +188,7 @@ function [] = plot_fluxes(runArray, isobath, source)
         if ~isempty(hfig8)
             figure(hfig8)
             [start,~] = run.flux_tindices(run.csflux.west.slope(:,isobath,isobath));
-            hgplt8(ff) = plot(run.csflux.time/run.csflux.time(start), ...
+            hgplt8(ff) = plot(ndtime, ...
                               run.csflux.west.slopewater.vmax(:,isobath) ...
                               / run.eddy.V(1), 'Color', hgplt1(ff).Color);
         end
