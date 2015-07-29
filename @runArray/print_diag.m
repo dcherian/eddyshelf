@@ -589,26 +589,33 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
             end
 
             if ~isfield(run.csflux, 'time') || ...
-                    isobath > size(run.csflux.west.slope, 2)
+                    isobath > size(run.csflux.west.slope, 3)
                 disp(['Skipping ' run.name]);
                 continue;
             end
 
+            % This doesn't change much
+            %if strcmpi(run.name, 'e23434w-2361_wider')
+            %    disp('changing')
+            %   isobath = 2 * (isobath-1) + 1;
+            %end
+
             [maxflux, maxloc] = ...
                 run.calc_maxflux(run.csflux.west.slope(:,isobath, isobath));
-
+            [~,~,restind] = run.locate_resistance;
             if isnan(maxflux), continue; end
 
             %if ~isfield(run.eddy, 'rhovor'), continue; end
 
             % maxflux = max(run.csflux.west.slope(:,isobath, isobath));
-            H = run.csflux.h(isobath);
+            H = run.bathy.h(1, run.csflux.ix(isobath));
 
             tind = 1; maxloc;
+            a = 2;
             %[V1, L, x0] = run.fit_vel(tind);
             % V1/V0 = 2.3 quite dependably
             %V0 = V1*2.3;
-            V0 = run.eddy.V(tind) * 2.33;
+            V0 = run.eddy.V(tind);
             % distance of eddy center from shelfbreak
             R = run.csflux.R;
             % vor.dia is radius to max vel =
@@ -620,7 +627,7 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
             % xfrac * 2
             yoR = run.csflux.ndloc(isobath); % y/R - used in csflux
             y0oL =  R/L * (1 - yoR); % y0/L - used in derivation
-            xfrac = sqrt(1 - y0oL^2);
+            xfrac = sqrt(1 - y0oL^a);
 
             ix = run.csflux.ix(isobath);
             zvec = run.rgrid.z_r(:, ix+1, 1);
@@ -630,15 +637,19 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
             %xfrac2(~isreal(xfrac2)) = 0;
 
             % eddy profile
-            eddmask = bsxfun(@le, abs(xvec/L), sqrt(1-y0oL^2-(zvec./Lz0).^2));
+            eddmask = bsxfun(@le, abs(xvec/L), sqrt(1-y0oL^a-(zvec./Lz0).^2));
             % mask to integrate over
             inmask = bsxfun(@and, xvec < 0, 1 - eddmask)';
+
+            if H/Lz0 < 1.5% if run.bathy.hsb/Lz0 < 0.5
+                inmask = repmat(inmask(:,end), [1 run.rgrid.N]);
+            end
 
             % inmask = bsxfun(@and, inmask, xvec'/L < -xfrac);
 
             % profile I am assuming
             videal = bsxfun(@times, ...
-                            -V0 * (xvec/L) .* exp(-(xvec/L).^2 -y0oL^2), ...
+                            -V0 * (xvec/L).^(a-1) .* exp(-(xvec/L).^a -y0oL^a), ...
                             (1 - erf(-zvec/Lz0)))';
             fluxscl = trapz(zvec, trapz(xvec, videal .* inmask, 1), 2);
             % idmask = repmat(xvec < xfrac, [runs.rgrid.N 1]);
@@ -1051,7 +1062,7 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
         if strcmpi(name, 'avg flux') || strcmpi(name, 'max flux')
             figure(hfig);
             axis square;
-            xlim([0 max(xlim)]);
+            xlim([0 max(plotx)]);
             ylim([0 max(ylim)]);
         end
 
