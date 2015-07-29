@@ -1246,6 +1246,7 @@ methods
 
             tind = 1; tindex;
             syms x z;
+            a = 2; % 2 for gaussian
             V0 = runs.eddy.V(tind) * 2.33;
             R = runs.csflux.R;
             L = runs.eddy.rhovor.dia(tind)/2;
@@ -1253,7 +1254,7 @@ methods
             H = runs.csflux.h(isobath);
             yoR = runs.csflux.ndloc(isobath); % y/R - used in csflux
             y0oL =  R/L * (1 - yoR); % y0/L - used in derivation
-            xfrac = -sqrt(1 - y0oL^2);
+            xfrac = -sqrt(1 - y0oL^a);
 
             zvec = runs.rgrid.z_r(:, ix+1, 1);
             xvec = (runs.rgrid.x_rho(1,2:end-1) - runs.eddy.mx(tindex)) ...
@@ -1262,13 +1263,17 @@ methods
             %xfrac2 = -sqrt(1 - y0oL^2 - (zvec./Lz).^2);
             %xfrac2(~isreal(xfrac2)) = 0;
             % eddy profile
-            eddmask = bsxfun(@le, abs(xvec), sqrt(1-y0oL^2-(zvec./Lz).^2));
+            eddmask = bsxfun(@le, abs(xvec), sqrt(1-y0oL^a-(zvec./Lz).^2));
             % mask to integrate over
             inmask = bsxfun(@and, xvec < 0, 1 - eddmask);
 
+            if runs.bathy.hsb/Lz < 0.5
+                inmask = repmat(inmask(end,:), [runs.rgrid.N 1]);
+            end
+
             % profile I am assuming
             videal = bsxfun(@times, ...
-                            -V0/vnorm * (xvec) .* exp(-xvec.^2 -y0oL^2), ...
+                            -V0/vnorm * (xvec).^(a-1) .* exp(-xvec.^a -y0oL^a), ...
                             (1 - erf(-zvec/Lz)));
             % idmask = repmat(xvec < xfrac, [runs.rgrid.N 1]);
 
@@ -1279,10 +1284,17 @@ methods
             vtrue = trapz(xvec, trapz(zvec/H, repnan(csvel' .* ...
                                                      mask,0), 1), ...
                           2) * vnorm * L * H
-            vest = trapz(xvec, trapz(zvec/H, repnan(videal .* mask, 0), 1), ...
-                         2) * vnorm * L * H
+
+            % idealized velocity with real mask
+            vitruemask = trapz(xvec, trapz(zvec/H, repnan(videal .* mask, 0), 1), ...
+                         2) * vnorm * L * H / vtrue
+
+            % idealized parameterization
+            vest = trapz(xvec, trapz(zvec/H, repnan(videal .* inmask, 0), 1), ...
+                         2) * vnorm * L * H / vtrue
+
             fluxscl = double(V0 * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
-                      * int(1 - erf(-z/Lz), z, -H, 0))
+                      * int(1 - erf(-z/Lz), z, -H, 0)) / vtrue
 
             % gaussprof(x,z) = exp(-(x/L)^2) * (1-erf(-z/Lz));
             % % bounding contour of ρ = ρ_0/e
@@ -1293,10 +1305,12 @@ methods
             %     double(int(int(gaussprof * dz0dx, z, -z0,0), x, L*xfrac, 0)))
 
             ax(1) = subplot(211);
+
             [~,h1] = contourf(xvec, zvec, csvel', 20);
             hold on
             [~,h2] = contour(xvec, zvec, videal .* inmask, 20, 'b');
             h2.LevelList = h1.LevelList;
+            caxis([-1 1]);
             contour(xvec, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
             runs.add_timelabel(tindex);
             xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
