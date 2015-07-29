@@ -63,6 +63,10 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin)
         maxloc = locs(3);
     end
 
+    if length(locs) == 1
+        maxloc = locs(1);
+    end
+
     % select the second peak by default
     % This should, in general, correspond to annulus fluid
     % being shed
