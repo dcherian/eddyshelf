@@ -1093,6 +1093,8 @@ methods
         ax = subplot(211);
         [maxflux, maxloc] = runs.calc_maxflux(fluxvec);
         runs.animate_field('v', ax, maxloc, 1);
+        liney([runs.bathy.xsb+runs.csflux.R ...
+               runs.csflux.x(isobath)]/1000, [], 'r');
 
         subplot(212);
         plot(runs.csflux.time/86400, fluxvec);
@@ -1110,6 +1112,12 @@ methods
         if ~exist('isobath', 'var'), isobath = 1:n; end
 
         n = length(isobath);
+
+        if any(isobath > length(runs.csflux.x))
+            error(['Choose a lower isobath number (max = ' ...
+                   num2str(length(runs.csflux.x)) ')']);
+        end
+
 
         [~,~,restind] = runs.locate_resistance;
 
