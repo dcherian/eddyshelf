@@ -39,9 +39,12 @@ function [] = csfluxes(runs, ftype)
     else
         [R,~,restind] = runs.locate_resistance;
     end
-    if isempty(R), return; end
+    if isempty(R)
+        error(['locate_resistance didn''t return anything for ' runs.name]);
+    end
+
     R = R - xsb;
-    runs.csflux.ndloc = linspace(0,2,7);
+    runs.csflux.ndloc = linspace(0,2,13);
     runs.csflux.R = R;
     loc = runs.csflux.ndloc* R + xsb;
     runs.csflux.ndloc(loc > xsl) = [];
