@@ -141,7 +141,11 @@ function [] = csfluxes(runs, ftype)
     nloc = length(loc);
     szfull = size(runs.bathy.h);
     szflux = [tinf nloc nloc];
-    szfluxxt = [szfull(1)-2 tinf nloc];
+    if bathyax == 1
+        szfluxxt = [szfull(2)-2 tinf nloc];
+    else
+        szfluxxt = [szfull(1)-2 tinf nloc];
+    end
 
     % initialize - mass flux variables
     runs.csflux.west.slope = nan(szflux);
