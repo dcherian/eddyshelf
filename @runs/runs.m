@@ -1126,8 +1126,9 @@ methods
         hfig3 = []; %figure; % hovmoeller plots (z,t)
         hfig4 = []; %figure; % flux time-series
         hfig5 = []; %figure; % flux time-series at isobath
-        hfig6 = figure; % cross-sections
+        hfig6 = []; % cross-sections
         hfig7 = []; %figure; % streamer vmax
+        hfig8 = figure; % streamer velocity line plots
 
         if ~isempty(hfig1)
             figure(hfig1); % streamer vertical structure
@@ -1217,11 +1218,11 @@ methods
             beautify;
         end
 
-        if ~isempty(hfig6)
-            insertAnnotation([runs.name '.plot_fluxes']);
+        if ~isempty(hfig6) || ~isempty(hfig8)
             if length(isobath) > 1
                 error('Specify a *single* isobath!');
             end
+
             ix = runs.csflux.ix(isobath);
             [~,tindex] = runs.calc_maxflux(...
                 runs.csflux.west.slope(:,isobath,isobath));;
@@ -1304,35 +1305,52 @@ methods
             %     double(int(int(gaussprof, z, -H, 0), x, -Inf, 0)) - ...
             %     double(int(int(gaussprof * dz0dx, z, -z0,0), x, L*xfrac, 0)))
 
-            ax(1) = subplot(211);
+            if ~isempty(hfig6)
+                figure(hfig6)
+                insertAnnotation([runs.name '.plot_fluxes']);
 
-            [~,h1] = contourf(xvec, zvec, csvel', 20);
-            hold on
-            [~,h2] = contour(xvec, zvec, videal .* inmask, 20, 'b');
-            h2.LevelList = h1.LevelList;
-            caxis([-1 1]);
-            contour(xvec, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
-            runs.add_timelabel(tindex);
-            xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
-            title(['v (m/s) | ' runs.name]);
-            linex(xfrac);
-            center_colorbar;
+                ax(1) = subplot(211);
 
-            ax(2) = subplot(212);
-            pcolorcen(xvec, zvec, csdye' .* mask/1000);
-            colorbar;
-            xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
-            title(['Cross-shelf dye (km) | ' runs.name]);
-            runs.add_timelabel(tindex);
-            linkaxes(ax, 'xy');
-            linex(xfrac);
-            liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
-            liney(-1 * runs.bathy.hsb, 'h_{sb}');
-            xlim([min(xlim) 0]);
+                [~,h1] = contourf(xvec, zvec, csvel', 20);
+                hold on
+                [~,h2] = contour(xvec, zvec, videal .* inmask, 20, 'b');
+                h2.LevelList = h1.LevelList;
+                caxis([-1 1]);
+                contour(xvec, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
+                runs.add_timelabel(tindex);
+                xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
+                title(['v (m/s) | ' runs.name]);
+                linex(xfrac);
+                center_colorbar;
+
+                ax(2) = subplot(212);
+                pcolorcen(xvec, zvec, csdye' .* mask/1000);
+                colorbar;
+                xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
+                title(['Cross-shelf dye (km) | ' runs.name]);
+                runs.add_timelabel(tindex);
+                linkaxes(ax, 'xy');
+                linex(xfrac);
+                liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
+                liney(-1 * runs.bathy.hsb, 'h_{sb}');
+                xlim([min(xlim) 0]);
+            end
+
+            if ~isempty(hfig8)
+                figure(hfig8);
+                maskvel = csvel .* mask';
+                plot(xvec, maskvel);
+                liney(max(maskvel(:)));
+                xlim([-4 0])
+                ylim([0 1]);
+                title(runs.name);
+            end
         end
 
         if ~isempty(hfig7)
             figure(hfig7)
+            insertAnnotation([runs.name '.plot_fluxes']);
+
             lightDarkLines(length(runs.csflux.ix));
             plot(runs.csflux.time/86400, ...
                  runs.csflux.west.slopewater.vmax(:,isobath) ./ ...
