@@ -1050,6 +1050,7 @@ methods
 
         for src = 1:length(runs.csflux.ndloc)
             for isobath=1:length(runs.csflux.ndloc)
+                % (x,t)
                 matrix = runs.csflux.slopext(:,:,isobath, src);
                 nt = size(matrix,2);
 
@@ -1073,6 +1074,15 @@ methods
                 % runs.csflux.slopex.Lx(isobath,src) = X;
                 % runs.csflux.slopex.y0(isobath,src) = y0;
                 % runs.csflux.slopex.x0(isobath,src) = x0;
+
+                % (z,t)
+                matrix = runs.csflux.west.slopezt(:,:,isobath, src);
+                nt = size(matrix,2);
+
+                % integrate in time
+                slopex = trapz(double(runs.csflux.time(1:nt)), matrix, 2);
+
+                runs.csflux.slopez.flux(:,isobath,src) = slopex;
             end
         end
 
@@ -1101,6 +1111,40 @@ methods
         linex(runs.csflux.time(maxloc)/86400);
     end
 
+    function [] = plot_checkvertprofile(runs)
+
+        hfig = figure; hold on;
+        for iso = 1:length(runs.csflux.ix)
+            % figure; hold on;
+            flux = runs.csflux.west.slope(:,iso,iso);
+            tvec = runs.csflux.time;
+            zvec = runs.csflux.vertbins(:,iso);
+
+            nt = length(flux);
+            [~,maxloc] = runs.calc_maxflux(flux);
+
+            indices = round(linspace(maxloc,nt,30));
+
+            clear zmax
+            jj = 1;
+            for kk=indices
+                profile = trapz(tvec(1:kk), ...
+                                runs.csflux.west.slopezt(:,1:kk,iso,iso), ...
+                                2);
+                norm = trapz(zvec, profile);
+                % plot(profile./norm, zvec);
+
+                [~,ind] = max(profile);
+                zmax(jj) = zvec(ind);
+                jj = jj + 1;
+            end
+
+            figure(hfig);
+            plot(indices, zmax);
+            %legend(cellstr(num2str(indices')));
+            %title(num2str(iso));
+        end
+    end
     function [] = plot_fluxes(runs, source, isobath)
 
         n = length(runs.csflux.x);
@@ -1121,18 +1165,22 @@ methods
 
         [~,~,restind] = runs.locate_resistance;
 
-        hfig1 = []; %figure; % streamer vertical structure
+        hfig1 = figure; % streamer vertical structure
         hfig2 = []; %figure; % hovmoeller plots (x,t)
         hfig3 = []; %figure; % hovmoeller plots (z,t)
         hfig4 = []; %figure; % flux time-series
         hfig5 = []; %figure; % flux time-series at isobath
         hfig6 = []; % cross-sections
         hfig7 = []; %figure; % streamer vmax
-        hfig8 = figure; % streamer velocity line plots
+        hfig8 = []; %figure; % streamer velocity line plots
 
         if ~isempty(hfig1)
+            if length(source) > 1
+                error('Specify 1 source isobath only!');
+            end
             figure(hfig1); % streamer vertical structure
             insertAnnotation([runs.name '.plot_fluxes']);
+            subplot(121)
             lightDarkLines(n);
             plot(runs.csflux.west.slopewater.vertitrans(:,isobath,source), ...
                  runs.csflux.vertbins(:,isobath));
@@ -1140,8 +1188,24 @@ methods
             legend(cellstr(num2str(runs.csflux.h')), ...
                    'Location', 'SouthEast');
             beautify;
-            title(runs.name);
+            title([runs.name ' | Source = ' ...
+                   num2str(runs.csflux.h(source), '%d') ...
+                   'm |  index = ' num2str(source)]);
             axis square;
+
+            subplot(122)
+            lightDarkLines(length(runs.csflux.ix));
+            for iso=1:length(runs.csflux.ix)
+                plot(runs.csflux.west.slopewater.vertitrans(:,iso,iso), ...
+                     runs.csflux.vertbins(:,iso));
+            end
+            liney(-1 * runs.bathy.hsb);
+            legend(cellstr(num2str(runs.csflux.h')), ...
+                   'Location', 'SouthEast');
+            beautify;
+            title([runs.name]);
+            axis square;
+
         end
 
         if ~isempty(hfig2)
