@@ -43,6 +43,7 @@ function [hh] = plot_sections(runArray, varname, ndtimes)
                 tind = find_approx(ndtime, ndtimes(tt));
             else
                 [~,~,tind] = run.locate_resistance;
+                ndtimes = run.ndtime(tind);
             end
 
             yscale = run.eddy.vor.dia(1)/2

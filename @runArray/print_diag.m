@@ -1062,6 +1062,10 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
 
         if exist('stats', 'var')
             disp(['stats = ' num2str(stats)]);
+            htext = text(0.05,0.9, ...
+                     ['R = ' num2str(sqrt(stats(1)), '%.2f')], ...
+                     'Units', 'normalized');
+        end
     end
 
     if plots
@@ -1098,7 +1102,7 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
 
         if strcmpi(name, 'avg flux') || strcmpi(name, 'max flux')
             figure(hfig);
-            axis square;
+            % axis square;
             xlim([0 max(plotx)]);
             ylim([0 max(ylim)]);
         end

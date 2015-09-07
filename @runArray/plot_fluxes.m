@@ -3,10 +3,10 @@ function [] = plot_fluxes(runArray, isobath, source)
     if ~exist('isobath', 'var'), isobath = 2; end
     if ~exist('source', 'var'), source = 2; end
 
-    hfig1 = []; %figure; ax1(1) = subplot(2,1,1); hold all; % shelf water flux time series
-                % ax1(2) = subplot(2,1,2); hold all;
+    hfig1 = figure; ax1(1) = subplot(2,1,1); hold all; % shelf water flux time series
+    ax1(2) = subplot(2,1,2); hold all;
 
-    hfig2 = []; %figure; hold all % vertical structure / baroclinicity
+    hfig2 = figure; hold all % vertical structure / baroclinicity
 
     hfig3 = []; %figure; hold all; % envelope
 
@@ -15,9 +15,11 @@ function [] = plot_fluxes(runArray, isobath, source)
 
     hfig5 = []; %figure; hold on;% along shelf structure
 
-    hfig6 = figure; hold on; % streamer velocity
+    hfig6 = []; %figure; hold on; % streamer velocity
 
     hfig7 = []; %figure; hold on; % cross-shore bins
+
+    hfig8 = []; %figure; hold on; % streamer max. vel.
 
     if isempty(runArray.filter)
         runArray.filter = 1:runArray.len;
