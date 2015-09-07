@@ -697,6 +697,43 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
             error(ff) = 0.10*diags(ff);
         end
 
+        if strcmpi(name, 'zpeak')
+            debug = 0;
+
+            if debug, figure; hold on; end
+
+            nsmooth = 3;
+            zmax = [];
+            kk = 1;
+            for iso=args(1)%length(run.csflux.x)
+                vec = smooth(run.csflux.west.slopewater.vertitrans(:,iso,iso), ...
+                             nsmooth);
+                zvec = run.csflux.vertbins(:,iso);
+
+                [~,imax] = max(abs(vec));
+                zmax(kk) = zvec(imax);
+                if debug, plot(vec, zvec); end
+                kk = kk + 1;
+            end
+
+            if length(zmax) > 1
+                E = [run.csflux.ndloc(2:end)' ones(size(run.csflux.ndloc(2:end)))'];
+                [P,Pint,R,Rint,stats] = regress(zmax', E, 0.05);
+
+                errorbarflag = 0;
+                error(ff) = Pint(2) - P(2);
+            else
+                P(2) = zmax;
+            end
+
+            diags(ff) = abs(P(2));
+            plotx(ff) = hsb;
+
+            if debug
+                liney(-diags(ff));title(run.name);
+            end
+        end
+
         if strcmpi(name, 'avg flux')
             if isempty(args)
                 isobath = 3;
