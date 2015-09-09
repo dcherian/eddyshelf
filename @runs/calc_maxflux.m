@@ -3,8 +3,8 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin, debug)
 
     if ~exist('debug', 'var'), debug = 0; end
 
-    if length(fluxin) == 1
-        fluxin = runs.csflux.west.slope(:,fluxin);
+    if numel(fluxin) == 1
+        fluxin = runs.csflux.west.slope(:,fluxin,fluxin);
     end
 
     iflux = cumtrapz(runs.csflux.time, fluxin);
@@ -31,11 +31,13 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin, debug)
                          'MinPeakWidth', mpw);
 
     if debug | isempty(locs)
+        if isempty(locs), warning('No peaks found!'); end
+
         hfig = figure;
         findpeaks(fluxvec, ...
                   'MinPeakProminence', mpp*max(fluxvec(:)), ...
-                  'MinPeakWidth', mpw, ...
-                  'annotate', 'extents');
+                  'MinPeakWidth', mpw ...
+                  ); %'annotate', 'extents');
         %        plot(fluxin);
         title(runs.name);
     end
@@ -79,17 +81,18 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin, debug)
     % being shed
     if ~exist('maxloc', 'var'), maxloc = locs(2); end
 
-    if exist('hfig', 'var')
-        linex(maxloc);
-    end
-
     % correct time shift
     maxloc = maxloc + start - 1;
-
     maxflux = fluxin(maxloc,1);
 
     if strcmpi(runs.name, 'ew-4341')
         [maxflux, maxloc] = max(fluxin);
+    end
+
+    %[maxflux, maxloc] = max(fluxin);
+
+    if exist('hfig', 'var')
+        linex(maxloc - start + 1);
     end
 
     runs.csflux.maxflux = maxflux;
