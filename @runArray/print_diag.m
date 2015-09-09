@@ -610,6 +610,8 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
             % maxflux = max(run.csflux.west.slope(:,isobath, isobath));
             H = run.bathy.h(1, run.csflux.ix(isobath));
 
+            use_numerics = 0;
+
             tind = 1; maxloc;
             a = 2;
             %[V1, L, x0] = run.fit_vel(tind);
@@ -629,48 +631,53 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
             y0oL =  R/L * (1 - yoR); % y0/L - used in derivation
             xfrac = sqrt(1 - y0oL^a);
 
-            ix = run.csflux.ix(isobath);
-            zvec = run.rgrid.z_r(:, ix+1, 1);
-            xvec = (run.rgrid.x_rho(1,2:end-1) - run.eddy.mx(maxloc));
+            if use_numerics
+                ix = run.csflux.ix(isobath);
+                zvec = run.rgrid.z_r(:, ix+1, 1);
+                xvec = (run.rgrid.x_rho(1,2:end-1) - run.eddy.mx(maxloc));
 
-            %xfrac2 = -sqrt(1 - y0oL^2 - (zvec./Lz).^2);
-            %xfrac2(~isreal(xfrac2)) = 0;
+                %xfrac2 = -sqrt(1 - y0oL^2 - (zvec./Lz).^2);
+                %xfrac2(~isreal(xfrac2)) = 0;
 
-            % eddy profile
-            eddmask = bsxfun(@le, abs(xvec/L), sqrt(1-y0oL^a-(zvec./Lz0).^2));
-            % mask to integrate over
-            inmask = bsxfun(@and, xvec < 0, 1 - eddmask)';
+                % eddy profile
+                eddmask = bsxfun(@le, abs(xvec/L), sqrt(1-y0oL^a-(zvec./Lz0).^2));
+                % mask to integrate over
+                inmask = bsxfun(@and, xvec < 0, 1 - eddmask)';
 
-            if H/Lz0 < 1.5% if run.bathy.hsb/Lz0 < 0.5
-                inmask = repmat(inmask(:,end), [1 run.rgrid.N]);
+                if H/Lz0 < 1.5% if run.bathy.hsb/Lz0 < 0.5
+                    inmask = repmat(inmask(:,end), [1 run.rgrid.N]);
+                end
+
+                % inmask = bsxfun(@and, inmask, xvec'/L < -xfrac);
+
+                % profile I am assuming
+                videal = bsxfun(@times, ...
+                                -V0 * (xvec/L).^(a-1) .* exp(-(xvec/L).^a -y0oL^a), ...
+                                (1 - erf(-zvec/Lz0)))';
+                fluxscl = trapz(zvec, trapz(xvec, videal .* inmask, 1), 2);
+                % idmask = repmat(xvec < xfrac, [runs.rgrid.N 1]);
+
+                % if ~exist('gaussprof', 'var')
+                %     syms x z;
+                %     % (x,z) velocity profile
+                %     gaussprof(x,z) = exp(-(x/L)^2) * (1-erf(-z/Lz0));
+                %     % bounding contour of ρ = ρ_0/e
+                %     z0 = Lz0 * sqrt(1 - y0oL^2 - (x/L)^2);
+                % end
+                % fluxscl = V0 * exp(-y0oL^2) * ( ...
+                %     double(int(int(gaussprof, z, -H, 0), x, -Inf, 0)) - ...
+                %     double(int(int(gaussprof, z, -z0,0), x, -L*xfrac, 0)));
+
+                %            fluxscl = -1 * abs(V0) * ...
+                %          int(x/L*exp(-(x/L)^2), -Inf, -xfrac*L) * exp(-y0oL^2) ...
+                %          * int(1 - erf(-z/Lz0), z, -H, 0);
+            else
+                syms x z
+                %fluxscl = abs(V0) * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
+                %          * int(1 - erf(-z/Lz0), z, -H, 0); % works well
+                fluxscl = abs(V0) * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
+                          *  Lz0 * (H/Lz0 + 1/sqrt(pi));% int(1 - erf(-z/Lz0), z, -H, 0); % works well
             end
-
-            % inmask = bsxfun(@and, inmask, xvec'/L < -xfrac);
-
-            % profile I am assuming
-            videal = bsxfun(@times, ...
-                            -V0 * (xvec/L).^(a-1) .* exp(-(xvec/L).^a -y0oL^a), ...
-                            (1 - erf(-zvec/Lz0)))';
-            fluxscl = trapz(zvec, trapz(xvec, videal .* inmask, 1), 2);
-            % idmask = repmat(xvec < xfrac, [runs.rgrid.N 1]);
-
-            % if ~exist('gaussprof', 'var')
-            %     syms x z;
-            %     % (x,z) velocity profile
-            %     gaussprof(x,z) = exp(-(x/L)^2) * (1-erf(-z/Lz0));
-            %     % bounding contour of ρ = ρ_0/e
-            %     z0 = Lz0 * sqrt(1 - y0oL^2 - (x/L)^2);
-            % end
-            % fluxscl = V0 * exp(-y0oL^2) * ( ...
-            %     double(int(int(gaussprof, z, -H, 0), x, -Inf, 0)) - ...
-            %     double(int(int(gaussprof, z, -z0,0), x, -L*xfrac, 0)));
-
-            %            fluxscl = -1 * abs(V0) * ...
-            %          int(x/L*exp(-(x/L)^2), -Inf, -xfrac*L) * exp(-y0oL^2) ...
-            %          * int(1 - erf(-z/Lz0), z, -H, 0);
-            %syms x z
-            %fluxscl = abs(V0) * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
-            %          * int(1 - erf(-z/Lz0), z, -H, 0); % works well
 
             norm = 1e3;
             transscl = double(fluxscl)/norm;
