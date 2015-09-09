@@ -1,7 +1,11 @@
 % return magnitude and time index of max flux
-function [maxflux, maxloc] = calc_maxflux(runs, fluxin)
+function [maxflux, maxloc] = calc_maxflux(runs, fluxin, debug)
 
-    debug = 0;
+    if ~exist('debug', 'var'), debug = 0; end
+
+    if length(fluxin) == 1
+        fluxin = runs.csflux.west.slope(:,fluxin);
+    end
 
     iflux = cumtrapz(runs.csflux.time, fluxin);
     [start,stop] = runs.flux_tindices(fluxin);
