@@ -31,13 +31,12 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin, debug)
                          'MinPeakWidth', mpw);
 
     if debug | isempty(locs)
-        figure;
+        hfig = figure;
         findpeaks(fluxvec, ...
                   'MinPeakProminence', mpp*max(fluxvec(:)), ...
                   'MinPeakWidth', mpw, ...
                   'annotate', 'extents');
         %        plot(fluxin);
-        % linex((maxloc));
         title(runs.name);
     end
 
@@ -75,6 +74,10 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin, debug)
     % This should, in general, correspond to annulus fluid
     % being shed
     if ~exist('maxloc', 'var'), maxloc = locs(2); end
+
+    if exist('hfig', 'var')
+        linex(maxloc);
+    end
 
     % correct time shift
     maxloc = maxloc + start - 1;
