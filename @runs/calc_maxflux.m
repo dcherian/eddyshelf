@@ -69,7 +69,7 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin, debug)
         maxloc = locs(3);
     end
     if strcmpi(runs.name, 'ew-2365-75km')
-        maxloc = locs(1);
+        maxloc = locs(2);
     end
 
     if length(locs) == 1
