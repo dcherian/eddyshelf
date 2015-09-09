@@ -1,4 +1,4 @@
-function [diags, plotx] = print_diag(runArray, name, args, hax)
+function [diags, plotx, rmse, P] = print_diag(runArray, name, args, hax)
 
     if ~exist('args', 'var'), args = []; end
     if ~exist('hax', 'var'), hax = []; end
@@ -18,6 +18,7 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
     annostr = ['runArray.print_diag(' name ')'];
     diags = nan(size(runArray.filter));
     plotx = diags;
+    P = nan([2 1]);
 
     if plots
         if isempty(hax)
@@ -41,6 +42,7 @@ function [diags, plotx] = print_diag(runArray, name, args, hax)
         error = [];
         parameterize = 0;
         titlestr = name;
+        rmse = 0;
     end
 
     for ff=1:length(runArray.filter)
