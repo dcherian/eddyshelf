@@ -529,13 +529,12 @@ classdef runArray < handle
             figure;
             for ii=isobath
                 hh(ii) = subplot(3,3,ii);
-                runArray.print_diag('max flux', ii, hh(ii));
+                [~,~,rmse] = runArray.print_diag('max flux', ii, hh(ii));
                 legend('off'); xlabel(''); ylabel('');
-                title(num2str(runArray.array(1).csflux.ndloc(ii), ...
-                               '%.2f'));
+                title(['R = ' num2str(runArray.array(1).csflux.ndloc(ii), ...
+                               '%.2f') ' | rmse = ' num2str(rmse, '%.2f')]);
                 beautify([16 16 18]);
             end
-
         end
 
         function [] = plot_field(runArray, varname, tind)
