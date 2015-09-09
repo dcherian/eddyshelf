@@ -55,7 +55,8 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin, debug)
             ~isempty(findstr(runs.name, '3_wider'))
         maxloc = locs(1);
     end
-    if strfind(runs.name, 'ew-40')
+    if ~isempty(strfind(runs.name, 'ew-40')) ...
+            | ~isempty(strfind(runs.name, 'ew-83'))
         maxloc = locs(1);
     end
 
@@ -64,6 +65,9 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin, debug)
     % but that might screw up something else.
     if strcmpi(runs.name, 'ew-35')
         maxloc = locs(3);
+    end
+    if strcmpi(runs.name, 'ew-2365-75km')
+        maxloc = locs(1);
     end
 
     if length(locs) == 1
@@ -83,6 +87,11 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin, debug)
     maxloc = maxloc + start - 1;
 
     maxflux = fluxin(maxloc,1);
+
+    if strcmpi(runs.name, 'ew-4341')
+        [maxflux, maxloc] = max(fluxin);
+    end
+
     runs.csflux.maxflux = maxflux;
     runs.csflux.maxloc = maxloc;
 end
