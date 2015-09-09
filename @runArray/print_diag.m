@@ -684,6 +684,11 @@ function [diags, plotx, rmse, P] = print_diag(runArray, name, args, hax)
             norm = 1e3;
             transscl = double(fluxscl)/norm;
 
+            % correction for shallower isobaths
+            if isobath < 3
+                transscl = (hsb/Lz(1)) * transscl;
+            end
+
             % colorize
             crit = 0.40;
             if round(hsb/Lz(1),2) > crit
