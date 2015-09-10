@@ -80,7 +80,7 @@ function [] = plot_fluxes(runArray, isobath, source)
             axes(ax1(2));
             plot(ndtime, ifluxvec/transscl, 'Color', hgplt1(ff).Color);
         else
-            colors = get(gca, 'ColorOrder');
+            colors = runArray.sorted_colors;%get(gca, 'ColorOrder');
             hgplt1(ff).Color = colors(ff,:);
         end
 
@@ -193,6 +193,16 @@ function [] = plot_fluxes(runArray, isobath, source)
             hgplt8(ff) = plot(ndtime, ...
                               run.csflux.west.slopewater.vmax(:,isobath) ...
                               / run.eddy.V(1), 'Color', hgplt1(ff).Color);
+        end
+
+        %%%%%%%%%%%%%%%%%%%%%%%%% INSTANTANEOUS VERTICAL STRUCTURE
+        if ~isempty(hfig9)
+            figure(hfig9)
+
+            [~,tind] = run.calc_maxflux(run.csflux.west.slope(:,isobath,source));
+
+            hgplt9(ff) = plot(run.csflux.west.slopezt(:,tind,isobath,source), ...
+                              run.csflux.vertbins(:,isobath)./run.bathy.hsb);
         end
     end
 
@@ -321,6 +331,17 @@ function [] = plot_fluxes(runArray, isobath, source)
         legend(hgplt8, names, 'Location', 'NorthWest');
         xlabel('Time (days)');
         ylabel('Max streamer velocity / eddy velocity');
+        beautify;
+    end
+
+    if ~isempty(hfig9)
+        figure(hfig9)
+        legend(hgplt9, names, 'Location', 'SouthEast');
+        xlabel('Instantaneous Flux (m^3/s)');
+        ylabel('Depth / H_{sb}');
+        title('At instant of max flux');
+        liney(-1);
+        xlim([0 max(xlim)]);
         beautify;
     end
 
