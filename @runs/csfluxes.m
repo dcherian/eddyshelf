@@ -48,7 +48,11 @@ function [] = csfluxes(runs, ftype)
     runs.csflux.R = R;
     loc = runs.csflux.ndloc* R + xsb;
     runs.csflux.ndloc(loc > xsl) = [];
-    loc(loc > xsl) = [];
+    if ~runs.params.flags.flat_bottom
+        loc(loc > xsl) = [];
+    else
+        loc(1) = []; % remove the wall location
+    end
     runs.animate_field('zeta',[],restind,1);
     if runs.bathy.axis == 'y'
         liney(loc/1000, [], 'r');
