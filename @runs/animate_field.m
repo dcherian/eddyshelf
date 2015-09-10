@@ -37,7 +37,11 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         isobath(isobath > length(runs.csflux.x)) = [];
         csdcontours = runs.csflux.x(isobath);
     catch ME
-        csdcontourplot = 0;
+        if runs.params.flags.flat_bottom
+            csdcontours = [0 15 30 45 60] * 1000;
+        else
+            csdcontourplot = 0;
+        end
     end
     modify_bathy = 1; % modify bathymetric contours to show
                       % isobaths corresponding to csdcontours?

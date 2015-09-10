@@ -476,14 +476,16 @@ classdef runArray < handle
                 names{ff} = runArray.getname(ii);
                 %run.fit_traj;
                 %tind = run.traj.tind;
-                [~,~,tind] = run.locate_resistance(10,1/2);
+                %[~,~,tind] = run.locate_resistance(10,1/2);
                 tvec = run.time/run.eddy.turnover;
-                
-                vec = run.eddy.Vb;
-                plot(tvec, vec)
-                plot(tvec(tind), vec(tind), 'kx');
+
+                ind = 2;
+                [~,tind] = run.calc_maxflux(ind);
+
+                hplt(ff) = plot(run.csflux.west.slopezt(:,tind,ind,ind), ...
+                                run.csflux.vertbins(:,ind)./run.bathy.hsb);
             end
-            %legend(hplt, names);
+            legend(hplt, names);
 
             runArray.reset_colors(corder_backup);
         end

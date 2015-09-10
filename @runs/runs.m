@@ -1165,12 +1165,12 @@ methods
 
         [~,~,restind] = runs.locate_resistance;
 
-        hfig1 = figure; % streamer vertical structure
+        hfig1 = []; %figure; % streamer vertical structure
         hfig2 = []; %figure; % hovmoeller plots (x,t)
         hfig3 = []; %figure; % hovmoeller plots (z,t)
         hfig4 = []; %figure; % flux time-series
         hfig5 = []; %figure; % flux time-series at isobath
-        hfig6 = []; % cross-sections
+        hfig6 = figure; % cross-sections
         hfig7 = []; %figure; % streamer vmax
         hfig8 = []; %figure; % streamer velocity line plots
 
@@ -1377,8 +1377,8 @@ methods
 
                 [~,h1] = contourf(xvec, zvec, csvel', 20);
                 hold on
-                [~,h2] = contour(xvec, zvec, videal .* inmask, 20, 'b');
-                h2.LevelList = h1.LevelList;
+                % [~,h2] = contour(xvec, zvec, videal .* inmask, 20, 'b');
+                % h2.LevelList = h1.LevelList;
                 caxis([-1 1]);
                 contour(xvec, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
                 runs.add_timelabel(tindex);
