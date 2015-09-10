@@ -503,6 +503,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
             end
 
             runs.update_surf(varname, hz,ii);
+            hz.CData = hz.CData / factor;
             if vorcontourplot
                 runs.update_eddy_contour(he,ii);
             end
