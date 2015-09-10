@@ -6,10 +6,16 @@ function [] = animate_surfsection(runs, varname, t0, ntimes)
 
     dt = 4;
 
-    runs.video_init(['surfsection-' varname]);
+    runs.video_init(['surfsection-csf4-' varname]);
     makeVideo = runs.makeVideo;
 
-    iy = vecfind(runs.rgrid.y_rho(:,1), runs.eddy.my);
+    csfluxflag = 1;
+    if csfluxflag
+        isobath = 4;
+        iy = runs.csflux.ix(isobath) * ones(size(runs.time));
+    else
+        iy = vecfind(runs.rgrid.y_rho(:,1), runs.eddy.my);
+    end
     tt = t0;
 
     % read data here, so that I don't incur overhead at least for
@@ -40,7 +46,11 @@ function [] = animate_surfsection(runs, varname, t0, ntimes)
     runs.animate_field(varname, hax, t0, 1);
     runs.makeVideo = makeVideo;
     ylim([runs.bathy.xsb/1000-20 max(ylim)])
-    liney(runs.eddy.my(tt)/1000, [], 'k');
+    if ~csfluxflag
+        liney(runs.eddy.my(tt)/1000, [], 'k');
+    else
+        liney(runs.csflux.x(isobath)/1000, [], 'k');
+    end
 
     hax(2) = subplot(212);
     L = runs.eddy.rhovor.dia(tt)/2;
@@ -50,7 +60,7 @@ function [] = animate_surfsection(runs, varname, t0, ntimes)
     hl = linex([runs.eddy.rhovor.ee(tt) runs.eddy.rhovor.we(tt)]/1000, ...
                [], 'k');
     shading interp;
-    ylim([min(runs.rgrid.z_r(:)) 0]);
+    if ~csfluxflag, ylim([min(runs.rgrid.z_r(:)) 0]); end
     colorbar;
 
     linkaxes(hax, 'x');
@@ -64,7 +74,11 @@ function [] = animate_surfsection(runs, varname, t0, ntimes)
             runs.makeVideo = 0;
             runs.animate_field(varname, hax, tt, 1);
             runs.makeVideo = makeVideo;
-            liney(runs.eddy.my(tt)/1000, [], 'k');
+            if ~csfluxflag
+                liney(runs.eddy.my(tt)/1000, [], 'k');
+            else
+                liney(runs.csflux.x(isobath)/1000, [], 'k');
+            end
 
             axes(hax(2));
             zvec = runs.rgrid.z_r(:, iy(tt)+1, 1);
