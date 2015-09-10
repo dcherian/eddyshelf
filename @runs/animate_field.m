@@ -6,6 +6,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     titlestr = [];
 
     dt = 3;
+    factor = 1; % scale variable (1 by default)
 
     csfluxplot = 0; % 0 = no flux plot
                     % 1 = instantaneous x-profile;
@@ -178,6 +179,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         if strcmpi(name, 'csdye')
             varname = 'csdsurf';
             titlestr = 'Cross-shelf dye';
+            factor = 1000;
             addcsdye = 0;
         end
     end
@@ -270,6 +272,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     % plot field
     hz = runs.plot_surf(varname, 'pcolor', ii);
+    hz.CData = hz.CData / factor;
     hold on;
     colorbar;
     if ~strcmpi(name, 'csdye'), center_colorbar; end
