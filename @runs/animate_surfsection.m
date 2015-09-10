@@ -51,17 +51,18 @@ function [] = animate_surfsection(runs, varname, t0, ntimes)
     else
         liney(runs.csflux.x(isobath)/1000, [], 'k');
     end
+    clim = caxis;
 
     hax(2) = subplot(212);
     L = runs.eddy.rhovor.dia(tt)/2;
     xvec = runs.rgrid.x_rho(1,2:end-1);
     zvec = runs.rgrid.z_r(:, iy(tt)+1, 1);
-    hplt = pcolor(xvec/1000, zvec, var' - runs.eddy.my(tt)/1000);
+    hplt = pcolor(xvec/1000, zvec, var');
     hl = linex([runs.eddy.rhovor.ee(tt) runs.eddy.rhovor.we(tt)]/1000, ...
                [], 'k');
     shading interp;
     if ~csfluxflag, ylim([min(runs.rgrid.z_r(:)) 0]); end
-    colorbar;
+    colorbar; caxis(clim);
 
     linkaxes(hax, 'x');
 
