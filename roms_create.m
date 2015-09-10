@@ -984,6 +984,10 @@ if flags.eddy
 
     % add eddy temperature perturbation
     eddy.tz = exp(-(zrmat./eddy.depth).^2);
+    if flags.truncate_temp
+        eddy.tz = eddy.tz .* (eddy.tz > 0.1);
+    end
+
     eddy.temp = eddy.tamp * bsxfun(@times,eddy.xyprof,eddy.tz);
     if ~isnan(eddy.temp)
         S.temp = S.temp + eddy.temp;
@@ -1046,6 +1050,8 @@ if flags.eddy
             eddy.tz = bsxfun(@times, mask, ...
                              bsxfun(@rdivide, eddy.tz, ...
                                     norm./norm(eddy.ix,eddy.iy)));
+
+            eddy.tz = eddy.tz .* (eddy.tz > 0.1);
 
             % -1 because I want ∫ from z to 0.
             % when flipped, I integrate from 0 to z.
@@ -1746,7 +1752,7 @@ if flags.floats
     str = 'select rectangle for float deployment';
     title(str);
     disp(str);
-    %[floatx,floaty] = select_rect();
+    [floatx,floaty] = select_rect();
     fprintf('\n Floats- %4.1f MB \n\n', monitor_memory_whos);
 end
 
