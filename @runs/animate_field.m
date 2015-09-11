@@ -155,8 +155,9 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
             runs.calc_vorsurf;
         end
         varname = 'vorsurf';
-        titlestr = 'Vorticity';
+        titlestr = 'Vorticity/f_0';
         addcsdye = 0;
+        factor = runs.params.phys.f0;
     end
 
     % read eddye if required
