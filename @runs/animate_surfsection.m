@@ -1,10 +1,15 @@
 % animate variables at the surface and cross-section
 function [] = animate_surfsection(runs, varname, t0, ntimes)
 
-    if ~exist('ntimes', 'var'), ntimes = length(runs.time); end
-    if ~exist('t0', 'var'), t0 = 1; end
-
+    dx = 20; % start from shelfbreak - 20 km
     dt = 3;
+
+    if ~exist('ntimes', 'var')
+        ntimes = length(runs.time);
+    else
+        ntimes = t0 + dt * ntimes;
+    end
+    if ~exist('t0', 'var'), t0 = 1; end
 
     runs.video_init(['section-' varname]);
     makeVideo = runs.makeVideo;
@@ -59,7 +64,6 @@ function [] = animate_surfsection(runs, varname, t0, ntimes)
         v1 = v1*1000 - squeeze(rback(2:end-1,iy1(tt),:));
     end
 
-    dx = 20; % start from shelfbreak - 20 km
     figure
     hax(1) = subplot(2,2,[1 2]);
     runs.makeVideo = 0;
