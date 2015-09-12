@@ -161,9 +161,11 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     end
 
     % read eddye if required
-    if (dyeplot && isempty(runs.eddsurf)) || strcmpi(name, 'eddye')
+    if (dyeplot && isempty(runs.eddsurf)) || strcmpi(name, 'eddye') ...
+            || strcmpi(name, runs.eddname);
         runs.read_eddsurf(t0, ntimes);
-        if strcmpi(name, 'eddye') && (addcsdye == 0)
+        if (strcmpi(name, 'eddye') || strcmpi(name, runs.eddname)) ...
+                && (addcsdye == 0)
             varname = 'eddsurf';
             titlestr = 'Eddy dye';
         end
@@ -175,9 +177,10 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     % read csdye if required
     if (dyeplot && isempty(runs.csdsurf)) || strcmpi(name, 'csdye') ...
-            || (strcmpi(name, 'eddye') && addcsdye == 1) || csdcontourplot
+            || (strcmpi(name, 'eddye') && addcsdye == 1) ...
+            || csdcontourplot || strcmpi(name, runs.csdname)
         runs.read_csdsurf(t0, ntimes);
-        if strcmpi(name, 'csdye')
+        if strcmpi(name, 'csdye') || strcmpi(name, runs.csdname)
             varname = 'csdsurf';
             titlestr = 'Cross-shelf dye';
             factor = 1000;
