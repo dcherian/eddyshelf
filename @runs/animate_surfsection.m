@@ -1,5 +1,5 @@
 % animate variables at the surface and cross-section
-function [] = animate_surfsection(runs, varname, t0, ntimes)
+function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
 
     dx = 20; % start from shelfbreak - 20 km
     dt = 3;
@@ -10,6 +10,9 @@ function [] = animate_surfsection(runs, varname, t0, ntimes)
         ntimes = t0 + dt * (ntimes - 1);
     end
     if ~exist('t0', 'var'), t0 = 1; end
+    if ~exist('varname1', 'var') || isempty(varname1)
+        varname1 = varname;
+    end
 
     runs.video_init(['section-' varname]);
     makeVideo = runs.makeVideo;
@@ -44,8 +47,6 @@ function [] = animate_surfsection(runs, varname, t0, ntimes)
         runs.read_eddsurf;
         varname = runs.eddname;
     end
-
-    varname1 = 'rho'; varname;
 
     % if different variables, do same location
     if ~strcmpi(varname1, varname), iy1 = iy; y1 = y0; end
