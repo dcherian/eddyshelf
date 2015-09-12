@@ -25,7 +25,10 @@ function [] = animate_surfsection(runs, varname, t0, ntimes)
         iy1 = vecfind(runs.rgrid.y_rho(:,1), y1);
     end
     tt = t0;
-    xr = runs.rgrid.x_rho(1,2:end-1)/1000;
+    x0 = runs.eddy.mx(tt)/1000;
+    xr = runs.rgrid.x_rho(1,:)'/1000;
+    xvec = xr(2:end-1) - x0;
+    zmat = runs.rgrid.z_r;
 
     % read data here, so that I don't incur overhead at least for
     % surface fields.
@@ -51,12 +54,25 @@ function [] = animate_surfsection(runs, varname, t0, ntimes)
     v = dc_roms_read_data(runs.dir, varname, ...
                           tt, {runs.bathy.axis iy(tt) iy(tt)}, ...
                           [], runs.rgrid, 'his', 'single')/1000;
-    v1 = dc_roms_read_data(runs.dir, varname1, ...
-                           tt, {runs.bathy.axis iy1(tt) iy1(tt)}, ...
-                           [], runs.rgrid, 'his', 'single')/1000;
-
     v = v(2:end-1,:,:);
-    v1 = v1(2:end-1,:,:);
+
+    if strcmpi(varname1, 'pv') || strcmpi(varname1, 'rv')
+        xvec1 = avg1(xr,1) - x0;
+        zmat1 = permute(ncread([runs.dir '/ocean_vor.nc'], ['z_' varname1]), ...
+                       [3 2 1]);
+        tpv = ncread([runs.dir '/ocean_vor.nc'], 'ocean_time');
+        itpv = find_approx(tpv, runs.time(tt));
+        v1 = dc_roms_read_data(runs.dir, varname1, itpv, ...
+                               {runs.bathy.axis iy1(tt) iy1(tt)}, ...
+                               [], runs.rgrid, 'his', 'single')/1000;
+    else
+        xvec1 = xvec;
+        zmat1 = runs.rgrid.z_r;
+        v1 = dc_roms_read_data(runs.dir, varname1, ...
+                               tt, {runs.bathy.axis iy1(tt) iy1(tt)}, ...
+                               [], runs.rgrid, 'his', 'single')/1000;
+        v1 = v1(2:end-1,:,:);
+    end
 
     if strcmpi(varname1, 'rho') || strcmpi(varname1, 'dye_02')
         rback = dc_roms_read_data(runs.dir, varname1, 1, {}, [], ...
@@ -84,9 +100,7 @@ function [] = animate_surfsection(runs, varname, t0, ntimes)
     caxis(clim);
 
     hax(2) = subplot(2,2,4);
-    x0 = runs.eddy.mx(tt)/1000;
-    xvec = xr - x0;
-    zvec = runs.rgrid.z_r(:, iy(tt)+1, 1);
+    zvec = zmat(:, iy(tt)+1, 1);
     hplt = pcolor(xvec, zvec, v');
     hold on
     if strcmpi(varname1, 'rho')
@@ -108,8 +122,8 @@ function [] = animate_surfsection(runs, varname, t0, ntimes)
     colorbar; caxis(clim);
 
     hax(3) = subplot(2,2,3);
-    zvec1 = runs.rgrid.z_r(:, iy1(tt)+1, 1);
-    hplt1 = pcolor(xvec, zvec1, v1'); hold on;
+    zvec1 = zmat1(:, iy1(tt)+1, 1);
+    hplt1 = pcolor(xvec1, zvec1, v1'); hold on;
     hl1 = linex([runs.eddy.rhovor.ee(tt) ...
                  runs.eddy.rhovor.we(tt) x0]/1000 - x0, [], 'k');
     hly1 = liney(-1 * runs.eddy.Lgauss(tt), [], 'k');
@@ -173,12 +187,13 @@ function [] = animate_surfsection(runs, varname, t0, ntimes)
             end
 
             x0 = runs.eddy.mx(tt)/1000;
-            xvec = xr - x0;
-            zvec = runs.rgrid.z_r(:, iy(tt)+1, 1);
-            zvec1 = runs.rgrid.z_r(:, iy1(tt)+1, 1);
+            xvec = xr(2:end-1) - x0;
+            xvec1 = avg1(xr,1) - x0;
+            zvec = zmat(:, iy(tt)+1, 1);
+            zvec1 = zmat1(:, iy1(tt)+1, 1);
 
             hplt1.CData = v1';
-            hplt1.XData = xvec;
+            hplt1.XData = xvec1;
             hplt1.YData = zvec1;
             hl1{1}.XData = [1 1] * runs.eddy.vor.ee(tt)/1000 - x0;
             hl1{2}.XData = [1 1] * runs.eddy.vor.we(tt)/1000 - x0;
