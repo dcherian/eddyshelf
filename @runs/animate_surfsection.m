@@ -7,7 +7,7 @@ function [] = animate_surfsection(runs, varname, t0, ntimes)
     if ~exist('ntimes', 'var')
         ntimes = length(runs.time);
     else
-        ntimes = t0 + dt * ntimes;
+        ntimes = t0 + dt * (ntimes - 1);
     end
     if ~exist('t0', 'var'), t0 = 1; end
 
