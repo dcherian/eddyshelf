@@ -6178,12 +6178,12 @@ methods
     function [ht] = set_title(runs,titlestr,tt)
         ht = title([titlestr ' | ' runs.name ' | ' ...
                     num2str(runs.time(tt)/86400)  ' days | t_{nd} = ' ...
-                   num2str(runs.time(tt)/runs.eddy.turnover)]);
+                   num2str(runs.time(tt)/runs.eddy.turnover, '%.2f')]);
     end
     function update_title(runs,ht,titlestr,tt)
         set(ht,'String',[titlestr ' | ' runs.name ' | ' ...
                          num2str(runs.time(tt)/86400)  ' days | t_{nd} = ' ...
-                          num2str(runs.time(tt)/runs.tscale)]);
+                          num2str(runs.time(tt)/runs.tscale, '%.2f')]);
     end
 
     function [hplot] = plot_bathy(runs,plottype,color)
