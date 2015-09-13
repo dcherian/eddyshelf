@@ -10,9 +10,6 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
         ntimes = t0 + dt * (ntimes - 1);
     end
     if ~exist('t0', 'var'), t0 = 1; end
-    if ~exist('varname1', 'var') || isempty(varname1)
-        varname1 = varname;
-    end
 
     runs.video_init(['section-' varname]);
     makeVideo = runs.makeVideo;
@@ -46,6 +43,10 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
     if strcmpi(varname, 'eddye')
         runs.read_eddsurf;
         varname = runs.eddname;
+    end
+
+    if ~exist('varname1', 'var') || isempty(varname1)
+        varname1 = varname;
     end
 
     % if different variables, do same location
