@@ -190,7 +190,11 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
 
             x0 = runs.eddy.mx(tt)/1000;
             xvec = xr(2:end-1) - x0;
-            xvec1 = avg1(xr,1) - x0;
+            if strcmpi(varname1, 'pv') || strcmpi(varname1, 'rv')
+                xvec1 = avg1(xr,1) - x0;
+            else
+                xvec1 = xvec;
+            end
             zvec = zmat(:, iy(tt)+1, 1);
             zvec1 = zmat1(:, iy1(tt)+1, 1);
 
