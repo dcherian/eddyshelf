@@ -14,16 +14,18 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
     runs.video_init(['section-' varname]);
     makeVideo = runs.makeVideo;
 
-    csfluxflag = 0;
+    y0 = runs.eddy.my;
+
+    csfluxflag = 1;
     if csfluxflag
-        isobath = 4;
-        iy = runs.csflux.ix(isobath) * ones(size(runs.time));
+        isobath = 2;
+        y1 = runs.csflux.x(isobath) * ones(size(runs.time));
     else
-        y0 = runs.eddy.my;
-        y1 = y0 - runs.eddy.vor.dia/4;
-        iy = vecfind(runs.rgrid.y_rho(:,1), y0);
-        iy1 = vecfind(runs.rgrid.y_rho(:,1), y1);
+        y1 = y0 - runs.eddy.vor.dia/2;
     end
+    iy = vecfind(runs.rgrid.y_rho(:,1), y0);
+    iy1 = vecfind(runs.rgrid.y_rho(:,1), y1);
+
     tt = t0;
     x0 = runs.eddy.mx(tt)/1000;
     xr = runs.rgrid.x_rho(1,:)'/1000;
@@ -88,14 +90,10 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
     runs.animate_field(varname, hax, t0, 1);
     runs.makeVideo = makeVideo;
     ylim([runs.bathy.xsb/1000-dx max(ylim)])
-    if ~csfluxflag
-        if strcmpi(varname1, varname)
-            liney([y1(tt) y0(tt)]/1000, {'1'; '2'}, 'k');
-        else
-            liney([y1(tt) y0(tt)]/1000, [], 'k');
-        end
+    if strcmpi(varname1, varname)
+        liney([y1(tt) y0(tt)]/1000, {'1'; '2'}, 'k');
     else
-        liney(runs.csflux.x(isobath)/1000, [], 'k');
+        liney([y1(tt) y0(tt)]/1000, [], 'k');
     end
     clim = caxis;
     clim(1) = runs.bathy.xsb/1000 - dx;
@@ -120,7 +118,7 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
         title(varname);
     end
     shading interp;
-    if ~csfluxflag, ylim([-1*min(runs.bathy.h(1,iy1)) 0]); end
+    ylim([-1*min(runs.bathy.h(1,iy1)) 0]);
     colorbar; caxis(clim);
 
     hax(3) = subplot(2,2,3);
@@ -144,7 +142,7 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
         title(varname1);
     end
     shading interp;
-    if ~csfluxflag, ylim([-1*min(runs.bathy.h(1,iy1)) 0]); end
+    ylim([-1*min(runs.bathy.h(1,iy1)) 0]);
     colorbar;
     if strcmpi(varname1, varname)
         caxis(clim);
@@ -152,6 +150,7 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
 
     % linkaxes(hax, 'x');
     xlim([-1 1]* 200);
+    % ylim([-400 0]);
     linkaxes(hax([3 2]), 'xy');
 
     if ntimes > 1
@@ -163,14 +162,10 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
             runs.makeVideo = 0;
             runs.animate_field(varname, hax, tt, 1);
             runs.makeVideo = makeVideo;
-            if ~csfluxflag
-                if strcmpi(varname1, varname)
-                    liney([y1(tt) y0(tt)]/1000, {'1'; '2'}, 'k');
-                else
-                    liney([y1(tt) y0(tt)]/1000, [], 'k');
-                end
+            if strcmpi(varname1, varname)
+                liney([y1(tt) y0(tt)]/1000, {'1'; '2'}, 'k');
             else
-                liney(runs.csflux.x(isobath)/1000, [], 'k');
+                liney([y1(tt) y0(tt)]/1000, [], 'k');
             end
             ylim([runs.bathy.xsb/1000-dx max(ylim)])
             caxis(clim);
