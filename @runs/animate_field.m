@@ -189,12 +189,10 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     end
 
     % read rhosurf if required
-    if strcmpi(name, 'rho') || rhocontourplot
+    if strcmpi(name, 'rho')
         runs.read_rhosurf(t0, ntimes);
-        if strcmpi(name, 'rho');
-            varname = 'rhosurf';
-            titlestr = 'Surface \rho';
-        end
+        varname = 'rhosurf';
+        titlestr = 'Surface \rho';
     end
 
     % bottom velocities

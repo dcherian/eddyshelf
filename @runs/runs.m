@@ -6131,27 +6131,22 @@ methods
         ix = max([runs.spng.sx1:runs.spng.sx2]-1,1);
         iy = max([runs.spng.sy1:runs.spng.sy2]-1,1);
 
-        mask = ((runs.rhosurf(2:end-1,2:end-1,tt) - runs.rbacksurf) < ...
-               runs.eddy.drhothresh(1)); % .* runs.eddy.vormask(:,:,tt);
         hold on;
-
-        [~,hplot] = contour(runs.eddy.xr(ix,iy)/1000, ...
-                            runs.eddy.yr(ix,iy)/1000, ...
-                            mask(ix,iy),'Color',[44 162 95]/256, ...
-                            'LineWidth',1);
+        [~,hplot] = contour(runs.eddy.xr(ix,iy)/1000,runs.eddy.yr(ix,iy)/1000, ...
+                            runs.eddy.rhovor.mask(ix,iy,tt), ...
+                            'Color',[44 162 95]/256,'LineWidth',1);
     end
     function update_rho_contour(runs,handle,tt)
         ix = max([runs.spng.sx1:runs.spng.sx2]-1,1);
         iy = max([runs.spng.sy1:runs.spng.sy2]-1,1);
 
-        mask = ((runs.rhosurf(2:end-1,2:end-1,tt) - runs.rbacksurf) < ...
-                runs.eddy.drhothresh(1)) .* runs.eddy.vormask(:,:,tt);
-
         for ii=1:length(handle)
             try
-                set(handle(ii),'ZData', double(mask(ix,iy)));
+                set(handle(ii),'ZData', ...
+                               double(runs.eddy.rhovor.mask(ix,iy,tt)));
             catch ME
-                disp(ME.message);
+                set(handle(ii),'CData', ...
+                               double(runs.eddy.rhovor.mask(ix,iy,tt)));
             end
         end
     end
