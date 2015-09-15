@@ -277,7 +277,9 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     hz.CData = hz.CData / factor;
     hold on;
     colorbar;
-    if ~strcmpi(name, 'csdye'), center_colorbar; end
+    if ~strcmpi(name, 'csdye') && ~strcmpi(name, 'rho')
+        center_colorbar;
+    end
     clim = caxis;
 
     if csdcontourplot
