@@ -54,12 +54,14 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
     % if different variables, do same location
     if ~strcmpi(varname1, varname), iy1 = iy; y1 = y0; end
 
-    % process cross-shelf dye
+    % process first variable
     v = dc_roms_read_data(runs.dir, varname, ...
                           tt, {runs.bathy.axis iy(tt) iy(tt)}, ...
-                          [], runs.rgrid, 'his', 'single')/1000;
+                          [], runs.rgrid, 'his', 'single');
     v = v(2:end-1,:,:);
+    if strcmpi(varname, 'dye_01'), v = v / 1000; end
 
+    % process second variable
     if strcmpi(varname1, 'pv') || strcmpi(varname1, 'rv')
         xvec1 = avg1(xr,1) - x0;
         zmat1 = permute(ncread([runs.dir '/ocean_vor.nc'], ['z_' varname1]), ...
@@ -68,20 +70,29 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
         itpv = find_approx(tpv, runs.time(tt));
         v1 = dc_roms_read_data(runs.dir, varname1, itpv, ...
                                {runs.bathy.axis iy1(tt) iy1(tt)}, ...
-                               [], runs.rgrid, 'his', 'single')/1000;
+                               [], runs.rgrid, 'his', 'single');
     else
         xvec1 = xvec;
         zmat1 = runs.rgrid.z_r;
         v1 = dc_roms_read_data(runs.dir, varname1, ...
                                tt, {runs.bathy.axis iy1(tt) iy1(tt)}, ...
-                               [], runs.rgrid, 'his', 'single')/1000;
+                               [], runs.rgrid, 'his', 'single');
         v1 = v1(2:end-1,:,:);
     end
+    if strcmpi(varname, 'dye_01'), v1 = v1 / 1000; end
 
+    % remove background?
+    if strcmpi(varname, 'rho') || strcmpi(varname, 'dye_02')
+        rback = dc_roms_read_data(runs.dir, varname, 1, {}, [], ...
+                                  runs.rgrid, 'his', 'single');
+        v = v - squeeze(rback(2:end-1,iy(tt),:));
+        %v1 = bsxfun(@minus, v1, v1(1,:));
+    end
     if strcmpi(varname1, 'rho') || strcmpi(varname1, 'dye_02')
         rback = dc_roms_read_data(runs.dir, varname1, 1, {}, [], ...
                                   runs.rgrid, 'his', 'single');
-        v1 = v1*1000 - squeeze(rback(2:end-1,iy1(tt),:));
+        v1 = v1 - squeeze(rback(2:end-1,iy1(tt),:));
+        %v1 = bsxfun(@minus, v1, v1(1,:));
     end
 
     figure
@@ -96,17 +107,32 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
         liney([y1(tt) y0(tt)]/1000, [], 'k');
     end
     clim = caxis;
-    clim(1) = runs.bathy.xsb/1000 - dx;
+    if strcmpi(varname, 'csdye')
+        clim(1) = runs.bathy.xsb/1000 - dx;
+    end
     caxis(clim);
 
     hax(2) = subplot(2,2,4);
     zvec = zmat(:, iy(tt)+1, 1);
     hplt = pcolor(xvec, zvec, v');
     hold on
-    if strcmpi(varname1, 'rho')
-        hrho = contour(xvec, zvec, v1', ...
+    if strcmpi(varname, 'rho')
+        clim = caxis;
+        hrho = contour(xvec, zvec, v', ...
                        [1 1]*runs.eddy.drhothresh(1), 'k', ...
                        'LineWidth', 2);
+        caxis(clim);
+    else
+        if strcmpi(varname1, 'rho')
+            clim = caxis;
+            hrho = contour(xvec, zvec, v1', ...
+                           [1 1]*runs.eddy.drhothresh(1), 'k', ...
+                           'LineWidth', 2);
+            caxis(clim);
+        end
+    end
+     if strcmpi(varname1, 'rho') || strcmpi(varname1, 'dye_02')
+        center_colorbar;
     end
     hl = linex([runs.eddy.rhovor.ee(tt) ...
                 runs.eddy.rhovor.we(tt) x0]/1000 - x0, [], 'k');
@@ -119,7 +145,7 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
     end
     shading interp;
     ylim([-1*min(runs.bathy.h(1,iy1)) 0]);
-    colorbar; caxis(clim);
+    colorbar;
 
     hax(3) = subplot(2,2,3);
     zvec1 = zmat1(:, iy1(tt)+1, 1);
@@ -133,6 +159,8 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
                        [1 1]*runs.eddy.drhothresh(1), 'k', ...
                        'LineWidth', 2);
         caxis(clim1);
+    end
+    if strcmpi(varname1, 'rho') || strcmpi(varname1, 'dye_02')
         center_colorbar;
     end
     liney(-1*runs.bathy.hsb, 'shelfbreak');
@@ -142,9 +170,9 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
         title(varname1);
     end
     shading interp;
-    ylim([-1*min(runs.bathy.h(1,iy1)) 0]);
+    % ylim([-1*min(runs.bathy.h(1,iy)) 0]);
     colorbar;
-    if strcmpi(varname1, varname)
+    if strcmpi(varname1, varname) && ~strcmpi(varname, 'rho')
         caxis(clim);
     end
 
@@ -196,15 +224,15 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
             hplt1.CData = v1';
             hplt1.XData = xvec1;
             hplt1.YData = zvec1;
-            hl1{1}.XData = [1 1] * runs.eddy.vor.ee(tt)/1000 - x0;
-            hl1{2}.XData = [1 1] * runs.eddy.vor.we(tt)/1000 - x0;
+            hl1{1}.XData = [1 1] * runs.eddy.rhovor.ee(tt)/1000 - x0;
+            hl1{2}.XData = [1 1] * runs.eddy.rhovor.we(tt)/1000 - x0;
             hly1.YData = [1 1] * -1 * runs.eddy.Lgauss(tt);
 
             hplt.CData = v';
             hplt.XData = xvec;
             hplt.YData = zvec;
-            hl{1}.XData = [1 1] * runs.eddy.vor.ee(tt)/1000 - x0;
-            hl{2}.XData = [1 1] * runs.eddy.vor.we(tt)/1000 - x0;
+            hl{1}.XData = [1 1] * runs.eddy.rhovor.ee(tt)/1000 - x0;
+            hl{2}.XData = [1 1] * runs.eddy.rhovor.we(tt)/1000 - x0;
             hly.YData = [1 1] * -1 * runs.eddy.Lgauss(tt);
 
             runs.video_update();
