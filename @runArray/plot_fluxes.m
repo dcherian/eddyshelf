@@ -61,6 +61,8 @@ function [] = plot_fluxes(runArray, isobath, source)
         [start,stop] = run.flux_tindices(fluxvec);
         ifluxvec = run.csflux.west.itrans.slope(:,isobath, source);
         ttrans = max(abs(ifluxvec));
+        ttransv = trapz(run.csflux.vertbins(:,isobath), ...
+                        run.csflux.west.slopewater.vertitrans(:,isobath,source));
 
         % ndtime = run.csflux.time/run.eddy.turnover;
         ndtime = run.csflux.time/run.csflux.time(start);
@@ -88,15 +90,18 @@ function [] = plot_fluxes(runArray, isobath, source)
         if ~isempty(hfig2)
             figure(hfig2)
             profile = ...
-                run.csflux.west.slopewater.vertitrans(:,isobath,source)./ ttrans;
+                run.csflux.west.slopewater.vertitrans(:,isobath,source);
             vertbins = run.csflux.vertbins(:,isobath);
-            zvec = vertbins./ max(abs(vertbins));
-            zind = find_approx(vertbins, -1*run.bathy.hsb);
+            zvec = vertbins ./ Lz; %max(abs(vertbins));
+            zind = find_approx(vertbins, -1.*hsb);
             bc = baroclinicity(zvec, profile);
+            profile = profile ./ max(profile);
             hgplt2(ff) = plot(profile, zvec, 'Color', hgplt1(ff).Color);
             plot(profile(zind), zvec(zind), 'x', ...
                  'Color', hgplt1(ff).Color);
-            names2{ff} =  [names{ff} ' | bc = ' num2str(bc,'%.3f')];
+            names2{ff} =  [names{ff} ' | bc = ' num2str(bc, ...
+                                                        '%.3f')];
+            trapz(vertbins, profile)
         end
 
         %%%%%%%%%%%%% ENVELOPE
@@ -246,11 +251,11 @@ function [] = plot_fluxes(runArray, isobath, source)
 
         %subplot(2,2,4)
         insertAnnotation('runArray.plot_fluxes');
-        ylim([-1 0]);
+        %ylim([-1 0]);
         limx = xlim;
         xlim([0 limx(2)]);
         xlabel('Normalized volume transported');
-        ylabel('Vertical bin / Water depth');
+        ylabel('Vertical bin / Eddy scale');
         title(['ND isobath = ', locstr]);
         legend(hgplt2, names2, 'Location', 'SouthEast');
         beautify;
