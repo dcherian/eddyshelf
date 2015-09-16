@@ -1314,6 +1314,21 @@ methods
                                       [], runs.rgrid, 'his', 'single');
             csdye = csdye(2:end-1,:,:);
 
+            eddye = dc_roms_read_data(runs.dir, runs.eddname, ...
+                                      tindex, {runs.bathy.axis ix+1 ix+1}, ...
+                                      [], runs.rgrid, 'his', 'single');
+            eddye = eddye(2:end-1,:,:);
+
+            rho = dc_roms_read_data(runs.dir, 'rho', ...
+                                      tindex, {runs.bathy.axis ix+1 ix+1}, ...
+                                      [], runs.rgrid, 'his', 'single');
+            rho = rho(2:end-1,:,:);
+
+            rback = dc_roms_read_data(runs.dir, 'rho', ...
+                                      1, {runs.bathy.axis ix+1 ix+1}, ...
+                                      [], runs.rgrid, 'his', 'single');
+            rho = rho - rback(2:end-1,:,:);
+
             mask = fillnan(bsxfun(@times, csdye < runs.csflux.x(isobath), ...
                    runs.csflux.westmask(:,tindex,isobath)),0)';
 
@@ -1381,7 +1396,7 @@ methods
                 figure(hfig6)
                 insertAnnotation([runs.name '.plot_fluxes']);
 
-                ax(1) = subplot(211);
+                ax(1) = subplot(221);
 
                 [~,h1] = contourf(xvec, zvec, csvel', 20);
                 hold on
@@ -1394,9 +1409,12 @@ methods
                 title(['v (m/s) | ' runs.name]);
                 linex(xfrac);
                 center_colorbar;
+                xlim([-1 1]*max(abs(xlim))/2);
 
-                ax(2) = subplot(212);
-                pcolorcen(xvec, zvec, csdye' .* mask/1000);
+                ax(2) = subplot(222);
+                pcolorcen(xvec, zvec, csdye'/1000); % .* mask
+                hold on; shading interp
+                contour(xvec, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
                 colorbar;
                 xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
                 title(['Cross-shelf dye (km) | ' runs.name]);
@@ -1405,7 +1423,34 @@ methods
                 linex(xfrac);
                 liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
                 liney(-1 * runs.bathy.hsb, 'h_{sb}');
-                xlim([min(xlim) 0]);
+
+                ax(3) = subplot(223);
+                pcolorcen(xvec, zvec, rho'); % .* mask
+                hold on; shading interp;
+                contour(xvec, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
+                colorbar;
+                xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
+                title(['Cross-shelf dye (km) | ' runs.name]);
+                runs.add_timelabel(tindex);
+                linkaxes(ax, 'xy');
+                linex(xfrac);
+                liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
+                liney(-1 * runs.bathy.hsb, 'h_{sb}');
+                caxis([-0.05 0]);
+
+                ax(4) = subplot(224);
+                pcolorcen(xvec, zvec, eddye'); % .* mask
+                hold on; shading interp;
+                contour(xvec, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
+                colorbar;
+                xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
+                title(['Eddy dye (km) | ' runs.name]);
+                runs.add_timelabel(tindex);
+                linkaxes(ax, 'xy');
+                linex(xfrac);
+                liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
+                liney(-1 * runs.bathy.hsb, 'h_{sb}');
+                caxis([0 1]);
             end
 
             if ~isempty(hfig8)
