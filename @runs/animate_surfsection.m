@@ -65,7 +65,7 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
     if strcmpi(varname1, 'pv') || strcmpi(varname1, 'rv')
         xvec1 = avg1(xr,1) - x0;
         zmat1 = permute(ncread([runs.dir '/ocean_vor.nc'], ['z_' varname1]), ...
-                       [3 2 1]);
+                        [3 2 1]);
         tpv = ncread([runs.dir '/ocean_vor.nc'], 'ocean_time');
         itpv = find_approx(tpv, runs.time(tt));
         v1 = dc_roms_read_data(runs.dir, varname1, itpv, ...
@@ -79,7 +79,7 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
                                [], runs.rgrid, 'his', 'single');
         v1 = v1(2:end-1,:,:);
     end
-    if strcmpi(varname, 'dye_01'), v1 = v1 / 1000; end
+    if strcmpi(varname1, 'dye_01'), v1 = v1 / 1000; end
 
     % remove background?
     if strcmpi(varname, 'rho') || strcmpi(varname, 'dye_02')
@@ -106,11 +106,11 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
     else
         liney([y1(tt) y0(tt)]/1000, [], 'k');
     end
-    clim = caxis;
-    if strcmpi(varname, 'csdye')
-        clim(1) = runs.bathy.xsb/1000 - dx;
+    climsurf = caxis;
+    if strcmpi(varname, 'csdye') || strcmpi(varname, 'dye_01')
+        climsurf(1) = runs.bathy.xsb/1000 - dx;
     end
-    caxis(clim);
+    caxis(climsurf);
 
     hax(2) = subplot(2,2,4);
     zvec = zmat(:, iy(tt)+1, 1);
@@ -131,7 +131,7 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
             caxis(clim);
         end
     end
-     if strcmpi(varname1, 'rho') || strcmpi(varname1, 'dye_02')
+     if strcmpi(varname, 'rho') || strcmpi(varname, 'dye_02')
         center_colorbar;
     end
     hl = linex([runs.eddy.rhovor.ee(tt) ...
@@ -145,7 +145,7 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
     end
     shading interp;
     ylim([-1*min(runs.bathy.h(1,iy1)) 0]);
-    colorbar;
+    colorbar; caxis(climsurf);
 
     hax(3) = subplot(2,2,3);
     zvec1 = zmat1(:, iy1(tt)+1, 1);
@@ -170,15 +170,15 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
         title(varname1);
     end
     shading interp;
-    % ylim([-1*min(runs.bathy.h(1,iy)) 0]);
+    ylim([-1*min(runs.bathy.h(1,iy)) 0]);
     colorbar;
     if strcmpi(varname1, varname) && ~strcmpi(varname, 'rho')
-        caxis(clim);
+        caxis(climsurf);
     end
 
     % linkaxes(hax, 'x');
     xlim([-1 1]* 200);
-    % ylim([-400 0]);
+    % ylim([-300 0]);
     linkaxes(hax([3 2]), 'xy');
 
     if ntimes > 1
