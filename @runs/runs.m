@@ -1174,6 +1174,9 @@ methods
         hfig7 = []; %figure; % streamer vmax
         hfig8 = []; %figure; % streamer velocity line plots
 
+        hsb = runs.bathy.hsb;
+        Lz = runs.eddy.Lgauss(1);
+
         if ~isempty(hfig1)
             if length(source) > 1
                 error('Specify 1 source isobath only!');
@@ -1196,16 +1199,21 @@ methods
             subplot(122)
             lightDarkLines(length(runs.csflux.ix));
             for iso=1:length(runs.csflux.ix)
-                plot(runs.csflux.west.slopewater.vertitrans(:,iso,iso), ...
-                     runs.csflux.vertbins(:,iso));
+                fluxvec = runs.csflux.west.slopewater.vertitrans(:, ...
+                                                                 iso,iso);
+                zvec = runs.csflux.vertbins(:,iso)./Lz;
+                trans = trapz(zvec, fluxvec);
+                plot(fluxvec./max(fluxvec), zvec);
             end
-            liney(-1 * runs.bathy.hsb);
+            ideal = exp(-((zvec + hsb/2)/(hsb)).^2) .* (zvec >= -hsb) ...
+                    + exp(-1/4) * (1 - erf(-zvec/Lz)) .* (zvec < -hsb);
+            plot(ideal, zvec, 'k--');
+            %liney(-1 * runs.bathy.hsb);
             legend(cellstr(num2str(runs.csflux.h')), ...
                    'Location', 'SouthEast');
             beautify;
             title([runs.name]);
             axis square;
-
         end
 
         if ~isempty(hfig2)
