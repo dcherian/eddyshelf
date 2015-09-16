@@ -5921,6 +5921,7 @@ methods
         read_start = [1 1 1 tind(1)];
         read_count = [Inf Inf Inf nt];
 
+        runs.video_init(['z' num2str(depth) '-' varname]);
         if strcmp(varname,'vor');
             grids = [runs.dir '/ocean_vor.nc'];
         else
@@ -5939,7 +5940,6 @@ methods
         end
         % read data
         for mmm = 1:nt
-
             if ~datain
                 disp(['reading & interpolating timestep ' num2str(mmm) '/' ...
                             num2str(nt)]);
@@ -5958,31 +5958,45 @@ methods
         end
         clear data
 
+        runs.read_csdsurf;
+
         % animate
+        figure; maximize;
+        insertAnnotation([runs.name '.animate_zslice']);
         xax = grd.xax(:,:,1)/1000; yax=  grd.yax(:,:,1)/1000; clear grd;
         tt = 1;
         [~,hc] = contourf(xax,yax,var(:,:,tt));
         hold on
-        he = runs.plot_eddy_contour('contour',tind(1) + tt-1);
+        he = runs.plot_rho_contour('contour',tind(1) + tt-1);
+        [~,hcsd] = contour(xax, yax, runs.csdsurf(:,:,tind(1)+tt-1), ...
+                       runs.csflux.x([1 4 6 8]), ...
+                       'Color', [1 1 1]*0.55, 'LineWidth', 2);
         shading flat;
         ht = title([varname ' | z = ' num2str(depth) ' m | t = ' ...
             num2str(runs.time(tind(1)+tt-1)/86400) ' days']);
         axis image;
         xlim([min(xax(:)) max(xax(:))]);
         ylim([min(yax(:)) max(yax(:))]);
-        colorbar; caxis([min(var(:)) max(var(:))]);
+        colorbar;
+        if strcmpi(varname, runs.eddname)
+            center_colorbar;
+            caxis([-1 1]);
+        else
+            caxis([min(var(:)) max(var(:))]);
+        end
         xlabel('X (km)'); ylabel('Y (km)');
         runs.plot_bathy('contour','k');
-        pause();
         for tt=2:nt
+            runs.video_update;
+            pause(0.1);
             set(hc,'ZData',var(:,:,tt));
             shading flat
-            runs.update_eddy_contour(he,tind(1) + tt-1);
+            runs.update_rho_contour(he,tind(1) + tt-1);
+            hcsd.ZData = runs.csdsurf(:,:,tind(1) + tt-1);
             set(ht,'String',[varname ' | z = ' num2str(depth) ' m | t = ' ...
             num2str(runs.time(tind(1)+tt-1)/86400) ' days']);
-            pause();
         end
-
+        runs.video_write;
     end
 
    %% generic plotting functions
