@@ -145,7 +145,11 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
     end
     shading interp;
     ylim([-1*min(runs.bathy.h(1,iy1)) 0]);
-    colorbar; caxis(climsurf);
+    colorbar;
+    if ~strcmpi(varname, 'rho')
+        caxis(climsurf);
+    end
+
 
     hax(3) = subplot(2,2,3);
     zvec1 = zmat1(:, iy1(tt)+1, 1);
@@ -196,20 +200,27 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
                 liney([y1(tt) y0(tt)]/1000, [], 'k');
             end
             ylim([runs.bathy.xsb/1000-dx max(ylim)])
-            caxis(clim);
+            caxis(climsurf);
 
             v = dc_roms_read_data(runs.dir, varname, ...
                                   tt, {runs.bathy.axis iy(tt) iy(tt)}, ...
-                                  [], runs.rgrid, 'his', 'single')/1000;
+                                  [], runs.rgrid, 'his', 'single');
             v1 = dc_roms_read_data(runs.dir, varname1, ...
                                    tt, {runs.bathy.axis iy1(tt) iy1(tt)}, ...
-                                   [], runs.rgrid, 'his', 'single')/1000;
+                                   [], runs.rgrid, 'his', 'single');
             v = v(2:end-1,:,:);
             v1 = v1(2:end-1,:,:);
 
-            if strcmpi(varname1, 'rho') || strcmpi(varname1, 'dye_02')
-                v1 = v1*1000 - squeeze(rback(2:end-1,iy1(tt),:));
+            if strcmpi(varname, 'rho') || strcmpi(varname, 'dye_02')
+                v = v - squeeze(rback(2:end-1,iy1(tt),:));
             end
+
+            if strcmpi(varname1, 'rho') || strcmpi(varname1, 'dye_02')
+                v1 = v1 - squeeze(rback(2:end-1,iy1(tt),:));
+            end
+
+            if strcmpi(varname, 'dye_01'), v = v / 1000; end
+            if strcmpi(varname1, 'dye_01'), v1 = v1 / 1000; end
 
             x0 = runs.eddy.mx(tt)/1000;
             xvec = xr(2:end-1) - x0;
