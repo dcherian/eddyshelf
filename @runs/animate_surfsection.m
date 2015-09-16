@@ -11,7 +11,11 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
     end
     if ~exist('t0', 'var'), t0 = 1; end
 
-    runs.video_init(['section-' varname]);
+    if isempty(varname1)
+        runs.video_init(['section-' varname]);
+    else
+        runs.video_init(['section-' varname '-' varname1]);
+    end
     makeVideo = runs.makeVideo;
 
     y0 = runs.eddy.my;
