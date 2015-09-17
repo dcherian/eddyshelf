@@ -247,10 +247,11 @@ end
 
 function common(obj, ii, days, tindices)
 % do common tasks
+    drawnow;
     colorbar;
     limx = xlim; limy = ylim;
-    text(0.65 , 0.05, ...
-         ['t = ' num2str(days(ii)) ' days'], 'Units', 'normalized');
+    text(0.05 , 0.05, ['t = ' num2str(days(ii)) ' days'], ...
+         'Units', 'normalized', 'Color', 'w');
     title(['day' num2str(days(ii))]);
     if ii == 1, ylabel('Z (m)'); end
     xlabel([upper(obj.bathy.axis) '(km)']);
