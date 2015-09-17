@@ -1,7 +1,6 @@
-
 % plot eddye - y-z cross-sections to compare against diagnosed vertical
 % scale
-function [] = plot_eddye(runs, days)
+function [] = plot_yzsection(runs, days)
 
     plot_pbot = 0;
     if plot_pbot
@@ -12,18 +11,18 @@ function [] = plot_eddye(runs, days)
     % hack for when I'm trying to provide non-dimensional times
     %if all(days < 1)
     %tindices = vecfind(runs.ndtime, days);
-    tindices = tind;
+    %tindices = tind;
         %else
         %tindices = vecfind(runs.time/86400, days)
         %end
 
-    %tindices = [1 tind];
-    days = runs.eddy.t(tindices);
+    tindices = days;
+    days = runs.eddy.t(days);
 
     nt = length(tindices);
 
-    %hf1 = figure; maximize();% - eddye
-    hf2 = figure; maximize();% - rho
+    hf1 = figure; maximize();% - eddye
+                             %hf2 = figure; maximize();% - rho
     %hf3 = figure; maximize();% - zdye
     hf4 = figure; maximize();% - u
     hf5 = figure; maximize();% - v
@@ -51,22 +50,23 @@ function [] = plot_eddye(runs, days)
 
     for ii=1:nt
         loc = num2str(cen(tindices(ii)))
+        loc  = '410000';
         if plot_pbot
             iloc = find_approx(pb.xvec, str2double(loc),1);
         end
 
-        ed = dc_roms_read_data(runs.dir, runs.eddname, tindices(ii), ...
+        ed = dc_roms_read_data(runs.dir, runs.csdname, tindices(ii), ...
                                {bathyax loc loc}, [], runs.rgrid, 'his');
 
         if exist('hf1', 'var')
             figure(hf1);
             ax1(ii) = subplot(1, nt, ii);
-            contour(yz, zmat, ed, [0.1:0.1:1]);
+            contourf(yz, zmat, ed, 40); %[0.1:0.1:1]);
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
-            colorbar; caxis([0 1]);
-            colormap(flipud(colormap('bone')))
-            title(['day' num2str(days(ii))]);
-            beautify;
+            % center_colorbar;
+            % colormap(flipud(colormap('bone')))
+
+            common(runs, ii, days, tindices);
         end
 
         if exist('hf2', 'var')
@@ -88,13 +88,8 @@ function [] = plot_eddye(runs, days)
 
             if ii == 1
                 clim = caxis; %[-0.0553 -0.0021]; %caxis;
-                ylabel('Z (m)');
             end
             caxis(clim);
-
-            % patch bathymetry
-            patch(([runs.rgrid.y_rho(:,1); min(runs.rgrid.y_rho(:,1))])./1000, ...
-                  -1*[min(runs.rgrid.h(:)); runs.rgrid.h(:,1)]./1, 'k');
 
             % density anomaly contours
             contour(yz, zmat, drho, ...
@@ -105,12 +100,7 @@ function [] = plot_eddye(runs, days)
             contour(yz, zmat, ed, [1 1]*0.9, 'Color', 'r', ...
                     'LineWidth', 2);
 
-            caxis(clim); limx = xlim; limy = ylim;
-            % vertical scale
-            liney(-1 * runs.eddy.Lgauss(tindices(ii)), [], 'k');
-            text(0.85*limx(2), -1 * runs.eddy.Lgauss(tindices(ii)), ...
-                 {'vertical','scale'}, 'VerticalAlignment', 'Bottom', ...
-                 'HorizontalAlignment','Center');
+            caxis(clim);
 
             if plot_pbot
                 pbvec = pb.pbot(iloc,:,tindices(ii));
@@ -120,10 +110,7 @@ function [] = plot_eddye(runs, days)
                 liney(z0, 'pbot anom = 0','k');
             end
 
-            text(0.65 , 0.05, ...
-                 ['t = ' num2str(days(ii)) ' days'], 'Units', 'normalized');
-            xlabel([upper(runs.bathy.axis) '(km)']);
-            beautify([15 15 18]);
+            common(runs, ii, days, tindices);
         end
 
         if exist('hf3', 'var')
@@ -137,12 +124,9 @@ function [] = plot_eddye(runs, days)
             hold on
             contour(yz, zmat, ed, 1, 'k', ...
                     'LineWidth', 2);
-            liney(-1 * runs.eddy.Lgauss(tindices(ii)));
-            colorbar;
             caxis( [-1 1] * max(abs(zd(:)-zback(:))) );
-            xlabel([upper(runs.bathy.axis) '(km)']);
-            title(['day' num2str(days(ii))]);
-            beautify;
+
+            common(runs, ii, days, tindices);
         end
 
         if exist('hf4', 'var')
@@ -164,8 +148,7 @@ function [] = plot_eddye(runs, days)
             % contour(yz/1000, zmat, drho, ...
             %         [runs.eddy.drhothresh(1) runs.eddy.drhothreshssh(1)], ...
             %         'Color', [1 1 1]*0.3, 'LineWidth', 2);
-            liney(-1 * runs.eddy.Lgauss(tindices(ii)));
-            colorbar; center_colorbar;
+            center_colorbar;
 
             if exist('hf2', 'var')
                 contour(yz, zmat, drho, ...
@@ -174,8 +157,6 @@ function [] = plot_eddye(runs, days)
             end
 
             caxis( [-1 1] * max(abs(u(:))));
-            title(['day' num2str(days(ii))]);
-            xlabel([upper(runs.bathy.axis) '(km)']);
 
             if plot_pbot
                 pbvec = pb.pbot(iloc,:,tindices(ii));
@@ -184,6 +165,8 @@ function [] = plot_eddye(runs, days)
                 plot(pb.yvec/1000, z0 + 100*pbvec)
                 liney(z0, 'pbot anom = 0','k');
             end
+
+            common(runs, ii, days, tindices);
         end
 
         if exist('hf5', 'var')
@@ -200,18 +183,16 @@ function [] = plot_eddye(runs, days)
             hold on
             contour(yz/1000, zmat, ed, 1, 'r', ...
                     'LineWidth', 2);
-            liney(-1 * runs.eddy.Lgauss(tindices(ii)));
-            colorbar; center_colorbar;
+            center_colorbar;
 
             if exist('hf2', 'var')
                 contour(yz, zmat, drho, ...
                         [1 1]* runs.eddy.drhothresh(1), ...
                         'Color', [1 1 1]*0, 'LineWidth', 2);
             end
-            keyboard;
-            xlabel([upper(runs.bathy.axis) '(km)']);
+
             caxis( [-1 1] * max(abs(v(:))));
-            title(['day' num2str(days(ii))]);
+            common(runs, ii, days, tindices);
         end
     end
 
@@ -261,4 +242,27 @@ function [] = plot_eddye(runs, days)
         linkaxes(ax5, 'xy');
         insertAnnotation([runs.name '.plot_eddye']);
     end
+end
+
+
+function common(obj, ii, days, tindices)
+% do common tasks
+    colorbar;
+    limx = xlim; limy = ylim;
+    text(0.65 , 0.05, ...
+         ['t = ' num2str(days(ii)) ' days'], 'Units', 'normalized');
+    title(['day' num2str(days(ii))]);
+    if ii == 1, ylabel('Z (m)'); end
+    xlabel([upper(obj.bathy.axis) '(km)']);
+    beautify([15 15 18]);
+
+    % vertical scale
+    liney(-1 * obj.eddy.Lgauss(tindices(ii)), [], 'k');
+    text(0.85*limx(2), -1 * obj.eddy.Lgauss(tindices(ii)), ...
+         {'vertical','scale'}, 'VerticalAlignment', 'Bottom', ...
+         'HorizontalAlignment','Center');
+
+    % patch bathymetry
+    patch(([obj.rgrid.y_rho(:,1); min(obj.rgrid.y_rho(:,1))])./1000, ...
+          -1*[min(obj.rgrid.h(:)); obj.rgrid.h(:,1)]./1, 'k');
 end
