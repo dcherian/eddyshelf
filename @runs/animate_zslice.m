@@ -14,7 +14,7 @@ function [] = animate_zslice(runs,varname,depth,tind)
     end
 
     [grd.xax,grd.yax,grd.zax,~] = dc_roms_extract(grids,varname,{},1);
-    datain= 0;
+    datain = 0;
     if nt < 20
         tic; disp('Reading data...');
         data = roms_read_data(runs.dir,varname, ...
@@ -32,11 +32,22 @@ function [] = animate_zslice(runs,varname,depth,tind)
             data = roms_read_data(runs.dir,varname, ...
                                   [read_start(1:3) read_start(4)+mmm-1], ...
                                   [read_count(1:3) 1],stride);
+
+            if strcmpi(varname, 'rho')
+                rback = permute(dc_roms_read_data(runs.dir, 'rho', 1, ...
+                                          {'x' 1 1}, [], grids), [3 1 2]);
+                data = bsxfun(@minus, data, rback);
+            end
             if mmm == 1
                 var = nan([size(data,1) size(data,2) nt]);
             end
             var(:,:,mmm) = dc_roms_zslice_var(data,depth,grd);
         else
+            if strcmpi(varname, 'rho')
+                rback = permute(dc_roms_read_data(runs.dir, 'rho', 1, ...
+                                          {'x' 1 1}, [], grids), [3 1 2]);
+                data = bsxfun(@minus, data, rback);
+            end
             disp(['interpolating timestep ' num2str(mmm) '/' ...
                   num2str(nt)]);
             var(:,:,mmm) = dc_roms_zslice_var(data(:,:,:,mmm),depth,grd);
@@ -54,12 +65,17 @@ function [] = animate_zslice(runs,varname,depth,tind)
     tt = 1;
     [~,hc] = contourf(xax,yax,var(:,:,tt), 10, 'LineWidth', 0);
     hold on
+    if strcmpi(varname, 'rho')
+        [~,hrho] = contour(xax, yax, var(:,:,tt), ...
+                           [1 1]*runs.eddy.drhothresh(1), ...
+                           'Color', 'b', 'LineWidth', 2);
+    end
     he = runs.plot_rho_contour('contour',tind(1) + tt-1);
     [~,hcsd] = contour(xax, yax, runs.csdsurf(:,:,tind(1)+tt-1), ...
                        runs.csflux.x([1 4 6]), ...
                        'Color', [1 1 1]*0.55, 'LineWidth', 2);
-    [~,hedd] = contour(xax, yax, runs.eddsurf(:,:,tind(1)+tt-1), ...
-                       [0.9 0.9], 'Color', 'k', 'LineWidth', 2);
+    % [~,hedd] = contour(xax, yax, runs.eddsurf(:,:,tind(1)+tt-1), ...
+    %                    [0.9 0.9], 'Color', 'k', 'LineWidth', 2);
     shading flat;
     ht = title([varname ' | z = ' num2str(depth) ' m | t = ' ...
                 num2str(runs.time(tind(1)+tt-1)/86400) ' days']);
@@ -84,7 +100,10 @@ function [] = animate_zslice(runs,varname,depth,tind)
         runs.update_rho_contour(he,tind(1) + tt-1);
         hcsd.ZData = runs.csdsurf(:,:,tind(1) + tt-1);
         set(ht,'String',[varname ' | z = ' num2str(depth) ' m | t = ' ...
-                         num2str(runs.time(tind(1)+tt-1)/86400) ' days']);
+                         num2str(runs.time(tind(1)+tt-1)/86400) 'days']);
+        if strcmpi(varname, 'rho')
+            hrho.ZData = var(:,:,tt);
+        end
     end
     runs.video_write;
 end
