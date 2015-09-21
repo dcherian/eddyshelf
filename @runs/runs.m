@@ -613,6 +613,14 @@ methods
         roms_info(runs.dir);
     end
 
+    function [runs] = reload(runs)
+        dir = runs.dir;
+        keyboard;
+
+        runs.delete;
+        runs(dir);
+    end
+
     function [] = plot_test1(runs)
         vmagn = hypot(avg1(runs.usurf(:,:,1),2), ...
                       avg1(runs.vsurf(:,:,1),1));
@@ -1299,6 +1307,7 @@ methods
             [~,tindex] = runs.calc_maxflux(...
                 runs.csflux.west.slope(:,isobath,isobath));;
 
+            tindex = 55;
             vnorm = runs.eddy.V(tindex);
 
             % copied from csfluxes.m
@@ -1327,7 +1336,7 @@ methods
             rback = dc_roms_read_data(runs.dir, 'rho', ...
                                       1, {runs.bathy.axis ix+1 ix+1}, ...
                                       [], runs.rgrid, 'his', 'single');
-            rho = rho - rback(2:end-1,:,:);
+            % rho = rho - rback(2:end-1,:,:);
 
             mask = fillnan(bsxfun(@times, csdye < runs.csflux.x(isobath), ...
                    runs.csflux.westmask(:,tindex,isobath)),0)';
@@ -1397,7 +1406,6 @@ methods
                 insertAnnotation([runs.name '.plot_fluxes']);
 
                 ax(1) = subplot(221);
-
                 [~,h1] = contourf(xvec, zvec, csvel', 20);
                 hold on
                 % [~,h2] = contour(xvec, zvec, videal .* inmask, 20, 'b');
@@ -1411,6 +1419,7 @@ methods
                 center_colorbar;
                 xlim([-1 1]*max(abs(xlim))/2);
 
+                figure(hfig6)
                 ax(2) = subplot(222);
                 pcolorcen(xvec, zvec, csdye'/1000); % .* mask
                 hold on; shading interp
@@ -1438,6 +1447,7 @@ methods
                 liney(-1 * runs.bathy.hsb, 'h_{sb}');
                 caxis([-0.05 0]);
 
+                figure(hfig6)
                 ax(4) = subplot(224);
                 pcolorcen(xvec, zvec, eddye'); % .* mask
                 hold on; shading interp;
@@ -4524,8 +4534,8 @@ methods
         view(-150,66);
         xlim([min(xrmat(:)) max(xrmat(:))]/1000)
         xlabel('X'); ylabel('Y'); zlabel('Z');
-        pause();
         for ii=2:4:size(eddye,4)
+            pause();
             heddye = isosurface(xrmat/1000,yrmat/1000,zrmat, ...
                 bsxfun(@times,eddye(:,:,:,ii) > thresh,mask(:,:,ii)'),eddlevel);
             set(pedd,'Vertices',heddye.vertices,'Faces',heddye.faces, ...
@@ -4537,9 +4547,7 @@ methods
                 set(pcsd(kk),'Vertices',hcsdye.vertices,'Faces',hcsdye.faces);
             end
             runs.update_title(ht,titlestr,ii);
-            pause();
         end
-
     end
 
     function [] = animate_vorsurf(runs, hax, t0, ntimes)
@@ -6171,6 +6179,7 @@ methods
         ix = runs.spng.sx1:runs.spng.sx2;
         iy = runs.spng.sy1:runs.spng.sy2;
 
+        hold on;
         if ~exist('color','var'), color = [1 1 1]*0.85; end
         if strcmpi(plottype,'contour')
             [cc,hplot{1}] = contour(runs.rgrid.xr(ix,iy)/1000,...
