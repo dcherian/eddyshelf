@@ -22,7 +22,7 @@ function [] = plot_yzsection(runs, days)
     nt = length(tindices);
 
     hf1 = figure; maximize();% - eddye
-                             %hf2 = figure; maximize();% - rho
+    hf2 = figure; maximize();% - rho
     %hf3 = figure; maximize();% - zdye
     hf4 = figure; maximize();% - u
     hf5 = figure; maximize();% - v
@@ -52,7 +52,7 @@ function [] = plot_yzsection(runs, days)
 
     for ii=1:nt
         loc = num2str(cen(tindices(ii)))
-        loc  = '410000';
+        loc  = '395000';
         if plot_pbot
             iloc = find_approx(pb.xvec, str2double(loc),1);
         end

@@ -19,12 +19,12 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     % time series?
     enfluxplot = 0; % plot AS energy flux ?
-    vecplot = 1; % plot some time vector (assign tvec and vec);
+    vecplot = 0; % plot some time vector (assign tvec and vec);
     pointplot = 0; % mark some point on the map
 
     % eddy contours?
-    rhocontourplot = 0; % plot eddy drho contour too?
-    vorcontourplot = 1; % vorticity contour
+    rhocontourplot = 1; % plot eddy drho contour too?
+    vorcontourplot = 0; % vorticity contour
     sshplot = 0; % plot ssh-contour too?
     dyeplot = 0; % plot eddye contour too?
 
@@ -34,7 +34,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     csdcontourplot = 1; % contour csd contours
     try
-        isobath = [3 5 7];
+        isobath = [4 6 8];
         isobath(isobath > length(runs.csflux.x)) = [];
         csdcontours = runs.csflux.x(isobath);
     catch ME

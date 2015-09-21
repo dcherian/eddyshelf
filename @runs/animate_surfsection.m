@@ -1,8 +1,8 @@
 % animate variables at the surface and cross-section
 function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
 
-    dx = 20; % start from shelfbreak - 20 km
-    dt = 3;
+    dx = 60; % start from shelfbreak - 20 km
+    dt = 1;
 
     if ~exist('ntimes', 'var')
         ntimes = length(runs.time);
@@ -19,13 +19,13 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
     makeVideo = runs.makeVideo;
 
     y0 = runs.eddy.my;
-
-    csfluxflag = 1;
+    % y0 = runs.csflux.x(4) * ones(size(runs.time));
+    csfluxflag = 0;
     if csfluxflag
-        isobath = 2;
+        isobath = 1;
         y1 = runs.csflux.x(isobath) * ones(size(runs.time));
     else
-        y1 = y0 - runs.eddy.vor.dia/2;
+        y1 = y0 - runs.eddy.vor.dia/4;
     end
     iy = vecfind(runs.rgrid.y_rho(:,1), y0);
     iy1 = vecfind(runs.rgrid.y_rho(:,1), y1);
