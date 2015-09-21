@@ -3,9 +3,6 @@ function [] = animate_zslice(runs,varname,depth,tind)
     if ~exist('tind','var'), tind = []; end
     [~,tind,~,nt,stride] = roms_tindices(tind,Inf,length(runs.time));
 
-    read_start = [1 1 1 tind(1)];
-    read_count = [Inf Inf Inf nt];
-
     runs.video_init(['z' num2str(depth) '-' varname]);
     if strcmp(varname,'vor');
         grids = [runs.dir '/ocean_vor.nc'];
@@ -17,8 +14,8 @@ function [] = animate_zslice(runs,varname,depth,tind)
     datain = 0;
     if nt < 20
         tic; disp('Reading data...');
-        data = roms_read_data(runs.dir,varname, ...
-                              read_start,read_count,stride);
+        data = dc_roms_read_data(runs.dir, varname, tind, {}, [], ...
+                                     grids);
         datain = 1;
         var = nan([size(data,1) size(data,2) nt]);
         toc;
@@ -29,10 +26,9 @@ function [] = animate_zslice(runs,varname,depth,tind)
         if ~datain
             disp(['reading & interpolating timestep ' num2str(mmm) '/' ...
                   num2str(nt)]);
-            data = roms_read_data(runs.dir,varname, ...
-                                  [read_start(1:3) read_start(4)+mmm-1], ...
-                                  [read_count(1:3) 1],stride);
 
+            data = dc_roms_read_data(runs.dir, varname, mmm, {}, [], ...
+                                     grids);
             if strcmpi(varname, 'rho')
                 rback = permute(dc_roms_read_data(runs.dir, 'rho', 1, ...
                                           {'x' 1 1}, [], grids), [3 1 2]);
