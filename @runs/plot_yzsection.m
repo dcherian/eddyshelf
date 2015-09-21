@@ -254,7 +254,7 @@ function common(obj, hf, yz, zmat, drho, ed, ii, days, loc, tindices)
     end
     if ~isempty(drho)
         contour(yz, zmat, drho, [1 1]* obj.eddy.drhothreshssh(1), ...
-                'Color', [1 1 1]*0, 'LineWidth', 2);
+                'Color', [44 162 95]/256, 'LineWidth', 2);
     end
     caxis(clim);
 
