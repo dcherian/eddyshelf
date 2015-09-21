@@ -198,14 +198,14 @@ function [] = plot_yzsection(runs, days, loc)
         figure(hf1)
         suplabel('eddy dye', 't');
         spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
-        insertAnnotation([runs.name '.plot_eddye']);
+        insertAnnotation([runs.name '.plot_yzsection']);
     end
 
     if exist('hf2', 'var')
         figure(hf2)
         %[~,ht] = suplabel(['\rho anomaly | (black, grey) contours = (eddye, \rho ' ...
         %                   'threshold)'], 't');
-        insertAnnotation([runs.name '.plot_eddye']);
+        insertAnnotation([runs.name '.plot_yzsection']);
         if ~isempty(findall(gcf, 'type', 'colorbar'))
             hcbar = findall(gcf,'type','colorbar');
             for ii = 1:length(hcbar)
@@ -218,14 +218,14 @@ function [] = plot_yzsection(runs, days, loc)
         figure(hf3)
         suplabel('z-dye - z-level', 't');
         spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
-        insertAnnotation([runs.name '.plot_eddye']);
+        insertAnnotation([runs.name '.plot_yzsection']);
     end
 
     if exist('hf4', 'var')
         figure(hf4)
         suplabel('u - along-shore', 't');
         %spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
-        insertAnnotation([runs.name '.plot_eddye']);
+        insertAnnotation([runs.name '.plot_yzsection']);
     end
 
     if exist('hf5', 'var')
@@ -239,7 +239,7 @@ function [] = plot_yzsection(runs, days, loc)
         figure(hf6)
         suplabel('Cross-shelf dye', 't');
         spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
-        insertAnnotation([runs.name '.plot_eddye']);
+        insertAnnotation([runs.name '.plot_yzsection']);
     end
 
     linkaxes(axall, 'xy');
