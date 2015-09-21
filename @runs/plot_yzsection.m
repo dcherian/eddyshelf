@@ -67,7 +67,7 @@ function [] = plot_yzsection(runs, days, loc)
             figure(hf1);
             ax1(ii) = subplot(1, nt, ii);
             axall = [axall ax1(ii)];
-            contourf(yz, zmat, ed, [0.1:0.1:1]);
+            contourf(yz, zmat, ed, [0.1:0.1:1], 'EdgeColor', 'none');
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
             center_colorbar;
 
@@ -82,7 +82,7 @@ function [] = plot_yzsection(runs, days, loc)
             ax2(ii) = subplot(1, nt, ii);
             axall = [axall ax2(ii)];
             drho = bsxfun(@minus, temp, tback);
-            [cc,hh] = contourf(yz, zmat, temp, 40);
+            [cc,hh] = contourf(yz, zmat, temp, 40, 'EdgeColor', 'none');
             % colormap(flipud(cbrewer('seq','Blues',12)));
             %           hh.EdgeColor = 'none';
 
@@ -132,11 +132,12 @@ function [] = plot_yzsection(runs, days, loc)
             ax4(ii) = subplot(1, nt, ii);
             axall = [axall ax4(ii)];
             if runs.bathy.axis == 'y'
-                contourf(yz, zmat, u, 20);
+                contourf(yz, zmat, u, 20, 'EdgeColor', 'none');
                 hold on;
                 contour(yz, zmat, u, [0 0], 'Color', 'k', 'LineWidth', 2);
             else
-                contourf(yz(2:end-1,:), zmat(2:end-1,:), avg1(u,1), 20);
+                contourf(yz(2:end-1,:), zmat(2:end-1,:), avg1(u,1), 20, ...
+                         'EdgeColor', 'none');
                 hold on;
                 contour(yz(2:end-1,:), zmat(2:end-1,:), u, ...
                         [0 0], 'Color', 'k', 'LineWidth', 2);
@@ -162,12 +163,13 @@ function [] = plot_yzsection(runs, days, loc)
             ax5(ii) = subplot(1, nt, ii);
             axall = [axall ax5(ii)];
             if runs.bathy.axis == 'y'
-                contourf(yz(2:end-1,:), zmat(2:end-1,:), avg1(v,1), 20);
+                contourf(yz(2:end-1,:), zmat(2:end-1,:), avg1(v,1), 20, ...
+                         'EdgeColor', 'none');
                 hold on
                 contour(yz(2:end-1,:), zmat(2:end-1,:), avg1(v,1), ...
                          [0 0], 'LineWidth', 2, 'Color', 'k');
             else
-                contourf(yz, zmat, v);
+                contourf(yz, zmat, v, 'EdgeColor', 'none');
                 hold on
                 contour(yz, zmat, v, [0 0], 'k', 'LineWidth', 2);
             end
