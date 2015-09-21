@@ -31,6 +31,8 @@ function [] = plot_yzsection(runs, days)
     %                               1])));
     %zback = runs.rgrid.z_r(:,:,1)';
 
+    drho = []; ed = [];
+
     if runs.bathy.axis == 'y'
         cen = runs.eddy.mx;
         bathyax = 'x';
@@ -55,18 +57,17 @@ function [] = plot_yzsection(runs, days)
             iloc = find_approx(pb.xvec, str2double(loc),1);
         end
 
-        ed = dc_roms_read_data(runs.dir, runs.csdname, tindices(ii), ...
+        ed = dc_roms_read_data(runs.dir, runs.eddname, tindices(ii), ...
                                {bathyax loc loc}, [], runs.rgrid, 'his');
 
         if exist('hf1', 'var')
             figure(hf1);
             ax1(ii) = subplot(1, nt, ii);
-            contourf(yz, zmat, ed, 40); %[0.1:0.1:1]);
+            contourf(yz, zmat, ed, [0.1:0.1:1]);
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
-            % center_colorbar;
-            % colormap(flipud(colormap('bone')))
+            center_colorbar;
 
-            common(runs, ii, days, tindices);
+            common(runs, hf1, yz, zmat, drho, ed, ii, days, tindices);
         end
 
         if exist('hf2', 'var')
@@ -76,9 +77,9 @@ function [] = plot_yzsection(runs, days)
 
             ax2(ii) = subplot(1, nt, ii);
             drho = bsxfun(@minus, temp, tback);
-            [cc,hh] = contourf(yz, zmat, drho, 20);
-            colormap(flipud(cbrewer('seq','Blues',12)));
-            hh.EdgeColor = 'none';
+            [cc,hh] = contourf(yz, zmat, temp, 40);
+            % colormap(flipud(cbrewer('seq','Blues',12)));
+            %           hh.EdgeColor = 'none';
 
             shading flat; hold on;
 
@@ -91,17 +92,6 @@ function [] = plot_yzsection(runs, days)
             end
             caxis(clim);
 
-            % density anomaly contours
-            contour(yz, zmat, drho, ...
-                    [1 1]* runs.eddy.drhothresh(1), ...
-                    'Color', [1 1 1]*0, 'LineWidth', 2);
-
-            % eddye contours
-            contour(yz, zmat, ed, [1 1]*0.9, 'Color', 'r', ...
-                    'LineWidth', 2);
-
-            caxis(clim);
-
             if plot_pbot
                 pbvec = pb.pbot(iloc,:,tindices(ii));
                 pbvec = pbvec ./ max(abs(pbvec(:)));
@@ -110,7 +100,7 @@ function [] = plot_yzsection(runs, days)
                 liney(z0, 'pbot anom = 0','k');
             end
 
-            common(runs, ii, days, tindices);
+            common(runs, hf2, yz, zmat, drho, ed, ii, days, tindices);
         end
 
         if exist('hf3', 'var')
@@ -120,13 +110,11 @@ function [] = plot_yzsection(runs, days)
 
             ax3(ii) = subplot(1, nt, ii);
             contourf(yz, zmat, zd-zback);
-            shading flat;
-            hold on
-            contour(yz, zmat, ed, 1, 'k', ...
-                    'LineWidth', 2);
+            shading flat; hold on
             caxis( [-1 1] * max(abs(zd(:)-zback(:))) );
+            center_colorbar;
 
-            common(runs, ii, days, tindices);
+            common(runs, hf3, yz, zmat, drho, ed, ii, days, tindices);
         end
 
         if exist('hf4', 'var')
@@ -137,26 +125,16 @@ function [] = plot_yzsection(runs, days)
 
             ax4(ii) = subplot(1, nt, ii);
             if runs.bathy.axis == 'y'
-                contourf(yz, zmat, u);
+                contourf(yz, zmat, u, 20);
+                hold on;
+                contour(yz, zmat, u, [0 0], 'Color', 'k', 'LineWidth', 2);
             else
-                contourf(yz(2:end-1,:), zmat(2:end-1,:), avg1(u,1));
+                contourf(yz(2:end-1,:), zmat(2:end-1,:), avg1(u,1), 20);
+                hold on;
+                contour(yz(2:end-1,:), zmat(2:end-1,:), u, ...
+                        [0 0], 'Color', 'k', 'LineWidth', 2);
             end
             shading flat;
-            hold all
-            % contour(yz/1000, zmat, ed, 1, 'r', ...
-            %         'LineWidth', 2);
-            % contour(yz/1000, zmat, drho, ...
-            %         [runs.eddy.drhothresh(1) runs.eddy.drhothreshssh(1)], ...
-            %         'Color', [1 1 1]*0.3, 'LineWidth', 2);
-            center_colorbar;
-
-            if exist('hf2', 'var')
-                contour(yz, zmat, drho, ...
-                        [1 1]* runs.eddy.drhothreshssh(1), ...
-                        'Color', [1 1 1]*0, 'LineWidth', 2);
-            end
-
-            caxis( [-1 1] * max(abs(u(:))));
 
             if plot_pbot
                 pbvec = pb.pbot(iloc,:,tindices(ii));
@@ -166,7 +144,8 @@ function [] = plot_yzsection(runs, days)
                 liney(z0, 'pbot anom = 0','k');
             end
 
-            common(runs, ii, days, tindices);
+            caxis([-1 1] * max(abs(u(:)))); center_colorbar;
+            common(runs, hf4, yz, zmat, drho, ed, ii, days, tindices);
         end
 
         if exist('hf5', 'var')
@@ -175,24 +154,18 @@ function [] = plot_yzsection(runs, days)
                                   {bathyax loc loc}, [], runs.rgrid, 'his');
             ax5(ii) = subplot(1, nt, ii);
             if runs.bathy.axis == 'y'
-                contourf(yz(2:end-1,:), zmat(2:end-1,:), avg1(v,1));
+                contourf(yz(2:end-1,:), zmat(2:end-1,:), avg1(v,1), 20);
+                hold on
+                contour(yz(2:end-1,:), zmat(2:end-1,:), avg1(v,1), ...
+                         [0 0], 'LineWidth', 2, 'Color', 'k');
             else
                 contourf(yz, zmat, v);
+                hold on
+                contour(yz, zmat, v, [0 0], 'k', 'LineWidth', 2);
             end
             shading flat;
-            hold on
-            contour(yz/1000, zmat, ed, 1, 'r', ...
-                    'LineWidth', 2);
-            center_colorbar;
-
-            if exist('hf2', 'var')
-                contour(yz, zmat, drho, ...
-                        [1 1]* runs.eddy.drhothresh(1), ...
-                        'Color', [1 1 1]*0, 'LineWidth', 2);
-            end
-
-            caxis( [-1 1] * max(abs(v(:))));
-            common(runs, ii, days, tindices);
+            caxis( [-1 1] * max(abs(v(:)))); center_colorbar;
+            common(runs, hf5, yz, zmat, drho, ed, ii, days, tindices);
         end
     end
 
@@ -244,18 +217,18 @@ function [] = plot_yzsection(runs, days)
     end
 end
 
-
-function common(obj, ii, days, tindices)
+function common(obj, hf, yz, zmat, drho, ed, ii, days, tindices)
 % do common tasks
-    drawnow;
-    colorbar;
-    limx = xlim; limy = ylim;
-    text(0.05 , 0.05, ['t = ' num2str(days(ii)) ' days'], ...
-         'Units', 'normalized', 'Color', 'w');
-    title(['day' num2str(days(ii))]);
-    if ii == 1, ylabel('Z (m)'); end
-    xlabel([upper(obj.bathy.axis) '(km)']);
-    beautify([15 15 18]);
+    figure(hf); drawnow;
+    colorbar; clim = caxis; limx = xlim; limy = ylim;
+    if ~isempty(ed)
+        contour(yz, zmat, ed, 1, 'r', 'LineWidth', 2);
+    end
+    if ~isempty(drho)
+        contour(yz, zmat, drho, [1 1]* obj.eddy.drhothreshssh(1), ...
+                'Color', [1 1 1]*0, 'LineWidth', 2);
+    end
+    caxis(clim);
 
     % vertical scale
     liney(-1 * obj.eddy.Lgauss(tindices(ii)), [], 'k');
@@ -266,4 +239,13 @@ function common(obj, ii, days, tindices)
     % patch bathymetry
     patch(([obj.rgrid.y_rho(:,1); min(obj.rgrid.y_rho(:,1))])./1000, ...
           -1*[min(obj.rgrid.h(:)); obj.rgrid.h(:,1)]./1, 'k');
+
+    figure(hf);
+    text(0.05 , 0.05, ['t = ' num2str(days(ii)) ' days'], ...
+         'Units', 'normalized', 'Color', 'w');
+    title(['day' num2str(days(ii))]);
+    if ii == 1, ylabel('Z (m)'); end
+    xlabel([upper(obj.bathy.axis) '(km)']);
+    beautify([15 15 18]);
+
 end
