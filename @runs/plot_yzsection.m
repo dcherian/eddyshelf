@@ -1,6 +1,6 @@
 % plot eddye - y-z cross-sections to compare against diagnosed vertical
 % scale
-function [] = plot_yzsection(runs, days)
+function [] = plot_yzsection(runs, days, loc)
 
     plot_pbot = 0;
     if plot_pbot
@@ -51,8 +51,10 @@ function [] = plot_yzsection(runs, days)
     end
 
     for ii=1:nt
-        loc = num2str(cen(tindices(ii)))
-        loc  = '395000';
+        if ~exist('loc', 'var') || isempty(loc)
+            loc = num2str(cen(tindices(ii)))
+        end
+
         if plot_pbot
             iloc = find_approx(pb.xvec, str2double(loc),1);
         end
