@@ -6100,7 +6100,8 @@ methods
 
         hold on;
         [~,hplot] = contour(runs.eddy.xr(ix,iy)/1000,runs.eddy.yr(ix,iy)/1000, ...
-                    runs.eddy.vormask(ix,iy,tt),'Color','k','LineWidth',1);
+                            runs.eddy.vormask(ix,iy,tt), [1 1], ...
+                            'Color','k','LineWidth',1);
     end
 
     function update_eddy_contour(runs,handle,tt)
@@ -6125,8 +6126,8 @@ methods
 
         hold on;
         [~,hplot] = contour(runs.eddy.xr(ix,iy)/1000,runs.eddy.yr(ix,iy)/1000, ...
-                            runs.eddy.rhovor.mask(ix,iy,tt), ...
-                            'Color',[44 162 95]/256,'LineWidth',1);
+                            runs.eddy.rhovor.mask(ix,iy,tt), [1 1], ...
+                            'Color',[44 162 95]/256,'LineWidth',2);
     end
     function update_rho_contour(runs,handle,tt)
         ix = max([runs.spng.sx1:runs.spng.sx2]-1,1);
@@ -6152,7 +6153,7 @@ methods
         [~,hplot] = contour(runs.eddy.xr(ix,iy)/1000, ...
                             runs.eddy.yr(ix,iy)/1000, ...
                             runs.eddy.mask(ix,iy,tt), ...
-                            'Color','k','LineWidth',1);
+                            [1 1], 'Color','k','LineWidth',1);
     end
 
     function update_eddy_sshcontour(runs,handle,tt)
