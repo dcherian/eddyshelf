@@ -1433,19 +1433,22 @@ methods
                 liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
                 liney(-1 * runs.bathy.hsb, 'h_{sb}');
 
+                figure(hfig6)
                 ax(3) = subplot(223);
                 pcolorcen(xvec, zvec, rho'); % .* mask
+                clim = caxis;
                 hold on; shading interp;
                 contour(xvec, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
+                caxis(clim);
                 colorbar;
                 xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
-                title(['Cross-shelf dye (km) | ' runs.name]);
+                title(['\Delta \rho | ' runs.name]);
                 runs.add_timelabel(tindex);
                 linkaxes(ax, 'xy');
                 linex(xfrac);
                 liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
                 liney(-1 * runs.bathy.hsb, 'h_{sb}');
-                caxis([-0.05 0]);
+                % caxis([-0.05 0]);
 
                 figure(hfig6)
                 ax(4) = subplot(224);
