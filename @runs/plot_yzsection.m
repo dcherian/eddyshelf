@@ -234,6 +234,7 @@ function common(obj, hf, yz, zmat, drho, ed, ii, days, loc, tindices)
 
     % vertical scale
     liney(-1 * obj.eddy.Lgauss(tindices(ii)), [], 'k');
+    linex(obj.eddy.my(tindices(ii))/1000, [], 'k');
     text(0.85*limx(2), -1 * obj.eddy.Lgauss(tindices(ii)), ...
          {'vertical','scale'}, 'VerticalAlignment', 'Bottom', ...
          'HorizontalAlignment','Center');
