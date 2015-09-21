@@ -4648,55 +4648,6 @@ methods
         save(fname, 'init');
     end
 
-    function [] = animate_vor(runs,tind)
-%             if ~exist('tind','var')
-%                 tind = [];
-%             end
-%             if ~exist([runs.dir '/ocean_vor.nc'],'file')
-%                 dc_roms_vorticity(runs.dir,tind,'ocean_vor.nc');
-%             end
-
-        tt = 1;
-        % WRONGGGGGGGGGGGGGGGGG!
-        rvor = double(ncread(runs.out_file,'rvorticity',[1 1 1 tt], ...
-            [Inf Inf Inf 1]));
-        [rint,ravg] = roms_depthIntegrate(rvor, ...
-            runs.rgrid.Cs_r,runs.rgrid.Cs_w, ...
-            avg1(avg1(runs.bathy.h,1),2),avg1(avg1(runs.zeta(:,:,tt),1),2), ...
-            [0 -max(runs.bathy.h(:))]);
-
-        rplot = ravg;
-
-        figure;
-        titlestr = 'Depth avg rvor';
-        xvor = avg1(avg1(runs.rgrid.xr,1),2);
-        yvor = avg1(avg1(runs.rgrid.yr,1),2);
-        hvor = pcolor(xvor/1000,yvor/1000,rplot); hold on; shading flat;
-        ht = runs.set_title(titlestr,tt);
-        he = runs.plot_eddy_contour('contour',tt);
-        hbathy = runs.plot_bathy('contour','k');
-        shading flat
-        caxis([-1 1] * max(abs(rplot(:)))); colorbar;
-
-        for tt=2:2:size(runs.zeta,3)
-            rvor = double(ncread(runs.out_file,'rvorticity',[1 1 1 tt], ...
-                [Inf Inf Inf 1]));
-            tic;
-            [rint,ravg] = roms_depthIntegrate(rvor, ...
-                runs.rgrid.Cs_r,runs.rgrid.Cs_w, ...
-                avg1(avg1(runs.bathy.h,1),2),avg1(avg1(runs.zeta(:,:,tt),1),2), ...
-                [0 -max(runs.bathy.h(:))]);
-            rplot = ravg;
-            set(hvor,'cdata',rplot);
-            runs.update_eddy_contour(he,tt);
-
-            runs.update_title(ht,titelstr,tt);
-            toc;
-            pause(0.1);
-        end
-
-    end
-
     function [] = plot_streamerwidth(runs)
         cxi = runs.eddy.vor.ee;
         westmask = bsxfun(@times, ...
