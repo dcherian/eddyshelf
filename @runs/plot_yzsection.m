@@ -31,7 +31,7 @@ function [] = plot_yzsection(runs, days, loc)
     %                               1])));
     %zback = runs.rgrid.z_r(:,:,1)';
 
-    drho = []; ed = [];
+    drho = []; ed = []; axall = [];
 
     if runs.bathy.axis == 'y'
         cen = runs.eddy.mx;
@@ -65,6 +65,7 @@ function [] = plot_yzsection(runs, days, loc)
         if exist('hf1', 'var')
             figure(hf1);
             ax1(ii) = subplot(1, nt, ii);
+            axall = [axall ax1(ii)];
             contourf(yz, zmat, ed, [0.1:0.1:1]);
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
             center_colorbar;
@@ -78,6 +79,7 @@ function [] = plot_yzsection(runs, days, loc)
                                      {bathyax loc loc}, [], runs.rgrid, 'his');
 
             ax2(ii) = subplot(1, nt, ii);
+            axall = [axall ax2(ii)];
             drho = bsxfun(@minus, temp, tback);
             [cc,hh] = contourf(yz, zmat, temp, 40);
             % colormap(flipud(cbrewer('seq','Blues',12)));
@@ -111,6 +113,7 @@ function [] = plot_yzsection(runs, days, loc)
                                   {bathyax loc loc}, [], runs.rgrid, 'his');
 
             ax3(ii) = subplot(1, nt, ii);
+            axall = [axall ax3(ii)];
             contourf(yz, zmat, zd-zback);
             shading flat; hold on
             caxis( [-1 1] * max(abs(zd(:)-zback(:))) );
@@ -126,6 +129,7 @@ function [] = plot_yzsection(runs, days, loc)
                                   runs.rgrid, 'his');
 
             ax4(ii) = subplot(1, nt, ii);
+            axall = [axall ax4(ii)];
             if runs.bathy.axis == 'y'
                 contourf(yz, zmat, u, 20);
                 hold on;
@@ -155,6 +159,7 @@ function [] = plot_yzsection(runs, days, loc)
             v = dc_roms_read_data(runs.dir, 'v', tindices(ii), ...
                                   {bathyax loc loc}, [], runs.rgrid, 'his');
             ax5(ii) = subplot(1, nt, ii);
+            axall = [axall ax5(ii)];
             if runs.bathy.axis == 'y'
                 contourf(yz(2:end-1,:), zmat(2:end-1,:), avg1(v,1), 20);
                 hold on
@@ -175,7 +180,6 @@ function [] = plot_yzsection(runs, days, loc)
         figure(hf1)
         suplabel('eddy dye', 't');
         spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
-        linkaxes(ax1, 'xy');
         insertAnnotation([runs.name '.plot_eddye']);
     end
 
@@ -183,8 +187,6 @@ function [] = plot_yzsection(runs, days, loc)
         figure(hf2)
         %[~,ht] = suplabel(['\rho anomaly | (black, grey) contours = (eddye, \rho ' ...
         %                   'threshold)'], 't');
-        %set(ht, 'FontSize', 20);
-        linkaxes(ax2, 'xy');
         insertAnnotation([runs.name '.plot_eddye']);
         if ~isempty(findall(gcf, 'type', 'colorbar'))
             hcbar = findall(gcf,'type','colorbar');
@@ -198,7 +200,6 @@ function [] = plot_yzsection(runs, days, loc)
         figure(hf3)
         suplabel('z-dye - z-level', 't');
         spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
-        linkaxes(ax3, 'xy');
         insertAnnotation([runs.name '.plot_eddye']);
     end
 
@@ -206,7 +207,6 @@ function [] = plot_yzsection(runs, days, loc)
         figure(hf4)
         suplabel('u - along-shore', 't');
         %spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
-        linkaxes(ax4, 'xy');
         insertAnnotation([runs.name '.plot_eddye']);
     end
 
@@ -214,9 +214,10 @@ function [] = plot_yzsection(runs, days, loc)
         figure(hf5)
         suplabel('v - cross-shore', 't');
         spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
-        linkaxes(ax5, 'xy');
         insertAnnotation([runs.name '.plot_eddye']);
     end
+
+    linkaxes(axall, 'xy');
 end
 
 function common(obj, hf, yz, zmat, drho, ed, ii, days, loc, tindices)
