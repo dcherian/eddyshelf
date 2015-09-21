@@ -4,7 +4,7 @@ function [] = animate_zslice(runs,varname,depth,tind)
     [~,tind,~,nt,stride] = roms_tindices(tind,Inf,length(runs.time));
 
     runs.video_init(['z' num2str(depth) '-' varname]);
-    if strcmp(varname,'vor');
+    if strcmpi(varname,'rv') || strcmpi(varname, 'pv')
         grids = [runs.dir '/ocean_vor.nc'];
     else
         grids = runs.rgrid;
@@ -44,12 +44,15 @@ function [] = animate_zslice(runs,varname,depth,tind)
                                           {'x' 1 1}, [], grids), [3 1 2]);
                 data = bsxfun(@minus, data, rback);
             end
-            disp(['interpolating timestep ' num2str(mmm) '/' ...
-                  num2str(nt)]);
+            disp(['interpolating timestep ' num2str(mmm) '/' num2str(nt)]);
             var(:,:,mmm) = dc_roms_zslice_var(data(:,:,:,mmm),depth,grd);
         end
     end
     clear data
+
+    if strcmpi(varname, 'pv')
+        var = log10(var);
+    end
 
     runs.read_csdsurf;
     runs.read_eddsurf;
@@ -57,9 +60,10 @@ function [] = animate_zslice(runs,varname,depth,tind)
     % animate
     figure; maximize;
     insertAnnotation([runs.name '.animate_zslice']);
-    xax = grd.xax(:,:,1)/1000; yax=  grd.yax(:,:,1)/1000; clear grd;
+    xax = grd.xax(:,:,1)/1000; yax = grd.yax(:,:,1)/1000; clear grd;
     tt = 1;
-    [~,hc] = contourf(xax,yax,var(:,:,tt), 10, 'LineWidth', 0);
+    [~,hc] = contourf(xax,yax,var(:,:,tt), 30);
+    hc.EdgeColor = 'none';
     hold on
     if strcmpi(varname, 'rho')
         [~,hrho] = contour(xax, yax, var(:,:,tt), ...
