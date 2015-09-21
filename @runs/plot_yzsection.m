@@ -26,6 +26,7 @@ function [] = plot_yzsection(runs, days, loc)
     %hf3 = figure; maximize();% - zdye
     hf4 = figure; maximize();% - u
     hf5 = figure; maximize();% - v
+    hf6 = figure; maximize();% - csdye
     %zdback = double(squeeze(ncread(runs.out_file, runs.zdname, ...
     %                               [1 1 1 1], [1 Inf Inf
     %                               1])));
@@ -174,6 +175,21 @@ function [] = plot_yzsection(runs, days, loc)
             caxis( [-1 1] * max(abs(v(:)))); center_colorbar;
             common(runs, hf5, yz, zmat, drho, ed, ii, days, loc, tindices);
         end
+
+        if exist('hf6', 'var')
+            [csdye, ~, yax, zax, ~] = ...
+                dc_roms_read_data(runs.dir, runs.csdname, tindices(ii), ...
+                                  {bathyax loc loc}, [], runs.rgrid, 'his');
+
+            figure(hf6);
+            ax6(ii) = subplot(1, nt, ii);
+            axall = [axall ax6(ii)];
+            contourf(yax/1000, zax, csdye/1000, 40, 'EdgeColor', 'none');
+            liney(-1 * runs.eddy.Lgauss(tindices(ii)));
+
+            common(runs, hf6, yz, zmat, drho, ed, ii, days, loc, tindices);
+        end
+
     end
 
     if exist('hf1')
@@ -213,6 +229,13 @@ function [] = plot_yzsection(runs, days, loc)
     if exist('hf5', 'var')
         figure(hf5)
         suplabel('v - cross-shore', 't');
+        % spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
+        insertAnnotation([runs.name '.plot_yzsection']);
+    end
+
+    if exist('hf6', 'var')
+        figure(hf6)
+        suplabel('Cross-shelf dye', 't');
         spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
         insertAnnotation([runs.name '.plot_eddye']);
     end
