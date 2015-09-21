@@ -67,7 +67,7 @@ function [] = plot_yzsection(runs, days)
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
             center_colorbar;
 
-            common(runs, hf1, yz, zmat, drho, ed, ii, days, tindices);
+            common(runs, hf1, yz, zmat, drho, ed, ii, days, loc, tindices);
         end
 
         if exist('hf2', 'var')
@@ -100,7 +100,7 @@ function [] = plot_yzsection(runs, days)
                 liney(z0, 'pbot anom = 0','k');
             end
 
-            common(runs, hf2, yz, zmat, drho, ed, ii, days, tindices);
+            common(runs, hf2, yz, zmat, drho, ed, ii, days, loc, tindices);
         end
 
         if exist('hf3', 'var')
@@ -114,7 +114,7 @@ function [] = plot_yzsection(runs, days)
             caxis( [-1 1] * max(abs(zd(:)-zback(:))) );
             center_colorbar;
 
-            common(runs, hf3, yz, zmat, drho, ed, ii, days, tindices);
+            common(runs, hf3, yz, zmat, drho, ed, ii, days, loc, tindices);
         end
 
         if exist('hf4', 'var')
@@ -145,7 +145,7 @@ function [] = plot_yzsection(runs, days)
             end
 
             caxis([-1 1] * max(abs(u(:)))); center_colorbar;
-            common(runs, hf4, yz, zmat, drho, ed, ii, days, tindices);
+            common(runs, hf4, yz, zmat, drho, ed, ii, days, loc, tindices);
         end
 
         if exist('hf5', 'var')
@@ -165,7 +165,7 @@ function [] = plot_yzsection(runs, days)
             end
             shading flat;
             caxis( [-1 1] * max(abs(v(:)))); center_colorbar;
-            common(runs, hf5, yz, zmat, drho, ed, ii, days, tindices);
+            common(runs, hf5, yz, zmat, drho, ed, ii, days, loc, tindices);
         end
     end
 
@@ -217,7 +217,7 @@ function [] = plot_yzsection(runs, days)
     end
 end
 
-function common(obj, hf, yz, zmat, drho, ed, ii, days, tindices)
+function common(obj, hf, yz, zmat, drho, ed, ii, days, loc, tindices)
 % do common tasks
     figure(hf); drawnow;
     colorbar; clim = caxis; limx = xlim; limy = ylim;
@@ -241,11 +241,11 @@ function common(obj, hf, yz, zmat, drho, ed, ii, days, tindices)
           -1*[min(obj.rgrid.h(:)); obj.rgrid.h(:,1)]./1, 'k');
 
     figure(hf);
-    text(0.05 , 0.05, ['t = ' num2str(days(ii)) ' days'], ...
+    text(0.05 , 0.05, {['t = ' num2str(days(ii)) ' days']; ...
+                       ['y = ' num2str(str2double(loc)/1000, '%d') ' km']}, ...
          'Units', 'normalized', 'Color', 'w');
-    title(['day' num2str(days(ii))]);
+
     if ii == 1, ylabel('Z (m)'); end
     xlabel([upper(obj.bathy.axis) '(km)']);
     beautify([15 15 18]);
-
 end
