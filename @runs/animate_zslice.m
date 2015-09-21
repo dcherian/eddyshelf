@@ -57,6 +57,8 @@ function [] = animate_zslice(runs,varname,depth,tind)
     runs.read_csdsurf;
     runs.read_eddsurf;
 
+    titlestr = [varname ' | z = ' num2str(depth) ' m '];
+
     % animate
     figure; maximize;
     insertAnnotation([runs.name '.animate_zslice']);
@@ -71,15 +73,14 @@ function [] = animate_zslice(runs,varname,depth,tind)
                            'Color', 'b', 'LineWidth', 2);
     end
     he = runs.plot_rho_contour('contour',tind(1) + tt-1);
-    [~,hcsd] = contour(runs.rgrid.x_rho', runs.rgrid.y_rho', ...
+    [~,hcsd] = contour(runs.rgrid.x_rho'/1e3, runs.rgrid.y_rho'/1e3, ...
                        runs.csdsurf(:,:,tind(1)+tt-1), runs.csflux.x([1 4 6]), ...
                        'Color', [1 1 1]*0.55, 'LineWidth', 2);
-    [~,hedd] = contour(runs.rgrid.x_rho', runs.rgrid.y_rho', ...
+    [~,hedd] = contour(runs.rgrid.x_rho'/1e3, runs.rgrid.y_rho'/1e3, ...
                        runs.eddsurf(:,:,tind(1)+tt-1), [0.9 0.9], ...
                        'Color', 'k', 'LineWidth', 2);
     shading flat;
-    ht = title([varname ' | z = ' num2str(depth) ' m | t = ' ...
-                num2str(runs.time(tind(1)+tt-1)/86400) ' days']);
+    ht = runs.set_title(titlestr, tind(1)+tt-1);
     axis image;
     xlim([min(xax(:)) max(xax(:))]);
     ylim([min(yax(:)) max(yax(:))]);
@@ -100,8 +101,7 @@ function [] = animate_zslice(runs,varname,depth,tind)
         shading flat
         runs.update_rho_contour(he,tind(1) + tt-1);
         hcsd.ZData = runs.csdsurf(:,:,tind(1) + tt-1);
-        set(ht,'String',[varname ' | z = ' num2str(depth) ' m | t = ' ...
-                         num2str(runs.time(tind(1)+tt-1)/86400) 'days']);
+        runs.update_title(ht, titlestr, tind(1)+tt-1);
         if strcmpi(varname, 'rho')
             hrho.ZData = var(:,:,tt);
         end
