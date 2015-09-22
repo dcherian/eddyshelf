@@ -45,10 +45,11 @@ function [] = animate_zslice(runs,varname,depth,tind)
     % read data
     for mmm = 1:nt
         if ~datain
+            it = mmm + tind(1) - 1;
             disp(['reading & interpolating timestep ' num2str(mmm) '/' ...
                   num2str(nt)]);
 
-            data = dc_roms_read_data(runs.dir, varname, mmm, {}, [], grids);
+            data = dc_roms_read_data(runs.dir, varname, it, {}, [], grids);
             if strcmpi(varname, 'rho')
                 rback = permute(dc_roms_read_data(runs.dir, 'rho', 1, ...
                                           {'x' 1 1}, [], grids), [3 1 2]);
@@ -60,8 +61,8 @@ function [] = animate_zslice(runs,varname,depth,tind)
             var(:,:,mmm) = dc_roms_zslice_var(data,depth,grd);
 
             if addvelquiver
-                u1 = dc_roms_read_data(runs.dir, 'u', mmm, {}, [], runs.rgrid);
-                v1 = dc_roms_read_data(runs.dir, 'v', mmm, {}, [], runs.rgrid);
+                u1 = dc_roms_read_data(runs.dir, 'u', it, {}, [], runs.rgrid);
+                v1 = dc_roms_read_data(runs.dir, 'v', it, {}, [], runs.rgrid);
                 u(:,:,mmm) = dc_roms_zslice_var(u1,depth,grdu);
                 v(:,:,mmm) = dc_roms_zslice_var(v1,depth,grdv);
             end
@@ -80,7 +81,6 @@ function [] = animate_zslice(runs,varname,depth,tind)
         end
     end
     clear data u1 v1
-
 
     % get on interior RHO points
     u = avg1(u(:,2:end-1,:),1);
@@ -132,7 +132,11 @@ function [] = animate_zslice(runs,varname,depth,tind)
         center_colorbar;
         caxis([-1 1]);
     else
-        caxis([min(var(:)) max(var(:))]);
+        if strcmpi(varname, 'pv')
+            caxis([min(min(var(:,:,1))) max(max(var(:,:,1)))]);
+        else
+            caxis([min(var(:)) max(var(:))]);
+        end
     end
     xlabel('X (km)'); ylabel('Y (km)');
     runs.plot_bathy('contour','k');
@@ -151,6 +155,7 @@ function [] = animate_zslice(runs,varname,depth,tind)
         shading flat
         runs.update_rho_contour(he,tind(1) + tt-1);
         hcsd.ZData = runs.csdsurf(:,:,tind(1) + tt-1);
+        hedd.ZData = runs.eddsurf(:,:,tind(1) + tt-1);
         runs.update_title(ht, titlestr, tind(1)+tt-1);
         if strcmpi(varname, 'rho')
             hrho.ZData = var(:,:,tt);
