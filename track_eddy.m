@@ -109,7 +109,7 @@ function [eddy] = track_eddy(dir1)
     yr   = yr(2:end-1,2:end-1,end);
 
     % make anomaly
-    rho  = rho(2:end-1,2:end-1,:) - rho(1,1,1);
+    rho  = sgn * (rho(2:end-1,2:end-1,:) - rho(1,1,1));
 
     % initial guess for vertical scale fit
     if ~isfield(params.flags,'vprof_gaussian') || params.flags.vprof_gaussian
@@ -601,11 +601,16 @@ function [eddy] = eddy_diag(zeta, vor, rho, ...
             try
                 eddy.vor = detect_eddy(vor.*eddy.mask < 0, zeta, opt, ...
                                        grd);
-
                 % drhothresh based on ssh mask if it doesn't exist
                 if isempty(rthresh.ssh)
                     rthresh.ssh = squeeze(nanmax(nanmax( ...
                         rho .* fillnan(eddy.mask,0), [], 1), [], 2));
+
+                    if rthresh.ssh == 0
+                        rthresh.ssh = [];
+                        ME = MException('0 density threshold');
+                        throw(ME);
+                    end
 
                     rthresh.vor = squeeze(nanmax(nanmax( ...
                         rho .* fillnan(eddy.vor.mask,0), [], 1), [], 2));
