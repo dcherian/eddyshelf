@@ -47,8 +47,7 @@ function [] = animate_zslice(runs,varname,depth,tind)
             disp(['reading & interpolating timestep ' num2str(mmm) '/' ...
                   num2str(nt)]);
 
-            data = dc_roms_read_data(runs.dir, varname, mmm, {}, [], ...
-                                     grids);
+            data = dc_roms_read_data(runs.dir, varname, mmm, {}, [], grids);
             if strcmpi(varname, 'rho')
                 rback = permute(dc_roms_read_data(runs.dir, 'rho', 1, ...
                                           {'x' 1 1}, [], grids), [3 1 2]);
@@ -58,6 +57,13 @@ function [] = animate_zslice(runs,varname,depth,tind)
                 var = nan([size(data,1) size(data,2) nt]);
             end
             var(:,:,mmm) = dc_roms_zslice_var(data,depth,grd);
+
+            if addvelquiver
+                u1 = dc_roms_read_data(runs.dir, 'u', mmm, {}, [], runs.rgrid);
+                v1 = dc_roms_read_data(runs.dir, 'v', mmm, {}, [], runs.rgrid);
+                u(:,:,mmm) = dc_roms_zslice_var(u1,depth,grdu);
+                v(:,:,mmm) = dc_roms_zslice_var(v1,depth,grdv);
+            end
         else
             if strcmpi(varname, 'rho')
                 rback = permute(dc_roms_read_data(runs.dir, 'rho', 1, ...
