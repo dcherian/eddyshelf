@@ -613,6 +613,16 @@ methods
         roms_info(runs.dir);
     end
 
+    function [varname] = process_varname(varname)
+        if strcmpi(varname, 'csdye')
+            varname = runs.csdname;
+        end
+
+        if strcmpi(varname, 'eddye')
+            varname = runs.eddname;
+        end
+    end
+
     function [runs] = reload(runs)
         dir = runs.dir;
         keyboard;
