@@ -37,7 +37,7 @@ function [] = secondary_vortices(runs, tindex, n)
     end
     toc;
 
-    backup - get(groot, 'DefaultAxesColorOrder);
+    backup = get(groot, 'DefaultAxesColorOrder');
     set(groot, 'DefaultAxesColorOrder', colors);
     ax(1) = subplot(323);
     plot(csdye - runs.bathy.xsb/1000, zr);
