@@ -32,8 +32,8 @@ function [] = animate_zslice(runs,varname,depth,tind)
         tic; disp('Reading data...');
         data = dc_roms_read_data(runs.dir, varname, tind, {}, [], grids);
         if addvelquiver
-            u1 = dc_roms_read_data(runs.dir, 'u', tind, {}, [], grids);
-            v1 = dc_roms_read_data(runs.dir, 'v', tind, {}, [], grids);
+            u1 = dc_roms_read_data(runs.dir, 'u', tind, {}, [], runs.rgrid);
+            v1 = dc_roms_read_data(runs.dir, 'v', tind, {}, [], runs.rgrid);
         end
 
         datain = 1;
@@ -84,6 +84,10 @@ function [] = animate_zslice(runs,varname,depth,tind)
 
     if strcmpi(varname, 'pv')
         var = log10(var);
+        if ~isreal(var)
+            var = real(var);
+            warning('Complex PV!');
+        end
     end
 
     runs.read_csdsurf;
