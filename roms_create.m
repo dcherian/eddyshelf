@@ -1701,7 +1701,7 @@ if S.NPT > 0
      if flags.eddy
         dye_03 = zeros(size(yrmat));
         %1e-3 is good threshold for tamp=0.4
-        dye_03(eddy.temp > (1e-3/0.4*eddy.tamp)) = 1;
+        dye_03(abs(eddy.temp) > abs(1e-3/0.4*eddy.tamp)) = 1;
         % now smooth out edges
         nfilter=5;
         for kk=1:S.N
