@@ -740,8 +740,12 @@ function [diags, plotx, rmse, P] = print_diag(runArray, name, args, hax)
                 P(2) = zmax;
             end
 
-            diags(ff) = abs(P(2));
-            plotx(ff) = hsb;
+            diags(ff) = abs(P(2)) + hsb/2;
+            plotx(ff) = Ro(1) * hsb;
+
+            name_points = 0;
+            labx = 'Ro H_{sb}';
+            laby = 'z_{peak} - H_{sb}/2';
 
             if debug
                 liney(-diags(ff));title(run.name);
