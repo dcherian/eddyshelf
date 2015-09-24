@@ -3,6 +3,12 @@ function [] = plot_fluxes(runArray, isobath, source)
     if ~exist('isobath', 'var'), isobath = 2; end
     if ~exist('source', 'var'), source = 2; end
 
+    if isempty(runArray.filter)
+        runArray.filter = 1:runArray.len;
+    end
+
+    corder_backup = runArray.sorted_colors;
+
     hfig1 = []; %figure; ax1(1) = subplot(2,1,1); hold all; % shelf water flux time series
                 %ax1(2) = subplot(2,1,2); hold all;
 
@@ -22,12 +28,6 @@ function [] = plot_fluxes(runArray, isobath, source)
     hfig8 = []; %figure; hold on; % streamer max. vel.
 
     hfig9 = figure; hold all;% instantaneous streamer vertical structure
-
-    if isempty(runArray.filter)
-        runArray.filter = 1:runArray.len;
-    end
-
-    corder_backup = runArray.sorted_colors;
 
     nsmooth = 1;
 
