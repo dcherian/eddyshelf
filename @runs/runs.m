@@ -1271,6 +1271,7 @@ methods
                 subplot(2,ceil(n/2),index)
                 pcolorcen(ti, zvec, slopezt);
                 center_colorbar;
+                liney(-hsb);
                 title(['Y = ' num2str(runs.csflux.x(index)/1000, '%.2f'), ...
                        ' km | H = ' num2str(runs.csflux.h(index), '%d') ...
                        ' m | ' runs.name]);
@@ -1321,7 +1322,7 @@ methods
             [~,tindex] = runs.calc_maxflux(...
                 runs.csflux.west.slope(:,isobath,isobath));;
 
-            tindex = 55;
+            % tindex = 55;
             vnorm = runs.eddy.V(tindex);
 
             % copied from csfluxes.m
@@ -1355,7 +1356,7 @@ methods
             mask = fillnan(bsxfun(@times, csdye < runs.csflux.x(isobath), ...
                    runs.csflux.westmask(:,tindex,isobath)),0)';
 
-            tind = 1; tindex;
+            tind = 1; %tindex; % FOR PARAMETERISATION
             syms x z;
             a = 2; % 2 for gaussian
             V0 = runs.eddy.V(tind) * 2.33;
