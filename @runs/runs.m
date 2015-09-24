@@ -1479,6 +1479,13 @@ methods
                 liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
                 liney(-1 * runs.bathy.hsb, 'h_{sb}');
                 caxis([0 1]);
+
+                figure
+                plot(trapz(xvec, repnan(csvel.*mask',0), 1), zvec);
+                beautify;
+                ylabel('Z (m)');
+                xlabel('Transport (m^2/s)');
+                liney(-runs.bathy.hsb);
             end
 
             if ~isempty(hfig8)
