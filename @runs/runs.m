@@ -1132,6 +1132,7 @@ methods
     function [] = plot_checkvertprofile(runs)
 
         hfig = figure; hold on;
+        lightDarkLines(length(runs.csflux.ix));
         for iso = 1:length(runs.csflux.ix)
             % figure; hold on;
             flux = runs.csflux.west.slope(:,iso,iso);
@@ -1162,6 +1163,9 @@ methods
             %legend(cellstr(num2str(indices')));
             %title(num2str(iso));
         end
+        xlabel('Time index since maxflux');
+        ylabel('z-peak in instantaneous flux at isobath');
+        legend(cellstr(num2str(runs.csflux.x'/1000, '%.0f')));
     end
     function [] = plot_fluxes(runs, source, isobath)
 
