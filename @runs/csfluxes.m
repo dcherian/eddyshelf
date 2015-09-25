@@ -66,7 +66,7 @@ function [] = csfluxes(runs, ftype)
         csvelid = 'u';
         asvelid = 'v';
         bathyax = 1;
-        indices = vecfind(runs.eddy.xr(:,1),loc);
+        indices = vecfind(runs.eddy.x_rho(1,:),loc);
 
         % append sponge edge to existing values
         sy2 = runs.spng.sx2;
@@ -76,7 +76,7 @@ function [] = csfluxes(runs, ftype)
         csvelid = 'v';
         asvelid = 'u';
         bathyax = 2;
-        indices = vecfind(runs.eddy.yr(1,:),loc);
+        indices = vecfind(runs.eddy.y_rho(:,1),loc);
 
         % append sponge edge to existing values
         sy2 = runs.spng.sy2;
@@ -275,39 +275,36 @@ function [] = csfluxes(runs, ftype)
         runs.csflux.westmask(:,:,kk) = westmask;
         runs.csflux.eastmask(:,:,kk) = eastmask;
 
+        volr = {runs.bathy.axis runs.csflux.ix(kk) runs.csflux.ix(kk)};
+        volv = {runs.bathy.axis runs.csflux.ix(kk)-1 runs.csflux.ix(kk)};
+
         % read along-shore section of cross-shore vel.
         % dimensions = (x/y , z , t )
         % average carefully to get values at RHO point
-        csvel = squeeze(avg1(dc_roms_read_data(runs.dir, csvelid, ...
-                                       [t0 tinf], {runs.bathy.axis runs.csflux.ix(kk)-1 ...
-                            runs.csflux.ix(kk)}, [], runs.rgrid, ftype, ...
-                                       'single'), bathyax));
+        csvel = squeeze(avg1(dc_roms_read_data(runs.dir, csvelid, [t0 tinf], ...
+                                               volv, [], runs.rgrid, ftype, ...
+                                               'single'), bathyax));
         csvel = csvel(2:end-1,:,:,:);
 
         % process cross-shelf dye
-        csdye = dc_roms_read_data(runs.dir, runs.csdname, ...
-                                  [t0 tinf], {runs.bathy.axis runs.csflux.ix(kk)+1 ...
-                            runs.csflux.ix(kk)+1}, [], runs.rgrid, ...
-                                  ftype, 'single');
+        csdye = dc_roms_read_data(runs.dir, runs.csdname, [t0 tinf], ...
+                                  volr, [], runs.rgrid, ftype, 'single');
         csdye = csdye(2:end-1,:,:);
 
         % read eddye
-        eddye = dc_roms_read_data(runs.dir, runs.eddname, ...
-                                  [t0 tinf], {runs.bathy.axis runs.csflux.ix(kk)+1 ...
-                            runs.csflux.ix(kk)+1}, [], runs.rgrid, ...
-                                  ftype, 'single');
+        eddye = dc_roms_read_data(runs.dir, runs.eddname, [t0 tinf], ...
+                                  volr, [], runs.rgrid, ftype, 'single');
         eddye = eddye(2:end-1,:,:);
 
         % define eddy water mass
         eddymask = eddye > runs.eddy_thresh;
 
         if bathyax == 2
-            zvec = runs.rgrid.z_r(:, runs.csflux.ix(kk)+1, 1);
+            zvec = runs.rgrid.z_r(:, runs.csflux.ix(kk), 1);
         else
-            zvec = runs.rgrid.z_r(:, 1, runs.csflux.ix(kk)+1);
+            zvec = runs.rgrid.z_r(:, 1, runs.csflux.ix(kk));
         end
-        runs.csflux.vertbins(:,kk) = ...
-            runs.rgrid.z_r(:, runs.csflux.ix(kk)+1, 1);
+        runs.csflux.vertbins(:,kk) = zvec;
 
         runs.csflux.eddyxt(:,:,kk) = squeeze(trapz(zvec, ...
                                                    eddymask .* csvel,2));
@@ -346,6 +343,7 @@ function [] = csfluxes(runs, ftype)
 
         if do_energy
             disp('Calculating energy...');
+            error('CHECK INDICES OF READING');
             % read velocity and calculate pressure etc.
             asvel = avg1(dc_roms_read_data(runs.dir, asvelid, [t0 tinf], ...
                                       {runs.bathy.axis runs.csflux.ix(kk) ...
@@ -537,6 +535,7 @@ function [] = csfluxes(runs, ftype)
         % process pv
         if dopv
             % both at interior RHO points
+            error('CHECK INDICES OF READING');
             if bathy.ax == 2
                 start = [1 runs.csflux.ix(kk) 1 t0];
                 count = [Inf 1 Inf Inf];
