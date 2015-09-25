@@ -1,3 +1,4 @@
+% plots average velocity seen by shelf-slope water at a given isobath
 function [] = avgStreamerVelSection(runs, isobath, source)
 
     debug = 1;
@@ -17,7 +18,7 @@ function [] = avgStreamerVelSection(runs, isobath, source)
 
     [start,stop] = runs.flux_tindices(runs.csflux.west.slope(:, isobath, source));
     tindices = [start stop];
-    ix = runs.csflux.ix(isobath) + 1;
+    ix = runs.csflux.ix(isobath) + 1; % WORKAROUND FOR CSFLUXES BUG
     volr = {runs.bathy.axis ix ix};
     volv = {runs.bathy.axis ix-1 ix};
     xivec = -200:runs.rgrid.dx/1000:200;
@@ -56,19 +57,20 @@ function [] = avgStreamerVelSection(runs, isobath, source)
     pint = runs.csflux.west.slopewater.vertitrans(:,isobath,source);
 
     figure;
+    insertAnnotation([runs.name '.avgStreamerVelSection']);
     if debug, subplot(121); end
     pcolorcen(xivec, zvec, vmean');
     xlabel('X - X_{eddy} (km)'); ylabel('Z (m)');
     liney(-runs.bathy.hsb);
-    linex(0);
-    title(['y/R = ' num2str(runs.csflux.ndloc(isobath))]);
-    colormap(cbrewer('seq','Reds',32));
+    linex(0); xlim([min(xivec) 0]);
+    title([runs.name ' | y/R = ' num2str(runs.csflux.ndloc(isobath))]);
+    colormap(cbrewer('seq','Reds',32)); colorbar;
 
     if debug
         subplot(122)
         plot(pmean./max(pmean), zvec);
         hold on;
         plot(pint./max(pint), zvec);
-        legend('Mean', 'Integrated');
+        legend('Mean', 'Integrated', 'Location', 'NorthWest');
     end
 end
