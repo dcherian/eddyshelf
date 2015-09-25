@@ -17,12 +17,8 @@ function [] = csfluxes(runs, ftype)
     dopv = 0;
 
     vorname = [runs.dir '/ocean_vor.nc'];
-    % need some kind of initial time instant - decided by streamer mask
-    % now
-    runs.csflux = [];
 
-    tstart = 1;%find(repnan(runs.streamer.time,0) ==
-               %0,1,'last') + 1;
+    tstart = 1;
     revind = runs.eddy.trevind;
 
     % quantities for area-averaging if needed
@@ -30,6 +26,8 @@ function [] = csfluxes(runs, ftype)
 
     % sort out isobaths across which to calculate transports
     Y = max(runs.rgrid.y_rho(:));
+
+    runs.csflux = [];
 
     % Non-dimensional isobath = (y_{isobath} - y_{sb})/(Eddy center
     % location)
@@ -42,7 +40,6 @@ function [] = csfluxes(runs, ftype)
     if isempty(R)
         error(['locate_resistance didn''t return anything for ' runs.name]);
     end
-
     R = R - xsb;
     runs.csflux.ndloc = linspace(0,2,13);
     runs.csflux.R = R;
@@ -70,8 +67,6 @@ function [] = csfluxes(runs, ftype)
 
         % append sponge edge to existing values
         sy2 = runs.spng.sx2;
-        % indices = [indices sy2];
-        % loc = [loc runs.eddy.xr(sy2, 1)];
     else
         csvelid = 'v';
         asvelid = 'u';
@@ -80,8 +75,6 @@ function [] = csfluxes(runs, ftype)
 
         % append sponge edge to existing values
         sy2 = runs.spng.sy2;
-        % indices = [indices sy2];
-        % loc = [loc runs.eddy.yr(1, sy2)];
     end
 
     sz = size(runs.sponge);
@@ -107,41 +100,6 @@ function [] = csfluxes(runs, ftype)
 
     time = runs.time(1:tinf);
     t0 = 1;
-
-    % interpolate center locations
-    % Don't think this is required anymore. I don't use average
-    % files at all.
-    % if strcmpi(ftype, 'his')
-    %     time = dc_roms_read_data(runs.dir, 'ocean_time', [1 tinf], {}, [], ...
-    %                              [], 'his');
-    %     if length(time) ~= length(runs.eddy.t(1:runs.eddy.tend))
-    %         t0 = find_approx(time, runs.time(tstart), 1);
-    %         if bathyax == 2
-    %             cxi = interp1(runs.eddy.t(tstart:end)*86400, runs.eddy.vor.ee(tstart:end), ...
-    %                           time(t0:end));
-    %         else
-    %             cxi = interp1(runs.eddy.t(tstart:end)*86400, runs.eddy.vor.se(tstart:end), ...
-    %                           time(t0:end));
-    %         end
-    %     else
-    %         t0 = tstart;
-    %         if bathyax == 2
-    %             cxi = runs.eddy.vor.ee(tstart:end);
-    %         else
-    %             cxi = runs.eddy.vor.se(tstart:end);
-    %         end
-    %     end
-    % else
-    %     if strcmpi(ftype, 'avg')
-    %         t0 = tstart;
-    %         time = runs.time;
-    %         if bathyax == 2
-    %             cxi = runs.eddy.vor.ee(t0:end);
-    %         else
-    %             cxi = runs.eddy.vor.se(t0:end);
-    %         end
-    %     end
-    % end
 
     % size for initialization
     nloc = length(loc);
