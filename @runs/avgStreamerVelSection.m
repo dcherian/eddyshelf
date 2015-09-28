@@ -51,9 +51,10 @@ function [] = avgStreamerVelSection(runs, isobath, source)
     end
     toc;
 
-    vmean = mean(bsxfun(@times, vi .* (csdyei < runs.csflux.x(source)), ...
-                        xivec' < 0), 3);
-    pmean = trapz(xivec, repnan(vmean,0), 1); % mean profile
+    vmeanwest = mean(bsxfun(@times, vi .* (csdyei < runs.csflux.x(source)), ...
+                            xivec' < 0), 3);
+    vmean = mean(vi .* (csdyei < runs.csflux.x(source)), 3);
+    pmean = trapz(xivec, repnan(vmeanwest,0), 1); % mean profile
     pint = runs.csflux.west.slopewater.vertitrans(:,isobath,source);
 
     figure;
@@ -62,9 +63,9 @@ function [] = avgStreamerVelSection(runs, isobath, source)
     pcolorcen(xivec, zvec, vmean');
     xlabel('X - X_{eddy} (km)'); ylabel('Z (m)');
     liney(-runs.bathy.hsb);
-    linex(0); xlim([min(xivec) 0]);
+    linex(0);
     title([runs.name ' | y/R = ' num2str(runs.csflux.ndloc(isobath))]);
-    colormap(cbrewer('seq','Reds',32)); colorbar;
+    center_colorbar;
 
     if debug
         subplot(122)
