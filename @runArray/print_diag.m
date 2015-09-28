@@ -634,8 +634,7 @@ function [diags, plotx, rmse, P] = print_diag(runArray, name, args, hax)
             xfrac = sqrt(1 - y0oL^a);
 
             if use_numerics
-                ix = run.csflux.ix(isobath);
-                zvec = run.rgrid.z_r(:, ix+1, 1);
+                zvec = run.csflux.vertbins(:, isobath);
                 xvec = (run.rgrid.x_rho(1,2:end-1) - run.eddy.mx(maxloc));
 
                 %xfrac2 = -sqrt(1 - y0oL^2 - (zvec./Lz).^2);
@@ -674,20 +673,25 @@ function [diags, plotx, rmse, P] = print_diag(runArray, name, args, hax)
                 %          int(x/L*exp(-(x/L)^2), -Inf, -xfrac*L) * exp(-y0oL^2) ...
                 %          * int(1 - erf(-z/Lz0), z, -H, 0);
             else
-                syms x z
+                % syms x z
                 %fluxscl = abs(V0) * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
                 %          * int(1 - erf(-z/Lz0), z, -H, 0); % works well
+                zvec = run.csflux.vertbins(:, isobath);
+                ideal = exp(-((zvec + hsb/2)/(hsb)).^2) .* (zvec >= -hsb) ...
+                        + exp(-1/4) * (1 - erf(-zvec/Lz(1))) .* (zvec < -hsb);
                 fluxscl = abs(V0) * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
-                          *  Lz0 * (H/Lz0 + 1/sqrt(pi));% int(1 - erf(-z/Lz0), z, -H, 0); % works well
+                          * trapz(zvec, ideal);
+                %fluxscl = abs(V0) * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
+                %          *  Lz0 * (H/Lz0 + 1/sqrt(pi));
             end
 
             norm = 1e3;
             transscl = double(fluxscl)/norm;
 
             % correction for shallower isobaths
-            if isobath < 3
-                transscl = (hsb/Lz(1)) * transscl;
-            end
+            %if isobath < 1
+            %    transscl = (hsb/Lz(1)) * transscl;
+            %end
 
             % colorize
             crit = 0.40;
