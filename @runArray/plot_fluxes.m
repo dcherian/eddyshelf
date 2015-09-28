@@ -208,8 +208,11 @@ function [] = plot_fluxes(runArray, isobath, source)
 
             [~,tind] = run.calc_maxflux(run.csflux.west.slope(:,isobath,source));
 
-            hgplt9(ff) = plot(run.csflux.west.slopezt(:,tind,isobath,source), ...
-                              run.csflux.vertbins(:,isobath)./run.bathy.hsb);
+            zvec = run.csflux.vertbins(:,isobath)./run.bathy.hsb;
+            actual = run.csflux.west.slopezt(:,tind,isobath,source);
+            ideal = run.streamer_ideal_profile(isobath);
+            hgplt9(ff) = plot(actual, zvec);
+            plot(max(actual)*ideal, zvec, 'k--');
         end
     end
 

@@ -1167,6 +1167,22 @@ methods
         ylabel('z-peak in instantaneous flux at isobath');
         legend(cellstr(num2str(runs.csflux.x'/1000, '%.0f')));
     end
+
+    function [profile, zvec] = streamer_ideal_profile(runs, isobath)
+
+        hsb = runs.bathy.hsb;
+        Lz = runs.eddy.Lgauss(1);
+        Ro = runs.eddy.Ro(1);
+
+        zvec = runs.csflux.vertbins(:,isobath);
+        dh = 0; Ro * hsb * runs.csflux.ndloc(isobath);
+        hjoin = hsb + dh;
+        hpeak = hsb/2 + dh;
+
+        profile = exp(-((zvec + hpeak)/(hjoin)).^2) .* (zvec >= -hjoin) ...
+                  + exp(-1/4) * (1 - erf(-zvec/Lz)) .* (zvec < -hjoin);
+    end
+
     function [] = plot_fluxes(runs, source, isobath)
 
         n = length(runs.csflux.x);
@@ -1220,16 +1236,30 @@ methods
 
             subplot(122)
             lightDarkLines(length(runs.csflux.ix));
-            for iso=1:length(runs.csflux.ix)
-                fluxvec = runs.csflux.west.slopewater.vertitrans(:, ...
-                                                                 iso,iso);
-                zvec = runs.csflux.vertbins(:,iso)./Lz;
+            for iso=2:5 %length(runs.csflux.ix)
+                % this doesn't account for eddy transiting through isobath
+                %fluxvec = runs.csflux.west.slopewater.vertitrans(:, ...
+                %                                                 iso,iso);
+                % [start,stop] = runs.flux_tindices(runs.csflux.west.slope(:, iso,iso));
+                [~,~,start] = runs.locate_resistance;
+                fluxvec = trapz(runs.csflux.time(start:end), ...
+                                runs.csflux.west.slopezt(:,start:end,iso,iso), 2);
+
+                zvec = runs.csflux.vertbins(:,iso)./hsb;
                 trans = trapz(zvec, fluxvec);
-                plot(fluxvec./max(fluxvec), zvec);
+
+                diffvec = smooth(diff(fluxvec), 4);
+
+                zjoin = find(diffvec - 1/2*max(diffvec), 1);
+                plot(fluxvec, zvec);
+                plot(fluxvec(zjoin), zvec(zjoin), 'kx');
+
+                ideal = runs.streamer_ideal_profile(iso);
+                %plot(ideal*max(fluxvec), zvec, 'k--');
             end
-            ideal = exp(-((zvec + hsb/2)/(hsb)).^2) .* (zvec >= -hsb) ...
-                    + exp(-1/4) * (1 - erf(-zvec/Lz)) .* (zvec < -hsb);
-            plot(ideal, zvec, 'k--');
+            %ideal = exp(-((zvec + hsb/2)/(hsb)).^2) .* (zvec >= -hsb) ...
+            %        + exp(-1/4) * (1 - erf(-zvec/Lz)) .* (zvec < -hsb);
+            %plot(ideal, zvec, 'k--');
             %liney(-1 * runs.bathy.hsb);
             legend(cellstr(num2str(runs.csflux.h')), ...
                    'Location', 'SouthEast');

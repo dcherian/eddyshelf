@@ -71,6 +71,8 @@ function [] = avgStreamerVelSection(runs, isobath, source)
         plot(pmean./max(pmean), zvec);
         hold on;
         plot(pint./max(pint), zvec);
-        legend('Mean', 'Integrated', 'Location', 'NorthWest');
+        ideal = runs.streamer_ideal_profile(isobath);
+        plot(ideal, zvec);
+        legend('Mean', 'Integrated', 'Idealized', 'Location', 'NorthWest');
     end
 end
