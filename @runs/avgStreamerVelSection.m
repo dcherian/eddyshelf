@@ -57,23 +57,46 @@ function [] = avgStreamerVelSection(runs, isobath, source)
     pmean = trapz(xivec, repnan(vmeanwest,0), 1); % mean profile
     pint = runs.csflux.west.slopewater.vertitrans(:,isobath,source);
 
-    figure;
+    hf = figure;
     insertAnnotation([runs.name '.avgStreamerVelSection']);
-    if debug, subplot(121); end
+    if debug, ax1 = subplot(2,3,[4 5]); end
     pcolorcen(xivec, zvec, vmean');
     xlabel('X - X_{eddy} (km)'); ylabel('Z (m)');
     liney(-runs.bathy.hsb);
     linex(0);
     title([runs.name ' | y/R = ' num2str(runs.csflux.ndloc(isobath))]);
-    center_colorbar;
+    hcb = center_colorbar;
+
+    L = runs.eddy.rhovor.lmaj(1)/1000;
+    R = runs.csflux.R/1000;
 
     if debug
-        subplot(122)
+        a = 3; Ln = L/3;
+        yoR = runs.csflux.ndloc(isobath); % y/R - used in csflux
+        y0oL = R/L * (1 - yoR); % y0/L - used in derivation
+        ideal = runs.streamer_ideal_profile(isobath);
+        idealx = trapz(zvec, ideal) *  ...
+                 diff(exp(-abs(xivec'/Ln).^a))./diff(xivec'/Ln) ...
+                 * exp(-y0oL.^2);
+        actualx = trapz(zvec, vmean, 2);
+
+        ax2 = subplot(2,3,[1 2]);
+        plot(xivec, actualx./max(actualx));
+        hold on;
+        plot(avg1(xivec), idealx./max(idealx), 'k-');
+        linex(0); liney(0);
+        ylabel('Flux (m^2/s)');
+
+        ax3 = subplot(236);
         plot(pmean./max(pmean), zvec);
         hold on;
         plot(pint./max(pint), zvec);
-        ideal = runs.streamer_ideal_profile(isobath);
         plot(ideal, zvec);
-        legend('Mean', 'Integrated', 'Idealized', 'Location', 'NorthWest');
+        legend('Mean', 'Integrated', 'Idealized', 'Location', 'SouthEast');
+
+        colorbar(hcb, 'hide');
+        linkaxes([ax1 ax2], 'x');
+        linkaxes([ax1 ax3], 'y');
     end
+
 end
