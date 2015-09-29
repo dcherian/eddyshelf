@@ -612,9 +612,7 @@ function [diags, plotx, rmse, P] = print_diag(runArray, name, args, hax)
             % maxflux = max(run.csflux.west.slope(:,isobath, isobath));
             H = run.bathy.h(1, run.csflux.ix(isobath));
 
-            use_numerics = 0;
-
-            tind = 1; maxloc;
+            tind = 1;
             a = 2;
             %[V1, L, x0] = run.fit_vel(tind);
             % V1/V0 = 2.3 quite dependably
@@ -625,6 +623,7 @@ function [diags, plotx, rmse, P] = print_diag(runArray, name, args, hax)
             % vor.dia is radius to max vel =
             L = run.eddy.rhovor.dia(tind)/2;
             Lz0 = Lz(maxloc);
+            %L = N/f0 * Lz0/pi; - doesn't help
 
             % I can make slope ~ 1 by
             % V0 * 0.1
@@ -633,52 +632,34 @@ function [diags, plotx, rmse, P] = print_diag(runArray, name, args, hax)
             y0oL =  R/L * (1 - yoR); % y0/L - used in derivation
             xfrac = sqrt(1 - y0oL^a);
 
+            zvec = run.csflux.vertbins(:, isobath);
+
+            use_numerics = 0;
             if use_numerics
-                zvec = run.csflux.vertbins(:, isobath);
-                xvec = (run.rgrid.x_rho(1,2:end-1) - run.eddy.mx(maxloc));
-
-                %xfrac2 = -sqrt(1 - y0oL^2 - (zvec./Lz).^2);
-                %xfrac2(~isreal(xfrac2)) = 0;
-
                 % eddy profile
+                xvec = (run.rgrid.x_rho(1,2:end-1) - run.eddy.mx(maxloc));
                 eddmask = bsxfun(@le, abs(xvec/L), sqrt(1-y0oL^a-(zvec./Lz0).^2));
                 % mask to integrate over
-                inmask = bsxfun(@and, xvec < 0, 1 - eddmask)';
+                inmask = bsxfun(@and, xvec/L < -0, 1 - eddmask)';
 
-                if H/Lz0 < 1.5% if run.bathy.hsb/Lz0 < 0.5
-                    inmask = repmat(inmask(:,end), [1 run.rgrid.N]);
-                end
+                %if H/Lz0 < 1.5% if run.bathy.hsb/Lz0 < 0.5
+                %    inmask = repmat(inmask(:,end), [1 run.rgrid.N]);
+                %end
 
-                % inmask = bsxfun(@and, inmask, xvec'/L < -xfrac);
-
+                idealz = run.streamer_ideal_profile(isobath, maxloc); %(1 - erf(-zvec/Lz0))
                 % profile I am assuming
                 videal = bsxfun(@times, ...
                                 -V0 * (xvec/L).^(a-1) .* exp(-(xvec/L).^a -y0oL^a), ...
-                                (1 - erf(-zvec/Lz0)))';
+                                idealz)';
                 fluxscl = trapz(zvec, trapz(xvec, videal .* inmask, 1), 2);
-                % idmask = repmat(xvec < xfrac, [runs.rgrid.N 1]);
-
-                % if ~exist('gaussprof', 'var')
-                %     syms x z;
-                %     % (x,z) velocity profile
-                %     gaussprof(x,z) = exp(-(x/L)^2) * (1-erf(-z/Lz0));
-                %     % bounding contour of ρ = ρ_0/e
-                %     z0 = Lz0 * sqrt(1 - y0oL^2 - (x/L)^2);
-                % end
-                % fluxscl = V0 * exp(-y0oL^2) * ( ...
-                %     double(int(int(gaussprof, z, -H, 0), x, -Inf, 0)) - ...
-                %     double(int(int(gaussprof, z, -z0,0), x, -L*xfrac, 0)));
-
-                %            fluxscl = -1 * abs(V0) * ...
-                %          int(x/L*exp(-(x/L)^2), -Inf, -xfrac*L) * exp(-y0oL^2) ...
-                %          * int(1 - erf(-z/Lz0), z, -H, 0);
             else
                 % syms x z
                 %fluxscl = abs(V0) * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
                 %          * int(1 - erf(-z/Lz0), z, -H, 0); % works well
-                zvec = run.csflux.vertbins(:, isobath);
-                ideal = run.streamer_ideal_profile(isobath);
-                fluxscl = abs(V0) * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
+                ideal = run.streamer_ideal_profile(isobath, maxloc);
+                %ideal = run.csflux.west.slopewater.vertitrans(:,isobath,isobath);
+                ideal = ideal./max(ideal);
+                fluxscl = abs(V0) * L/2 * exp(-xfrac^2-y0oL^2) ...
                           * trapz(zvec, ideal);
                 %fluxscl = abs(V0) * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
                 %          *  Lz0 * (H/Lz0 + 1/sqrt(pi));
