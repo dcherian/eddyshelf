@@ -617,11 +617,11 @@ function [diags, plotx, rmse, P] = print_diag(runArray, name, args, hax)
             %[V1, L, x0] = run.fit_vel(tind);
             % V1/V0 = 2.3 quite dependably
             %V0 = V1*2.3;
-            V0 = run.eddy.V(tind);
+            V0 = run.eddy.rhovor.Vke(maxloc);
             % distance of eddy center from shelfbreak
             R = run.csflux.R;
             % vor.dia is radius to max vel =
-            L = run.eddy.rhovor.dia(tind)/2;
+            L = run.eddy.rhovor.dia(1)/2;
             Lz0 = Lz(maxloc);
             %L = N/f0 * Lz0/pi; - doesn't help
 
