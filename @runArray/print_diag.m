@@ -1,4 +1,4 @@
-function [diags, plotx, rmse, P] = print_diag(runArray, name, args, hax)
+function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
 
     if ~exist('args', 'var'), args = []; end
     if ~exist('hax', 'var'), hax = []; end
@@ -18,7 +18,8 @@ function [diags, plotx, rmse, P] = print_diag(runArray, name, args, hax)
     annostr = ['runArray.print_diag(' name ')'];
     diags = nan(size(runArray.filter));
     plotx = diags;
-    P = nan([2 1]);
+    P = nan([2 1]); % slope and intercept
+    Perr = nan([2 1]); % error bounds on slope and intercept
 
     if plots
         if isempty(hax)
@@ -1054,6 +1055,9 @@ function [diags, plotx, rmse, P] = print_diag(runArray, name, args, hax)
                         num2str(abs(Pint(1,1)-P(1)), '%.2f')];
             intstr = [intstr '\pm' ...
                       num2str(abs(Pint(2,1)-P(2)), '%.2f')];
+
+            Perr(1) = P(1) - Pint(1,1);
+            Perr(2) = P(2) - Pint(2,1);
         end
 
         hleg = legend(hparam(1), ['y = (' slopestr ') x + (' ...

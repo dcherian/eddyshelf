@@ -530,15 +530,26 @@ classdef runArray < handle
             if ~exist('str', 'var'), str = 'max'; end
 
             isobath = 1:8;
-            figure;
+            figure; insertAnnotation(['runArray.plot_fluxparam(' str]);
             for ii=isobath
                 hh(ii) = subplot(3,3,ii);
-                [~,~,rmse] = runArray.print_diag([str ' flux'], ii, hh(ii));
+                [~, ~, rmse, P, Perr] = ...
+                    runArray.print_diag([str ' flux'], ii, hh(ii));
                 legend('off'); xlabel(''); ylabel('');
                 title([num2str(runArray.array(1).csflux.ndloc(ii), ...
                                '%.2f') ' | rmse = ' num2str(rmse, '%.2f')]);
                 beautify([16 16 18]);
+
+                mplt(ii) = P(1);
+                err(ii) = Perr(1);
             end
+
+            figure; insertAnnotation(['runArray.plot_fluxparam(' str]);
+            errorbar(runArray.array(1).csflux.ndloc(isobath), ...
+                     mplt, err, 'kx-', 'LineWidth', 2);
+            ylabel('Slope of fit');
+            xlabel('Location (y/R)');
+            beautify;
         end
 
         function [] = plot_field(runArray, varname, tind)
