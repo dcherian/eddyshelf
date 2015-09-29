@@ -1168,19 +1168,25 @@ methods
         legend(cellstr(num2str(runs.csflux.x'/1000, '%.0f')));
     end
 
-    function [profile, zvec] = streamer_ideal_profile(runs, isobath)
+    function [profile, zvec] = streamer_ideal_profile(runs, isobath, ...
+                                                      maxloc)
+
+        if ~exist('maxloc', 'var'), maxloc = 1; end
 
         hsb = runs.bathy.hsb;
-        Lz = runs.eddy.Lgauss(1);
+        Lz = runs.eddy.Lgauss(maxloc);
         Ro = runs.eddy.Ro(1);
 
         zvec = runs.csflux.vertbins(:,isobath);
         dh = 0; Ro * hsb * runs.csflux.ndloc(isobath);
-        hjoin = hsb + dh;
+        hjoin = 1.2*hsb + dh;
         hpeak = hsb/2 + dh;
+        a = 1.5;
+        vscalefactor = 1/2;
 
-        profile = exp(-((zvec + hpeak)/(hjoin)).^2) .* (zvec >= -hjoin) ...
-                  + exp(-1/4) * (1 - erf(-zvec/Lz)) .* (zvec < -hjoin);
+        profile = exp(-abs((zvec + hpeak)/hjoin).^a) .* (zvec >= -hjoin) ...
+                  + exp(-abs((-hjoin + hpeak)/hjoin).^a) * ...
+                  (1 - erf(-zvec/Lz/vscalefactor)) .* (zvec < -hjoin);
     end
 
     function [] = plot_fluxes(runs, source, isobath)
