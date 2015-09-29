@@ -63,7 +63,7 @@ function [] = csfluxes(runs, ftype)
         csvelid = 'u';
         asvelid = 'v';
         bathyax = 1;
-        indices = vecfind(runs.eddy.x_rho(1,:),loc);
+        indices = vecfind(runs.rgrid.x_rho(1,:),loc);
 
         % append sponge edge to existing values
         sy2 = runs.spng.sx2;
@@ -71,7 +71,7 @@ function [] = csfluxes(runs, ftype)
         csvelid = 'v';
         asvelid = 'u';
         bathyax = 2;
-        indices = vecfind(runs.eddy.y_rho(:,1),loc);
+        indices = vecfind(runs.rgrid.y_rho(:,1),loc);
 
         % append sponge edge to existing values
         sy2 = runs.spng.sy2;
