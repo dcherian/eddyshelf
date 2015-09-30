@@ -2,6 +2,7 @@
 *.m~
 *.prf
 *.png
+*.pdf
 *.log
 *.aux
 *.dat
