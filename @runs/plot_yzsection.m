@@ -248,7 +248,15 @@ end
 function common(obj, hf, yz, zmat, drho, ed, ii, days, loc, tindices)
 % do common tasks
     figure(hf); drawnow;
-    colorbar; clim = caxis; limx = xlim; limy = ylim;
+    clim = caxis; limx = xlim; limy = ylim;
+
+    % colorbar on last panel only
+    if ii == length(days)
+        colorbar;
+    else
+        colorbar('hide');
+    end
+
     if ~isempty(ed)
         contour(yz, zmat, ed, 1, 'r', 'LineWidth', 2);
     end
