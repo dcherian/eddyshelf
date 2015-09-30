@@ -737,6 +737,24 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             end
         end
 
+        if strcmpi(name, 'zpeakwidth')
+            parameterize = 1;
+            iso = args(1);
+
+            if iso > size(run.csflux.west.slope, 3), continue; end
+
+            [~,~,zwidth] = run.streamer_peak(iso);
+            R = run.csflux.R;
+            yoR = run.csflux.ndloc(iso);
+
+            [~,maxloc] = run.calc_maxflux(iso);
+            Ly = run.eddy.rhovor.lmin(maxloc)/2;
+            Ly = run.eddy.rhovor.dia(1)/2;
+
+            diags(ff) = -1*zwidth(1)/hsb;
+            plotx(ff) = Ro(maxloc) * yoR * Lz(maxloc)/hsb;
+        end
+
         if strcmpi(name, 'avg flux')
             if isempty(args)
                 isobath = 3;
