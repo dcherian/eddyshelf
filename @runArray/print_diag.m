@@ -749,10 +749,14 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
 
             [~,maxloc] = run.calc_maxflux(iso);
             Ly = run.eddy.rhovor.lmin(maxloc)/2;
-            Ly = run.eddy.rhovor.dia(1)/2;
+            Lz = smooth(Lz, 30);
+            Ro = smooth(Ro, 1);
+            %Ly = run.eddy.rhovor.dia(1)/2;
 
-            diags(ff) = -1*zwidth(1)/hsb;
-            plotx(ff) = Ro(maxloc) * yoR * Lz(maxloc)/hsb;
+            name_points = 0;
+
+            diags(ff) = (-1*zwidth(1))/hsb;
+            plotx(ff) = Ro(1) * R/Ly * Lz(1)/hsb;
         end
 
         if strcmpi(name, 'avg flux')
