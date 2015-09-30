@@ -126,3 +126,11 @@ ylabel('Vertical scale fraction');
 xlabel('Time (days)');
 legend(leg,'Location',loc);
 
+%% topowaves
+z = [0:0.05:1];
+j = 1;
+plot(-sin(j*pi*(z-1)), z);
+hold on
+plot( -sin((j+1/2)*pi*(z-1)), z);
+linex(0)
+

@@ -41,20 +41,40 @@ export_fig('images/zhangeddy.png');
 %% plot Katsman structure
 
 rn = 0:0.05:10;
-eddy.a = 3;
+eddy.a = 2.1;
 rmnorm = nthroot( (eddy.a-2)/(eddy.a-1) , eddy.a);
 gamma = -2 * (eddy.a-2)./eddy.a ./ (rmnorm)^2;
 exponent = (eddy.a - 1)/eddy.a .* (rn.^(eddy.a) - rmnorm.^(eddy.a)); 
 R = (gamma/2 * rn.^2 + 1) .* (rn <= rmnorm) ...
                        + (gamma/2 *rmnorm^2 + 1) .* exp( -1 * exponent ) .* ...
                                                            (rn > rmnorm);
+                                                       
+gaussian = exp(-1/2 * rn.^2);
+V = diff(R)./diff(rn);
+
+[~,ind] = min(V);
+
 figure
 hold on
 plot(rn,R,'b')
-plot(avg1(rn),diff(R)./diff(rn),'r');
-linex(2.4);
+plot(avg1(rn),V,'r');
+plot(rn,gaussian, 'k');
+plot(avg1(rn), diff(gaussian)./diff(rn), 'k--');
+linex([2 2.2 2.8 4.3]);
+liney(0);
+linex(rn(ind));
 title('Katsman et al. (2013)');
-legend('T = R(r_n)','V = d/dr_n R(r_n)');
+legend('T = R(r_n)','V = d/dr_n R(r_n)', 'T (gaussian)', 'V (gaussian)');
 xlabel('r_n = r/r_0');
 %beautify;
 %export_fig('images/katsmaneddy.png');
+
+%% Hassanzadeh et al. (2011) paper
+
+z = 0:-0.05:-4;
+p = exp(-z.^2);
+dpdz = diff(p)./diff(z)
+
+hold all
+plot(p, z)
+plot(dpdz, avg1(z));

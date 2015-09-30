@@ -1,3 +1,20 @@
+%% integral (1 - erf(-z/Lz))
+
+%syms z 
+%syms H Lz positive
+
+%I(H,Lz) = int( 1 - erf(-z/Lz), z, -H, 0);
+
+HoLz = [0:0.01:10];
+
+f = HoLz + 1/sqrt(pi) - HoLz .* erf(HoLz) - 1/sqrt(pi) .* exp(-HoLz.^2);
+% approx = HoLz - HoLz.^2 / sqrt(pi) - HoLz.^4/6/sqrt(pi)
+approx = 1/sqrt(pi) + 2*HoLz - 2/sqrt(pi) * exp(-HoLz.^2);
+plot(HoLz, f)
+hold on
+plot(HoLz, approx)
+
+%%
 dir = 'runs/runte-11/';
 varname = 'temp';
 
