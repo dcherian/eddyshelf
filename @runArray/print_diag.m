@@ -699,8 +699,9 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
         if strcmpi(name, 'zpeak')
             debug = 0;
 
-            if debug, figure; hold on; end
+            if debug, figure; title(run.name); hold on; end
 
+            parameterize = 1;
             nsmooth = 3;
             zmax = [];
             kk = 1;
@@ -725,10 +726,13 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
                 P(2) = zmax;
             end
 
-            diags(ff) = abs(P(2)) + hsb/2;
-            plotx(ff) = Ro(1) * hsb;
+            fvec = run.rgrid.f(:,1);
+            fratio = fvec(run.csflux.ix(iso))./fvec(run.bathy.isb);
 
-            name_points = 0;
+            diags(ff) = abs(P(2));
+            plotx(ff) = (1+Ro(1)) * run.csflux.ndloc(iso) * fratio;
+
+            name_points = 1;
             labx = 'Ro H_{sb}';
             laby = 'z_{peak} - H_{sb}/2';
 
@@ -784,10 +788,14 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             y0oL = R/L * (1 - yoR); % y0/L - used in derivation
             xfrac = sqrt(1 - y0oL^2);
 
-            syms x z;
-            fluxscl = -1 * V0 * ...
-                      int(x/L*exp(-(x/L)^2), -Inf, -xfrac*L) * exp(-y0oL^2) ...
-                      * int(1 - erf(z/Lz0), z, -H, 0);
+            %syms x z;
+            %fluxscl = -1 * V0 * ...
+            %          int(x/L*exp(-(x/L)^2), -Inf, -xfrac*L) * exp(-y0oL^2) ...
+            %          * int(1 - erf(z/Lz0), z, -H, 0);
+
+            [zvec, ideal] = run.streamer_ideal_profile(isobath);
+            fluxscl = -abs(V0) * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
+                      * trapz(zvec, ideal);
 
             %transscl = 0.075 * g/f0 .* run.eddy.amp(ind) .* hsb/1000;
             %transscl = 0.023 * Lx(1) * V(tind) * hsb / 1000 + 0.0;
@@ -828,7 +836,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             % xlabel('Ro'); ylabel('paramerr');
 
             parameterize = 1;
-            errorbarflag = 1; name_points = 1; line_45 = 0;
+            errorbarflag = 1; name_points = 0; line_45 = 0;
             laby = 'Flux (mSv)';
             labx = 'Parameterization (mSv)';
             titlestr = [titlestr ' | ND isobath = ' ...
