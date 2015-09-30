@@ -1,7 +1,7 @@
 function [] = plot_fluxes(runArray, isobath, source)
 
     if ~exist('isobath', 'var'), isobath = 2; end
-    if ~exist('source', 'var'), source = 2; end
+    if ~exist('source', 'var'), source = isobath; end
 
     if isempty(runArray.filter)
         runArray.filter = 1:runArray.len;
