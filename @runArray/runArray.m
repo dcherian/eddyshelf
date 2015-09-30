@@ -534,7 +534,7 @@ classdef runArray < handle
             for ii=isobath
                 hh(ii) = subplot(3,3,ii);
                 [~, ~, rmse, P, Perr] = ...
-                    runArray.print_diag([str ' flux'], ii, hh(ii));
+                    runArray.print_diag(str, ii, hh(ii));
                 legend('off'); xlabel(''); ylabel('');
                 title([num2str(runArray.array(1).csflux.ndloc(ii), ...
                                '%.2f') ' | rmse = ' num2str(rmse, '%.2f')]);
