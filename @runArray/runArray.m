@@ -477,13 +477,17 @@ classdef runArray < handle
                 %run.fit_traj;
                 %tind = run.traj.tind;
                 %[~,~,tind] = run.locate_resistance(10,1/2);
-                tvec = run.time/run.eddy.turnover;
+                tvec = run.time; %/run.eddy.turnover;
 
-                ind = 2;
+                lmaj = run.eddy.rhovor.lmaj;
+                lmin = run.eddy.rhovor.lmin;
+                e = lmin./lmaj;
+
+                ind = 1;
                 [~,tind] = run.calc_maxflux(ind);
 
-                hplt(ff) = plot(run.csflux.west.slopezt(:,tind,ind,ind), ...
-                                run.csflux.vertbins(:,ind)./run.bathy.hsb);
+                hplt(ff) = plot(tvec, smooth(e,4));
+                plot(tvec(tind), e(tind), 'kx');
             end
             legend(hplt, names);
 
