@@ -1267,7 +1267,7 @@ methods
                 plot(fluxvec(zjoin), zvec(zjoin), 'kx');
 
                 ideal = runs.streamer_ideal_profile(iso);
-                %plot(ideal*max(fluxvec), zvec, 'k--');
+                plot(ideal*max(fluxvec), zvec, 'k--');
             end
             %ideal = exp(-((zvec + hsb/2)/(hsb)).^2) .* (zvec >= -hsb) ...
             %        + exp(-1/4) * (1 - erf(-zvec/Lz)) .* (zvec < -hsb);
@@ -1289,7 +1289,7 @@ methods
                 slopexti = runs.csflux.slopex.slopexti(:,:,index,source);
                 xi = runs.csflux.slopex.xi;
 
-                subplot(2,ceil(n/2),index)
+                ax(index) = subplot(2,ceil(n/2),index);
                 pcolorcen(xi/1000, ti, slopexti');
                 xlabel('X - X_{eddy} (km)'); ylabel('Time (days)');
                 title(['Y = ' num2str(runs.csflux.x(index)/1000, '%.2f'), ...
@@ -1328,6 +1328,8 @@ methods
             legend(cellstr(num2str(runs.csflux.h')), ...
                    'Location', 'NorthWest');
             title(runs.name);
+            [~,~,tind] = runs.locate_resistance;
+            linex(ti(tind));
             beautify;
         end
 
