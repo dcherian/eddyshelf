@@ -1195,7 +1195,7 @@ methods
 
     end
 
-    function [] = plot_fluxes(runs, source, isobath)
+    function [] = plot_fluxes(runs, isobath, source)
 
         n = length(runs.csflux.x);
         ti = runs.csflux.time/86400;
