@@ -1177,16 +1177,22 @@ methods
         Lz = runs.eddy.Lgauss(maxloc);
         Ro = runs.eddy.Ro(1);
 
-        zvec = runs.csflux.vertbins(:,isobath);
-        dh = 0; Ro * hsb * runs.csflux.ndloc(isobath);
-        hjoin = 1.2*hsb + dh;
-        hpeak = hsb/2 + dh;
         a = 1.5;
-        vscalefactor = 1/2;
+        vscalefactor = 1/3;
 
-        profile = exp(-abs((zvec + hpeak)/hjoin).^a) .* (zvec >= -hjoin) ...
-                  + exp(-abs((-hjoin + hpeak)/hjoin).^a) * ...
-                  (1 - erf(-zvec/Lz/vscalefactor)) .* (zvec < -hjoin);
+        zvec = runs.csflux.vertbins(:,isobath);
+        dh = 2 * Ro * hsb * runs.csflux.ndloc(isobath);
+        zpeak = -(hsb + dh)/2;
+        zscl = -abs(zpeak/ abs(log(0.5))^(1/a));
+        zjoin = -abs(2 * zpeak);
+
+        %keyboard;
+
+        profile = exp(-abs((zvec - zpeak)/zjoin).^a) .* (zvec >= zjoin) ...
+                  + exp(-abs((zjoin - zpeak)/zjoin).^a) * ...
+                  (1 - erf(-zvec/Lz/vscalefactor)) .* (zvec < zjoin);
+        %figure; plot(profile, zvec);
+
     end
 
     function [] = plot_fluxes(runs, source, isobath)
