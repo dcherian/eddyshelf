@@ -266,9 +266,9 @@ function [eddy] = track_eddy(dir1)
             end
         end
 
-        eddy.vor.mask(:,:,tt) = ivormask;
-        eddy.rhovor.mask(:,:,tt) = irhovormask;
-        eddy.rhossh.mask(:,:,tt) = irhosshmask;
+        eddy.vor.mask(:,:,tt) = repnan(ivormask, 0);
+        eddy.rhovor.mask(:,:,tt) = repnan(irhovormask, 0);
+        eddy.rhossh.mask(:,:,tt) = repnan(irhosshmask, 0);
 
         eddy.vor = extradiags(eddy.vor, tt, vor, u, v, f, grd);
         eddy.rhovor = extradiags(eddy.rhovor, tt, vor, u, v, f, grd);
