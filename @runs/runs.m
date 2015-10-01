@@ -1249,6 +1249,7 @@ methods
 
             subplot(122)
             lightDarkLines(length(runs.csflux.ix));
+            hold on;
             hplt = nan([length(runs.csflux.ix) 1]);
             for iso=2:5 %length(runs.csflux.ix)
                 % this doesn't account for eddy transiting through isobath
@@ -1262,11 +1263,9 @@ methods
                 zvec = runs.csflux.vertbins(:,iso)./hsb;
                 trans = trapz(zvec, fluxvec);
 
-                diffvec = smooth(diff(fluxvec), 4);
-
-                zjoin = find(diffvec - 1/2*max(diffvec), 1);
                 hplt(iso) = plot(fluxvec, zvec);
-                plot(fluxvec(zjoin), zvec(zjoin), 'kx');
+                [~,~,~,idiff] = runs.streamer_peak(iso);
+                plot(fluxvec(idiff), zvec(idiff), 'kx');
 
                 ideal = runs.streamer_ideal_profile(iso);
                 plot(ideal*max(fluxvec), zvec, 'k--');

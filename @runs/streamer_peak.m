@@ -2,7 +2,7 @@
 % streamer.
 % Best is to look for depth where slope of profile drops to 1/2 its
 % max value.
-function [zmax, imax, zwidth] = streamer_peak(runs, isobath, debug)
+function [zmax, imax, zwidth, idiff] = streamer_peak(runs, isobath, debug)
 
     if ~exist('debug', 'var'), debug = 0; end
     nsmooth = 3;
