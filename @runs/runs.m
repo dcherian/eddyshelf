@@ -1223,6 +1223,7 @@ methods
         hfig6 = figure; % cross-sections
         hfig7 = []; %figure; % streamer vmax
         hfig8 = []; %figure; % streamer velocity line plots
+        hfig9 = figure; % vertical structure at maxloc
 
         hsb = runs.bathy.hsb;
         Lz = runs.eddy.Lgauss(1);
@@ -1558,6 +1559,35 @@ methods
             title(runs.name);
             ylabel('Max streamer velocity / eddy velocity scale');
             xlabel('Time (days)');
+            beautify;
+        end
+
+        if ~isempty(hfig9)
+            figure(hfig9)
+            insertAnnotation([runs.name '.plot_fluxes']);
+
+            subplot(121);
+            lightDarkLines(length(isobath));
+            for ii=isobath
+                [~,maxloc] = runs.calc_maxflux(ii);
+                plot(runs.csflux.west.slopezt(:,maxloc,ii,ii), ...
+                     runs.csflux.vertbins(:,ii));
+            end
+            title([runs.name ' | At t=maxflux, source=isobath']);
+            ylabel('Z (m)');
+            beautify;
+
+            subplot(122);
+            lightDarkLines(length(isobath));
+            for ii=isobath
+                [~,maxloc] = runs.calc_maxflux(ii);
+                plot(runs.csflux.west.slopezt(:,maxloc,ii,source), ...
+                     runs.csflux.vertbins(:,ii));
+            end
+            legend(num2str(runs.csflux.h', '%d'), 'Location', 'SouthEast');
+            title([runs.name ' | Source = ' num2str(runs.csflux.h(source), '%d') ...
+                  ' m']);
+            ylabel('Z (m)');
             beautify;
         end
     end
