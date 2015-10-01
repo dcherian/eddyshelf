@@ -1238,7 +1238,7 @@ methods
             plot(runs.csflux.west.slopewater.vertitrans(:,isobath,source), ...
                  runs.csflux.vertbins(:,isobath));
             liney(-1 * runs.bathy.hsb);
-            legend(cellstr(num2str(runs.csflux.h')), ...
+            legend(cellstr(num2str(runs.csflux.h(isobath)')), ...
                    'Location', 'SouthEast');
             beautify;
             title([runs.name ' | Source = ' ...
@@ -1248,6 +1248,7 @@ methods
 
             subplot(122)
             lightDarkLines(length(runs.csflux.ix));
+            hplt = nan([length(runs.csflux.ix) 1]);
             for iso=2:5 %length(runs.csflux.ix)
                 % this doesn't account for eddy transiting through isobath
                 %fluxvec = runs.csflux.west.slopewater.vertitrans(:, ...
@@ -1263,7 +1264,7 @@ methods
                 diffvec = smooth(diff(fluxvec), 4);
 
                 zjoin = find(diffvec - 1/2*max(diffvec), 1);
-                plot(fluxvec, zvec);
+                hplt(iso) = plot(fluxvec, zvec);
                 plot(fluxvec(zjoin), zvec(zjoin), 'kx');
 
                 ideal = runs.streamer_ideal_profile(iso);
@@ -1273,7 +1274,7 @@ methods
             %        + exp(-1/4) * (1 - erf(-zvec/Lz)) .* (zvec < -hsb);
             %plot(ideal, zvec, 'k--');
             %liney(-1 * runs.bathy.hsb);
-            legend(cellstr(num2str(runs.csflux.h')), ...
+            legend(cut_nan(hplt), cellstr(num2str(runs.csflux.h')), ...
                    'Location', 'SouthEast');
             beautify;
             title([runs.name]);
