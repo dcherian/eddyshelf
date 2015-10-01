@@ -42,6 +42,7 @@ function [zmax, imax, zwidth, idiff] = streamer_peak(runs, isobath, debug)
         plot(vec, zvec);
         liney(zbot(kk), 'bot');
         liney(zdiff(kk), 'der');
+        liney(runs.bathy.hsb*-1, 'hsb', 'k');
         plot(diff(vec,1,1)./diff(zvec)*10, avg1(zvec));
         title(runs.name); drawnow;
     end
