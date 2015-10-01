@@ -1215,18 +1215,19 @@ methods
 
         [~,~,restind] = runs.locate_resistance;
 
-        hfig1 = []; %figure; % streamer vertical structure
+        hfig1 = figure; % streamer vertical structure
         hfig2 = []; %figure; % hovmoeller plots (x,t)
         hfig3 = []; %figure; % hovmoeller plots (z,t)
         hfig4 = []; %figure; % flux time-series
         hfig5 = []; %figure; % flux time-series at isobath
-        hfig6 = figure; % cross-sections
+        hfig6 = []; %figure; % cross-sections
         hfig7 = []; %figure; % streamer vmax
         hfig8 = []; %figure; % streamer velocity line plots
         hfig9 = figure; % vertical structure at maxloc
 
         hsb = runs.bathy.hsb;
         Lz = runs.eddy.Lgauss(1);
+        Ro = runs.eddy.Ro(1);
 
         if ~isempty(hfig1)
             if length(source) > 1
@@ -1251,7 +1252,8 @@ methods
             lightDarkLines(length(runs.csflux.ix));
             hold on;
             hplt = nan([length(runs.csflux.ix) 1]);
-            for iso=2:5 %length(runs.csflux.ix)
+            isochoose = 2:5;
+            for iso=isochoose %length(runs.csflux.ix)
                 % this doesn't account for eddy transiting through isobath
                 %fluxvec = runs.csflux.west.slopewater.vertitrans(:, ...
                 %                                                 iso,iso);
@@ -1274,7 +1276,7 @@ methods
             %        + exp(-1/4) * (1 - erf(-zvec/Lz)) .* (zvec < -hsb);
             %plot(ideal, zvec, 'k--');
             %liney(-1 * runs.bathy.hsb);
-            legend(cut_nan(hplt), cellstr(num2str(runs.csflux.h')), ...
+            legend(cut_nan(hplt), cellstr(num2str(runs.csflux.h(isochoose)')), ...
                    'Location', 'SouthEast');
             beautify;
             title([runs.name]);
@@ -1583,7 +1585,7 @@ methods
                 plot(runs.csflux.west.slopezt(:,maxloc,ii,source), ...
                      runs.csflux.vertbins(:,ii));
             end
-            legend(num2str(runs.csflux.h', '%d'), 'Location', 'SouthEast');
+            legend(num2str(runs.csflux.h(isobath)', '%d'), 'Location', 'SouthEast');
             title([runs.name ' | Source = ' num2str(runs.csflux.h(source), '%d') ...
                   ' m']);
             ylabel('Z (m)');
