@@ -1,13 +1,16 @@
 function [] = animate_zslice(runs,varname,depth,tind)
 
     if ~exist('tind','var'), tind = []; end
-    varname = runs.process_varname(varname);
+    % varname = runs.process_varname(varname);
     [~,tind,~,nt,stride] = roms_tindices(tind,Inf,length(runs.time));
 
     % quiver options
-    addvelquiver = 1;
+    addvelquiver = 0;
     dxi = 10; dyi = 3;
     uref = runs.eddy.V(1)/10; vref = uref;
+
+    csdlevels = [1 3 5]; % for surface contours.
+    csdlevels(csdlevels > length(runs.csflux.x)) = [];
 
     runs.video_init(['z' num2str(depth) '-' varname]);
     if strcmpi(varname,'rv') || strcmpi(varname, 'pv')
@@ -45,7 +48,7 @@ function [] = animate_zslice(runs,varname,depth,tind)
     % read data
     for mmm = 1:nt
         if ~datain
-            it = mmm + tind(1) - 1;
+            it = (mmm-1)*stride(end) + tind(1);
             disp(['reading & interpolating timestep ' num2str(mmm) '/' ...
                   num2str(nt)]);
 
@@ -82,12 +85,14 @@ function [] = animate_zslice(runs,varname,depth,tind)
     end
     clear data u1 v1
 
-    % get on interior RHO points
-    u = avg1(u(:,2:end-1,:),1);
-    v = avg1(v(2:end-1,:,:),2);
-    % decimate for quiver
-    u = u(1:dxi:end,1:dyi:end,:);
-    v = v(1:dxi:end,1:dyi:end,:);
+    if addvelquiver
+        % get on interior RHO points
+        u = avg1(u(:,2:end-1,:),1);
+        v = avg1(v(2:end-1,:,:),2);
+        % decimate for quiver
+        u = u(1:dxi:end,1:dyi:end,:);
+        v = v(1:dxi:end,1:dyi:end,:);
+    end
 
     if strcmpi(varname, 'pv')
         var = log10(var);
@@ -115,15 +120,15 @@ function [] = animate_zslice(runs,varname,depth,tind)
                            [1 1]*runs.eddy.drhothresh(1), ...
                            'Color', 'b', 'LineWidth', 2);
     end
-    he = runs.plot_rho_contour('contour',tind(1) + tt-1);
+    he = runs.plot_rho_contour('contour',tind(1));
     [~,hcsd] = contour(runs.rgrid.x_rho'/1e3, runs.rgrid.y_rho'/1e3, ...
-                       runs.csdsurf(:,:,tind(1)+tt-1), runs.csflux.x([1 4 6]), ...
+                       runs.csdsurf(:,:,tind(1)), runs.csflux.x(csdlevels), ...
                        'Color', [1 1 1]*0.55, 'LineWidth', 2);
     [~,hedd] = contour(runs.rgrid.x_rho'/1e3, runs.rgrid.y_rho'/1e3, ...
-                       runs.eddsurf(:,:,tind(1)+tt-1), [0.9 0.9], ...
+                       runs.eddsurf(:,:,tind(1)), [0.9 0.9], ...
                        'Color', 'k', 'LineWidth', 2);
     shading flat;
-    ht = runs.set_title(titlestr, tind(1)+tt-1);
+    ht = runs.set_title(titlestr, tind(1));
     axis image;
     xlim([min(xax(:)) max(xax(:))]);
     ylim([min(yax(:)) max(yax(:))]);
@@ -141,22 +146,27 @@ function [] = animate_zslice(runs,varname,depth,tind)
     xlabel('X (km)'); ylabel('Y (km)');
     runs.plot_bathy('contour','k');
 
-    hq = quiver(runs.eddy.xr(1:dxi:end,1:dyi:end)/1000, ...
-                runs.eddy.yr(1:dxi:end,1:dyi:end)/1000, ...
-                u(:,:,tt)./uref, v(:,:,tt)./vref, ...
-                'Color', 'k', 'LineWidth', 2);
+    if addvelquiver
+        hq = quiver(runs.eddy.xr(1:dxi:end,1:dyi:end)/1000, ...
+                    runs.eddy.yr(1:dxi:end,1:dyi:end)/1000, ...
+                    u(:,:,tt)./uref, v(:,:,tt)./vref, ...
+                    'Color', 'k', 'LineWidth', 2);
+    end
 
     for tt=2:nt
+        tindex = tind(1) + (tt-1)*stride(end);
         runs.video_update;
         pause(0.1);
         set(hc,'ZData',var(:,:,tt));
-        set(hq,'UData',u(:,:,tt));
-        set(hq,'VData',v(:,:,tt));
+        if addvelquiver
+            set(hq,'UData',u(:,:,tt));
+            set(hq,'VData',v(:,:,tt));
+        end
         shading flat
-        runs.update_rho_contour(he,tind(1) + tt-1);
-        hcsd.ZData = runs.csdsurf(:,:,tind(1) + tt-1);
-        hedd.ZData = runs.eddsurf(:,:,tind(1) + tt-1);
-        runs.update_title(ht, titlestr, tind(1)+tt-1);
+        runs.update_rho_contour(he,tindex);
+        hcsd.ZData = runs.csdsurf(:,:,tindex);
+        hedd.ZData = runs.eddsurf(:,:,tindex);
+        runs.update_title(ht, titlestr, tindex);
         if strcmpi(varname, 'rho')
             hrho.ZData = var(:,:,tt);
         end
