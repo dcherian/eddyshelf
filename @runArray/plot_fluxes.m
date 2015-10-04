@@ -41,8 +41,7 @@ function [] = plot_fluxes(runArray, isobath, source)
             continue;
         end
 
-        if isempty(run.csflux) || ...
-            isobath > length(run.csflux.x)
+        if isempty(run.csflux) | (isobath > length(run.csflux.x))
             disp(['Skipping ' run.name]);
             continue;
         end
@@ -63,8 +62,8 @@ function [] = plot_fluxes(runArray, isobath, source)
         [start,stop] = run.flux_tindices(fluxvec);
         ifluxvec = run.csflux.west.itrans.slope(:,isobath, source);
         ttrans = max(abs(ifluxvec));
-        ttransv = trapz(run.csflux.vertbins(:,isobath), ...
-                        run.csflux.west.slopewater.vertitrans(:,isobath,source));
+        ttransv = abs(trapz(run.csflux.vertbins(:,isobath), ...
+                        run.csflux.west.slopewater.vertitrans(:,isobath,source)));
 
         % ndtime = run.csflux.time/run.eddy.turnover;
         ndtime = run.csflux.time/run.csflux.time(start);
