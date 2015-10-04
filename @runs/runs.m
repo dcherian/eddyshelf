@@ -7,6 +7,7 @@ properties
     zeta; temp; usurf; vsurf; vorsurf; csdsurf; ubot; vbot; eddsurf; ...
         rhosurf; edcsdyesurf;
     rbacksurf; % background density at surface
+    sgntamp; % sign(runs.eddy.tamp) = -1 if cyclone; 1 otherwise
     % dimensional and non-dimensional time
     time; ndtime; tscale; tscaleind;
     % barotropic vel (geostrophic)
@@ -170,6 +171,7 @@ methods
         runs.bathy = runs.params.bathy;
         runs.params.misc = roms_load_misc(runs.out_file);
 
+        runs.sgntamp = sign(runs.params.eddy.tamp);
         if isnan(runs.params.bg.ubt)
             runs.params.bg.ubt = 0;
         end
