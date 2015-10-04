@@ -213,6 +213,12 @@ methods
         runs.spng.sy1 = find(runs.sponge(sz(1),1:sz(2)) == 0, 1, 'first');
         runs.spng.sy2 = sz(2) + find(runs.sponge(sz(1), sz(2):end) == 1, 1, ...
                                      'first') - 2;
+        if isempty(runs.spng.sx2)
+            runs.spng.sx2 = size(runs.sponge, 1) - 2;
+        end
+        if isempty(runs.spng.sy2)
+            runs.spng.sy2 = size(runs.sponge, 2) - 2;
+        end
 
         % rossby radii
         runs.rrdeep = sqrt(runs.params.phys.N2)*max(runs.bathy.h(:)) ...
