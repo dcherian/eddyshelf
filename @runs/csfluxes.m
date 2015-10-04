@@ -209,9 +209,9 @@ function [] = csfluxes(runs, ftype)
             % The problem is that this is sensitive to contour
             % detection.
             if bathyax == 2
-                cxi = runs.eddy.vor.ee(tstart:end);
+                cxi = runs.eddy.rhovor.ee(tstart:end);
             else
-                cxi = runs.eddy.vor.se(tstart:end);
+                cxi = runs.eddy.rhovor.se(tstart:end);
             end
         else
             if bathyax == 2
