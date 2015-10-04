@@ -30,7 +30,7 @@ function [] = csfluxes(runs, ftype)
     runs.csflux = [];
 
     % is cyclone? if so, -1; else 0
-    sgntamp = sign(runs.params.eddy.tamp);
+    sgntamp = runs.sgntamp;
 
     % Non-dimensional isobath = (y_{isobath} - y_{sb})/(Eddy center
     % location)
@@ -185,9 +185,9 @@ function [] = csfluxes(runs, ftype)
 
     % sponge mask
     if runs.bathy.axis == 'y'
-        spongemask = ~runs.sponge(2:end-1,1);
+        spongemask = ~runs.sponge(2:end-1,sz(2)/2);
     else
-        spongemask = ~runs.sponge(1,2:end-1)';
+        spongemask = ~runs.sponge(sz(1)/2,2:end-1)';
     end
 
     % for integrated transport diagnostics
@@ -245,7 +245,7 @@ function [] = csfluxes(runs, ftype)
         csvel = squeeze(avg1(dc_roms_read_data(runs.dir, csvelid, [t0 tinf], ...
                                                volv, [], runs.rgrid, ftype, ...
                                                'single'), bathyax));
-        csvel = csvel(2:end-1,:,:,:);
+        csvel = csvel(2:end-1,:,:,:) * sgntamp;
 
         % process cross-shelf dye
         csdye = dc_roms_read_data(runs.dir, runs.csdname, [t0 tinf], ...
@@ -374,7 +374,11 @@ function [] = csfluxes(runs, ftype)
         % i.e., save depth integrated transport = fn{loc}(time,bin)
         tic;
         disp('Binning horizontally...');
-        bins = flip(loc(kk):-3000:1000);
+        if bathyax == 2 && sgntamp == -1
+            bins = loc(kk):3000:max(runs.rgrid.y_rho(:));
+        else
+            bins = flip(loc(kk):-3000:1000);
+        end
         binmat = repmat(bins, [tinf 1]);
         runs.csflux.west.bins{kk} = bins;
         for mmm = 1:length(bins)-1
@@ -405,12 +409,21 @@ function [] = csfluxes(runs, ftype)
 
         % save envelope for across-shelfbreak only = f(time,loc)
         % integrate trans over bins
-        runs.csflux.west.slopewater.envelope(:,kk) = ...
-            nanmin(avg1(binmat,2) .* fillnan( ...
-                runs.csflux.west.slopewater.trans{kk} > 0, 0), [], 2);
-        runs.csflux.east.slopewater.envelope(:,kk) = ...
-            nanmin(avg1(binmat,2) .* fillnan( ...
-                runs.csflux.east.slopewater.trans{kk} > 0, 0), [], 2);
+        if bathyax == 2 && sgntamp == -1
+            runs.csflux.west.slopewater.envelope(:,kk) = ...
+                nanmax(avg1(binmat,2) .* fillnan( ...
+                    runs.csflux.west.slopewater.trans{kk} > 0, 0), [], 2);
+            runs.csflux.east.slopewater.envelope(:,kk) = ...
+                nanmax(avg1(binmat,2) .* fillnan( ...
+                    runs.csflux.east.slopewater.trans{kk} > 0, 0), [], 2);
+        else
+            runs.csflux.west.slopewater.envelope(:,kk) = ...
+                nanmin(avg1(binmat,2) .* fillnan( ...
+                    runs.csflux.west.slopewater.trans{kk} > 0, 0), [], 2);
+            runs.csflux.east.slopewater.envelope(:,kk) = ...
+                nanmin(avg1(binmat,2) .* fillnan( ...
+                    runs.csflux.east.slopewater.trans{kk} > 0, 0), [], 2);
+        end
 
         % integrated transport = fn(y-origin bins, loc)
         % integrate trans over time
