@@ -29,6 +29,9 @@ function [] = csfluxes(runs, ftype)
 
     runs.csflux = [];
 
+    % is cyclone? if so, -1; else 0
+    sgntamp = sign(runs.params.eddy.tamp);
+
     % Non-dimensional isobath = (y_{isobath} - y_{sb})/(Eddy center
     % location)
     xsb = runs.bathy.xsb; xsl = runs.bathy.xsl;
@@ -40,13 +43,13 @@ function [] = csfluxes(runs, ftype)
     if isempty(R)
         error(['locate_resistance didn''t return anything for ' runs.name]);
     end
-    R = R - xsb;
+    R = abs(R - xsb);
     runs.csflux.ndloc = linspace(0,2,13);
     runs.csflux.R = R;
-    loc = runs.csflux.ndloc* R + xsb;
+    loc = runs.csflux.ndloc * R * sgntamp + xsb;
     if ~runs.params.flags.flat_bottom
-        runs.csflux.ndloc(loc > xsl) = [];
-        loc(loc > xsl) = [];
+        runs.csflux.ndloc(sgntamp * loc > sgntamp * xsl) = [];
+        loc(sgntamp*loc > sgntamp*xsl) = [];
     else
         % remove the wall location
         runs.csflux.ndloc(1) = [];
@@ -420,7 +423,14 @@ function [] = csfluxes(runs, ftype)
 
         for ll=1:kk
             disp(['Parititioning slope water: ' num2str(ll) '/' num2str(kk)]);
-            slopemask = (csdye < loc(ll));
+            if bathyax == 2 && sgntamp == -1
+                % cyclones moving northwards
+                slopemask = (csdye > loc(ll));
+            else
+                % everything else
+                slopemask = (csdye < loc(ll));
+            end
+
             % transports - integrate in z - f(x,t)
             disp('Integrating in z...');
             runs.csflux.slopext(:,:,kk,ll) = squeeze(trapz(zvec, ...
