@@ -757,10 +757,12 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             Ro = smooth(Ro, 1);
             %Ly = run.eddy.rhovor.dia(1)/2;
 
-            name_points = 0;
+            name_points = 1;
 
-            diags(ff) = (-1*zwidth(1))/hsb;
-            plotx(ff) = Ro(1) * R/Ly * Lz(1)/hsb;
+            Lz0 = Lz(maxloc);
+            fn = hsb * (1-erf(hsb/Lz0)) + Lz0/sqrt(pi)*(1- exp(-(hsb/Lz0)^2));
+            diags(ff) = (-1*zwidth(1))/hsb - 1;
+            plotx(ff) =  Ro(1) * fn/hsb;
         end
 
         if strcmpi(name, 'avg flux')
