@@ -1,7 +1,6 @@
 % use mod_movie to generate section plots (SINGLE TIME INSTANT)
 function [] = plot_section(runs,varname, tindex, volume, axis, index)
 
-    figure;
     mod_movie(runs, varname, tindex, volume, axis, index);
     insertAnnotation([runs.name '.plot_section']);
 
