@@ -146,6 +146,7 @@ function [] = animate_zslice(runs,varname,depth,tind,hax)
     end
     xlabel('X (km)'); ylabel('Y (km)');
     runs.plot_bathy('contour','k');
+    htime = runs.add_timelabel(tind(1));
 
     if addvelquiver
         hq = quiver(runs.eddy.xr(1:dxi:end,1:dyi:end)/1000, ...
@@ -157,6 +158,7 @@ function [] = animate_zslice(runs,varname,depth,tind,hax)
     for tt=2:nt
         tindex = tind(1) + (tt-1)*stride(end);
         runs.video_update;
+        runs.update_timelabel(htime, tindex);
         pause(0.1);
         set(hc,'ZData',var(:,:,tt));
         if addvelquiver
