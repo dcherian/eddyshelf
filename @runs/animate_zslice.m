@@ -1,5 +1,6 @@
-function [] = animate_zslice(runs,varname,depth,tind)
+function [] = animate_zslice(runs,varname,depth,tind,hax)
 
+    if ~exist('hax', 'var'), figure; hax = gca; end
     if ~exist('tind','var'), tind = []; end
     % varname = runs.process_varname(varname);
     [~,tind,~,nt,stride] = roms_tindices(tind,Inf,length(runs.time));
@@ -105,10 +106,10 @@ function [] = animate_zslice(runs,varname,depth,tind)
     runs.read_csdsurf;
     runs.read_eddsurf;
 
-    titlestr = [varname ' | z = ' num2str(depth) ' m '];
+    titlestr = [runs.name ' | ' varname ' | z = ' num2str(depth) ' m '];
 
     % animate
-    figure; maximize;
+    axes(gca); maximize;
     insertAnnotation([runs.name '.animate_zslice']);
     xax = grd.xax(:,:,1)/1000; yax = grd.yax(:,:,1)/1000; clear grd;
     tt = 1;
