@@ -132,6 +132,13 @@ folders = { ...
           };
 csf = runArray(folders);
 
+csf.array(14).makeVideo = 1; csf.array(14).animate_zslice('dye_03', ...
+                                                  200, [40 Inf]);
+csf.array(11).makeVideo = 1; csf.array(11).animate_zslice('dye_03', ...
+                                                  200, [40 Inf]);
+csf.array(10).makeVideo = 1; csf.array(10).animate_zslice('dye_03', ...
+                                                  200, [40 Inf]);
+
 for ii=1:csf.len
     csf.array(ii).csfluxes;
 end
