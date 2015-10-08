@@ -143,7 +143,7 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
     hly = liney(-1 * runs.eddy.Lgauss(tt), [], 'k');
     liney(-1*runs.bathy.hsb, 'shelfbreak');
     if strcmpi(varname1, varname)
-        title('2')
+        ht = title([runs.bathy.axis ' = ' num2str(y0(tt)/1000, '%.0f') ' km'])
     else
         title(varname);
     end
@@ -173,7 +173,7 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
     end
     liney(-1*runs.bathy.hsb, 'shelfbreak');
     if strcmpi(varname1, varname)
-        title('1')
+        ht1 = title([runs.bathy.axis ' = ' num2str(y1(tt)/1000, '%.0f') ' km'])
     else
         title(varname1);
     end
@@ -186,7 +186,7 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
 
     % linkaxes(hax, 'x');
     xlim([-1 1]* 200);
-    % ylim([-300 0]);
+    ylim([-300 0]);
     linkaxes(hax([3 2]), 'xy');
 
     if ntimes > 1
@@ -250,6 +250,10 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
             hl{2}.XData = [1 1] * runs.eddy.rhovor.we(tt)/1000 - x0;
             hly.YData = [1 1] * -1 * runs.eddy.Lgauss(tt);
 
+            ht.String = [runs.bathy.axis ' = ' num2str(y0(tt)/1000, '%.0f') ' km'];
+            if strcmpi(varname, varname1)
+                ht1.String = [runs.bathy.axis ' = ' num2str(y1(tt)/1000, '%.0f') ' km'];
+            end
             runs.video_update();
             pause(1);
         end
