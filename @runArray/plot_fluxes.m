@@ -93,7 +93,7 @@ function [] = plot_fluxes(runArray, isobath, source)
             profile = ...
                 run.csflux.west.slopewater.vertitrans(:,isobath,source);
             vertbins = run.csflux.vertbins(:,isobath);
-            zvec = vertbins ./ Lz; %max(abs(vertbins));
+            zvec = vertbins ./ hsb; %max(abs(vertbins));
             zind = find_approx(vertbins, -1.*hsb);
             bc = baroclinicity(zvec, profile);
             profile = profile ./ max(profile);
@@ -259,7 +259,7 @@ function [] = plot_fluxes(runArray, isobath, source)
         limx = xlim;
         xlim([0 limx(2)]);
         xlabel('Normalized volume transported');
-        ylabel('Vertical bin / Eddy scale');
+        ylabel('Vertical bin / H_{sb}');
         title(['ND isobath = ', locstr]);
         legend(hgplt2, names2, 'Location', 'SouthEast');
         beautify;
