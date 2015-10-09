@@ -1189,13 +1189,14 @@ methods
         vscalefactor = 1/3;
 
         zvec = runs.csflux.vertbins(:,isobath);
-        dh = 2 * Ro * hsb * runs.csflux.ndloc(isobath);
-        zpeak = -(hsb + dh)/2;
-        zscl = -abs(zpeak/ abs(log(0.5))^(1/a));
-        zjoin = -abs(2 * zpeak);
+        %dh = 2 * Ro * hsb * runs.csflux.ndloc(isobath);
+        %zpeak = -(hsb + dh)/2;
+        %zscl = -abs(zpeak/ abs(log(0.5))^(1/a));
+        %zjoin = -abs(2 * zpeak);
 
+        [zjoin,zpeak] = runs.predict_zpeak(isobath, 'use');
+        zscl = zjoin;
         %keyboard;
-
         profile = exp(-abs((zvec - zpeak)/zjoin).^a) .* (zvec >= zjoin) ...
                   + exp(-abs((zjoin - zpeak)/zjoin).^a) * ...
                   (1 - erf(-zvec/Lz/vscalefactor)) .* (zvec < zjoin);
