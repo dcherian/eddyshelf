@@ -539,13 +539,18 @@ classdef runArray < handle
             if ~exist('str', 'var'), str = 'max'; end
 
             isobath = 1:8;
+            if isobath(1) == 1 && ~strcmpi(str, 'max flux')
+                isobath(1) = [];
+            end
+
             figure; insertAnnotation(['runArray.plot_fluxparam(' str]);
-            for ii=isobath
+            for ii=1:length(isobath)
+                iso = isobath(ii);
                 hh(ii) = subplot(3,3,ii);
                 [~, ~, rmse, P, Perr] = ...
-                    runArray.print_diag(str, ii, hh(ii));
+                    runArray.print_diag(str, iso, hh(ii));
                 legend('off'); xlabel(''); ylabel('');
-                title([num2str(runArray.array(1).csflux.ndloc(ii), ...
+                title([num2str(runArray.array(1).csflux.ndloc(iso), ...
                                '%.2f') ' | rmse = ' num2str(rmse, '%.2f')]);
                 beautify([16 16 18]);
 
@@ -562,7 +567,7 @@ classdef runArray < handle
             save(fname, 'isobath', 'constant', 'err', 'hash');
             subplot(339); insertAnnotation(['runArray.plot_fluxparam(' str]);
             errorbar(runArray.array(1).csflux.ndloc(isobath), ...
-                     mplt(isobath), err(isobath), 'kx-', 'LineWidth', 2);
+                     mplt, err, 'kx-', 'LineWidth', 2);
             ylabel('Slope of fit');
             xlabel('Location (y/R)');
             beautify;
