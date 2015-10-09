@@ -553,9 +553,16 @@ classdef runArray < handle
                 err(ii) = Perr(1);
             end
 
-            figure; insertAnnotation(['runArray.plot_fluxparam(' str]);
+            % save to file
+            fname = ['./params/param_' str];
+            constant = mplt;
+            hash = githash([mfilename('fullpath') '.m']);
+            comment = ['constant = slope of fit | err = error in fit ' ...
+                       '| isobath = location index'];
+            save(fname, 'isobath', 'constant', 'err', 'hash');
+            subplot(339); insertAnnotation(['runArray.plot_fluxparam(' str]);
             errorbar(runArray.array(1).csflux.ndloc(isobath), ...
-                     mplt, err, 'kx-', 'LineWidth', 2);
+                     mplt(isobath), err(isobath), 'kx-', 'LineWidth', 2);
             ylabel('Slope of fit');
             xlabel('Location (y/R)');
             beautify;
