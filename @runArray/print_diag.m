@@ -763,8 +763,8 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             xfrac = 0.7;
 
             % calculate density profiles
-            [rhoshelf, zshelf] = run.getShelfDensityProfile(run.bathy.isb);
-            [rhoslope, zslope] = run.getShelfDensityProfile(run.csflux.ix(iso));
+            [rhoshelf, zshelf] = run.getDensityProfile(run.bathy.isb);
+            [rhoslope, zslope] = run.getDensityProfile(run.csflux.ix(iso));
 
             rhobot = rhoshelf(1);
             eddy.temp = eddy.tamp .* exp(-xfrac^2 - y0oL^2) .* ...
