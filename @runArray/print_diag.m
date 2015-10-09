@@ -748,21 +748,39 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             if iso > size(run.csflux.west.slope, 3), continue; end
 
             [~,~,zwidth] = run.streamer_peak(iso);
-            R = run.csflux.R;
-            yoR = run.csflux.ndloc(iso);
+
+            eddy = run.params.eddy;
+            phys = run.params.phys;
 
             [~,maxloc] = run.calc_maxflux(iso);
-            Ly = run.eddy.rhovor.lmin(maxloc)/2;
+            Ly = run.eddy.rhovor.dia(maxloc)/2;
             Lz = smooth(Lz, 30);
             Ro = smooth(Ro, 1);
             %Ly = run.eddy.rhovor.dia(1)/2;
+            R = run.csflux.R;
+            yoR = run.csflux.ndloc(iso);
+            y0oL =  R/Ly * (1 - yoR); % y0/L - used in derivation
+            xfrac = 0.7;
 
-            name_points = 1;
+            % calculate density profiles
+            [rhoshelf, zshelf] = run.getShelfDensityProfile(run.bathy.isb);
+            [rhoslope, zslope] = run.getShelfDensityProfile(run.csflux.ix(iso));
+
+            rhobot = rhoshelf(1);
+            eddy.temp = eddy.tamp .* exp(-xfrac^2 - y0oL^2) .* ...
+                exp(-(zslope/eddy.depth).^2);
+            eddy.rho = phys.R0*(- phys.TCOEF * eddy.temp);
+
+            zind = find_approx(eddy.rho + rhoslope, rhobot, 1);
+
+            name_points = 0;
 
             Lz0 = Lz(maxloc);
-            fn = hsb * (1-erf(hsb/Lz0)) + Lz0/sqrt(pi)*(1- exp(-(hsb/Lz0)^2));
-            diags(ff) = (-1*zwidth(1))/hsb - 1;
-            plotx(ff) =  Ro(1) * fn/hsb;
+            %fn = hsb * (1-erf(hsb/Lz0)) + Lz0/sqrt(pi)*(1 - exp(-(hsb/Lz0)^2));
+            %fn = hsb + Lz0/sqrt(pi);
+            %plotx(ff) = Ro(1) * fn/hsb * R/Ly;
+            diags(ff) = (-1*zwidth(1));
+            plotx(ff) = -1*zslope(zind);
         end
 
         if strcmpi(name, 'avg flux')
