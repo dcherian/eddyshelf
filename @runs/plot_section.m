@@ -1,9 +1,9 @@
 % use mod_movie to generate section plots (SINGLE TIME INSTANT)
-function [] = plot_section(runs,varname, tindex, volume, axis, index, commands)
+function [hplt] = plot_section(runs,varname, tindex, volume, axis, index, commands)
 
     if ~exist('commands', 'var'), commands = []; end
 
-    mod_movie(runs, varname, tindex, volume, axis, index, commands);
+    hplt = mod_movie(runs, varname, tindex, volume, axis, index, commands);
     insertAnnotation([runs.name '.plot_section']);
 
     if axis == 'z' || axis == 's'
