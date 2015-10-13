@@ -1,16 +1,16 @@
 function [hplt] = overlay_section(runs, varname1, varname2, tindex, volume, axis, index, ...
-                                  commands)
+                                  commands, hax)
 
     if ~exist('commands', 'var'), commands = []; end
+    if ~exist('hax', 'var'), figure; hax = gca; end
 
-    hplt = runs.plot_section(varname1, tindex, volume, axis, index, commands);
+    hplt = runs.plot_section(varname1, tindex, volume, axis, index, commands, hax);
     hplt.h_plot.EdgeColor = 'none';
     insertAnnotation([runs.name '.overlay_section']);
     hold on
 
     titlestr = [runs.name ' | ' varname1 ' (color) | ' varname2 ...
-                ' (contour) | ' axis ' = ' num2str(index) ' | t = ' ...
-                num2str(runs.time(tindex)/86400) ' days'];
+                ' (contour) | ' axis ' = ' num2str(index)];
 
     if axis == 's', axis = 'z'; end
     volume{size(volume,1)+1,1} = axis;
