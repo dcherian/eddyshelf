@@ -30,7 +30,11 @@ classdef runArray < handle
             for ii = 1:length(folders)
                 warning off;
                 try
-                    runArray.folders{kk} = ['../topoeddy/' folders{ii}];
+                    if isempty(findstr('run', folders{ii}));
+                        runArray.folders{kk} = ['../topoeddy/run' folders{ii}];
+                    else
+                        runArray.folders{kk} = ['../topoeddy/' folders{ii}];
+                    end
                     runArray.array(kk) = runs(runArray.folders{kk}, ...
                                               reset);
                     disp([runArray.array(kk).name ' completed'])
