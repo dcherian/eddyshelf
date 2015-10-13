@@ -71,7 +71,9 @@ function [] = plot_yzsection(runs, days, loc)
             axall = [axall ax1(ii)];
             contourf(yz, zmat, ed, [0.1:0.1:1], 'EdgeColor', 'none');
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
-            center_colorbar;
+            colormap(cbrewer('seq', 'Greys', 32));
+            caxis([0 1]);
+            title('Eddy dye');
 
             common(runs, hf1, yz, zmat, drho, ed, ii, days, locstr, tindices);
         end
@@ -198,7 +200,7 @@ function [] = plot_yzsection(runs, days, loc)
 
     if exist('hf1')
         figure(hf1)
-        suplabel('eddy dye', 't');
+        % suplabel('eddy dye', 't');
         insertAnnotation([runs.name '.plot_yzsection']);
     end
 
