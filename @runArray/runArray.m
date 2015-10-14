@@ -30,7 +30,11 @@ classdef runArray < handle
             for ii = 1:length(folders)
                 warning off;
                 try
-                    runArray.folders{kk} = ['../topoeddy/' folders{ii}];
+                    if isempty(findstr('run', folders{ii}));
+                        runArray.folders{kk} = ['../topoeddy/run' folders{ii}];
+                    else
+                        runArray.folders{kk} = ['../topoeddy/' folders{ii}];
+                    end
                     runArray.array(kk) = runs(runArray.folders{kk}, ...
                                               reset);
                     disp([runArray.array(kk).name ' completed'])
@@ -176,16 +180,21 @@ classdef runArray < handle
                 [~,~,tind] = run.locate_resistance;
                 try
                     out = eval(['run.' command]);
-                    if ~ischar(out)
-                        outstr = num2str(out);
-                    else
-                        outstr = out;
-                    end
+
                 catch ME
-                    out = NaN;
-                    outstr = 'failed';
+                    try
+                        out = eval(command);
+                    catch ME
+                        out = NaN;
+                        outstr = 'failed';
+                    end
                 end
 
+                if ~ischar(out) && ~isnan(out)
+                    outstr = num2str(out);
+                else
+                    outstr = out;
+                end
                 disp([num2str(runArray.filter(ii), '%02d') ' | ' ...
                       run.name ' | ' outstr]);
             end
@@ -534,13 +543,18 @@ classdef runArray < handle
             if ~exist('str', 'var'), str = 'max'; end
 
             isobath = 1:8;
+            if isobath(1) == 1 && ~strcmpi(str, 'max flux')
+                isobath(1) = [];
+            end
+
             figure; insertAnnotation(['runArray.plot_fluxparam(' str]);
-            for ii=isobath
+            for ii=1:length(isobath)
+                iso = isobath(ii);
                 hh(ii) = subplot(3,3,ii);
                 [~, ~, rmse, P, Perr] = ...
-                    runArray.print_diag(str, ii, hh(ii));
+                    runArray.print_diag(str, iso, hh(ii));
                 legend('off'); xlabel(''); ylabel('');
-                title([num2str(runArray.array(1).csflux.ndloc(ii), ...
+                title([num2str(runArray.array(1).csflux.ndloc(iso), ...
                                '%.2f') ' | rmse = ' num2str(rmse, '%.2f')]);
                 beautify([16 16 18]);
 
@@ -548,7 +562,14 @@ classdef runArray < handle
                 err(ii) = Perr(1);
             end
 
-            figure; insertAnnotation(['runArray.plot_fluxparam(' str]);
+            % save to file
+            fname = ['./params/param_' str];
+            constant = mplt;
+            hash = githash([mfilename('fullpath') '.m']);
+            comment = ['constant = slope of fit | err = error in fit ' ...
+                       '| isobath = location index'];
+            save(fname, 'isobath', 'constant', 'err', 'hash');
+            subplot(339); insertAnnotation(['runArray.plot_fluxparam(' str]);
             errorbar(runArray.array(1).csflux.ndloc(isobath), ...
                      mplt, err, 'kx-', 'LineWidth', 2);
             ylabel('Slope of fit');

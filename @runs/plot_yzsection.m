@@ -51,17 +51,19 @@ function [] = plot_yzsection(runs, days, loc)
                                       [Inf 1 Inf 1])));
     end
 
+    if ~exist('loc', 'var') || isempty(loc)
+        loc = cen(tindices);
+    end
+
     for ii=1:nt
-        if ~exist('loc', 'var') || isempty(loc)
-            loc = num2str(cen(tindices(ii)))
-        end
+        locstr = num2str(loc(ii));
 
         if plot_pbot
             iloc = find_approx(pb.xvec, str2double(loc),1);
         end
 
         ed = dc_roms_read_data(runs.dir, runs.eddname, tindices(ii), ...
-                               {bathyax loc loc}, [], runs.rgrid, 'his');
+                               {bathyax locstr locstr}, [], runs.rgrid, 'his');
 
         if exist('hf1', 'var')
             figure(hf1);
@@ -71,13 +73,13 @@ function [] = plot_yzsection(runs, days, loc)
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
             center_colorbar;
 
-            common(runs, hf1, yz, zmat, drho, ed, ii, days, loc, tindices);
+            common(runs, hf1, yz, zmat, drho, ed, ii, days, locstr, tindices);
         end
 
         if exist('hf2', 'var')
             figure(hf2);
             temp = dc_roms_read_data(runs.dir, 'rho', tindices(ii), ...
-                                     {bathyax loc loc}, [], runs.rgrid, 'his');
+                                     {bathyax locstr locstr}, [], runs.rgrid, 'his');
 
             ax2(ii) = subplot(1, nt, ii);
             axall = [axall ax2(ii)];
@@ -105,13 +107,13 @@ function [] = plot_yzsection(runs, days, loc)
                 liney(z0, 'pbot anom = 0','k');
             end
 
-            common(runs, hf2, yz, zmat, drho, ed, ii, days, loc, tindices);
+            common(runs, hf2, yz, zmat, drho, ed, ii, days, locstr, tindices);
         end
 
         if exist('hf3', 'var')
             figure(hf3);
             zd = dc_roms_read_data(runs.dir, runs.zdname, tindices(ii), ...
-                                  {bathyax loc loc}, [], runs.rgrid, 'his');
+                                  {bathyax locstr locstr}, [], runs.rgrid, 'his');
 
             ax3(ii) = subplot(1, nt, ii);
             axall = [axall ax3(ii)];
@@ -120,13 +122,13 @@ function [] = plot_yzsection(runs, days, loc)
             caxis( [-1 1] * max(abs(zd(:)-zback(:))) );
             center_colorbar;
 
-            common(runs, hf3, yz, zmat, drho, ed, ii, days, loc, tindices);
+            common(runs, hf3, yz, zmat, drho, ed, ii, days, locstr, tindices);
         end
 
         if exist('hf4', 'var')
             figure(hf4);
             u = dc_roms_read_data(runs.dir, 'u', tindices(ii), ...
-                                  {bathyax loc loc}, [], ...
+                                  {bathyax locstr locstr}, [], ...
                                   runs.rgrid, 'his');
 
             ax4(ii) = subplot(1, nt, ii);
@@ -153,13 +155,13 @@ function [] = plot_yzsection(runs, days, loc)
             end
 
             caxis([-1 1] * max(abs(u(:)))); center_colorbar;
-            common(runs, hf4, yz, zmat, drho, ed, ii, days, loc, tindices);
+            common(runs, hf4, yz, zmat, drho, ed, ii, days, locstr, tindices);
         end
 
         if exist('hf5', 'var')
             figure(hf5);
             v = dc_roms_read_data(runs.dir, 'v', tindices(ii), ...
-                                  {bathyax loc loc}, [], runs.rgrid, 'his');
+                                  {bathyax locstr locstr}, [], runs.rgrid, 'his');
             ax5(ii) = subplot(1, nt, ii);
             axall = [axall ax5(ii)];
             if runs.bathy.axis == 'y'
@@ -175,13 +177,13 @@ function [] = plot_yzsection(runs, days, loc)
             end
             shading flat;
             caxis( [-1 1] * max(abs(v(:)))); center_colorbar;
-            common(runs, hf5, yz, zmat, drho, ed, ii, days, loc, tindices);
+            common(runs, hf5, yz, zmat, drho, ed, ii, days, locstr, tindices);
         end
 
         if exist('hf6', 'var')
             [csdye, ~, yax, zax, ~] = ...
                 dc_roms_read_data(runs.dir, runs.csdname, tindices(ii), ...
-                                  {bathyax loc loc}, [], runs.rgrid, 'his');
+                                  {bathyax locstr locstr}, [], runs.rgrid, 'his');
 
             figure(hf6);
             ax6(ii) = subplot(1, nt, ii);
@@ -189,7 +191,7 @@ function [] = plot_yzsection(runs, days, loc)
             contourf(yax/1000, zax, csdye/1000, 40, 'EdgeColor', 'none');
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
 
-            common(runs, hf6, yz, zmat, drho, ed, ii, days, loc, tindices);
+            common(runs, hf6, yz, zmat, drho, ed, ii, days, locstr, tindices);
         end
 
     end
@@ -197,7 +199,6 @@ function [] = plot_yzsection(runs, days, loc)
     if exist('hf1')
         figure(hf1)
         suplabel('eddy dye', 't');
-        spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
         insertAnnotation([runs.name '.plot_yzsection']);
     end
 
@@ -217,28 +218,24 @@ function [] = plot_yzsection(runs, days, loc)
     if exist('hf3', 'var')
         figure(hf3)
         suplabel('z-dye - z-level', 't');
-        spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
         insertAnnotation([runs.name '.plot_yzsection']);
     end
 
     if exist('hf4', 'var')
         figure(hf4)
         suplabel('u - along-shore', 't');
-        %spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
         insertAnnotation([runs.name '.plot_yzsection']);
     end
 
     if exist('hf5', 'var')
         figure(hf5)
         suplabel('v - cross-shore', 't');
-        % spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
         insertAnnotation([runs.name '.plot_yzsection']);
     end
 
     if exist('hf6', 'var')
         figure(hf6)
         suplabel('Cross-shelf dye', 't');
-        spaceplots(0.05*ones([1 4]),0.04*ones([1 2]));
         insertAnnotation([runs.name '.plot_yzsection']);
     end
 
@@ -268,14 +265,29 @@ function common(obj, hf, yz, zmat, drho, ed, ii, days, loc, tindices)
 
     % vertical scale
     liney(-1 * obj.eddy.Lgauss(tindices(ii)), [], 'k');
-    text(0.85*limx(2), -1 * obj.eddy.Lgauss(tindices(ii)), ...
-         {'vertical','scale'}, 'VerticalAlignment', 'Bottom', ...
-         'HorizontalAlignment','Center');
+
     linex(obj.eddy.my(tindices(ii))/1000, [], 'k');
 
     % patch bathymetry
-    patch(([obj.rgrid.y_rho(:,1); min(obj.rgrid.y_rho(:,1))])./1000, ...
-          -1*[min(obj.rgrid.h(:)); obj.rgrid.h(:,1)]./1, 'k');
+    if obj.bathy.loc == 'h'
+        % northern coast
+        patch(([obj.rgrid.y_rho(:,1); max(obj.rgrid.y_rho(:,1))])./1000, ...
+              -1*[obj.rgrid.h(:,1); max(obj.rgrid.h(:))], 'k');
+        textx = 0.15;
+    else
+        if obj.bathy.axis == 'y'
+            % southern coast
+            patch(([obj.rgrid.y_rho(:,1); min(obj.rgrid.y_rho(:,1))])./1000, ...
+                  -1*[min(obj.rgrid.h(:)); obj.rgrid.h(:,1)], 'k');
+            textx = 0.85;
+        else
+            % western coast
+        end
+    end
+
+    text(textx*limx(2), -1 * obj.eddy.Lgauss(tindices(ii)), ...
+         {'vertical','scale'}, 'VerticalAlignment', 'Bottom', ...
+         'HorizontalAlignment','Center');
 
     figure(hf);
     text(0.05 , 0.05, {['t = ' num2str(days(ii)) ' days']; ...

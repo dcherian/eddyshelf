@@ -29,6 +29,9 @@ function [] = csfluxes(runs, ftype)
 
     runs.csflux = [];
 
+    % is cyclone? if so, -1; else 0
+    sgntamp = runs.sgntamp;
+
     % Non-dimensional isobath = (y_{isobath} - y_{sb})/(Eddy center
     % location)
     xsb = runs.bathy.xsb; xsl = runs.bathy.xsl;
@@ -40,13 +43,13 @@ function [] = csfluxes(runs, ftype)
     if isempty(R)
         error(['locate_resistance didn''t return anything for ' runs.name]);
     end
-    R = R - xsb;
+    R = abs(R - xsb);
     runs.csflux.ndloc = linspace(0,2,13);
     runs.csflux.R = R;
-    loc = runs.csflux.ndloc* R + xsb;
+    loc = runs.csflux.ndloc * R * sgntamp + xsb;
     if ~runs.params.flags.flat_bottom
-        runs.csflux.ndloc(loc > xsl) = [];
-        loc(loc > xsl) = [];
+        runs.csflux.ndloc(sgntamp * loc > sgntamp * xsl) = [];
+        loc(sgntamp*loc > sgntamp*xsl) = [];
     else
         % remove the wall location
         runs.csflux.ndloc(1) = [];
@@ -182,9 +185,9 @@ function [] = csfluxes(runs, ftype)
 
     % sponge mask
     if runs.bathy.axis == 'y'
-        spongemask = ~runs.sponge(2:end-1,1);
+        spongemask = ~runs.sponge(2:end-1,sz(2)/2);
     else
-        spongemask = ~runs.sponge(1,2:end-1)';
+        spongemask = ~runs.sponge(sz(1)/2,2:end-1)';
     end
 
     % for integrated transport diagnostics
@@ -206,9 +209,9 @@ function [] = csfluxes(runs, ftype)
             % The problem is that this is sensitive to contour
             % detection.
             if bathyax == 2
-                cxi = runs.eddy.vor.ee(tstart:end);
+                cxi = runs.eddy.rhovor.ee(tstart:end);
             else
-                cxi = runs.eddy.vor.se(tstart:end);
+                cxi = runs.eddy.rhovor.se(tstart:end);
             end
         else
             if bathyax == 2
@@ -242,7 +245,7 @@ function [] = csfluxes(runs, ftype)
         csvel = squeeze(avg1(dc_roms_read_data(runs.dir, csvelid, [t0 tinf], ...
                                                volv, [], runs.rgrid, ftype, ...
                                                'single'), bathyax));
-        csvel = csvel(2:end-1,:,:,:);
+        csvel = csvel(2:end-1,:,:,:) * sgntamp;
 
         % process cross-shelf dye
         csdye = dc_roms_read_data(runs.dir, runs.csdname, [t0 tinf], ...
@@ -371,7 +374,11 @@ function [] = csfluxes(runs, ftype)
         % i.e., save depth integrated transport = fn{loc}(time,bin)
         tic;
         disp('Binning horizontally...');
-        bins = flip(loc(kk):-3000:1000);
+        if bathyax == 2 && sgntamp == -1
+            bins = loc(kk):3000:max(runs.rgrid.y_rho(:));
+        else
+            bins = flip(loc(kk):-3000:1000);
+        end
         binmat = repmat(bins, [tinf 1]);
         runs.csflux.west.bins{kk} = bins;
         for mmm = 1:length(bins)-1
@@ -402,12 +409,21 @@ function [] = csfluxes(runs, ftype)
 
         % save envelope for across-shelfbreak only = f(time,loc)
         % integrate trans over bins
-        runs.csflux.west.slopewater.envelope(:,kk) = ...
-            nanmin(avg1(binmat,2) .* fillnan( ...
-                runs.csflux.west.slopewater.trans{kk} > 0, 0), [], 2);
-        runs.csflux.east.slopewater.envelope(:,kk) = ...
-            nanmin(avg1(binmat,2) .* fillnan( ...
-                runs.csflux.east.slopewater.trans{kk} > 0, 0), [], 2);
+        if bathyax == 2 && sgntamp == -1
+            runs.csflux.west.slopewater.envelope(:,kk) = ...
+                nanmax(avg1(binmat,2) .* fillnan( ...
+                    runs.csflux.west.slopewater.trans{kk} > 0, 0), [], 2);
+            runs.csflux.east.slopewater.envelope(:,kk) = ...
+                nanmax(avg1(binmat,2) .* fillnan( ...
+                    runs.csflux.east.slopewater.trans{kk} > 0, 0), [], 2);
+        else
+            runs.csflux.west.slopewater.envelope(:,kk) = ...
+                nanmin(avg1(binmat,2) .* fillnan( ...
+                    runs.csflux.west.slopewater.trans{kk} > 0, 0), [], 2);
+            runs.csflux.east.slopewater.envelope(:,kk) = ...
+                nanmin(avg1(binmat,2) .* fillnan( ...
+                    runs.csflux.east.slopewater.trans{kk} > 0, 0), [], 2);
+        end
 
         % integrated transport = fn(y-origin bins, loc)
         % integrate trans over time
@@ -420,7 +436,14 @@ function [] = csfluxes(runs, ftype)
 
         for ll=1:kk
             disp(['Parititioning slope water: ' num2str(ll) '/' num2str(kk)]);
-            slopemask = (csdye < loc(ll));
+            if bathyax == 2 && sgntamp == -1
+                % cyclones moving northwards
+                slopemask = (csdye > loc(ll));
+            else
+                % everything else
+                slopemask = (csdye < loc(ll));
+            end
+
             % transports - integrate in z - f(x,t)
             disp('Integrating in z...');
             runs.csflux.slopext(:,:,kk,ll) = squeeze(trapz(zvec, ...

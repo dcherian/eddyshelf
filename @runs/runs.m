@@ -7,6 +7,7 @@ properties
     zeta; temp; usurf; vsurf; vorsurf; csdsurf; ubot; vbot; eddsurf; ...
         rhosurf; edcsdyesurf;
     rbacksurf; % background density at surface
+    sgntamp; % sign(runs.eddy.tamp) = -1 if cyclone; 1 otherwise
     % dimensional and non-dimensional time
     time; ndtime; tscale; tscaleind;
     % barotropic vel (geostrophic)
@@ -170,6 +171,7 @@ methods
         runs.bathy = runs.params.bathy;
         runs.params.misc = roms_load_misc(runs.out_file);
 
+        runs.sgntamp = sign(runs.params.eddy.tamp);
         if isnan(runs.params.bg.ubt)
             runs.params.bg.ubt = 0;
         end
@@ -213,6 +215,12 @@ methods
         runs.spng.sy1 = find(runs.sponge(sz(1),1:sz(2)) == 0, 1, 'first');
         runs.spng.sy2 = sz(2) + find(runs.sponge(sz(1), sz(2):end) == 1, 1, ...
                                      'first') - 2;
+        if isempty(runs.spng.sx2)
+            runs.spng.sx2 = size(runs.sponge, 1) - 2;
+        end
+        if isempty(runs.spng.sy2)
+            runs.spng.sy2 = size(runs.sponge, 2) - 2;
+        end
 
         % rossby radii
         runs.rrdeep = sqrt(runs.params.phys.N2)*max(runs.bathy.h(:)) ...
@@ -1181,13 +1189,14 @@ methods
         vscalefactor = 1/3;
 
         zvec = runs.csflux.vertbins(:,isobath);
-        dh = 2 * Ro * hsb * runs.csflux.ndloc(isobath);
-        zpeak = -(hsb + dh)/2;
-        zscl = -abs(zpeak/ abs(log(0.5))^(1/a));
-        zjoin = -abs(2 * zpeak);
+        %dh = 2 * Ro * hsb * runs.csflux.ndloc(isobath);
+        %zpeak = -(hsb + dh)/2;
+        %zscl = -abs(zpeak/ abs(log(0.5))^(1/a));
+        %zjoin = -abs(2 * zpeak);
 
+        [zjoin,zpeak] = runs.predict_zpeak(isobath, 'use');
+        zscl = zjoin;
         %keyboard;
-
         profile = exp(-abs((zvec - zpeak)/zjoin).^a) .* (zvec >= zjoin) ...
                   + exp(-abs((zjoin - zpeak)/zjoin).^a) * ...
                   (1 - erf(-zvec/Lz/vscalefactor)) .* (zvec < zjoin);
@@ -1215,17 +1224,19 @@ methods
 
         [~,~,restind] = runs.locate_resistance;
 
-        hfig1 = []; %figure; % streamer vertical structure
+        hfig1 = figure; % streamer vertical structure
         hfig2 = []; %figure; % hovmoeller plots (x,t)
         hfig3 = []; %figure; % hovmoeller plots (z,t)
         hfig4 = []; %figure; % flux time-series
         hfig5 = []; %figure; % flux time-series at isobath
-        hfig6 = figure; % cross-sections
+        hfig6 = []; %figure; % cross-sections
         hfig7 = []; %figure; % streamer vmax
         hfig8 = []; %figure; % streamer velocity line plots
+        hfig9 = figure; % vertical structure at maxloc
 
         hsb = runs.bathy.hsb;
         Lz = runs.eddy.Lgauss(1);
+        Ro = runs.eddy.Ro(1);
 
         if ~isempty(hfig1)
             if length(source) > 1
@@ -1238,7 +1249,7 @@ methods
             plot(runs.csflux.west.slopewater.vertitrans(:,isobath,source), ...
                  runs.csflux.vertbins(:,isobath));
             liney(-1 * runs.bathy.hsb);
-            legend(cellstr(num2str(runs.csflux.h')), ...
+            legend(cellstr(num2str(runs.csflux.h(isobath)')), ...
                    'Location', 'SouthEast');
             beautify;
             title([runs.name ' | Source = ' ...
@@ -1248,7 +1259,10 @@ methods
 
             subplot(122)
             lightDarkLines(length(runs.csflux.ix));
-            for iso=2:5 %length(runs.csflux.ix)
+            hold on;
+            hplt = nan([length(runs.csflux.ix) 1]);
+            isochoose = 2:5;
+            for iso=isochoose %length(runs.csflux.ix)
                 % this doesn't account for eddy transiting through isobath
                 %fluxvec = runs.csflux.west.slopewater.vertitrans(:, ...
                 %                                                 iso,iso);
@@ -1260,11 +1274,9 @@ methods
                 zvec = runs.csflux.vertbins(:,iso)./hsb;
                 trans = trapz(zvec, fluxvec);
 
-                diffvec = smooth(diff(fluxvec), 4);
-
-                zjoin = find(diffvec - 1/2*max(diffvec), 1);
-                plot(fluxvec, zvec);
-                plot(fluxvec(zjoin), zvec(zjoin), 'kx');
+                hplt(iso) = plot(fluxvec, zvec);
+                [~,~,~,idiff] = runs.streamer_peak(iso);
+                plot(fluxvec(idiff), zvec(idiff), 'kx');
 
                 ideal = runs.streamer_ideal_profile(iso);
                 plot(ideal*max(fluxvec), zvec, 'k--');
@@ -1273,7 +1285,7 @@ methods
             %        + exp(-1/4) * (1 - erf(-zvec/Lz)) .* (zvec < -hsb);
             %plot(ideal, zvec, 'k--');
             %liney(-1 * runs.bathy.hsb);
-            legend(cellstr(num2str(runs.csflux.h')), ...
+            legend(cut_nan(hplt), cellstr(num2str(runs.csflux.h(isochoose)')), ...
                    'Location', 'SouthEast');
             beautify;
             title([runs.name]);
@@ -1479,7 +1491,7 @@ methods
                 xlim([-1 1]*max(abs(xlim))/2);
 
                 figure(hfig6)
-                ax(2) = subplot(222);
+                ax(2) = subplot(224);
                 pcolorcen(xvec, zvec, csdye'/1000); % .* mask
                 hold on; shading interp
                 contour(xvec, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
@@ -1510,25 +1522,26 @@ methods
                 % caxis([-0.05 0]);
 
                 figure(hfig6)
-                ax(4) = subplot(224);
-                pcolorcen(xvec, zvec, eddye'); % .* mask
-                hold on; shading interp;
-                contour(xvec, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
-                colorbar;
-                xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
-                title(['Eddy dye (km) | ' runs.name]);
-                runs.add_timelabel(tindex);
-                linkaxes(ax, 'xy');
-                linex(xfrac);
-                liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
-                liney(-1 * runs.bathy.hsb, 'h_{sb}');
-                caxis([0 1]);
+                % ax(4) = subplot(224);
+                % pcolorcen(xvec, zvec, eddye'); % .* mask
+                % hold on; shading interp;
+                % contour(xvec, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
+                % colorbar;
+                % xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
+                % title(['Eddy dye (km) | ' runs.name]);
+                % runs.add_timelabel(tindex);
+                % linkaxes(ax, 'xy');
+                % linex(xfrac);
+                % liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
+                % liney(-1 * runs.bathy.hsb, 'h_{sb}');
+                % caxis([0 1]);
 
-                figure
-                plot(trapz(xvec, repnan(csvel.*mask',0), 1), zvec);
+                figure(hfig6)
+                subplot(222);
+                plot(abs(trapz(xvec, repnan(csvel.*mask',0), 1)), zvec);
                 beautify;
                 ylabel('Z (m)');
-                xlabel('Transport (m^2/s)');
+                xlabel('|Transport| (m^2/s)');
                 liney(-runs.bathy.hsb);
             end
 
@@ -1557,6 +1570,35 @@ methods
             title(runs.name);
             ylabel('Max streamer velocity / eddy velocity scale');
             xlabel('Time (days)');
+            beautify;
+        end
+
+        if ~isempty(hfig9)
+            figure(hfig9)
+            insertAnnotation([runs.name '.plot_fluxes']);
+
+            subplot(121);
+            lightDarkLines(length(isobath));
+            for ii=isobath
+                [~,maxloc] = runs.calc_maxflux(ii);
+                plot(runs.csflux.west.slopezt(:,maxloc,ii,ii), ...
+                     runs.csflux.vertbins(:,ii));
+            end
+            title([runs.name ' | At t=maxflux, source=isobath']);
+            ylabel('Z (m)');
+            beautify;
+
+            subplot(122);
+            lightDarkLines(length(isobath));
+            for ii=isobath
+                [~,maxloc] = runs.calc_maxflux(ii);
+                plot(runs.csflux.west.slopezt(:,maxloc,ii,source), ...
+                     runs.csflux.vertbins(:,ii));
+            end
+            legend(num2str(runs.csflux.h(isobath)', '%d'), 'Location', 'SouthEast');
+            title([runs.name ' | Source = ' num2str(runs.csflux.h(source), '%d') ...
+                  ' m']);
+            ylabel('Z (m)');
             beautify;
         end
     end

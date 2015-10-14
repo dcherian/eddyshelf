@@ -1,8 +1,8 @@
 % animate variables at the surface and cross-section
 function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
 
-    dx = 60; % start from shelfbreak - 20 km
-    dt = 1;
+    dx = 60; % start from shelfbreak - dx km
+    dt = 3;
 
     if ~exist('ntimes', 'var')
         ntimes = length(runs.time);
@@ -25,7 +25,8 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
         isobath = 1;
         y1 = runs.csflux.x(isobath) * ones(size(runs.time));
     else
-        y1 = y0 - runs.eddy.vor.dia/4;
+        y1 = y0 - runs.sgntamp * runs.eddy.vor.dia/4;
+        %y1 = (runs.bathy.xsb+15e3) * ones(size(runs.time));
     end
     iy = vecfind(runs.rgrid.y_rho(:,1), y0);
     iy1 = vecfind(runs.rgrid.y_rho(:,1), y1);
@@ -104,7 +105,7 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
     runs.makeVideo = 0;
     runs.animate_field(varname, hax, t0, 1);
     runs.makeVideo = makeVideo;
-    ylim([runs.bathy.xsb/1000-dx max(ylim)])
+    ylim([runs.bathy.xsb/1000-dx max(ylim)]);
     if strcmpi(varname1, varname)
         liney([y1(tt) y0(tt)]/1000, {'1'; '2'}, 'k');
     else
@@ -112,7 +113,12 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
     end
     climsurf = caxis;
     if strcmpi(varname, 'csdye') || strcmpi(varname, 'dye_01')
-        climsurf(1) = runs.bathy.xsb/1000 - dx;
+        if runs.sgntamp == 1
+            climsurf(1) = runs.bathy.xsb/1000 - dx;
+        else
+            climsurf(2) = runs.bathy.xsb/1000 + dx;
+        end
+        climsurf = sort(climsurf);
     end
     caxis(climsurf);
 
@@ -143,7 +149,7 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
     hly = liney(-1 * runs.eddy.Lgauss(tt), [], 'k');
     liney(-1*runs.bathy.hsb, 'shelfbreak');
     if strcmpi(varname1, varname)
-        title('2')
+        ht = title([runs.bathy.axis ' = ' num2str(y0(tt)/1000, '%.0f') ' km']);
     else
         title(varname);
     end
@@ -173,7 +179,7 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
     end
     liney(-1*runs.bathy.hsb, 'shelfbreak');
     if strcmpi(varname1, varname)
-        title('1')
+        ht1 = title([runs.bathy.axis ' = ' num2str(y1(tt)/1000, '%.0f') ' km']);
     else
         title(varname1);
     end
@@ -186,7 +192,7 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
 
     % linkaxes(hax, 'x');
     xlim([-1 1]* 200);
-    % ylim([-300 0]);
+    ylim([-300 0]);
     linkaxes(hax([3 2]), 'xy');
 
     if ntimes > 1
@@ -250,6 +256,10 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
             hl{2}.XData = [1 1] * runs.eddy.rhovor.we(tt)/1000 - x0;
             hly.YData = [1 1] * -1 * runs.eddy.Lgauss(tt);
 
+            ht.String = [runs.bathy.axis ' = ' num2str(y0(tt)/1000, '%.0f') ' km'];
+            if strcmpi(varname, varname1)
+                ht1.String = [runs.bathy.axis ' = ' num2str(y1(tt)/1000, '%.0f') ' km'];
+            end
             runs.video_update();
             pause(1);
         end

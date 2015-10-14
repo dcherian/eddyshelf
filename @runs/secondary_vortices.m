@@ -32,8 +32,13 @@ function [] = secondary_vortices(runs, tindex, n)
         csdye(:,nn) = dc_roms_read_data(runs, runs.csdname, tindex, volr)/1000;
         rho(:,nn) = dc_roms_read_data(runs, 'rho', tindex, volr);
         rback(:,nn) = dc_roms_read_data(runs, 'rho', 1, volr);
-        [pv(:,nn),~,~,zpv(:,nn),~] = dc_roms_read_data(runs, 'pv', tindex, volr);
-        rv(:,nn) = dc_roms_read_data(runs, 'rv', tindex, volr);
+        try
+            [pv(:,nn),~,~,zpv(:,nn),~] = dc_roms_read_data(runs, 'pv', tindex, volr);
+            rv(:,nn) = dc_roms_read_data(runs, 'rv', tindex, volr);
+            nopv = 0;
+        catch ME
+            nopv = 1;
+        end
     end
     toc;
 
@@ -51,16 +56,18 @@ function [] = secondary_vortices(runs, tindex, n)
     common(runs, tindex);
     xlabel('\Delta\rho')
 
-    ax(3) = subplot(325);
-    plot(pv-pvback, zpv);
-    linex(0);
-    common(runs, tindex);
-    xlabel('\Delta PV');
+    if ~nopv
+        ax(3) = subplot(325);
+        plot(pv-pvback, zpv);
+        linex(0);
+        common(runs, tindex);
+        xlabel('\Delta PV');
 
-    ax(4) = subplot(326)
-    plot(rv/runs.params.phys.f0, zpv);
-    linex(0); common(runs, tindex);
-    xlabel('rv/f_0');
+        ax(4) = subplot(326)
+        plot(rv/runs.params.phys.f0, zpv);
+        linex(0); common(runs, tindex);
+        xlabel('rv/f_0');
+    end
 
     linkaxes(ax, 'y');
     ylim([-2 0] * runs.eddy.Lgauss(tindex));
