@@ -11,7 +11,7 @@ function [fluxvec] = recalculateFlux(runs, depth, isobath, source, debug)
 
     zind = find_approx(vertbins, -abs(depth), 1);
 
-    fluxvec = trapz(vertbins(zind:end), slopezt(zind:end,:), 1);
+    fluxvec = trapz(vertbins(zind:end), slopezt(zind:end,:), 1)';
 
     if debug
         figure;
