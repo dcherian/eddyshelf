@@ -1214,8 +1214,8 @@ methods
         Lz = runs.eddy.Lgauss(maxloc);
         Ro = runs.eddy.Ro(1);
 
-        a = 1.5;
-        vscalefactor = 1/3;
+        a = 2;
+        vscalefactor = 1;
 
         zvec = runs.csflux.vertbins(:,isobath);
         %dh = 2 * Ro * hsb * runs.csflux.ndloc(isobath);
@@ -1224,13 +1224,18 @@ methods
         %zjoin = -abs(2 * zpeak);
 
         [zjoin,zpeak] = runs.predict_zpeak(isobath, 'use');
+        zpeak = zjoin/3;
         zscl = zjoin;
-        %keyboard;
-        profile = exp(-abs((zvec - zpeak)/zjoin).^a) .* (zvec >= zjoin) ...
-                  + exp(-abs((zjoin - zpeak)/zjoin).^a) * ...
-                  (1 - erf(-zvec/Lz/vscalefactor)) .* (zvec < zjoin);
-        %figure; plot(profile, zvec);
 
+        %profile = exp(-abs((zvec - zpeak)/zscl).^a) .* (zvec >= zjoin) ...
+        %          + exp(-abs((zvec(find(zvec >= zjoin, 1)) - zpeak)/zscl).^a) * ...
+        %          (1 - erf(-zvec/Lz/vscalefactor)) .* (zvec < zjoin);
+
+        profile = exp(-abs((zvec - zpeak)/zscl).^a) .* (zvec >= zjoin) ...
+                  + exp(-abs((zvec(find(zvec >= zjoin, 1)+1) - zpeak)/zscl).^a) * ...
+                  (1 - erf(-zvec/Lz/vscalefactor)) .* (zvec < zjoin);
+
+        %figure; plot(profile, zvec);
     end
 
     function [] = plot_fluxes(runs, isobath, source)
