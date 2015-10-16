@@ -195,6 +195,12 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         titlestr = 'Surface \rho';
     end
 
+    if strcmpi(name, 'pv')
+        runs.read_pvsurf(t0, ntimes);
+        varname = 'pvsurf';
+        titlestr = 'Surface PV';
+    end
+
     % bottom velocities
     if strcmpi(name, 'ubot')
         if isempty(runs.ubot), runs.read_velbot; end
@@ -280,6 +286,11 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     if ~strcmpi(name, 'csdye') && ~strcmpi(name, 'rho') ...
             && ~strcmpi(name, 'dye_01')
         center_colorbar;
+    end
+    if strcmpi(name, 'pv')
+        keyboard;
+        caxis([min(min(runs.pvsurf(:,:,1))) ...
+               max(max(runs.pvsurf(:,:,1)))]);
     end
     clim = caxis;
 

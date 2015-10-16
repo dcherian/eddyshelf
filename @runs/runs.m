@@ -5,7 +5,7 @@ properties
         fpos_file;
     % data
     zeta; temp; usurf; vsurf; vorsurf; csdsurf; ubot; vbot; eddsurf; ...
-        rhosurf; edcsdyesurf;
+        rhosurf; edcsdyesurf; pvsurf;
     rbacksurf; % background density at surface
     sgntamp; % sign(runs.eddy.tamp) = -1 if cyclone; 1 otherwise
     % dimensional and non-dimensional time
@@ -1693,6 +1693,29 @@ methods
                                     1], [Inf Inf 1 Inf])));
             end
         end
+    end
+
+    % read eddy-dye at surface and save it
+    function [] = read_pvsurf(runs, t0, ntimes)
+        if ~exist('t0', 'var'), t0 = 1; end
+        if ~exist('ntimes', 'var'), ntimes = Inf; end
+
+        % read zeta
+        if ntimes == 1
+            tind = [t0 t0];
+        else
+            tind = [1 length(runs.time)];
+        end
+
+        sz = [size(runs.rgrid.x_rho') length(runs.time)];
+        if isempty(runs.pvsurf) | (t0 > size(runs.pvsurf,3))
+            runs.pvsurf(:,:,tind(1):tind(2)) = ...
+                dc_roms_read_data(runs.dir, 'pv', [tind], ...
+                                  {'z' runs.rgrid.N-2 runs.rgrid.N-2}, ...
+                                  [], runs.rgrid, 'his', 'single');
+        end
+
+        runs.pvsurf = real(log(runs.pvsurf));
     end
 
     function [] = read_csdsurf(runs, t0, ntimes)
