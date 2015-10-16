@@ -603,8 +603,11 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             %   isobath = 2 * (isobath-1) + 1;
             %end
 
-            [maxflux, maxloc] = ...
-                run.calc_maxflux(run.csflux.west.slope(:,isobath, isobath));
+            source = isobath;
+
+            fluxvec = run.recalculateFlux(2*hsb, isobath, source);
+            % fluxvec = run.csflux.west.slope(:, isobath, source)
+            [maxflux, maxloc] = run.calc_maxflux(fluxvec);
             [~,~,restind] = run.locate_resistance;
             if isnan(maxflux), continue; end
 
