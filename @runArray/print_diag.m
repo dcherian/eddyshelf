@@ -755,6 +755,9 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             diags(ff) = abs(zwidth(1));
             plotx(ff) = abs(prediction);
 
+            labx = 'Prediction (m)';
+            laby = 'Observed peak width (m)';
+            force_0intercept = 1;
             % continuity
             %Lz0 = Lz(maxloc);
             %fn = hsb * (1-erf(hsb/Lz0)) + Lz0/sqrt(pi)*(1 - exp(-(hsb/Lz0)^2));
