@@ -559,16 +559,18 @@ classdef runArray < handle
                 beautify([16 16 18]);
 
                 mplt(ii) = P(1);
+                cplt(ii) = P(2);
                 err(ii) = Perr(1);
             end
 
             % save to file
             fname = ['./params/param_' str];
-            constant = mplt;
+            slope = mplt;
+            intercept = cplt;
             hash = githash([mfilename('fullpath') '.m']);
-            comment = ['constant = slope of fit | err = error in fit ' ...
+            comment = ['(slope, intercept) = straight line fit | err = error in fit ' ...
                        '| isobath = location index'];
-            save(fname, 'isobath', 'constant', 'err', 'hash');
+            save(fname, 'isobath', 'slope', 'intercept', 'err', 'hash');
             subplot(339); insertAnnotation(['runArray.plot_fluxparam(' str]);
             errorbar(runArray.array(1).csflux.ndloc(isobath), ...
                      mplt, err, 'kx-', 'LineWidth', 2);

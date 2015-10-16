@@ -32,14 +32,16 @@ function [width, zpeak] = predict_zpeak(runs, iso, flag)
 
     if strcmpi(flag, 'use')
         zpw = load('./params/param_zpeakwidth.mat');
-        const = zpw.constant(zpw.isobath == iso);
-    else
-        const = 1;
+        index = zpw.isobath == iso;
+        slope = zpw.slope(index);
+        intercept = zpw.intercept(index);
     end
-    if isempty(const), const = 1; end
-    width = const * zslope(zind);
 
-    %zp = load('../params/param_zpeakwidth.mat');
-    const = 1; %zp.constant(zp.isobath == iso);
-    zpeak = const * width/2;
+    if ~strcmpi(flag, 'use') || isempty(slope)
+        slope = 1;
+        intercept = 0;
+    end
+
+    width = slope * zslope(zind) + intercept;
+    zpeak = width/2;
 end
