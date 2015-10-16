@@ -1061,8 +1061,36 @@ methods
                   * int(1 - erf(z/Lz), z, -Lz, 0));
     end
 
-    function [] = streamerstruct(runs)
+    function [] = checkStreamerVertProfile(runs, isobath)
+    % check if streamer vertical profile changes much with
+    % changing (x,t) limits
 
+    % t limits don't matter much
+        xwidth = 40; % in grid points
+        tstart = 1;
+        tend = length(runs.csflux.time);
+
+        [~,maxloc] = runs.calc_maxflux(isobath);
+        tstart = maxloc-50;
+
+        [tstart,tend] = runs.flux_tindices(runs.csflux.west.slope(:, isobath, isobath));
+
+        vertbins = runs.csflux.vertbins(:, isobath);
+        slopezt = runs.csflux.west.slopezt(:,:, isobath, isobath);
+
+        fullzprofile = runs.csflux.west.slopewater.vertitrans(:,isobath,isobath);
+        newzprofile = trapz(runs.csflux.time(tstart:tend), ...
+                            slopezt(:,tstart:tend), 2);
+
+        figure;
+        plot(fullzprofile./max(fullzprofile), vertbins);
+        hold on
+        plot(newzprofile./max(newzprofile), vertbins);
+        legend('all time', 'restricted time interval');
+    end
+
+    function [] = streamerstruct(runs)
+    % calculate along-shelf streamer structure on interpolated grid
         debug = 0;
 
         xr = runs.rgrid.x_rho(1,:)';
