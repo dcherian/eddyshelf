@@ -1307,8 +1307,8 @@ methods
                 [~,~,~,idiff] = runs.streamer_peak(iso);
                 plot(fluxvec(idiff), zvec(idiff), 'kx');
 
-                ideal = runs.streamer_ideal_profile(iso);
-                plot(ideal*max(fluxvec), zvec, 'k--');
+                %ideal = runs.streamer_ideal_profile(iso);
+                %plot(ideal*max(fluxvec), zvec, 'k--');
             end
             %ideal = exp(-((zvec + hsb/2)/(hsb)).^2) .* (zvec >= -hsb) ...
             %        + exp(-1/4) * (1 - erf(-zvec/Lz)) .* (zvec < -hsb);
@@ -1400,6 +1400,7 @@ methods
 
         if ~isempty(hfig6) || ~isempty(hfig8)
             if length(isobath) > 1
+                close(hfig6);
                 error('Specify a *single* isobath!');
             end
 
@@ -1610,8 +1611,18 @@ methods
             lightDarkLines(length(isobath));
             for ii=isobath
                 [~,maxloc] = runs.calc_maxflux(ii);
-                plot(runs.csflux.west.slopezt(:,maxloc,ii,ii), ...
-                     runs.csflux.vertbins(:,ii));
+                fluxvec = runs.csflux.west.slopezt(:,maxloc,ii,ii);
+                zvec = runs.csflux.vertbins(:,ii);
+                ideal = runs.streamer_ideal_profile(ii);
+
+                plot(fluxvec./max(fluxvec), zvec);
+                plot(ideal, zvec, 'k--');
+                if length(isobath) == 1
+                    fluxvec = runs.csflux.west.slopewater.vertitrans(:,ii,ii);
+                    plot(fluxvec./max(fluxvec), zvec);
+                    legend('Instantaneous', 'Ideal', 'Total', ...
+                           'Location', 'SouthEast');
+                end
             end
             title([runs.name ' | At t=maxflux, source=isobath']);
             ylabel('Z (m)');
