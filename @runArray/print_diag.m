@@ -1052,13 +1052,15 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
 
         if ~force_0intercept
             E = [plotx' ones(size(plotx'))];
-
-            %P = polyfit(cut_nan(plotx), cut_nan(diags), 1);
-            [P,Pint,R,Rint,stats] = regress(diags', E, 0.05);
         else
-            E = cut_nan(plotx');
-            P(1) = E\cut_nan(diags');
+            E = plotx';
+        end
+
+        [P,Pint,R,Rint,stats] = regress(diags', E, 0.05);
+
+        if force_0intercept
             P(2) = 0;
+            Pint(2,1:2) = 0;
         end
 
         % [Q,R] = qr(E,0);
@@ -1092,6 +1094,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             Perr(2) = P(2) - Pint(2,1);
         end
 
+        if force_0intercept, intstr = '0'; end
         hleg = legend(hparam(1), ['y = (' slopestr ') x + (' ...
                             intstr '); rmse = ' num2str(rmse,3)], ...
                       'Location', 'SouthEast');
