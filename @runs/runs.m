@@ -1166,6 +1166,7 @@ methods
     end
 
     function [] = plot_checkvertprofile(runs)
+    % Check whether zpeak in vertical profile changes much with time
 
         hfig = figure; hold on;
         lightDarkLines(length(runs.csflux.ix));
@@ -1204,8 +1205,8 @@ methods
         legend(cellstr(num2str(runs.csflux.x'/1000, '%.0f')));
     end
 
-    function [profile, zvec] = streamer_ideal_profile(runs, isobath, ...
-                                                      maxloc)
+    function [profile, zvec] = streamer_ideal_profile(runs, isobath, maxloc)
+    % return idealized streamer vertical profile
 
         if ~exist('maxloc', 'var'), maxloc = 1; end
 
