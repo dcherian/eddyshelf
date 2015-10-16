@@ -567,7 +567,7 @@ classdef runArray < handle
             fname = ['./params/param_' str];
             slope = mplt;
             intercept = cplt;
-            hash = githash([mfilename('fullpath') '.m']);
+            hash = githash('./@runArray/print_diag.m');
             comment = ['(slope, intercept) = straight line fit | err = error in fit ' ...
                        '| isobath = location index'];
             save(fname, 'isobath', 'slope', 'intercept', 'err', 'hash');
