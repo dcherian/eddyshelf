@@ -43,9 +43,8 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin, debug)
     end
 
     if isempty(locs)
-        maxloc = NaN;
-        maxflux = NaN;
-        disp(['Couldn''t find maxflux for ' runs.name]);
+        [maxflux, maxloc] = max(fluxin);
+        warning(['Couldn''t find maxflux for ' runs.name '. Using max!!!']);
         return;
     end
 
