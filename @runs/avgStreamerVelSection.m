@@ -1,7 +1,7 @@
 % plots average velocity seen by shelf-slope water at a given isobath
 function [] = avgStreamerVelSection(runs, isobath, source)
 
-    debug = 1;
+    debug = 0;
     if ~exist('source', 'var')
         warning('Using source = isobath');
         source = isobath;
@@ -18,7 +18,7 @@ function [] = avgStreamerVelSection(runs, isobath, source)
 
     [start,stop] = runs.flux_tindices(runs.csflux.west.slope(:, isobath, source));
     tindices = [start stop];
-    ix = runs.csflux.ix(isobath) + 1; % WORKAROUND FOR CSFLUXES BUG
+    ix = runs.csflux.ix(isobath); % WORKAROUND FOR CSFLUXES BUG
     volr = {runs.bathy.axis ix ix};
     volv = {runs.bathy.axis ix-1 ix};
     xivec = -200:runs.rgrid.dx/1000:200;
@@ -56,21 +56,35 @@ function [] = avgStreamerVelSection(runs, isobath, source)
     vmean = mean(vi .* (csdyei < runs.csflux.x(source)), 3);
     pmean = trapz(xivec, repnan(vmeanwest,0), 1); % mean profile
     pint = runs.csflux.west.slopewater.vertitrans(:,isobath,source);
+    actualx = trapz(zvec, vmean, 2);
 
-    hf = figure;
+    hf = figure; maximize(); pause(1);
     insertAnnotation([runs.name '.avgStreamerVelSection']);
-    if debug, ax1 = subplot(2,3,[4 5]); end
+    ax1 = subplot(3,3,[4 5 7 8]);
     pcolorcen(xivec, zvec, vmean');
     xlabel('X - X_{eddy} (km)'); ylabel('Z (m)');
     liney(-runs.bathy.hsb);
     linex(0);
-    title([runs.name ' | y/R = ' num2str(runs.csflux.ndloc(isobath))]);
+    title([runs.name ' | mean streamer velocity | y/R = ' num2str(runs.csflux.ndloc(isobath))]);
     hcb = center_colorbar;
+    hcb.Position(1) = 0.5;
 
-    L = runs.eddy.rhovor.lmaj(1)/1000;
-    R = runs.csflux.R/1000;
+    ax2 = subplot(3,3,[1 2]);
+    hx = plot(xivec, actualx);
+    title('\int dz');
+    hold on;
+    linex(0); liney(0);
+    ylabel('Flux (m^2/s)');
+
+    ax3 = subplot(3,3,[6 9]);
+    hz = plot(pmean, zvec);
+    title('Offshore transport (\int dx)');
+    xlabel('Flux (m^2/s)');
 
     if debug
+        L = runs.eddy.rhovor.lmaj(1)/1000;
+        R = runs.csflux.R/1000;
+
         a = 3; Ln = L/3;
         yoR = runs.csflux.ndloc(isobath); % y/R - used in csflux
         y0oL = R/L * (1 - yoR); % y0/L - used in derivation
@@ -78,25 +92,21 @@ function [] = avgStreamerVelSection(runs, isobath, source)
         idealx = trapz(zvec, ideal) *  ...
                  diff(exp(-abs(xivec'/Ln).^a))./diff(xivec'/Ln) ...
                  * exp(-y0oL.^2);
-        actualx = trapz(zvec, vmean, 2);
 
-        ax2 = subplot(2,3,[1 2]);
-        plot(xivec, actualx./max(actualx));
-        hold on;
+        axes(ax2);
+        hx.YData = hx.YData / max(actualx);
         plot(avg1(xivec), idealx./max(idealx), 'k-');
-        linex(0); liney(0);
-        ylabel('Flux (m^2/s)');
+        ylabel('Flux / max flux');
 
-        ax3 = subplot(236);
-        plot(pmean./max(pmean), zvec);
+        axes(ax3);
         hold on;
+        hz.YData = hz.YData / max(pmean);
         plot(pint./max(pint), zvec);
         plot(ideal, zvec);
         legend('Mean', 'Integrated', 'Idealized', 'Location', 'SouthEast');
-
-        colorbar(hcb, 'hide');
-        linkaxes([ax1 ax2], 'x');
-        linkaxes([ax1 ax3], 'y');
+        xlabel('Flux / max flux');
     end
 
+    linkaxes([ax1 ax2], 'x');
+    linkaxes([ax1 ax3], 'y');
 end
