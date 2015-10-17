@@ -613,7 +613,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             [~,~,restind] = run.locate_resistance;
             if isnan(maxflux), continue; end
 
-            %if ~isfield(run.eddy, 'rhovor'), continue; end
+            if ~isfield(run.eddy, 'rhovor'), continue; end
 
             % maxflux = max(run.csflux.west.slope(:,isobath, isobath));
             H = run.bathy.h(1, run.csflux.ix(isobath));
@@ -623,11 +623,12 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             %[V1, L, x0] = run.fit_vel(tind);
             % V1/V0 = 2.3 quite dependably
             %V0 = V1*2.3;
-            V0 = run.eddy.rhovor.Vke(maxloc);
+            V0 = run.eddy.rhovor.Vke(maxloc) * 2.3;
             % distance of eddy center from shelfbreak
             R = run.csflux.R;
             % vor.dia is radius to max vel =
             L = run.eddy.rhovor.dia(1)/2;
+            % this seems to work best
             Lz0 = Lz(maxloc);
             %L = N/f0 * Lz0/pi; - doesn't help
 
