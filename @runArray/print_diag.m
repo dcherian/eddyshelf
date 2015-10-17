@@ -707,6 +707,31 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             error(ff) = 0.10*diags(ff);
         end
 
+        if strcmpi(name, 'xpeak')
+            iso = args(1);
+
+            if iso > length(run.csflux.x), continue; end
+            if ~isfield(run.csflux, 'slopex')
+                run.streamerstruct;
+            end
+
+            flux = run.csflux.slopex.flux(:, iso, iso);
+            xvec = run.csflux.slopex.xi;
+
+            [~,xloc] = max(flux);
+
+            R = run.csflux.R;
+            L = run.eddy.vor.dia(1)/2;
+            yoR = run.csflux.ndloc(iso); % y/R - used in csflux
+            y0oL =  R/L * (1 - yoR); % y0/L - used in derivation
+            xfrac = sqrt(1 - y0oL^2);
+
+            name_points = 0;
+
+            diags(ff) = abs(xvec(xloc)) - L;
+            plotx(ff) = N/f0 * run.predict_zpeak(iso, 'use');
+        end
+
         if strcmpi(name, 'zpeak')
             debug = 0;
 
