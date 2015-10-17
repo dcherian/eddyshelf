@@ -623,7 +623,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             %[V1, L, x0] = run.fit_vel(tind);
             % V1/V0 = 2.3 quite dependably
             %V0 = V1*2.3;
-            V0 = run.eddy.rhovor.Vke(maxloc) * 2.3;
+            V0 = run.eddy.rhovor.Vke(maxloc);
             % distance of eddy center from shelfbreak
             R = run.csflux.R;
             % vor.dia is radius to max vel =
@@ -648,7 +648,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
                 % normalized grid matrices to create mask
                 [xmat, zmat] = ndgrid(xvec/L, zvec/Lz0);
 
-                v = -V0 * xmat .* exp(-xmat.^2) .* (1-erf(-zmat));
+                v = -2.3 * V0 * xmat .* exp(-xmat.^2) .* (1-erf(-zmat));
 
                 [width, zpeak] = run.predict_zpeak(isobath, 'use');
                 width = width/Lz0; zpeak = zpeak/Lz0;
@@ -658,9 +658,14 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
                 kzrad = width/2; % kink radius - z
                 kxrad = 0.3; % kink radius - x
 
-                mask = (xmat < 0) & ... % offshore flux
-                       ( ((xmat.^2 + zmat.^2) > 1) ... % eddy shape
-                         | ( (((xmat-x0)/kxrad).^2 + ((zmat-z0)/kzrad).^2) <= 1 )); % kink
+                if abs(run.csflux.x(isobath) - xsb) < 2000
+                    % if close to shelfbreak use barotropic profile
+                    mask = xmat < 0;
+                else
+                    mask = (xmat < 0) & ... % offshore flux
+                           ( ((xmat.^2 + zmat.^2) > 1) ... % eddy shape
+                             | ( (((xmat-x0)/kxrad).^2 + ((zmat-z0)/kzrad).^2) <= 1 )); % kink
+                end
 
                 zind = find_approx(zvec, -integrate_zlimit);
                 vmask = v .* mask;
@@ -678,13 +683,12 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
                 %          *  Lz0 * (H/Lz0 + 1/sqrt(pi));
             end
 
-            norm = 1e3;
-            transscl = double(fluxscl)/norm;
+            eddyscl = V0 * L * Lz0;
+            norm = eddyscl;
 
-            % correction for shallower isobaths
-            %if isobath < 1
-            %    transscl = (hsb/Lz(1)) * transscl;
-            %end
+            diags(ff) = maxflux/norm;
+            plotx(ff) = double(fluxscl)/norm;
+            error(ff) = 0.10*diags(ff);
 
             % colorize
             crit = 0.40;
@@ -702,10 +706,6 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             labx = 'Volume flux in eddy (mSv)';
             titlestr = [titlestr ' | ND isobath = ' ...
                         num2str(run.csflux.ndloc(:,isobath))];
-
-            diags(ff) = maxflux/norm;
-            plotx(ff) = transscl;
-            error(ff) = 0.10*diags(ff);
         end
 
         if strcmpi(name, 'xpeak')
