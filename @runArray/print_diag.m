@@ -605,9 +605,10 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             %end
 
             source = isobath;
+            integrate_zlimit = 2*hsb; % calculate flux above this depth
 
-            fluxvec = run.recalculateFlux(2*hsb, isobath, source);
-            % fluxvec = run.csflux.west.slope(:, isobath, source)
+            fluxvec = run.recalculateFlux(integrate_zlimit, isobath, source);
+            % fluxvec = run.csflux.west.slope(:, isobath, source);
             [maxflux, maxloc] = run.calc_maxflux(fluxvec);
             [~,~,restind] = run.locate_resistance;
             if isnan(maxflux), continue; end
@@ -639,24 +640,30 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
 
             zvec = run.csflux.vertbins(:, isobath);
 
-            use_numerics = 0;
+            use_numerics = 1;
             if use_numerics
-                % eddy profile
                 xvec = (run.rgrid.x_rho(1,2:end-1) - run.eddy.mx(maxloc));
-                eddmask = bsxfun(@le, abs(xvec/L), sqrt(1-y0oL^a-(zvec./Lz0).^2));
-                % mask to integrate over
-                inmask = bsxfun(@and, xvec/L < -0, 1 - eddmask)';
 
-                %if H/Lz0 < 1.5% if run.bathy.hsb/Lz0 < 0.5
-                %    inmask = repmat(inmask(:,end), [1 run.rgrid.N]);
-                %end
+                % normalized grid matrices to create mask
+                [xmat, zmat] = ndgrid(xvec/L, zvec/Lz0);
 
-                idealz = run.streamer_ideal_profile(isobath, maxloc); %(1 - erf(-zvec/Lz0))
-                % profile I am assuming
-                videal = bsxfun(@times, ...
-                                -V0 * (xvec/L).^(a-1) .* exp(-(xvec/L).^a -y0oL^a), ...
-                                idealz)';
-                fluxscl = trapz(zvec, trapz(xvec, videal .* inmask, 1), 2);
+                v = -V0 * xmat .* exp(-xmat.^2) .* (1-erf(-zmat));
+
+                [width, zpeak] = run.predict_zpeak(isobath, 'use');
+                width = width/Lz0; zpeak = zpeak/Lz0;
+
+                x0 = -1;
+                z0 = width/3;
+                kzrad = width/2; % kink radius - z
+                kxrad = 0.3; % kink radius - x
+
+                mask = (xmat < 0) & ... % offshore flux
+                       ( ((xmat.^2 + zmat.^2) > 1) ... % eddy shape
+                         | ( (((xmat-x0)/kxrad).^2 + ((zmat-z0)/kzrad).^2) <= 1 )); % kink
+
+                zind = find_approx(zvec, -integrate_zlimit);
+                vmask = v .* mask;
+                fluxscl = trapz(zvec(zind:end), trapz(xvec, vmask(:,zind:end), 1), 2);
             else
                 % syms x z
                 %fluxscl = abs(V0) * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
