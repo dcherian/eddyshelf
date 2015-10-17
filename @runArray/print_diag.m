@@ -43,6 +43,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
         error = [];
         parameterize = 0;
         titlestr = name;
+        if ~isempty(args), titlestr = [titlestr ' | args = ' num2str(args)]; end
         rmse = 0;
     end
 
