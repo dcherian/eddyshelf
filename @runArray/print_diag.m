@@ -695,15 +695,15 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             if round(hsb/Lz(1),2) > crit
                 clr = 'r';
             end
-            if round(hsb/Lz(1),2) < crit
-                clr = 'b';
-            end
+            %if round(hsb/Lz(1),2) < crit
+            %    clr = 'b';
+            %end
 
             parameterize = 1; logscale = 0;
             force_0intercept = 0;
             errorbarflag = 0; name_points = 0; line_45 = 0;
-            laby = 'Slope water max flux (mSv)';
-            labx = 'Volume flux in eddy (mSv)';
+            laby = 'Measured max flux at isobath / Eddy volume flux';
+            labx = 'Parameterization / Eddy volume flux';
             titlestr = [titlestr ' | ND isobath = ' ...
                         num2str(run.csflux.ndloc(:,isobath))];
         end
