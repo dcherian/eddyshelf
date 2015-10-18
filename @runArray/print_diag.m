@@ -691,13 +691,12 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             error(ff) = 0.10*diags(ff);
 
             % colorize
-            crit = 0.40;
-            if round(hsb/Lz(1),2) > crit
+            if run.bathy.sl_shelf ~= 0
                 clr = 'r';
             end
-            %if round(hsb/Lz(1),2) < crit
-            %    clr = 'b';
-            %end
+            if run.params.misc.rdrg ~= 0
+                clr = 'b';
+            end
 
             parameterize = 1; logscale = 0;
             force_0intercept = 0;
@@ -1112,15 +1111,15 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
         rmse = sqrt(nanmean((diags - c*plotx - P(2)).^2));
 
         hparam = plot(xvec, c*xvec + P(2), '--', ...
-                      'Color', [1 1 1]*0.75);
+                      'Color', [1 1 1]*0.65);
         slopestr = num2str(c, '%.2f');
         intstr = num2str(P(2), '%.2f');
 
         if exist('Pint', 'var')
             hparam(2) = plot(xvec, Pint(1,1) * xvec + Pint(2,1), ...
-                             'Color', [1 1 1]*0.75);
+                             'Color', [1 1 1]*0.65);
             hparam(3) = plot(xvec, Pint(1,2) * xvec + Pint(2,2), ...
-                             'Color', [1 1 1]*0.75);
+                             'Color', [1 1 1]*0.65);
 
             slopestr = [slopestr '\pm' ...
                         num2str(abs(Pint(1,1)-P(1)), '%.2f')];
@@ -1132,27 +1131,31 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
         end
 
         if force_0intercept, intstr = '0'; end
-        hleg = legend(hparam(1), ['y = (' slopestr ') x + (' ...
-                            intstr '); rmse = ' num2str(rmse,3)], ...
-                      'Location', 'SouthEast');
-
+        %hleg = legend(hparam(1), ['y = (' slopestr ') x + (' ...
+        %                    intstr '); rmse = ' num2str(rmse,3)], ...
+        %              'Location', 'SouthEast');
         uistack(hparam, 'bottom');
 
+        tlen = 0;
         if exist('stats', 'var')
             disp(['stats = ' num2str(stats)]);
-            htext = text(0.05,0.9, ...
-                         {['R^2 = ' num2str(stats(1), '%.2f')]; ...
-                          ['m = ' slopestr]; ...
-                          ['c = ' intstr]}, ...
-                         'Units', 'normalized', ...
-                         'HorizontalAlignment', 'left', ...
-                         'VerticalAlignment', 'top');
+            textstr{1} = ['r^2 = ' num2str(stats(1), '%.2f')];
+            textstr{2} = ['rmse = ' num2str(rmse, '%.2f')];
+            tlen = 2;
         end
+        textstr{tlen+1} = ['m = ' slopestr];
+        textstr{tlen+2} = ['c = ' intstr];
+
+        htext = text(0.03,0.92,textstr, ...
+                     'FontSize', 14, ...
+                     'Units', 'normalized', ...
+                     'HorizontalAlignment', 'left', ...
+                     'VerticalAlignment', 'top');
     end
 
     if plots
         figure(hfig);
-        maximize(); drawnow; pause(1);
+        maximize(); pause(0.05);
         set(gcf, 'renderer', 'painters');
         if line_45, line45(hax); end
 
@@ -1182,13 +1185,15 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             set(hleg, 'interpreter', 'latex');
         end
 
-        if strcmpi(name, 'avg flux') || strcmpi(name, 'max flux')
+        if strcmpi(name, 'avg flux') || strcmpi(name, 'max flux') ...
+                || strcmpi(name, 'zpeakwidth');
             figure(hfig);
             % axis square;
             xlim([0 max(plotx)]);
             ylim([0 max(ylim)]);
+            htext.FontSize = 12;
         end
 
-        beautify([20 24 30]);
+        beautify([18 22 26]);
     end
 end

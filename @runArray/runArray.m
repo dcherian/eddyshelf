@@ -546,21 +546,50 @@ classdef runArray < handle
                 isobath(1) = [];
             end
 
-            figure; insertAnnotation(['runArray.plot_fluxparam(' str]);
+            figure;
+            insertAnnotation(['runArray.plot_fluxparam(' str ')']);
+            slopeplot = 3;
+            hax = packboth(3,3);
             for ii=1:length(isobath)
                 iso = isobath(ii);
-                hh(ii) = subplot(3,3,ii);
-                [~, ~, rmse, P, Perr] = ...
-                    runArray.print_diag(str, iso, hh(ii));
-                legend('off'); xlabel(''); ylabel('');
-                title([num2str(runArray.array(1).csflux.ndloc(iso), ...
-                               '%.2f') ' | rmse = ' num2str(rmse, '%.2f')]);
-                beautify([16 16 18]);
+                if ii >= slopeplot, hh = ii+1; else hh = ii; end
+                axes(hax(hh));
+                [~, ~, ~, P, Perr] = runArray.print_diag(str, iso, hax(hh));
+                labx = hax(hh).XLabel.String;
+                laby = hax(hh).YLabel.String;
+                xlabel(''); ylabel(''); title('');
+                htext = text(0.68,0.15, ...
+                             ['y/R = ' ...
+                              num2str(runArray.array(1).csflux.ndloc(iso), '%.2f')], ...
+                             'Units', 'normalized', ...
+                             'HorizontalAlignment', 'left', ...
+                             'VerticalAlignment', 'top');
+                beautify([14 16 18]); pbaspect([1.732 1 1]);
+                ggplot;
+                hax(hh).XColor = [1 1 1];
+                hax(hh).YColor = [1 1 1];
 
                 mplt(ii) = P(1);
                 cplt(ii) = P(2);
                 err(ii) = Perr(1);
             end
+
+            linkaxes(hax, 'xy');
+            ylim([0 0.25]);
+            hax(1).YTick = hax(1).YTick(2:end);
+            hax(4).YTick = hax(4).YTick(2:end);
+            %hax(7).YTick = hax(7).YTick(2:end);
+
+            hax(1).YColor = [1 1 1]*0.3;
+            hax(4).YColor = [1 1 1]*0.3;
+            hax(7).YColor = [1 1 1]*0.3;
+
+            hax(7).XColor = [1 1 1]*0.3;
+            hax(8).XColor = [1 1 1]*0.3;
+            hax(9).XColor = [1 1 1]*0.3;
+
+            hax(8).XLabel.String = labx;
+            hax(4).YLabel.String = laby;
 
             % save to file
             fname = ['./params/param_' str];
@@ -570,12 +599,18 @@ classdef runArray < handle
             comment = ['(slope, intercept) = straight line fit | err = error in fit ' ...
                        '| isobath = location index'];
             save(fname, 'isobath', 'slope', 'intercept', 'err', 'hash');
-            subplot(339); insertAnnotation(['runArray.plot_fluxparam(' str]);
+
+            hax(slopeplot) = subplot(3,3,slopeplot);
             errorbar(runArray.array(1).csflux.ndloc(isobath), ...
-                     mplt, err, 'kx-', 'LineWidth', 2);
-            ylabel('Slope of fit');
+                     mplt, err, 'k.-', 'LineWidth', 2, 'MarkerSize', ...
+                     20);
+            title('Slope of fit');
             xlabel('Location (y/R)');
-            beautify;
+            xlim([-0.05 2]);
+            hax(slopeplot).YTick(2) = min(mplt);
+            hax(slopeplot).YTick(4) = max(mplt);
+            correct_ticks('y', '%.2f', []);
+            beautify; pbaspect([1.732 1 1]);
         end
 
         function [] = plot_field(runArray, varname, tind)
