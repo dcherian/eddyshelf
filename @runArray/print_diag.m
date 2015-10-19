@@ -42,6 +42,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
         clr = 'k';
         error = [];
         parameterize = 0;
+        mark_outliers = 0;
         titlestr = name;
         if ~isempty(args), titlestr = [titlestr ' | args = ' num2str(args)]; end
         rmse = 0;
@@ -702,9 +703,10 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
                 clr = 'b';
             end
 
+            mark_outliers = 1; name_points = 0;
             parameterize = 1; logscale = 0;
             force_0intercept = 0;
-            errorbarflag = 0; name_points = 0; line_45 = 0;
+            errorbarflag = 0; line_45 = 0;
             laby = 'Measured max flux at isobath / Eddy volume flux';
             labx = 'Parameterization / Eddy volume flux';
             titlestr = [titlestr ' | ND isobath = ' ...
@@ -1097,6 +1099,24 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
         end
 
         [P,Pint,R,Rint,stats] = regress(diags', E, 0.05);
+
+        % diagnose outliers
+        outind = logical(zeros(size(plotx)));
+        for ii=1:size(Rint,1)
+            if ~((Rint(ii,1) <= 0) && (Rint(ii,2) >= 0))
+                outind(ii) = true;
+            end
+        end
+
+        %if any(outind == 1)
+        %    % redo
+        %    [P,Pint,R,Rint,stats] = regress(diags(~outind)', E(~outind,:), 0.05);
+        %end
+
+        % mark outliers
+        if mark_outliers
+            plot(plotx(outind), diags(outind), 'ro', 'MarkerSize', 13);
+        end
 
         if force_0intercept
             P(2) = 0;
