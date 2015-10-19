@@ -618,25 +618,29 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             % maxflux = max(run.csflux.west.slope(:,isobath, isobath));
             H = run.bathy.h(1, run.csflux.ix(isobath));
 
-            tind = 1;
-            a = 2;
+            % for parameterization
             %[V1, L, x0] = run.fit_vel(tind);
             % V1/V0 = 2.3 quite dependably
             %V0 = V1*2.3;
-            V0 = run.eddy.rhovor.Vke(maxloc);
+
+            tind = maxloc;
+            V = smooth(run.eddy.rhovor.Vke, 1);
+            L = smooth(run.eddy.rhovor.dia/2, 1);
+            Lz = smooth(run.eddy.Lgauss,1);
+            % this seems to work best
+            V0 = 2.3*V(tind); L0 = median(L(1:tind)); Lz0 = Lz(tind);
+
+            % for normalization
+            scaletind = maxloc;
+            eddyscl = V(scaletind) * L(scaletind) * Lz(scaletind);
+
+            a = 2;
+
             % distance of eddy center from shelfbreak
             R = run.csflux.R;
-            % vor.dia is radius to max vel =
-            L = run.eddy.rhovor.dia(1)/2;
-            % this seems to work best
-            Lz0 = Lz(maxloc);
-            %L = N/f0 * Lz0/pi; - doesn't help
 
-            % I can make slope ~ 1 by
-            % V0 * 0.1
-            % xfrac * 2
             yoR = run.csflux.ndloc(isobath); % y/R - used in csflux
-            y0oL =  R/L * (1 - yoR); % y0/L - used in derivation
+            y0oL =  R/L0 * (1 - yoR); % y0/L - used in derivation
             xfrac = sqrt(1 - y0oL^a);
 
             zvec = run.csflux.vertbins(:, isobath);
@@ -646,7 +650,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
                 xvec = (run.rgrid.x_rho(1,2:end-1) - run.eddy.mx(maxloc));
 
                 % normalized grid matrices to create mask
-                [xmat, zmat] = ndgrid(xvec/L, zvec/Lz0);
+                [xmat, zmat] = ndgrid(xvec/L0, zvec/Lz0);
 
                 v = -2.3 * V0 * xmat .* exp(-xmat.^2) .* (1-erf(-zmat));
 
@@ -659,12 +663,12 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
                 kxrad = 0.3; % kink radius - x
 
                 if abs(run.csflux.x(isobath) - xsb) < 2000
-                    % if close to shelfbreak use barotropic profile
+                    % if close to shelfbreak use barotropic mask
                     mask = xmat < 0;
                 else
                     mask = (xmat < 0) & ... % offshore flux
-                           ( ((xmat.^2 + zmat.^2) > 1) ... % eddy shape
-                             | ( (((xmat-x0)/kxrad).^2 + ((zmat-z0)/kzrad).^2) <= 1 )); % kink
+                           (((xmat.^2 + zmat.^2) > 1) ... % eddy shape
+                            | ((((xmat-x0)/kxrad).^2 + ((zmat-z0)/kzrad).^2) <= 1 )); % kink
                 end
 
                 zind = find_approx(zvec, -integrate_zlimit);
@@ -683,7 +687,6 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
                 %          *  Lz0 * (H/Lz0 + 1/sqrt(pi));
             end
 
-            eddyscl = V0 * L * Lz0;
             norm = eddyscl;
 
             diags(ff) = maxflux/norm;
