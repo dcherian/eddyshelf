@@ -628,10 +628,11 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             L = smooth(run.eddy.rhovor.dia/2, 1);
             Lz = smooth(run.eddy.Lgauss,1);
             % this seems to work best
-            V0 = 2.3*V(tind); L0 = median(L(1:tind)); Lz0 = Lz(tind);
+            % 2.3 factor is taken care of later.
+            V0 = V(tind); L0 = median(L(1:tind)); Lz0 = Lz(tind);
 
             % for normalization
-            scaletind = maxloc;
+            scaletind = tind;
             eddyscl = V(scaletind) * L(scaletind) * Lz(scaletind);
 
             a = 2;
