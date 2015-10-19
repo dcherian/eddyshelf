@@ -1120,9 +1120,9 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
 
         if exist('Pint', 'var')
             hparam(2) = plot(xvec, Pint(1,1) * xvec + Pint(2,1), ...
-                             'Color', [1 1 1]*0.65);
+                             'Color', [1 1 1]*0.65, 'LineStyle', '--');
             hparam(3) = plot(xvec, Pint(1,2) * xvec + Pint(2,2), ...
-                             'Color', [1 1 1]*0.65);
+                             'Color', [1 1 1]*0.65, 'LineStyle', '--');
 
             slopestr = [slopestr '\pm' ...
                         num2str(abs(Pint(1,1)-P(1)), '%.2f')];

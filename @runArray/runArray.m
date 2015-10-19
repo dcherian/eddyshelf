@@ -604,13 +604,14 @@ classdef runArray < handle
             errorbar(runArray.array(1).csflux.ndloc(isobath), ...
                      mplt, err, 'k.-', 'LineWidth', 2, 'MarkerSize', ...
                      20);
-            title('Slope of fit');
+            legend('Slope of fit', 'Location', 'SouthEast', 'FontSize', ...
+                   16);
             xlabel('Location (y/R)');
             xlim([-0.05 2]);
             hax(slopeplot).YTick(2) = min(mplt);
             hax(slopeplot).YTick(4) = max(mplt);
             correct_ticks('y', '%.2f', []);
-            beautify; pbaspect([1.732 1 1]);
+            beautify([14 16 18]); pbaspect([1.732 1 1]);
         end
 
         function [] = plot_field(runArray, varname, tind)
