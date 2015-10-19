@@ -94,7 +94,13 @@ function [] = plot_fluxes(runArray, isobath, source)
                 run.csflux.west.slopewater.vertitrans(:,isobath,source);
             vertbins = run.csflux.vertbins(:,isobath);
             zvec = vertbins ./ hsb; %max(abs(vertbins));
-            zind = find_approx(vertbins, -1.*hsb);
+            zind = find_approx(vertbins, -1*hsb);
+
+            [~,~,zwidth,~] = run.streamer_peak(isobath);
+            if ~isnan(zwidth)
+                zind = [zind find_approx(vertbins, zwidth)];
+            end
+
             bc = baroclinicity(zvec, profile);
             profile = profile ./ max(profile);
             hgplt2(ff) = plot(profile, zvec, 'Color', hgplt1(ff).Color);
@@ -102,7 +108,6 @@ function [] = plot_fluxes(runArray, isobath, source)
                  'Color', hgplt1(ff).Color);
             names2{ff} =  [names{ff} ' | bc = ' num2str(bc, ...
                                                         '%.3f')];
-            trapz(vertbins, profile)
         end
 
         %%%%%%%%%%%%% ENVELOPE

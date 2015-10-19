@@ -18,12 +18,12 @@ function [zmax, imax, zwidth, idiff] = streamer_peak(runs, isobath, debug)
     %vec = smooth(runs.csflux.west.slopezt(:,maxloc,isobath, isobath), ...
     %             nsmooth);
     zvec = runs.csflux.vertbins(:,isobath);
-    dvec = diff(vec,1,1)./diff(zvec);
+    dvec = smooth(diff(vec,1,1)./diff(zvec), nsmooth);
     dzvec = avg1(zvec);
 
     % peak
-    [~,imax] = max(abs(vec));
-    zmax(kk) = zvec(imax);
+    [vmax,ivmax] = max(abs(vec));
+    zmax(kk) = zvec(ivmax);
 
     % peakwidth based on surface value
     ibot = find_approx(vec(1:end-2), vec(end), 1);
@@ -31,22 +31,36 @@ function [zmax, imax, zwidth, idiff] = streamer_peak(runs, isobath, debug)
 
     % peakwidth based on derivative drop to half it's max
     % value — look for first depth after maximum
-    [dvmax, imax] = max(dvec);
-    idiff = find(dvec(1:imax) - dvmax/2 < 0, 1, 'last');
-    if isempty(idiff), return; end
+    [dvmax, idmax] = max(dvec);
+    idiff = find(dvec(1:idmax) - dvmax/2 < 0, 1, 'last');
 
-    zdiff(kk) = dzvec(idiff);
+    if isempty(idiff) & ~isempty(findstr(runs.name, 'ew-8'))
+        % max slope is near bottom, so search up to location of actual maximum.
+        %idiff = find(dvec(idmax+10:ivmax) - dvmax/2 < 0, 1, 'first');
+        % just look for (peak value)/2
+        idiff = find(vec - vmax/2 < 0, 1, 'last');
+    end
+
+    if ~isempty(idiff), zdiff(kk) = dzvec(idiff); end
 
     if debug
         figure;
         plot(vec, zvec);
+        liney(zmax, 'max');
         liney(zbot(kk), 'bot');
-        liney(zdiff(kk), 'der');
+        try
+            liney(zdiff(kk), 'der');
+        catch ME; end
         liney(runs.bathy.hsb*-1, 'hsb', 'k');
+        linex(0);
         plot(diff(vec,1,1)./diff(zvec)*10, avg1(zvec));
         title(runs.name); drawnow;
     end
-    kk = kk + 1;
+
+    if isempty(idiff)
+        warning('streamer_peak: Derivative criterion not satisfied.');
+        return;
+    end
 
     zwidth = zdiff;
 end
