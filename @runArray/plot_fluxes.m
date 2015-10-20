@@ -140,7 +140,7 @@ function [] = plot_fluxes(runArray, isobath, source)
 
         %%%%%%%%%%%%%%%%%%%%% ALONG SHELF STRUCTURE
         if ~isempty(hfig5)
-            if ~isfield(run.csflux, 'shelfx')
+            if ~isfield(run.csflux, 'slopex')
                 run.streamerstruct;
             end
 
@@ -211,16 +211,16 @@ function [] = plot_fluxes(runArray, isobath, source)
             figure(hfig9)
 
             [~,tind] = run.calc_maxflux(run.csflux.west.slope(:,isobath,source));
-
             zvec = run.csflux.vertbins(:,isobath)./run.bathy.hsb;
             actual = run.csflux.west.slopezt(:,tind,isobath,source);
+            actual = actual./max(actual);
             ideal = run.streamer_ideal_profile(isobath);
             hgplt9(ff) = plot(actual, zvec);
             plot(max(actual)*ideal, zvec, 'k--');
         end
     end
 
-    pause(1); drawnow;
+    pause(0.5)
     if ~isempty(hfig1)
         figure(hfig1)
         insertAnnotation('runArray.plot_fluxes');
@@ -234,31 +234,11 @@ function [] = plot_fluxes(runArray, isobath, source)
         ylabel('Vol_{transport}/ Vol_{eddy}');
         xlabel('Non-dimensional time');
         legend(hgplt1, names);
-        liney(0);
         beautify;
     end
 
     if ~isempty(hfig2)
         figure(hfig2)
-        %subplot(2,2,1)
-        %ylabel('Total volume transported (m^3)');
-        %xlabel('cs location (km)');
-
-        %subplot(2,2,2)
-        %limy = ylim;
-        %ldefbt = sqrt(9.81 * run.bathy.hsb)/run.params.phys.f0;
-        %xnd = xnd .* run.rrshelf ./ ldefbt;
-        %plot(xnd(2:end-1), 1./xnd(2:end-1).^2, 'color', [1 1 ...
-        %                    1]*1);
-        %ylim(limy)
-        %ylabel('Normalized volume transported');
-        %xlabel('cs location / shelfbreak rossby radius');
-
-        %subplot(2,2,3)
-        %xlabel('Total volume transported (m^3)');
-        %ylabel('Vertical bin (m)');
-
-        %subplot(2,2,4)
         insertAnnotation('runArray.plot_fluxes');
         %ylim([-1 0]);
         limx = xlim;
