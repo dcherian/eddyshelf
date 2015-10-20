@@ -37,9 +37,17 @@ ylim([30 130]);
 handles(3).hax.XTickLabel{end} = '';
 handles(1).htitle.String = 'Eddy dye at z = -200 m | H_{sb} = 50m | Ro = 0.1';
 handles(1).supax.Position(4) = 0.88;
-axes(handles(1).hax);
 
 export_fig images/comm-6/ew-34-mosaic-zslice.png
+
+%% ew-34 zslice mosaic 2
+handles = ew.array(1).mosaic_zslice('dye_03', 200, [300 310 320 330]);
+xlim([120 320]);
+ylim([30 130]);
+handles(3).hax.XTickLabel{end} = '';
+handles(1).htitle.String = 'Eddy dye at z = -200 m | H_{sb} = 50m | Ro = 0.1';
+handles(1).supax.Position(4) = 0.85;
+export_fig images/comm-6/ew-34-mosaic-zslice-2.png
 
 %% ew- 36 zslice mosaic 1
 handles = ew.array(2).mosaic_zslice('dye_03', 200, [130 140 150 160]);
@@ -48,6 +56,7 @@ ylim([30 130]);
 handles(3).hax.XTickLabel{end} = '';
 handles(1).htitle.String = 'Eddy dye at z = -200 m | H_{sb} = 50m | Ro = 0.25';
 handles(1).supax.Position(4) = 0.89;
+export_fig images/comm-6/ew-36-mosaic-zslice-1.png
 
 %% ew- 36 zslice mosaic 2
 handles = ew.array(2).mosaic_zslice('dye_03', 200, [160 175 200 220]);
@@ -56,6 +65,7 @@ ylim([30 130]);
 handles(3).hax.XTickLabel{end} = '';
 handles(1).htitle.String = 'Eddy dye at z = -200 m | H_{sb} = 50m | Ro = 0.25';
 handles(1).supax.Position(4) = 0.85;
+export_fig images/comm-6/ew-36-mosaic-zslice-2.png
 
 %% ew-2360 z-slice mosaic
 handles = ew2360.mosaic_zslice('dye_03', 200, [63 70 77 95]);
@@ -74,3 +84,4 @@ subplot(223); correct_ticks('y', [], '-50');
 subplot(224); correct_ticks('y', [], '-50');
 xlim([-2 0.3]);
 ylim([-320 0]);
+export_fig images/comm-6/ew-34-flux-sections-223.png
