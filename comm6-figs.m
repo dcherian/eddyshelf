@@ -20,5 +20,45 @@ hax.YTick = sort([hax.YTick -floor(ew36.bathy.hsb)]);
 suplabel('', 't'); title('Eddy dye');
 text(0.85*limx(2), -1 * ew36.eddy.Lgauss(tind), ...
          {'vertical','scale'}, 'VerticalAlignment', 'Bottom', ...
-         'HorizontalAlignment','Center');
+     'HorizontalAlignment','Center');
+% set(gcf, 'Position', [515 262 650 537]);
 export_fig images/ew-36-eddye-yz-320.png
+
+%% mosaics
+% ew = runArray({'runew-34', 'runew-36'});
+
+% ew-34 zslice mosaic
+handles = ew.array(1).mosaic_zslice('dye_03', 200, [220 230 240 248]);
+%for ii=1:length(handles)
+%    handles(ii).rhocont.Visible = 'on';
+%end
+xlim([200 360]);
+ylim([30 130]);
+handles(3).hax.XTickLabel{end} = '';
+handles(1).htitle.String = 'Eddy dye at z = -200 m | H_{sb} = 50m | Ro = 0.1';
+handles(1).supax.Position(4) = 0.88;
+axes(handles(1).hax);
+htc = text(0.05, 0.83, 'Surface cross-shelf dye', 'FontSize', 13, ...
+          'Units', 'Normalized', 'Color', [1 1 1]*0.65);
+hte = text(0.05, 0.79, 'Surface eddy dye', 'FontSize', 13, ...
+           'Units', 'Normalized', 'Color', 'k');
+hte = text(0.05, 0.75, 'Eddy core', 'FontSize', 13, ...
+          'Units', 'Normalized', 'Color',[44 162 95]/255);
+
+export_fig images/comm-6/ew-34-mosaic-zslice.png
+
+%% ew- 36 zslice mosaic 1
+handles = ew.array(2).mosaic_zslice('dye_03', 200, [130 140 150 160]);
+xlim([250 400]);
+ylim([30 130]);
+handles(3).hax.XTickLabel{end} = '';
+handles(1).htitle.String = 'Eddy dye at z = -200 m | H_{sb} = 50m | Ro = 0.25';
+handles(1).supax.Position(4) = 0.89;
+
+%% ew- 36 zslice mosaic 2
+handles = ew.array(2).mosaic_zslice('dye_03', 200, [160 175 200 220]);
+xlim([200 400]);
+ylim([30 130]);
+handles(3).hax.XTickLabel{end} = '';
+handles(1).htitle.String = 'Eddy dye at z = -200 m | H_{sb} = 50m | Ro = 0.25';
+handles(1).supax.Position(4) = 0.85;
