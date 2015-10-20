@@ -85,3 +85,11 @@ subplot(224); correct_ticks('y', [], '-50');
 xlim([-2 0.3]);
 ylim([-320 0]);
 export_fig images/comm-6/ew-34-flux-sections-223.png
+
+% cyclone
+% cyc = runs('../topoeddy/runew-34-cyc/');
+cyc.plot_fluxes(4, 225);
+xlim([-2.3 0.85]);
+ylim([-330 0]);
+subplot(221); correct_ticks('x', '', '-100');
+export_fig images/comm-6/ew-34-cyc-flux-sections-225.png
