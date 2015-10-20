@@ -1,15 +1,32 @@
-function mosaic_zslice(runs, varname, depth, tind)
+%        [handles] = mosaic_zslice(runs, varname, depth, tind)
+function [handles] = mosaic_zslice(runs, varname, depth, tind)
 
     n = length(tind);
 
     figure;
     insertAnnotation([runs.name '.mosaic_zslice(' varname ',' ...
                       num2str(depth) ')']);
+    hax = packboth(2,ceil(n/2));
     for ii=1:n
-        hax(ii) = subplot(2,ceil(n/2),ii);
-        runs.animate_zslice(varname, depth, tind(ii), hax(ii));
-        title(['z = -' num2str(depth) ' m']);
+        axes(hax(ii));
+        handles(ii) = runs.animate_zslice(varname, depth, tind(ii), hax(ii));
+        title('');
+        colorbar('off');
     end
 
     linkaxes(hax, 'xy');
+
+    [handles(1).supax, handles(1).htitle] = ...
+        suplabel([runs.name ' | ' varname ' | z = -' num2str(abs(depth)) 'm'], 't');
+    handles(1).supax.Position(4) = 0.85;
+
+    set(hax(2), 'YTickLabel', {}, 'XTickLabel', {});
+    xlabel(hax(1), ''); xlabel(hax(2), '');
+    ylabel(hax(2), ''); ylabel(hax(4), '');
+    set(hax(4), 'YTickLabel', {});
+    set(hax(1), 'XTickLabel', {});
+
+    handles(1).hcb = colorbar;
+    handles(1).hcb.Position(1) = 0.92;
+    handles(1).hcb.Position(2) = 0.35;
 end

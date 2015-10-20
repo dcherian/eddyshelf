@@ -1,4 +1,4 @@
-function [] = animate_zslice(runs,varname,depth,tind,hax)
+function [handles] = animate_zslice(runs,varname,depth,tind,hax)
 
     if ~exist('hax', 'var'), figure; hax = gca; end
     if ~exist('tind','var'), tind = []; end
@@ -131,12 +131,12 @@ function [] = animate_zslice(runs,varname,depth,tind,hax)
     shading flat;
     ht = runs.set_title(titlestr, tind(1));
     axis image;
-    xlim([min(xax(:)) max(xax(:))]);
-    ylim([min(yax(:)) max(yax(:))]);
+    %xlim([min(xax(:)) max(xax(:))]); - why?
+    %ylim([min(yax(:)) max(yax(:))]); - why?
     colorbar;
     if strcmpi(varname, runs.eddname)
-        center_colorbar;
-        caxis([-1 1]);
+        colormap(brighten(cbrewer('seq', 'Reds', 20), 0.2));
+        caxis([0 1]);
     else
         if strcmpi(varname, 'pv')
             caxis([min(min(var(:,:,1))) max(max(var(:,:,1)))]);
@@ -145,7 +145,7 @@ function [] = animate_zslice(runs,varname,depth,tind,hax)
         end
     end
     xlabel('X (km)'); ylabel('Y (km)');
-    runs.plot_bathy('contour','k');
+    hbathy = runs.plot_bathy('contour','k');
     htime = runs.add_timelabel(tind(1));
 
     if addvelquiver
@@ -175,4 +175,13 @@ function [] = animate_zslice(runs,varname,depth,tind,hax)
         end
     end
     runs.video_write;
+
+    handles.hvar = hc;
+    handles.hax = hax;
+    handles.eddsurf = hedd;
+    handles.csdsurf = hcsd;
+    handles.rhocont = he;
+    handles.bathy = hbathy;
+    handles.htime = htime;
+    if addvelquiver, handles.hquiver = hq; end
 end
