@@ -38,12 +38,6 @@ handles(3).hax.XTickLabel{end} = '';
 handles(1).htitle.String = 'Eddy dye at z = -200 m | H_{sb} = 50m | Ro = 0.1';
 handles(1).supax.Position(4) = 0.88;
 axes(handles(1).hax);
-htc = text(0.05, 0.83, 'Surface cross-shelf dye', 'FontSize', 13, ...
-          'Units', 'Normalized', 'Color', [1 1 1]*0.65);
-hte = text(0.05, 0.79, 'Surface eddy dye', 'FontSize', 13, ...
-           'Units', 'Normalized', 'Color', 'k');
-hte = text(0.05, 0.75, 'Eddy core', 'FontSize', 13, ...
-          'Units', 'Normalized', 'Color',[44 162 95]/255);
 
 export_fig images/comm-6/ew-34-mosaic-zslice.png
 
@@ -62,3 +56,21 @@ ylim([30 130]);
 handles(3).hax.XTickLabel{end} = '';
 handles(1).htitle.String = 'Eddy dye at z = -200 m | H_{sb} = 50m | Ro = 0.25';
 handles(1).supax.Position(4) = 0.85;
+
+%% ew-2360 z-slice mosaic
+handles = ew2360.mosaic_zslice('dye_03', 200, [63 70 77 95]);
+xlim([265 465]);
+ylim([130 250]);
+handles(3).hax.XTickLabel{end} = '';
+handles(1).htitle.String = 'Eddy dye at z = -200 m | H_{sb} = 50m | Ro = 0.25';
+handles(1).supax.Position(4) = 0.87;
+axes(handles(1).hax); correct_ticks('y', '', {3 5});
+axes(handles(3).hax); correct_ticks('y', '', {3 5});
+
+%% v, density cross-section
+ew.array(1).plot_fluxes(4, 225);
+subplot(221); correct_ticks('y', [], '-50');
+subplot(223); correct_ticks('y', [], '-50');
+subplot(224); correct_ticks('y', [], '-50');
+xlim([-2 0.3]);
+ylim([-320 0]);
