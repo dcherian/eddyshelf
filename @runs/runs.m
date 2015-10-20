@@ -1510,51 +1510,52 @@ methods
             if ~isempty(hfig6)
                 figure(hfig6)
                 insertAnnotation([runs.name '.plot_fluxes']);
+                maximize;
 
                 ax(1) = subplot(221);
                 [~,h1] = contourf(xvec, zvec, csvel', 20);
                 hold on
-                % [~,h2] = contour(xvec, zvec, videal .* inmask, 20, 'b');
-                % h2.LevelList = h1.LevelList;
-                caxis([-1 1]);
                 contour(xvec, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
                 runs.add_timelabel(tindex);
                 xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
-                title(['v (m/s) | ' runs.name]);
-                linex(xfrac);
-                center_colorbar;
-                xlim([-1 1]*max(abs(xlim))/2);
+                title(['Cross-shelf velocity (m/s) | ' runs.name]);
+                %linex(xfrac);
+                liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
+                liney(-1 * runs.bathy.hsb, 'h_{sb}');
+                caxis([-1 1] * max(abs(csvel(:)))); center_colorbar;
 
                 figure(hfig6)
                 ax(2) = subplot(224);
-                pcolorcen(xvec, zvec, csdye'/1000); % .* mask
+                pcolorcen(xvec, zvec, (csdye'-runs.bathy.xsb)/1000); % .* mask
                 hold on; shading interp
                 contour(xvec, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
-                colorbar;
+                hcb = colorbar;
                 xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
                 title(['Cross-shelf dye (km) | ' runs.name]);
                 runs.add_timelabel(tindex);
                 linkaxes(ax, 'xy');
-                linex(xfrac);
+                %linex(xfrac);
                 liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
                 liney(-1 * runs.bathy.hsb, 'h_{sb}');
+                hcb.TickLabels{1} = 'Shelf Water';
+                hcb.TickLabels{end-1} = 'Eddy Water';
+                hcb.TickLabels{floor(length(hcb.Ticks)/2)-2} = 'Slope Water';
 
                 figure(hfig6)
                 ax(3) = subplot(223);
-                pcolorcen(xvec, zvec, rho'); % .* mask
+                contour(xvec, zvec, rho', 30, 'k'); % .* mask
                 clim = caxis;
                 hold on; shading interp;
                 contour(xvec, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
                 caxis(clim);
                 colorbar;
                 xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
-                title(['\Delta \rho | ' runs.name]);
+                title(['\rho (kg/m^3) | ' runs.name]);
                 runs.add_timelabel(tindex);
                 linkaxes(ax, 'xy');
-                linex(xfrac);
+                %linex(xfrac);
                 liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
                 liney(-1 * runs.bathy.hsb, 'h_{sb}');
-                % caxis([-0.05 0]);
 
                 figure(hfig6)
                 % ax(4) = subplot(224);
@@ -1577,7 +1578,9 @@ methods
                 beautify;
                 ylabel('Z (m)');
                 xlabel('|Transport| (m^2/s)');
-                liney(-runs.bathy.hsb);
+                liney(-runs.bathy.hsb, 'shelfbreak depth');
+                liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
+                ylim(ax(1).YLim);
             end
 
             if ~isempty(hfig8)
