@@ -374,7 +374,7 @@ function [] = csfluxes(runs, ftype)
         % i.e., save depth integrated transport = fn{loc}(time,bin)
         tic;
         disp('Binning horizontally...');
-        if bathyax == 2 && sgntamp == -1
+        if (bathyax == 2) && (sgntamp == -1)
             bins = loc(kk):3000:max(runs.rgrid.y_rho(:));
         else
             bins = flip(loc(kk):-3000:1000);
@@ -436,7 +436,7 @@ function [] = csfluxes(runs, ftype)
 
         for ll=1:kk
             disp(['Parititioning slope water: ' num2str(ll) '/' num2str(kk)]);
-            if bathyax == 2 && sgntamp == -1
+            if (bathyax == 2) && (sgntamp == -1)
                 % cyclones moving northwards
                 slopemask = (csdye > loc(ll));
             else
