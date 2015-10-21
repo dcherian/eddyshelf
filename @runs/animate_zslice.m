@@ -147,6 +147,7 @@ function [handles] = animate_zslice(runs,varname,depth,tind,hax)
     xlabel('X (km)'); ylabel('Y (km)');
     hbathy = runs.plot_bathy('contour','k');
     htime = runs.add_timelabel(tind(1));
+    beautify;
 
     if addvelquiver
         hq = quiver(runs.eddy.xr(1:dxi:end,1:dyi:end)/1000, ...
