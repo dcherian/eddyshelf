@@ -1417,10 +1417,19 @@ methods
             vnorm = runs.eddy.V(tindex);
 
             % copied from csfluxes.m
+            if runs.csvelname == 'v'
+                bathyax = 2;
+                xvec = runs.rgrid.x_rho(1,2:end-1) - runs.eddy.mx(tindex);
+                zvec = runs.rgrid.z_r(:, ix+1, 1);
+            else
+                bathyax = 1;
+                xvec = (runs.rgrid.y_rho(2:end-1,1) - runs.eddy.my(tindex))';
+                zvec = runs.rgrid.z_r(:, 1, ix+1);
+            end
             csvel = squeeze(avg1( ...
-                dc_roms_read_data(runs.dir, 'v', tindex, ...
+                dc_roms_read_data(runs.dir, runs.csvelname, tindex, ...
                                   {runs.bathy.axis ix-1 ix}, [], runs.rgrid, ...
-                                  'his', 'single'), 2));
+                                  'his', 'single'), bathyax));
             csvel = csvel(2:end-1,:,:,:) ./ vnorm;
 
             % process cross-shelf dye
@@ -1459,9 +1468,7 @@ methods
             y0oL =  R/L * (1 - yoR); % y0/L - used in derivation
             xfrac = -sqrt(1 - y0oL^a);
 
-            zvec = runs.rgrid.z_r(:, ix+1, 1);
-            xvec = (runs.rgrid.x_rho(1,2:end-1) - runs.eddy.mx(tindex)) ...
-                   ./ L;
+            xvec = xvec ./ L;
 
             %xfrac2 = -sqrt(1 - y0oL^2 - (zvec./Lz).^2);
             %xfrac2(~isreal(xfrac2)) = 0;
@@ -1474,30 +1481,30 @@ methods
                 inmask = repmat(inmask(end,:), [runs.rgrid.N 1]);
             end
 
-            % profile I am assuming
-            videal = bsxfun(@times, ...
-                            -V0/vnorm * (xvec).^(a-1) .* exp(-xvec.^a -y0oL^a), ...
-                            (1 - erf(-zvec/Lz)));
-            % idmask = repmat(xvec < xfrac, [runs.rgrid.N 1]);
+            % % profile I am assuming
+            % videal = bsxfun(@times, ...
+            %                 -V0/vnorm * (xvec).^(a-1) .* exp(-xvec.^a -y0oL^a), ...
+            %                 (1 - erf(-zvec/Lz)));
+            % % idmask = repmat(xvec < xfrac, [runs.rgrid.N 1]);
 
-            % diagnosed flux
-            flux = runs.csflux.west.slope(tindex,isobath,isobath)./ ...
-                   L./vnorm/H * vnorm * L * H
-            % should agree with above
-            vtrue = trapz(xvec, trapz(zvec/H, repnan(csvel' .* ...
-                                                     mask,0), 1), ...
-                          2) * vnorm * L * H
+            % % diagnosed flux
+            % flux = runs.csflux.west.slope(tindex,isobath,isobath)./ ...
+            %        L./vnorm/H * vnorm * L * H
+            % % should agree with above
+            % vtrue = trapz(xvec, trapz(zvec/H, repnan(csvel' .* ...
+            %                                          mask,0), 1), ...
+            %               2) * vnorm * L * H
 
-            % idealized velocity with real mask
-            vitruemask = trapz(xvec, trapz(zvec/H, repnan(videal .* mask, 0), 1), ...
-                         2) * vnorm * L * H / vtrue
+            % % idealized velocity with real mask
+            % vitruemask = trapz(xvec, trapz(zvec/H, repnan(videal .* mask, 0), 1), ...
+            %              2) * vnorm * L * H / vtrue
 
-            % idealized parameterization
-            vest = trapz(xvec, trapz(zvec/H, repnan(videal .* inmask, 0), 1), ...
-                         2) * vnorm * L * H / vtrue
+            % % idealized parameterization
+            % vest = trapz(xvec, trapz(zvec/H, repnan(videal .* inmask, 0), 1), ...
+            %              2) * vnorm * L * H / vtrue
 
-            fluxscl = double(V0 * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
-                      * int(1 - erf(-z/Lz), z, -H, 0)) / vtrue
+            % fluxscl = double(V0 * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
+            %           * int(1 - erf(-z/Lz), z, -H, 0)) / vtrue
 
             % gaussprof(x,z) = exp(-(x/L)^2) * (1-erf(-z/Lz));
             % % bounding contour of ρ = ρ_0/e
@@ -1523,6 +1530,7 @@ methods
                 liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
                 liney(-1 * runs.bathy.hsb, 'h_{sb}');
                 caxis([-1 1] * max(abs(csvel(:)))); center_colorbar;
+                beautify;
 
                 figure(hfig6)
                 ax(2) = subplot(224);
@@ -1540,6 +1548,7 @@ methods
                 hcb.TickLabels{1} = 'Shelf Water';
                 hcb.TickLabels{end-1} = 'Eddy Water';
                 hcb.TickLabels{floor(length(hcb.Ticks)/2)-2} = 'Slope Water';
+                beautify;
 
                 figure(hfig6)
                 ax(3) = subplot(223);
@@ -1556,6 +1565,7 @@ methods
                 %linex(xfrac);
                 liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
                 liney(-1 * runs.bathy.hsb, 'h_{sb}');
+                beautify;
 
                 figure(hfig6)
                 % ax(4) = subplot(224);
@@ -1581,6 +1591,7 @@ methods
                 liney(-runs.bathy.hsb, 'shelfbreak depth');
                 liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
                 ylim(ax(1).YLim);
+                beautify;
             end
 
             if ~isempty(hfig8)
@@ -2168,12 +2179,13 @@ methods
 
      end
 
-     function [] = plot_csfluxes(runs)
+     function [] = plot_csfluxes(runs, iso)
 
+         error('deprecated!');
          runs.streamerstruct;
 
          R = runs.eddy.vor.dia(1)/2;
-         flux = runs.csflux.slopex.flux;
+         flux = runs.csflux.slopex.flux(:,iso,iso);
 
          figure;
          insertAnnotation([runs.name '.plot_csfluxes']);
