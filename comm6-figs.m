@@ -123,7 +123,7 @@ handles(1).htitle.FontSize = 22;
 handles(1).htitle.FontWeight = 'normal';
 handles(1).supax.Position(4) = 0.87;
 axes(handles(1).hax); correct_ticks('y', '', {'150' '200'});
-axes(handles(3).hax); correct_ticks('y', '', {3 5});
+axes(handles(3).hax); correct_ticks('y', '', {'150' '200'});
 
 export_fig images/ew-2360-mosaic-zslice.png
 
@@ -139,10 +139,10 @@ export_fig images/comm-6/ew-34-flux-sections-223.png
 % cyclone
 %
 cyc.plot_fluxes(4, 225);
-xlim([-2.3 0.85]);
-ylim([-330 0]);
 subplot(221); correct_ticks('y', '', '-100');
 subplot(222); correct_ticks('y', '', '-100');
 subplot(223); correct_ticks('y', '', '-100');
-subplot(224); correct_ticks('y', '', '-100');
+subplot(224); correct_ticks('y', '', '-100')
+xlim([-2.3 0.85]);
+ylim([-330 0]);
 export_fig images/comm-6/ew-34-cyc-flux-sections-225.png
