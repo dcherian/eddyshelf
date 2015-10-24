@@ -12,6 +12,8 @@ function [handles] = mosaic_zslice(runs, varname, depth, tind)
         handles(ii) = runs.animate_zslice(varname, depth, tind(ii), hax(ii));
         title('');
         colorbar('off');
+
+        uistack([handles(ii).csdsurf handles(ii).rhocont], 'top');
     end
 
     linkaxes(hax, 'xy');
@@ -19,6 +21,7 @@ function [handles] = mosaic_zslice(runs, varname, depth, tind)
     [handles(1).supax, handles(1).htitle] = ...
         suplabel([runs.name ' | ' varname ' | z = -' num2str(abs(depth)) 'm'], 't');
     handles(1).supax.Position(4) = 0.85;
+    handles(1).FontWeight = 'normal';
 
     set(hax(2), 'YTickLabel', {}, 'XTickLabel', {});
     xlabel(hax(1), ''); xlabel(hax(2), '');
@@ -29,12 +32,13 @@ function [handles] = mosaic_zslice(runs, varname, depth, tind)
     handles(1).hcb = colorbar;
     handles(1).hcb.Position(1) = 0.92;
     handles(1).hcb.Position(2) = 0.35;
+    handles(1).hcb.Position(3) = 0.017;
 
     axes(hax(1));
     handles(1).htext(1) = text(0.05, 0.83, 'Surface cross-shelf dye', 'FontSize', 16, ...
-                               'Units', 'Normalized', 'Color', [1 1 1]*0.65);
-    handles(1).htext(2) = text(0.05, 0.79, 'Surface eddy dye', 'FontSize', 16, ...
+                               'Units', 'Normalized', 'Color', runs.shelfSlopeColor);
+    handles(1).htext(3) = text(0.05, 0.77, 'Eddy core', 'FontSize', 16, ...
+                               'Units', 'Normalized', 'Color', runs.rhoContColor);
+    handles(1).htext(2) = text(0.05, 0.71, 'Surface eddy dye', 'FontSize', 16, ...
                                'Units', 'Normalized', 'Color', 'k');
-    handles(1).htext(3) = text(0.05, 0.75, 'Eddy core', 'FontSize', 16, ...
-                               'Units', 'Normalized', 'Color',[44 162 95]/255);
 end
