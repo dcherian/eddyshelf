@@ -1205,6 +1205,57 @@ methods
         legend(cellstr(num2str(runs.csflux.x'/1000, '%.0f')));
     end
 
+    % makes streamer mask for numerical parameterization
+    function [v, mask] = makeStreamerSection(runs, isobath, maxloc, V0, L0, Lz0)
+
+        if ~exist('maxloc', 'var') || isempty(maxloc)
+            [~,maxloc] = runs.calc_maxflux(isobath);
+        end
+
+        if ~exist('V0', 'var') || isempty(V0)
+            V0 = runs.eddy.rhovor.Vke(maxloc);
+        end
+
+        if ~exist('L0', 'var') || isempty(L0)
+            L0 = median(runs.eddy.rhovor.dia(1:maxloc))/2;
+        end
+
+        if ~exist('Lz0', 'var') || isempty(Lz0)
+            Lz0 = runs.eddy.Lgauss(maxloc);
+        end
+
+        zvec = runs.csflux.vertbins(:, isobath);
+        xvec = (runs.rgrid.x_rho(1,2:end-1) - runs.eddy.mx(maxloc));
+
+        % normalized grid matrices to create mask
+        [xmat, zmat] = ndgrid(xvec/L0, zvec/Lz0);
+
+        v = -2.3 * V0 * xmat .* exp(-xmat.^2) .* (1-erf(-zmat));
+
+        [width, zpeak] = runs.predict_zpeak(isobath, 'use');
+        width = abs(width/Lz0); zpeak = abs(zpeak/Lz0);
+
+        R = runs.csflux.R;
+        yoR = runs.csflux.ndloc(isobath); % y/R - used in csflux
+        y0oL =  R/L0 * (1 - yoR); % y0/L - used in derivation
+        xfrac = sqrt(1 - y0oL^2);
+
+        kzrad = width/2; % kink radius - z
+        kxrad = kzrad; % kink radius - x
+        x0 = -xfrac-kxrad*1.2;
+        z0 = -1 * width/3;
+
+        if abs(runs.csflux.x(isobath) - runs.bathy.xsb) < 2000
+            % if close to shelfbreak use barotropic mask
+            mask = xmat < 0;
+        else
+            kinkmask = (((xmat-x0)/kxrad).^2 + ((zmat-z0)/kzrad).^2) <= 1;
+            mask = (xmat < -xfrac) & ... % offshore flux
+                   (((xmat.^2 + zmat.^2) > 1) ... % eddy shape
+                    | kinkmask); % kink
+        end
+    end
+
     function [profile, zvec] = streamer_ideal_profile(runs, isobath, maxloc)
     % return idealized streamer vertical profile
 
@@ -1258,15 +1309,15 @@ methods
 
         [~,~,restind] = runs.locate_resistance;
 
-        hfig1 = figure; % streamer vertical structure
+        hfig1 = []; %figure; % streamer vertical structure
         hfig2 = []; %figure; % hovmoeller plots (x,t)
         hfig3 = []; %figure; % hovmoeller plots (z,t)
         hfig4 = []; %figure; % flux time-series
         hfig5 = []; %figure; % flux time-series at isobath
-        hfig6 = []; %figure; % cross-sections
+        hfig6 = []; %figure; % flux cross-sections
         hfig7 = []; %figure; % streamer vmax
-        hfig8 = []; %figure; % streamer velocity line plots
-        hfig9 = figure; % vertical structure at maxloc
+        hfig8 = figure; % debug flux parameterization
+        hfig9 = []; %figure; % vertical structure at maxloc
 
         hsb = runs.bathy.hsb;
         Lz = runs.eddy.Lgauss(1);
@@ -1454,65 +1505,51 @@ methods
             % rho = rho - rback(2:end-1,:,:);
 
             mask = fillnan(bsxfun(@times, csdye < runs.csflux.x(isobath), ...
-                   runs.csflux.westmask(:,tindex,isobath)),0)';
+                   runs.csflux.westmask(:,tindex,isobath)),0);
 
-            tind = 1; %tindex; % FOR PARAMETERISATION
-            syms x z;
+            % profile I am assuming
+            [videal, idmask] = runs.makeStreamerSection(isobath);
+
+            tind = tindex; % FOR PARAMETERISATION
+            % syms x z;
             a = 2; % 2 for gaussian
-            V0 = runs.eddy.V(tind) * 2.33;
+            % V0 = runs.eddy.V(tind) * 2.33;
             R = runs.csflux.R;
-            L = runs.eddy.rhovor.dia(tind)/2;
-            Lz = runs.eddy.Lgauss(tindex);
-            H = runs.csflux.h(isobath);
+            L = median(runs.eddy.rhovor.dia(1:tind))/2;
+            % Lz = runs.eddy.Lgauss(tindex);
+            % H = runs.csflux.h(isobath);
             yoR = runs.csflux.ndloc(isobath); % y/R - used in csflux
             y0oL =  R/L * (1 - yoR); % y0/L - used in derivation
             xfrac = -sqrt(1 - y0oL^a);
 
-            xvec = xvec ./ L;
+            % xvec = xvec ./ L;
 
-            %xfrac2 = -sqrt(1 - y0oL^2 - (zvec./Lz).^2);
-            %xfrac2(~isreal(xfrac2)) = 0;
-            % eddy profile
-            eddmask = bsxfun(@le, abs(xvec), sqrt(1-y0oL^a-(zvec./Lz).^2));
-            % mask to integrate over
-            inmask = bsxfun(@and, xvec < 0, 1 - eddmask);
+            % %xfrac2 = -sqrt(1 - y0oL^2 - (zvec./Lz).^2);
+            % %xfrac2(~isreal(xfrac2)) = 0;
+            % % eddy profile
+            % eddmask = bsxfun(@le, abs(xvec), sqrt(1-y0oL^a-(zvec./Lz).^2));
+            % % mask to integrate over
+            % inmask = bsxfun(@and, xvec < 0, 1 - eddmask);
 
-            if runs.bathy.hsb/Lz < 0.5
-                inmask = repmat(inmask(end,:), [runs.rgrid.N 1]);
-            end
+            %if runs.bathy.hsb/Lz < 0.5
+            %    inmask = repmat(inmask(end,:), [runs.rgrid.N 1]);
+            %end
 
-            % % profile I am assuming
             % videal = bsxfun(@times, ...
             %                 -V0/vnorm * (xvec).^(a-1) .* exp(-xvec.^a -y0oL^a), ...
             %                 (1 - erf(-zvec/Lz)));
             % % idmask = repmat(xvec < xfrac, [runs.rgrid.N 1]);
 
-            % % diagnosed flux
-            % flux = runs.csflux.west.slope(tindex,isobath,isobath)./ ...
-            %        L./vnorm/H * vnorm * L * H
-            % % should agree with above
-            % vtrue = trapz(xvec, trapz(zvec/H, repnan(csvel' .* ...
-            %                                          mask,0), 1), ...
-            %               2) * vnorm * L * H
+            % diagnosed flux
+            flux = runs.csflux.west.slope(tindex,isobath,isobath)
+            % should agree with above
+            vtrue = trapz(xvec, trapz(zvec, repnan(csvel .* mask,0), 2), 1)
 
-            % % idealized velocity with real mask
-            % vitruemask = trapz(xvec, trapz(zvec/H, repnan(videal .* mask, 0), 1), ...
-            %              2) * vnorm * L * H / vtrue
+            % idealized velocity with real mask
+            vitruemask = trapz(xvec, trapz(zvec, repnan(videal .* mask, 0), 2), 1)
 
-            % % idealized parameterization
-            % vest = trapz(xvec, trapz(zvec/H, repnan(videal .* inmask, 0), 1), ...
-            %              2) * vnorm * L * H / vtrue
-
-            % fluxscl = double(V0 * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
-            %           * int(1 - erf(-z/Lz), z, -H, 0)) / vtrue
-
-            % gaussprof(x,z) = exp(-(x/L)^2) * (1-erf(-z/Lz));
-            % % bounding contour of ρ = ρ_0/e
-            % z0 = Lz * sqrt(1 - y0oL^2 - (x/L)^2);
-            % dz0dx = sqrt(1 + diff(z0,x).^2);
-            % fluxscl2 = V0 * exp(-y0oL^2)/vnorm/L/H * ( ...
-            %     double(int(int(gaussprof, z, -H, 0), x, -Inf, 0)) - ...
-            %     double(int(int(gaussprof * dz0dx, z, -z0,0), x, L*xfrac, 0)))
+            % idealized parameterization
+            vest = trapz(xvec, trapz(zvec, repnan(videal .* idmask, 0), 2), 1)
 
             if ~isempty(hfig6)
                 figure(hfig6)
@@ -1596,12 +1633,31 @@ methods
 
             if ~isempty(hfig8)
                 figure(hfig8);
-                maskvel = csvel .* mask';
-                plot(xvec, maskvel);
-                liney(max(maskvel(:)));
-                xlim([-4 0])
-                ylim([0 1]);
-                title(runs.name);
+                ax(1) = subplot(211);
+                [~,h1] = contourf(xvec, zvec, csvel', 20);
+                hold on
+                contour(xvec, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
+                runs.add_timelabel(tindex);
+                xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
+                title(['Cross-shelf velocity (m/s) | ' runs.name]);
+                linex(xfrac*L, 'xfrac');
+                liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
+                liney(-1 * runs.bathy.hsb, 'h_{sb}');
+                caxis([-1 1] * max(abs(csvel(:)))); center_colorbar;
+                beautify;
+
+                ax(2) = subplot(212);
+                [~,h1] = contourf(xvec, zvec, videal', 20);
+                hold on
+                contour(xvec, zvec, repnan(idmask',0), [1 1], 'k', 'LineWidth', 2);
+                runs.add_timelabel(tindex);
+                xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
+                title(['Cross-shelf velocity (m/s) | ' runs.name]);
+                linex(xfrac*L, 'xfrac');
+                liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
+                liney(-1 * runs.bathy.hsb, 'h_{sb}');
+                caxis([-1 1] * max(abs(csvel(:)))); center_colorbar;
+                beautify;
             end
         end
 

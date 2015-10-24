@@ -651,31 +651,15 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             if use_numerics
                 xvec = (run.rgrid.x_rho(1,2:end-1) - run.eddy.mx(maxloc));
 
-                % normalized grid matrices to create mask
-                [xmat, zmat] = ndgrid(xvec/L0, zvec/Lz0);
-
-                v = -2.3 * V0 * xmat .* exp(-xmat.^2) .* (1-erf(-zmat));
-
-                [width, zpeak] = run.predict_zpeak(isobath, 'use');
-                width = width/Lz0; zpeak = zpeak/Lz0;
-
-                x0 = -1;
-                z0 = width/3;
-                kzrad = width/2; % kink radius - z
-                kxrad = 0.3; % kink radius - x
-
-                if abs(run.csflux.x(isobath) - xsb) < 2000
-                    % if close to shelfbreak use barotropic mask
-                    mask = xmat < 0;
-                else
-                    mask = (xmat < 0) & ... % offshore flux
-                           (((xmat.^2 + zmat.^2) > 1) ... % eddy shape
-                            | ((((xmat-x0)/kxrad).^2 + ((zmat-z0)/kzrad).^2) <= 1 )); % kink
-                end
-
+                [v,mask] = run.makeStreamerSection(isobath, maxloc, V0, L0, Lz0);
                 zind = find_approx(zvec, -integrate_zlimit);
                 vmask = v .* mask;
+                vmaskedd = v .* (~mask) .* (v<0) * 2;
                 fluxscl = trapz(zvec(zind:end), trapz(xvec, vmask(:,zind:end), 1), 2);
+                % eddyscl = trapz(zvec(zind:end), trapz(xvec, vmaskedd(:,zind:end), 1), 2);
+                %if strcmpi(run.name, 'ew-4343')
+                %    keyboard;
+                %end
             else
                 % syms x z
                 %fluxscl = abs(V0) * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
