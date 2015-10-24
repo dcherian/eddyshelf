@@ -179,20 +179,25 @@ classdef runArray < handle
                 run = runArray.array(runArray.filter(ii));
                 [~,~,tind] = run.locate_resistance;
                 try
-                    out(ii) = eval(['run.' command]);
+                    temp = eval(['run.' command]);
                 catch ME
                     try
-                        out(ii) = eval(command);
+                        temp = eval(command);
                     catch ME
                         out(ii) = NaN;
                         outstr = 'failed';
                     end
                 end
 
-                if ~ischar(out(ii)) && ~isnan(out(ii))
+                if ischar(temp)
+                    out{ii} = temp;
+                else
+                    out(ii) = temp;
+                end
+                if ~iscell(out) && (~ischar(out(ii)) && ~isnan(out(ii)))
                     outstr = num2str(out(ii));
                 else
-                    outstr = out(ii);
+                    outstr = out{ii};
                 end
                 disp([num2str(runArray.filter(ii), '%02d') ' | ' ...
                       run.name ' | ' outstr]);
