@@ -5953,6 +5953,21 @@ methods
         end
     end
 
+
+    %% colors and colormaps
+    function [colors] = eddyeColormap(runs)
+        colors = brighten(cbrewer('seq', 'Reds', 20), 0.2);
+        colors = colors(1:end-3,:);
+    end
+    function [color] = shelfSlopeColor(runs)
+    % color = [1 1 1]*0.55;
+        color = [49,130,189]/256;
+    end
+    function [color] = rhoContColor(runs)
+    % color = 'k';
+        color = [44 162 95]/256;
+    end
+
     %% generic plotting functions
     function [hplot] = plot_zeta(runs,plottype,tt)
         if ~exist('tt','var'), tt = 1; end
@@ -6103,7 +6118,7 @@ methods
         hold on;
         [~,hplot] = contour(runs.eddy.xr(ix,iy)/1000,runs.eddy.yr(ix,iy)/1000, ...
                             runs.eddy.rhovor.mask(ix,iy,tt), [1 1], ...
-                            'Color',[44 162 95]/256,'LineWidth',2);
+                            'Color', runs.rhoContColor,'LineWidth',2);
     end
     function update_rho_contour(runs,handle,tt)
         ix = max([runs.spng.sx1:runs.spng.sx2]-1,1);

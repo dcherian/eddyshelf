@@ -124,7 +124,7 @@ function [handles] = animate_zslice(runs,varname,depth,tind,hax)
     he = runs.plot_rho_contour('contour',tind(1));
     [~,hcsd] = contour(runs.rgrid.x_rho'/1e3, runs.rgrid.y_rho'/1e3, ...
                        runs.csdsurf(:,:,tind(1)), runs.csflux.x(csdlevels), ...
-                       'Color', [1 1 1]*0.55, 'LineWidth', 2);
+                       'Color', runs.shelfSlopeColor, 'LineWidth', 2);
     [~,hedd] = contour(runs.rgrid.x_rho'/1e3, runs.rgrid.y_rho'/1e3, ...
                        runs.eddsurf(:,:,tind(1)), [0.9 0.9], ...
                        'Color', 'k', 'LineWidth', 2);
@@ -135,7 +135,7 @@ function [handles] = animate_zslice(runs,varname,depth,tind,hax)
     %ylim([min(yax(:)) max(yax(:))]); - why?
     colorbar;
     if strcmpi(varname, runs.eddname)
-        colormap(brighten(cbrewer('seq', 'Reds', 20), 0.2));
+        colormap(runs.eddyeColormap);
         caxis([0 1]);
     else
         if strcmpi(varname, 'pv')

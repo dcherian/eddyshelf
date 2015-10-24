@@ -297,7 +297,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     if csdcontourplot
         hcsd = runs.plot_surf('csdsurf', 'contour', ii);
         hcsd.LevelList = csdcontours;
-        hcsd.Color = [1 1 1]*0.5;
+        hcsd.Color = runs.shelfSlopeColor();
         hcsd.LineWidth = 2;
     end
 
