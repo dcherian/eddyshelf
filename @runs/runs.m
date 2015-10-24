@@ -1534,7 +1534,7 @@ methods
 
                 figure(hfig6)
                 ax(2) = subplot(224);
-                pcolorcen(xvec, zvec, (csdye'-runs.bathy.xsb)/1000); % .* mask
+                pcolorcen(xvec, zvec, runs.sgntamp*(csdye'-runs.bathy.xsb)/1000); % .* mask
                 hold on; shading interp
                 contour(xvec, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
                 hcb = colorbar;
@@ -4085,7 +4085,7 @@ methods
 
         profile = ...
             runs.csflux.west.slopewater.vertitrans(:,index);
-        vertbins = runs.csflux.west.vertbins(:,index);
+        vertbins = runs.csflux.vertbins(:,index);
         zvec = vertbins./ max(abs(vertbins));
 
         yt = runs.rgrid.y_rho(vecfind(runs.bathy.h(1,:), - ...
