@@ -21,6 +21,7 @@ classdef runArray < handle
         % constructor
         function [runArray] = runArray(folders, name, reset)
 
+            ticstart = tic;
             if ~exist('reset', 'var'), reset = 0; end
 
             if ~iscell(folders), folders = cellstr(folders); end
@@ -54,6 +55,7 @@ classdef runArray < handle
             end
             runArray.len = kk-1;
             runArray.filter = [1:runArray.len];
+            toc(ticstart);
         end
 
         function [] = add(runArray, dir)

@@ -481,31 +481,31 @@ methods
         end
 
         % Process floats
-        try
-            runs.roms = floats('roms', runs.dir, runs.rgrid, ...
-                               runs.bathy.xsb, runs.fpos_file);
-            runs.filter_cross_sb('roms');
-        catch ME
-            disp('Reading ROMS floats failed.');
-            disp(ME);
-        end
-        try
-            runs.tracpy = floats('tracpy',runs.tracpy_file,runs.rgrid, ...
-                                 runs.bathy.xsb);
-            runs.filter_cross_sb('tracpy');
-        catch ME
-            disp('Reading tracpy floats failed.');
-            disp(ME);
-        end
-        if exist(runs.ltrans_file,'file')
-            try
-                runs.ltrans = floats('ltrans',runs.ltrans_file, ...
-                                     runs.rgrid, runs.bathy.xsb);
-            catch ME
-                warning('LTRANS data not read in');
-            end
-            runs.filter_cross_sb('ltrans');
-        end
+        %try
+        %    runs.roms = floats('roms', runs.dir, runs.rgrid, ...
+        %                       runs.bathy.xsb, runs.fpos_file);
+        %    runs.filter_cross_sb('roms');
+        %catch ME
+        %    disp('Reading ROMS floats failed.');
+        %    disp(ME);
+        %end
+        %try
+        %    runs.tracpy = floats('tracpy',runs.tracpy_file,runs.rgrid, ...
+        %                         runs.bathy.xsb);
+        %    runs.filter_cross_sb('tracpy');
+        %catch ME
+        %    disp('Reading tracpy floats failed.');
+        %    disp(ME);
+        %end
+        %if exist(runs.ltrans_file,'file')
+        %    try
+        %        runs.ltrans = floats('ltrans',runs.ltrans_file, ...
+        %                             runs.rgrid, runs.bathy.xsb);
+        %    catch ME
+        %        warning('LTRANS data not read in');
+        %    end
+        %    runs.filter_cross_sb('ltrans');
+        %end
 
         % load streamer data if it exists.
         if exist([dir '/streamer.mat'], 'file') && reset ~= 1
