@@ -28,7 +28,7 @@ function [] = eddy_bulkproperties(runs, slab)
 
     % store variables to optimize parfor loop
     rgrid = runs.rgrid;
-    vormask = runs.eddy.vormask;
+    vormask = runs.eddy.vor.mask;
     eddname = runs.eddname;
     dirname = runs.dir;
     thresh = runs.eddy_thresh;
@@ -102,7 +102,7 @@ function [] = eddy_bulkproperties(runs, slab)
             pv = squeeze(ncread([runs.dir '/ocean_pv.nc'], 'pv'));
 
             runs.eddy.pvthresh = squeeze(nanmean(nanmean(fillnan(pv(:,:,1).* ...
-                                                              bwmorph(runs.eddy.vormask(:,:,1), 'remove'), ...
+                                                              bwmorph(runs.eddy.vor.mask(:,:,1), 'remove'), ...
                                                               0), 1), 2));
 
             % debugging plots

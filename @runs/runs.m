@@ -353,8 +353,8 @@ methods
 
             % save memory by converting masks to logical
             runs.eddy.mask = logical(repnan(runs.eddy.mask, 0));
-            runs.eddy.vormask = logical(repnan(runs.eddy.vormask, ...
-                                               0));
+            runs.eddy.vormask = []; % delete. use vor.mask instead.
+            runs.eddy.vor.mask = logical(repnan(runs.eddy.vor.mask, 0));
             try
                 runs.eddy.vor.mask = logical(repnan(runs.eddy.vor.mask, ...
                                                     0));
@@ -379,7 +379,7 @@ methods
                                     1], [Inf Inf 1 1]);
                 rs = rs(2:end-1,2:end-1) - rs(1,1);
                 runs.eddy.drhothresh = squeeze(nanmax(nanmax(rs .* ...
-                                         fillnan(runs.eddy.vormask(:,:,1),0), [], 1), [], 2));
+                                         fillnan(runs.eddy.vor.mask(:,:,1),0), [], 1), [], 2));
             end
             if isfield(runs.eddy,'cvx')
                 if runs.eddy.cvx(1) == 0 || runs.eddy.cvy(1) == 0
@@ -453,7 +453,7 @@ methods
             % calculate βL/f
             try
                 dA = 1./runs.rgrid.pm' .* 1./runs.rgrid.pn';
-                betal = fillnan(runs.eddy.vormask, 0) .* ...
+                betal = fillnan(runs.eddy.vor.mask, 0) .* ...
                         abs(bsxfun(@minus, runs.rgrid.f(2:end-1,2:end-1)', ...
                                    permute(runs.eddy.fcen, [3 2 1])))/2;
                 betaldA = bsxfun(@times, betal, dA(2:end-1,2:end-1));

@@ -14,7 +14,7 @@ function [] = plot_eddy_vscale(runs)
 
     % volume of eddy that satisfies U/c criterion
     dV = bsxfun(@times, runs.rgrid.dV(2:end-1, 2:end-1,:) ...
-                .* (U > c), runs.eddy.vormask(:,:,1));
+                .* (U > c), runs.eddy.vor.mask(:,:,1));
     runs.eddy.Ucvol = nansum(dV(:));
 
     if ~isfield(runs.eddy, 'zT') || isempty(runs.eddy.zT)

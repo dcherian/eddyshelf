@@ -39,8 +39,8 @@ function [] = bottom_torque(runs)
         maskstr = 'sshmask';
 
         % vorticity mask
-        %mask = runs.eddy.vormask(:,:,tind(1):dt:tind(2));
-        %maskstr = 'vormask';
+        %mask = runs.eddy.vor.mask(:,:,tind(1):dt:tind(2));
+        %maskstr = 'vor.mask';
 
         % topography based mask
         %mask = (runs.rgrid.y_rho(2:end-1,2:end-1)' > runs.bathy.xsb) & ...
@@ -119,7 +119,7 @@ function [] = bottom_torque(runs)
     %slbot = single(slbot .* (slbot > 0.95 * runs.bathy.sl_slope));
     slbot = avg1(slbot(imnx:imxx, imny-1:imxy),2);
 
-    vormask = runs.eddy.vormask(imnx-1:imxx-1, imny-1:imxy-1, :);
+    vormask = runs.eddy.vor.mask(imnx-1:imxx-1, imny-1:imxy-1, :);
     sshmask = runs.eddy.mask(imnx-1:imxx-1, imny-1:imxy-1, :);
 
     if flags.use_masked

@@ -419,7 +419,7 @@ classdef runArray < handle
                                       avg1(avg1(run.rgrid.f', 1), ...
                                            2)),1),2);
 
-                Ro = Ro .* run.eddy.vormask;
+                Ro = Ro .* run.eddy.vor.mask;
 
                 iy = vecfind(run.rgrid.y_rho(:,1), run.eddy.my);
                 fcen = run.rgrid.f(iy,1);

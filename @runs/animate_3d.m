@@ -1,4 +1,3 @@
-
 function [] = animate_3d(runs, tind)
     stride = [1 1 1 1];
 
@@ -13,7 +12,7 @@ function [] = animate_3d(runs, tind)
     csdye = permute(csdye,[2 1 3 4]);
     eddye = permute(eddye,[2 1 3 4]);
     mask = zeros(size(eddye,2),size(eddye,1),size(eddye,4));
-    mask(2:end-1,2:end-1,:)=runs.eddy.vormask;
+    mask(2:end-1,2:end-1,:)=runs.eddy.vor.mask;
     mask = 1 + zeros(size(mask));
 
     %% make isosurface plot
