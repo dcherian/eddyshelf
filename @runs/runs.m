@@ -1230,15 +1230,15 @@ methods
         % normalized grid matrices to create mask
         [xmat, zmat] = ndgrid(xvec/L0, zvec/Lz0);
 
-        v = -2.3 * V0 * xmat .* exp(-xmat.^2) .* (1-erf(-zmat));
-
-        [width, zpeak] = runs.predict_zpeak(isobath, 'use');
-        width = abs(width/Lz0); zpeak = abs(zpeak/Lz0);
-
         R = runs.csflux.R;
         yoR = runs.csflux.ndloc(isobath); % y/R - used in csflux
         y0oL =  R/L0 * (1 - yoR); % y0/L - used in derivation
         xfrac = sqrt(1 - y0oL^2);
+
+        v = -2.3 * V0 * xmat .* exp(-xmat.^2 - y0oL.^2) .* (1-erf(-zmat));
+
+        [width, zpeak] = runs.predict_zpeak(isobath, 'use');
+        width = abs(width/Lz0); zpeak = abs(zpeak/Lz0);
 
         kzrad = width/2; % kink radius - z
         kxrad = kzrad; % kink radius - x
