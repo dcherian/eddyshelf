@@ -2239,7 +2239,7 @@ methods
 %
 %         % TODO: add dye mask here
 %         bsxfun(@times, bsxfun(@times,pveddy, ...
-%             permute(runs.eddy.vormask(ixmin:ixmax,iymin:iymax,:),[1 2 4 3])), ...
+%             permute(runs.eddy.vor.mask(ixmin:ixmax,iymin:iymax,:),[1 2 4 3])), ...
 %             runs.rgrid.dV(ixmin:ixmax,iymin:iymax,:));
         %%
         figure;
@@ -3179,7 +3179,7 @@ methods
 
         hold on;
         [~,hplot] = contour(runs.eddy.xr(ix,iy)/1000,runs.eddy.yr(ix,iy)/1000, ...
-                            runs.eddy.vormask(ix,iy,tt), [1 1], ...
+                            runs.eddy.vor.mask(ix,iy,tt), [1 1], ...
                             'Color','k','LineWidth',1);
     end
 
@@ -3190,10 +3190,10 @@ methods
         for ii=1:length(handle)
             try
                 set(handle(ii),'ZData', ...
-                               double(runs.eddy.vormask(ix,iy,tt)));
+                               double(runs.eddy.vor.mask(ix,iy,tt)));
             catch ME
                 set(handle(ii),'CData', ...
-                               double(runs.eddy.vormask(ix,iy,tt)));
+                               double(runs.eddy.vor.mask(ix,iy,tt)));
             end
         end
     end

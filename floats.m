@@ -495,7 +495,7 @@ classdef floats < handle
             nn = find_approx(floats.time,rgrid.ocean_time(i),1);
             hplot = plot(floats.x(nn,:)/1000,floats.y(nn,:)/1000,'k.','MarkerSize',10);
             if exist('eddy','var')
-               [~,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.vormask(:,:,i),1);
+               [~,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.vor.mask(:,:,i),1);
                set(hh,'LineWidth',2);
             end
             ht = title(['t = ' num2str((rgrid.ocean_time(i)+1)/86400) ' days']);
@@ -506,7 +506,7 @@ classdef floats < handle
                 set(hplot,'XData',floats.x(nn,:)/1000);
                 set(hplot,'YData',floats.y(nn,:)/1000);
                 if exist('eddy','var')
-                   set(hh,'ZData',eddy.vormask(:,:,i));
+                   set(hh,'ZData',eddy.vor.mask(:,:,i));
                 end
                 set(ht,'String',['t = ' num2str((rgrid.ocean_time(i)+1)/86400) ' days'])
                 pause(0.03)

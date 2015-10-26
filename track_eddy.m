@@ -33,7 +33,7 @@ function [eddy] = track_eddy(dir1)
         eddy = runobj.eddy;
 
         eddy.mask = [];
-        eddy.vormask = [];
+        eddy.vor.mask = [];
 
         eddy.h = runobj.bathy.h;
         eddy.t = runobj.time/86400;
