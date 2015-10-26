@@ -29,7 +29,6 @@ function [v, mask] = makeStreamerSection(runs, isobath, maxloc, V0, L0, Lz0)
     yoR = runs.csflux.ndloc(isobath); % y/R - used in csflux
     y0oL =  R/L0 * (1 - yoR); % y0/L - used in derivation
     xfrac = sqrt(1 - y0oL^2);
-    if ~isreal(xfrac), xfrac = 0; end
 
     v = -2.3 * V0 * xmat .* exp(-xmat.^2 - y0oL.^2) .* (1-erf(-zmat));
 
@@ -40,22 +39,36 @@ function [v, mask] = makeStreamerSection(runs, isobath, maxloc, V0, L0, Lz0)
     kxrad = kzrad; % kink radius - x
     x0 = -xfrac-kxrad; -xfrac-kxrad;
     z0 = -1 * width/3;
+    xline = 0; -xfrac;
+
+    if ~isreal(xfrac)
+        % complex xfrac -- cannot be trusted
+        % make the kink (semi-circle) intersect the eddy contour
+        xfrac = sqrt(1 - (width)^2);
+        x0 = -xfrac;
+        xline = 0;
+    end
 
     if abs(runs.csflux.x(isobath) - runs.bathy.xsb) < 2000
         % if close to shelfbreak use barotropic mask
         mask = xmat < 0;
         v = repmat(v(:,1), [1 size(v,2)]);
     else
+        eddymask = ((xmat.^2 + zmat.^2) > 1^2);
         kinkmask = (((xmat-x0)/kxrad).^2 + ((zmat-z0)/kzrad).^2) <= 1;
-        mask = (xmat < -xfrac) & ... % offshore flux
-               (((xmat.^2 + zmat.^2) > 1^2) ... % eddy shape
-                | kinkmask); % kink
+        %if runs.bathy.hsb/Lz0 > 0.4
+        %    kinkmask(:) = 0;
+        %end
+        mask = (xmat < xline) & (eddymask | kinkmask);
     end
 
     if debug
         figure;
-        contour(xmat, zmat, mask, 'b');
         hold on
         contour(xmat, zmat, kinkmask, 'k');
+        contour(xmat, zmat, eddymask, 'r');
+        linex(xline);
+        contour(xmat, zmat, mask, 'b');
+        keyboard;
     end
 end
