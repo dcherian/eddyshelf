@@ -579,6 +579,7 @@ classdef runArray < handle
                 mplt(ii) = P(1);
                 cplt(ii) = P(2);
                 err(ii) = Perr(1);
+                cerr(ii) = Perr(2);
             end
 
             linkaxes(hax, 'xy');
@@ -609,16 +610,18 @@ classdef runArray < handle
 
             hax(slopeplot) = subplot(3,3,slopeplot);
             errorbar(runArray.array(1).csflux.ndloc(isobath), ...
-                     mplt, err, 'k.-', 'LineWidth', 2, 'MarkerSize', ...
-                     20);
-            legend('Slope of fit', 'Location', 'SouthEast', 'FontSize', ...
-                   16);
+                     mplt, err, 'k.-', 'LineWidth', 2, 'MarkerSize', 20);
+            hold on;
+            errorbar(runArray.array(1).csflux.ndloc(isobath), ...
+                     10*cplt, 10*cerr, 'b.-', 'LineWidth', 2, 'MarkerSize', 20);
+            legend('Slope of fit', '10xConstant', 'Location', 'SouthEast', ...
+                   'FontSize', 16);
             xlabel('Location (y/R)');
             xlim([-0.05 2]);
-            hax(slopeplot).YTick(2) = min(mplt);
-            hax(slopeplot).YTick(4) = max(mplt);
+            hax(slopeplot).YTick = sort([hax(slopeplot).YTick min(mplt) max(mplt)]);
             correct_ticks('y', '%.2f', []);
             beautify([14 16 18]); pbaspect([1.732 1 1]);
+            liney(0);
         end
 
         function [] = plot_field(runArray, varname, tind)
