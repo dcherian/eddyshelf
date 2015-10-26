@@ -24,13 +24,13 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin, debug)
     fluxvec = double(smooth(fluxin(start:stop), nsmooth));
     tvec = double(runs.csflux.time(start:stop));
 
-    mpp = 0.03; % min. peak prominence
+    mpp = 0.1; % min. peak prominence
     mpw = 6; % peaker wider than mpw points
     [~,locs] = findpeaks(fluxvec, ...
                          'MinPeakProminence', mpp*max(fluxvec(:)), ...
                          'MinPeakWidth', mpw);
 
-    if debug | isempty(locs)
+    if debug %| isempty(locs)
         if isempty(locs), warning('No peaks found!'); end
 
         hfig = figure;
