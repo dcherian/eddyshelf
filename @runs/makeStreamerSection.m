@@ -1,6 +1,8 @@
 % makes streamer mask for numerical parameterization
 function [v, mask] = makeStreamerSection(runs, isobath, maxloc, V0, L0, Lz0)
 
+    debug = 0;
+
     if ~exist('maxloc', 'var') || isempty(maxloc)
         [~,maxloc] = runs.calc_maxflux(isobath);
     end
@@ -48,5 +50,12 @@ function [v, mask] = makeStreamerSection(runs, isobath, maxloc, V0, L0, Lz0)
         mask = (xmat < -xfrac) & ... % offshore flux
                (((xmat.^2 + zmat.^2) > 1^2) ... % eddy shape
                 | kinkmask); % kink
+    end
+
+    if debug
+        figure;
+        contour(xmat, zmat, mask, 'b');
+        hold on
+        contour(xmat, zmat, kinkmask, 'k');
     end
 end
