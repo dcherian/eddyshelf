@@ -238,9 +238,9 @@ function [eddy] = track_eddy(dir1)
         % diameter of circle with same area
         eddy.dia(tt) = temp.dia;
         % mask for diagnostic purposes
-        eddy.mask(:,:,tt) = imask;
+        eddy.mask(:,:,tt) = logical(imask);
         eddy.thresh(tt) = temp.thresh;
-        eddy.vormask(:,:,tt) = ivormask;
+        % eddy.vormask(:,:,tt) = ivormask;
         % number of pixels in eddy
         eddy.n(tt) = temp.n;
         % north, south, west & east edges
@@ -266,9 +266,9 @@ function [eddy] = track_eddy(dir1)
             end
         end
 
-        eddy.vor.mask(:,:,tt) = repnan(ivormask, 0);
-        eddy.rhovor.mask(:,:,tt) = repnan(irhovormask, 0);
-        eddy.rhossh.mask(:,:,tt) = repnan(irhosshmask, 0);
+        eddy.vor.mask(:,:,tt) = logical(repnan(ivormask, 0));
+        eddy.rhovor.mask(:,:,tt) = logical(repnan(irhovormask, 0));
+        eddy.rhossh.mask(:,:,tt) = logical(repnan(irhosshmask, 0));
 
         eddy.vor = extradiags(eddy.vor, tt, vor, u, v, f, grd);
         eddy.rhovor = extradiags(eddy.rhovor, tt, vor, u, v, f, grd);
