@@ -1465,7 +1465,7 @@ methods
                 runs.csflux.west.slope(:,isobath,isobath));;
 
             % tindex = 55;
-            vnorm = runs.eddy.V(tindex);
+            % vnorm = runs.eddy.V(tindex);
 
             % copied from csfluxes.m
             if runs.csvelname == 'v'
@@ -1481,7 +1481,7 @@ methods
                 dc_roms_read_data(runs.dir, runs.csvelname, tindex, ...
                                   {runs.bathy.axis ix-1 ix}, [], runs.rgrid, ...
                                   'his', 'single'), bathyax));
-            csvel = csvel(2:end-1,:,:,:) ./ vnorm;
+            csvel = csvel(2:end-1,:,:,:);
 
             % process cross-shelf dye
             csdye = dc_roms_read_data(runs.dir, runs.csdname, ...
@@ -1559,7 +1559,7 @@ methods
                 ax(1) = subplot(221);
                 [~,h1] = contourf(xvec, zvec, csvel', 20);
                 hold on
-                contour(xvec, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
+                contour(xvec/1000, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
                 runs.add_timelabel(tindex);
                 xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
                 title(['Cross-shelf velocity (m/s) | ' runs.name]);
@@ -1571,9 +1571,9 @@ methods
 
                 figure(hfig6)
                 ax(2) = subplot(224);
-                pcolorcen(xvec, zvec, runs.sgntamp*(csdye'-runs.bathy.xsb)/1000); % .* mask
+                pcolorcen(xvec/1000, zvec, runs.sgntamp*(csdye'-runs.bathy.xsb)/1000); % .* mask
                 hold on; shading interp
-                contour(xvec, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
+                contour(xvec/1000, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
                 hcb = colorbar;
                 xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
                 title(['Cross-shelf dye (km) | ' runs.name]);
@@ -1589,10 +1589,10 @@ methods
 
                 figure(hfig6)
                 ax(3) = subplot(223);
-                contour(xvec, zvec, rho', 30, 'k'); % .* mask
+                contour(xvec/1000, zvec, rho', 30, 'k'); % .* mask
                 clim = caxis;
                 hold on; shading interp;
-                contour(xvec, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
+                contour(xvec/1000, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
                 caxis(clim);
                 colorbar;
                 xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
@@ -1606,9 +1606,9 @@ methods
 
                 figure(hfig6)
                 % ax(4) = subplot(224);
-                % pcolorcen(xvec, zvec, eddye'); % .* mask
+                % pcolorcen(xvec/1000, zvec, eddye'); % .* mask
                 % hold on; shading interp;
-                % contour(xvec, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
+                % contour(xvec/1000, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
                 % colorbar;
                 % xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
                 % title(['Eddy dye (km) | ' runs.name]);
@@ -1634,26 +1634,26 @@ methods
             if ~isempty(hfig8)
                 figure(hfig8);
                 ax(1) = subplot(211);
-                [~,h1] = contourf(xvec, zvec, csvel', 20);
+                [~,h1] = contourf(xvec/1000, zvec, csvel', 20);
                 hold on
-                contour(xvec, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
+                contour(xvec/1000, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
                 runs.add_timelabel(tindex);
                 xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
                 title(['Cross-shelf velocity (m/s) | ' runs.name]);
-                linex(xfrac*L, 'xfrac');
+                linex(xfrac*L/1000, 'xfrac');
                 liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
                 liney(-1 * runs.bathy.hsb, 'h_{sb}');
                 caxis([-1 1] * max(abs(csvel(:)))); center_colorbar;
                 beautify;
 
                 ax(2) = subplot(212);
-                [~,h1] = contourf(xvec, zvec, videal', 20);
+                [~,h1] = contourf(xvec/1000, zvec, videal', 20);
                 hold on
-                contour(xvec, zvec, repnan(idmask',0), [1 1], 'k', 'LineWidth', 2);
+                contour(xvec/1000, zvec, repnan(idmask',0), [1 1], 'k', 'LineWidth', 2);
                 runs.add_timelabel(tindex);
                 xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
                 title(['Cross-shelf velocity (m/s) | ' runs.name]);
-                linex(xfrac*L, 'xfrac');
+                linex(xfrac*L/1000, 'xfrac');
                 liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
                 liney(-1 * runs.bathy.hsb, 'h_{sb}');
                 caxis([-1 1] * max(abs(csvel(:)))); center_colorbar;
