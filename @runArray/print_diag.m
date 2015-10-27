@@ -640,7 +640,8 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
 
             % for normalization
             scaletind = tind;
-            eddyscl = V(scaletind) * L(scaletind) * Lz(scaletind);
+            %eddyscl = V(scaletind) * L(scaletind) * Lz(scaletind);
+            eddyscl = V0 * L0 * Lz0;
 
             a = 2;
 
