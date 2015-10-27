@@ -563,6 +563,19 @@ methods
             runs.asflux.hmat = repmat(...
                 runs.bathy.h(1,runs.asflux.iy(1):runs.asflux.iy(2))', ...
                 [1 length(runs.eddy.t)]);
+
+            try
+                runs.csflux.westmask = logical(runs.csflux.westmask);
+                runs.csflux.eastmask = logical(runs.csflux.eastmask);
+
+                runs.csflux.slopext = single(runs.csflux.slopext);
+                runs.csflux.eddyxt = single(runs.csflux.eddyxt);
+                runs.csflux.west.slopezt = single(runs.csflux.west.slopezt);
+                runs.csflux.west.eddyzt = single(runs.csflux.west.eddyzt);
+                runs.csflux.east.slopezt = single(runs.csflux.east.slopezt);
+                runs.csflux.east.eddyzt = single(runs.csflux.east.eddyzt);
+            catch ME
+            end
         end
 
         % load jet diagnostics if the file exists
