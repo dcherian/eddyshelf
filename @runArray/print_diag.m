@@ -1,7 +1,13 @@
-function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
+function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, commands)
 
     if ~exist('args', 'var'), args = []; end
     if ~exist('hax', 'var'), hax = []; end
+    if ~exist('commands', 'var'), commands = ''; end
+
+    if ischar(hax)
+        commands = hax;
+        hax = [];
+    end
 
     if isempty(runArray.filter)
         runArray.filter = 1:runArray.len;
@@ -1040,7 +1046,8 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax)
             end
 
             % add run names
-            if name_points
+            if (name_points | strfind(commands, 'name_points')) ...
+                    & isempty(strfind(commands, 'no_name_points'))
                 if strip_ew, ptName = ptName(4:end); end
 
                 text(plotx(ff), diags(ff), ptName, 'FontSize', ...
