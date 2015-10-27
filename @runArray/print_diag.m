@@ -605,18 +605,13 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
                 continue;
             end
 
-            % This doesn't change much
-            %if strcmpi(run.name, 'e23434w-2361_wider')
-            %    disp('changing')
-            %   isobath = 2 * (isobath-1) + 1;
-            %end
-
             source = isobath;
             integrate_zlimit = 2*hsb; % calculate flux above this depth
 
             fluxvec = run.recalculateFlux(integrate_zlimit, isobath, source);
             % fluxvec = run.csflux.west.slope(:, isobath, source);
             [maxflux, maxloc] = run.calc_maxflux(fluxvec);
+            %maxflux = run.calc_avgflux(fluxvec);
             [~,~,restind] = run.locate_resistance;
             if isnan(maxflux), continue; end
 
@@ -643,15 +638,6 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
             %eddyscl = V(scaletind) * L(scaletind) * Lz(scaletind);
             eddyscl = V0 * L0 * Lz0;
 
-            a = 2;
-
-            % distance of eddy center from shelfbreak
-            R = run.csflux.R;
-
-            yoR = run.csflux.ndloc(isobath); % y/R - used in csflux
-            y0oL =  R/L0 * (1 - yoR); % y0/L - used in derivation
-            xfrac = sqrt(1 - y0oL^a);
-
             zvec = run.csflux.vertbins(:, isobath);
 
             use_numerics = 1;
@@ -664,11 +650,16 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
                 vmaskedd = v .* (~mask) .* (v<0) * 2;
                 fluxscl = trapz(zvec(zind:end), trapz(xvec, vmask(:,zind:end), 1), 2);
                 % eddyscl = trapz(zvec(zind:end), trapz(xvec, vmaskedd(:,zind:end), 1), 2);
-                %if strcmpi(run.name, 'ew-4343')
-                %    keyboard;
-                %end
             else
                 % syms x z
+
+                %a = 2;
+                % distance of eddy center from shelfbreak
+                %R = run.csflux.R;
+                %yoR = run.csflux.ndloc(isobath); % y/R - used in csflux
+                %y0oL =  R/L0 * (1 - yoR); % y0/L - used in derivation
+                %xfrac = sqrt(1 - y0oL^a);
+
                 %fluxscl = abs(V0) * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
                 %          * int(1 - erf(-z/Lz0), z, -H, 0); % works well
                 ideal = run.streamer_ideal_profile(isobath, maxloc);
@@ -694,7 +685,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
                 clr = 'b';
             end
 
-            mark_outliers = 1; name_points = 0;
+            mark_outliers = 1; name_points = 1;
             parameterize = 1; logscale = 0;
             force_0intercept = 0;
             errorbarflag = 0; line_45 = 0;
