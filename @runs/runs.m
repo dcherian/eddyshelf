@@ -354,10 +354,8 @@ methods
             % save memory by converting masks to logical
             runs.eddy.mask = logical(repnan(runs.eddy.mask, 0));
             runs.eddy.vormask = []; % delete. use vor.mask instead.
-            runs.eddy.vor.mask = logical(repnan(runs.eddy.vor.mask, 0));
             try
-                runs.eddy.vor.mask = logical(repnan(runs.eddy.vor.mask, ...
-                                                    0));
+                runs.eddy.vor.mask = logical(repnan(runs.eddy.vor.mask,                                                    0));
                 runs.eddy.rhovor.mask = logical(repnan(runs.eddy.rhovor.mask, ...
                                                        0));
                 runs.eddy.rhossh.mask = logical(repnan(runs.eddy.rhossh.mask, ...
