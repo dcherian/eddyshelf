@@ -633,6 +633,11 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
             % 2.3 factor is taken care of later.
             V0 = V(tind); L0 = median(L(1:tind)); Lz0 = Lz(tind);
 
+            if hsb/Lz0 > 0.4 && isobath < 3
+                warning('skipping because splitting is probably happening.');
+                continue;
+            end
+
             % for normalization
             scaletind = tind;
             %eddyscl = V(scaletind) * L(scaletind) * Lz(scaletind);
