@@ -43,7 +43,7 @@ function [] = plot_fluxes(runs, isobath, source)
         plot(runs.csflux.west.slopewater.vertitrans(:,isobath,source), ...
              runs.csflux.vertbins(:,isobath));
         liney(-1 * runs.bathy.hsb);
-        legend(cellstr(num2str(runs.csflux.h(isobath)')), ...
+        legend(cellstr(num2str(runs.csflux.h(isobath)', '%.2f')), ...
                'Location', 'SouthEast');
         beautify;
         title([runs.name ' | Source = ' ...
@@ -79,7 +79,7 @@ function [] = plot_fluxes(runs, isobath, source)
         %        + exp(-1/4) * (1 - erf(-zvec/Lz)) .* (zvec < -hsb);
         %plot(ideal, zvec, 'k--');
         %liney(-1 * runs.bathy.hsb);
-        legend(cut_nan(hplt), cellstr(num2str(runs.csflux.h(isochoose)')), ...
+        legend(cut_nan(hplt), cellstr(num2str(runs.csflux.h(isochoose)', '%.0f')), ...
                'Location', 'SouthEast');
         beautify;
         title([runs.name]);
@@ -131,7 +131,7 @@ function [] = plot_fluxes(runs, isobath, source)
         insertAnnotation([runs.name '.plot_fluxes']);
         lightDarkLines(n);
         plot(ti, runs.csflux.west.slope(:,isobath, source));
-        legend(cellstr(num2str(runs.csflux.h')), ...
+        legend(cellstr(num2str(runs.csflux.h', '%.0f')), ...
                'Location', 'NorthWest');
         title(runs.name);
         [~,~,tind] = runs.locate_resistance;
@@ -155,7 +155,7 @@ function [] = plot_fluxes(runs, isobath, source)
                  'kx')
         end
         linex(ti(restind), 'resistance');
-        legend(hplt, cellstr(num2str(runs.csflux.h')), ...
+        legend(hplt, cellstr(num2str(runs.csflux.h', '%.0f')), ...
                'Location', 'NorthWest');
         title(runs.name);
         ylabel('Flux (m^3/s)');
@@ -342,7 +342,10 @@ function [] = plot_fluxes(runs, isobath, source)
 
         if ~isempty(hfig8)
             figure(hfig8);
-            ax(1) = subplot(211);
+            insertAnnotation([runs.name '.plot_fluxes']);
+            maximize;
+
+            ax(1) = subplot(2,3,[1 2]);
             [~,h1] = contourf(xvec/1000, zvec, csvel', 20);
             hold on
             contour(xvec/1000, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
@@ -350,23 +353,32 @@ function [] = plot_fluxes(runs, isobath, source)
             xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
             title(['Cross-shelf velocity (m/s) | ' runs.name]);
             linex(xfrac*L/1000, 'xfrac');
-            liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
-            liney(-1 * runs.bathy.hsb, 'h_{sb}');
+            liney(-1 * [runs.eddy.Lgauss(tindex) runs.bathy.hsb], ...
+                  {'vertical scale'; 'h_{sb}'});
             caxis([-1 1] * max(abs(csvel(:)))); center_colorbar;
             beautify;
 
-            ax(2) = subplot(212);
+            ax(2) = subplot(2,3,[4 5]);
             [~,h1] = contourf(xvec/1000, zvec, videal', 20);
             hold on
             contour(xvec/1000, zvec, repnan(idmask',0), [1 1], 'k', 'LineWidth', 2);
             runs.add_timelabel(tindex);
             xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
-            title(['Cross-shelf velocity (m/s) | ' runs.name]);
+            title('Idealized');
             linex(xfrac*L/1000, 'xfrac');
-            liney(-1 * runs.eddy.Lgauss(tindex), 'vertical scale');
-            liney(-1 * runs.bathy.hsb, 'h_{sb}');
+            liney(-1 * [runs.eddy.Lgauss(tindex) runs.bathy.hsb], ...
+                  {'vertical scale'; 'h_{sb}'});
             caxis([-1 1] * max(abs(csvel(:)))); center_colorbar;
             beautify;
+
+            subplot(2,3,[3 6]);
+            plot(trapz(xvec, repnan(csvel.*mask,0), 1), zvec);
+            hold on;
+            plot(trapz(xvec, videal.*idmask, 1), zvec);
+            legend('Actual', 'Ideal', 'Location', 'SouthEast');
+            beautify;
+
+            linkaxes(ax, 'xy');
         end
     end
 
@@ -379,7 +391,7 @@ function [] = plot_fluxes(runs, isobath, source)
              runs.csflux.west.slopewater.vmax(:,isobath) ./ ...
              runs.eddy.V(1));
         liney(1);
-        legend(cellstr(num2str(runs.csflux.ndloc(isobath)')), ...
+        legend(cellstr(num2str(runs.csflux.ndloc(isobath)', '%.2f')), ...
                'Location', 'NorthWest');
         title(runs.name);
         ylabel('Max streamer velocity / eddy velocity scale');
