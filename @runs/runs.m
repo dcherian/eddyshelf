@@ -506,12 +506,12 @@ methods
         %end
 
         % load streamer data if it exists.
-        if exist([dir '/streamer.mat'], 'file') && reset ~= 1
-            disp('Loading streamer data');
-            streamer = load([dir '/streamer.mat'],'streamer');
-            runs.streamer = streamer.streamer;
-            clear streamer;
-        end
+        % if exist([dir '/streamer.mat'], 'file') && reset ~= 1
+        %     disp('Loading streamer data');
+        %     streamer = load([dir '/streamer.mat'],'streamer');
+        %     runs.streamer = streamer.streamer;
+        %     clear streamer;
+        % end
 
         % load water mass data
         if exist([dir '/watermass.mat'],'file') && reset ~= 1
@@ -599,6 +599,15 @@ methods
             runs.angmom = data.angmom;
             clear data
         end
+
+        % load average streamer section diagnostics if the file exists
+        if exist([dir '/avgstreamer.mat'],'file') && reset ~= 1
+            disp('Loading streamer diagnostics');
+            data = load([dir '/avgstreamer.mat']);
+            runs.streamer = data.streamer;
+            clear data
+        end
+
 
         % load trajectory fit
         if exist([dir '/traj.mat'],'file') && reset ~= 1
