@@ -1,112 +1,122 @@
-% plots average velocity seen by shelf-slope water at a given isobath
-function [] = avgStreamerVelSection(runs, isobath, source)
+% calculates and saves average velocity seen by shelf-slope water at a given isobath
+function [] = avgStreamerVelSection(runs)
 
+    ticstart = tic;
     debug = 0;
-    if ~exist('source', 'var')
-        warning('Using source = isobath');
-        source = isobath;
-    end
 
-    if isobath > length(runs.csflux.ix)
-        error(['Choose a lower isobath number. Max = ' ...
-               length(runs.csflux.ix)])
-    end
-
-    if source > isobath
-        error('Source is offshore of isobath.');
-    end
-
-    [start,stop] = runs.flux_tindices(runs.csflux.west.slope(:, isobath, source));
-    tindices = [start stop];
-    ix = runs.csflux.ix(isobath); % WORKAROUND FOR CSFLUXES BUG
-    volr = {runs.bathy.axis ix ix};
-    volv = {runs.bathy.axis ix-1 ix};
     xivec = -200:runs.rgrid.dx/1000:200;
-    zvec = runs.csflux.vertbins(:,isobath);
+    xl = length(xivec);
+    N = runs.rgrid.N;
+    niso = length(runs.csflux.x);
 
-    if runs.bathy.axis == 'x'
-        xvec = runs.rgrid.y_rho(2:end-1,1)/1000;
-        mx = runs.eddy.my(start:stop)/1000;
-        bathyax = 1;
-    else
-        xvec = runs.rgrid.x_rho(1,2:end-1)/1000;
-        mx = runs.eddy.mx(start:stop)/1000;
-        bathyax = 2;
-    end
+    szmeanvel = [xl N niso];
+    vmean = nan(szmeanvel);
+    offvmean = nan(szmeanvel);
+    onvmean = nan(szmeanvel);
 
-    tic; disp([runs.name ': Reading data...'])
-    v = squeeze(avg1(dc_roms_read_data(runs, runs.csvelname, tindices, volv), bathyax));
-    csdye = dc_roms_read_data(runs, runs.csdname, tindices, volr);
-    toc;
+    for isobath = 1:niso
+        source = isobath;
+        [start,stop] = runs.flux_tindices(runs.csflux.west.slope(:, isobath, source));
+        tindices = [start stop];
+        ix = runs.csflux.ix(isobath); % WORKAROUND FOR CSFLUXES BUG
+        volr = {runs.bathy.axis ix ix};
+        volv = {runs.bathy.axis ix-1 ix};
+        zvec = runs.csflux.vertbins(:,isobath);
 
-    % interpolate onto common grid centered on eddy center
-    % this is not working well!!!
-    tic; disp([runs.name ': interpolating data...']);
-    clear vi csdyei
-    for tt=1:size(v,3)
-        for zz=1:size(v,2)
-            vi(:,zz,tt) = interp1(xvec-mx(tt), v(2:end-1,zz,tt), xivec);
-            csdyei(:,zz,tt) = interp1(xvec-mx(tt), csdye(2:end-1,zz,tt), xivec);
+        if runs.bathy.axis == 'x'
+            xvec = runs.rgrid.y_rho(2:end-1,1)/1000;
+            mx = runs.eddy.my(start:stop)/1000;
+            bathyax = 1;
+        else
+            xvec = runs.rgrid.x_rho(1,2:end-1)/1000;
+            mx = runs.eddy.mx(start:stop)/1000;
+            bathyax = 2;
         end
-    end
-    toc;
 
-    vmeanwest = mean(bsxfun(@times, vi .* (csdyei < runs.csflux.x(source)), ...
-                            xivec' < 0), 3);
-    vmean = mean(vi .* (csdyei < runs.csflux.x(source)), 3);
-    pmean = trapz(xivec, repnan(vmeanwest,0), 1); % mean profile
-    pint = runs.csflux.west.slopewater.vertitrans(:,isobath,source);
-    actualx = trapz(zvec, vmean, 2);
+        disp([runs.name ' | isobath = ' num2str(isobath) ' | Reading data...'])
+        v = squeeze(avg1(dc_roms_read_data(runs, runs.csvelname, tindices, volv), bathyax));
+        csdye = dc_roms_read_data(runs, runs.csdname, tindices, volr);
 
-    hf = figure; maximize(); pause(1);
-    insertAnnotation([runs.name '.avgStreamerVelSection']);
-    ax1 = subplot(3,3,[4 5 7 8]);
-    pcolorcen(xivec, zvec, vmean');
-    xlabel('X - X_{eddy} (km)'); ylabel('Z (m)');
-    liney(-runs.bathy.hsb);
-    linex(0);
-    title([runs.name ' | mean streamer velocity | y/R = ' num2str(runs.csflux.ndloc(isobath))]);
-    hcb = center_colorbar;
-    hcb.Position(1) = 0.5;
+        % interpolate onto common grid centered on eddy center
+        % this is not working well!!! - unsure why
+        intstart = tic;
+        disp([runs.name ' | isobath = ' num2str(isobath) ' | Interpolating data...'])
+        clear vi csdyei
+        for tt=1:size(v,3)
+            for zz=1:size(v,2)
+                vi(:,zz,tt) = interp1(xvec-mx(tt), v(2:end-1,zz,tt), xivec);
+                csdyei(:,zz,tt) = interp1(xvec-mx(tt), csdye(2:end-1,zz,tt), xivec);
+            end
+        end
+        toc(intstart);
 
-    ax2 = subplot(3,3,[1 2]);
-    hx = plot(xivec, actualx);
-    title('\int dz');
-    hold on;
-    linex(0); liney(0);
-    ylabel('Flux (m^2/s)');
+        % offshore transport mask
+        if isobath ~= 1
+            offmask = xivec' < 0;
+        else
+            offmask = xivec' < runs.eddy.rhovor.dia(1)/2;
+        end
 
-    ax3 = subplot(3,3,[6 9]);
-    hz = plot(pmean, zvec);
-    title('Offshore transport (\int dx)');
-    xlabel('Flux (m^2/s)');
-
-    if debug
-        L = runs.eddy.rhovor.lmaj(1)/1000;
-        R = runs.csflux.R/1000;
-
-        a = 3; Ln = L/3;
-        yoR = runs.csflux.ndloc(isobath); % y/R - used in csflux
-        y0oL = R/L * (1 - yoR); % y0/L - used in derivation
-        ideal = runs.streamer_ideal_profile(isobath);
-        idealx = trapz(zvec, ideal) *  ...
-                 diff(exp(-abs(xivec'/Ln).^a))./diff(xivec'/Ln) ...
-                 * exp(-y0oL.^2);
-
-        axes(ax2);
-        hx.YData = hx.YData / max(actualx);
-        plot(avg1(xivec), idealx./max(idealx), 'k-');
-        ylabel('Flux / max flux');
-
-        axes(ax3);
-        hold on;
-        hz.YData = hz.YData / max(pmean);
-        plot(pint./max(pint), zvec);
-        plot(ideal, zvec);
-        legend('Mean', 'Integrated', 'Idealized', 'Location', 'SouthEast');
-        xlabel('Flux / max flux');
+        offvmean(:,:,isobath) = mean(bsxfun(@times, vi .* (csdyei < runs.csflux.x(source)), ...
+                                            offmask), 3);
+        onvmean(:,:,isobath) = mean(bsxfun(@times, vi .* (csdyei < runs.csflux.x(source)), ...
+                                            ~offmask), 3);
+        vmean(:,:,isobath) = mean(vi .* (csdyei < runs.csflux.x(source)), 3);
     end
 
-    linkaxes([ax1 ax2], 'x');
-    linkaxes([ax1 ax3], 'y');
+    runs.streamer = [];
+    runs.streamer.xivec = xivec';
+    runs.streamer.zvec = runs.csflux.vertbins;
+
+    % (x,z) fields
+    runs.streamer.vmean = vmean;
+    runs.streamer.off.vmean = offvmean;
+    runs.streamer.on.vmean = onvmean;
+
+    % integrated profiles
+    runs.streamer.off.zprof = squeeze(trapz(xivec, repnan(offvmean,0), 1)); % offshore mean profile
+    runs.streamer.on.zprof = squeeze(trapz(xivec, repnan(onvmean,0), 1)); % onshore mean profile
+    runs.streamer.off.xprof = squeeze(trapz(zvec, offvmean, 2));% offshore vel : x-profile
+    runs.streamer.on.xprof = squeeze(trapz(zvec, onvmean, 2));% onshore vel : x-profile
+    runs.streamer.xprof = squeeze(trapz(zvec, offvmean, 2)); % full vel : x-profile
+
+    % diagnostics
+    [xmax,xind] = nanmax(runs.streamer.off.xprof, [], 1);
+    runs.streamer.off.ixpeak = xind;
+    runs.streamer.off.xpeak = xivec(xind);
+    [zmax,zind] = nanmax(runs.streamer.off.zprof, [], 1);
+    runs.streamer.off.izpeak = zind;
+    runs.streamer.off.zpeak = zvec(zind);
+
+    [xmax,xind] = nanmax(runs.streamer.on.xprof, [], 1);
+    runs.streamer.on.ixpeak = xind;
+    runs.streamer.on.xpeak = xivec(xind);
+    [zmax,zind] = nanmax(runs.streamer.on.zprof, [], 1);
+    runs.streamer.on.izpeak = zind;
+    runs.streamer.on.zpeak = zvec(zind);
+
+    for iso=1:niso
+        runs.streamer.off.xwidth(iso) = ...
+            findProfilePeakWidth(runs.streamer.off.xprof(:,iso), xivec);
+        runs.streamer.on.xwidth(iso) = ...
+            findProfilePeakWidth(runs.streamer.on.xprof(:,iso), xivec);
+
+        zvec = runs.csflux.vertbins(:,iso);
+        [~,ilo,~] = findProfilePeakWidth(runs.streamer.off.zprof(:,iso), zvec);
+        if ~isempty(ilo) & ~isnan(ilo)
+            runs.streamer.off.zwidth(iso) = zvec(ilo);
+        else
+            runs.streamer.off.zwidth(iso) = NaN;
+        end
+        %[~,ilo,~] = findProfilePeakWidth(runs.streamer.on.zprof(:,iso), zvec);
+        %runs.streamer.on.zwidth(iso) = zvec(ilo);
+    end
+
+    runs.streamer.hash = githash([mfilename('fullpath') '.m']);
+
+    streamer = runs.streamer;
+    save([runs.dir '/avgstreamer.mat'], 'streamer');
+
+    disp('Done.');
+    toc(ticstart);
 end
