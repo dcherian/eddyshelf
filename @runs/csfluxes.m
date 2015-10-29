@@ -10,6 +10,8 @@ function [] = csfluxes(runs, ftype)
     % Use history or avg files?
     if ~exist('ftype', 'var') || isempty(ftype), ftype = 'his'; end
 
+    precision = 'single';
+
     % calculate energy fluxes?
     do_energy = 0;
 
@@ -66,6 +68,7 @@ function [] = csfluxes(runs, ftype)
         csvelid = 'u';
         asvelid = 'v';
         bathyax = 1;
+        xvec = runs.rgrid.yr(1,:);
         indices = vecfind(runs.rgrid.x_rho(1,:),loc);
 
         % append sponge edge to existing values
@@ -75,6 +78,7 @@ function [] = csfluxes(runs, ftype)
         asvelid = 'u';
         bathyax = 2;
         indices = vecfind(runs.rgrid.y_rho(:,1),loc);
+        xvec = runs.rgrid.xr(:,1);
 
         % append sponge edge to existing values
         sy2 = runs.spng.sy2;
@@ -115,56 +119,56 @@ function [] = csfluxes(runs, ftype)
     end
 
     % initialize - mass flux variables
-    runs.csflux.west.slope = nan(szflux);
-    runs.csflux.west.eddy = nan(szflux);
+    runs.csflux.off.slope = nan(szflux);
+    runs.csflux.off.eddy = nan(szflux);
 
-    runs.csflux.west.itrans.slope = nan(szflux);
-    runs.csflux.west.itrans.eddy = nan(szflux);
+    runs.csflux.off.itrans.slope = nan(szflux);
+    runs.csflux.off.itrans.eddy = nan(szflux);
 
-    runs.csflux.east.slope = nan(szflux);
-    runs.csflux.east.eddy = nan(szflux);
+    runs.csflux.on.slope = nan(szflux);
+    runs.csflux.on.eddy = nan(szflux);
 
-    runs.csflux.east.itrans.slope = nan(szflux);
-    runs.csflux.east.itrans.eddy = nan(szflux);
+    runs.csflux.on.itrans.slope = nan(szflux);
+    runs.csflux.on.itrans.eddy = nan(szflux);
 
-    runs.csflux.west.bins = cell([1 nloc]);
+    runs.csflux.off.bins = cell([1 nloc]);
 
-    runs.csflux.west.slopewater.vmax = nan([tinf nloc]);
+    runs.csflux.off.slopewater.vmax = nan([tinf nloc]);
 
-    runs.csflux.west.slopewater.trans = cell([1 nloc nloc]);
-    runs.csflux.east.slopewater.vtrans = cell([1 nloc nloc]);
-    runs.csflux.west.slopewater.itrans = cell([1 nloc nloc]);
-    runs.csflux.west.slopewater.envelope = nan([tinf nloc]);
+    runs.csflux.off.slopewater.trans = cell([1 nloc nloc]);
+    runs.csflux.on.slopewater.vtrans = cell([1 nloc nloc]);
+    runs.csflux.off.slopewater.itrans = cell([1 nloc nloc]);
+    runs.csflux.off.slopewater.envelope = nan([tinf nloc]);
 
-    runs.csflux.east.slopewater.trans = cell([1 nloc nloc]);
-    runs.csflux.east.slopewater.vtrans = cell([1 nloc nloc]);
-    runs.csflux.east.slopewater.itrans = cell([1 nloc nloc]);
-    runs.csflux.east.slopewater.envelope = nan([tinf nloc]);
+    runs.csflux.on.slopewater.trans = cell([1 nloc nloc]);
+    runs.csflux.on.slopewater.vtrans = cell([1 nloc nloc]);
+    runs.csflux.on.slopewater.itrans = cell([1 nloc nloc]);
+    runs.csflux.on.slopewater.envelope = nan([tinf nloc]);
 
     runs.csflux.slopext  = nan(szfluxxt);
     runs.csflux.eddyxt   = nan(szfluxxt);
-    runs.csflux.westmask = nan(szfluxxt);
-    runs.csflux.eastmask = nan(szfluxxt);
+    runs.csflux.offmask = logical(zeros(szfluxxt));
+    runs.csflux.onmask = logical(zeros(szfluxxt));
 
-    runs.csflux.west.slopezt = nan([runs.rgrid.N tinf nloc nloc]);
-    runs.csflux.west.eddyzt = nan([runs.rgrid.N tinf nloc nloc]);
-    runs.csflux.east.slopezt = nan([runs.rgrid.N tinf nloc nloc]);
-    runs.csflux.east.eddyzt = nan([runs.rgrid.N tinf nloc nloc]);
+    runs.csflux.off.slopezt = nan([runs.rgrid.N tinf nloc nloc]);
+    runs.csflux.off.eddyzt = nan([runs.rgrid.N tinf nloc nloc]);
+    runs.csflux.on.slopezt = nan([runs.rgrid.N tinf nloc nloc]);
+    runs.csflux.on.eddyzt = nan([runs.rgrid.N tinf nloc nloc]);
 
-    runs.csflux.west.slopewater.vertitrans = nan([runs.rgrid.N nloc]);
-    runs.csflux.west.eddywater.vertitrans = nan([runs.rgrid.N nloc]);
-    runs.csflux.east.slopewater.vertitrans = nan([runs.rgrid.N nloc]);
-    runs.csflux.east.eddywater.vertitrans = nan([runs.rgrid.N nloc]);
+    runs.csflux.off.slopewater.vertitrans = nan([runs.rgrid.N nloc]);
+    runs.csflux.off.eddywater.vertitrans = nan([runs.rgrid.N nloc]);
+    runs.csflux.on.slopewater.vertitrans = nan([runs.rgrid.N nloc]);
+    runs.csflux.on.eddywater.vertitrans = nan([runs.rgrid.N nloc]);
 
     % initialize - pv fluxes
     if exist(vorname, 'file') && dopv == 1
         pvtime = ncread(vorname, 'ocean_time');
         if isequal(pvtime', time) || isequal(pvtime, time)
             dopv = 1;
-            runs.csflux.west.pv = nan(szflux);
-            runs.csflux.west.rv = nan(szflux);
-            runs.csflux.east.pv = nan(szflux);
-            runs.csflux.east.rv = nan(szflux);
+            runs.csflux.off.pv = nan(szflux);
+            runs.csflux.off.rv = nan(szflux);
+            runs.csflux.on.pv = nan(szflux);
+            runs.csflux.on.rv = nan(szflux);
         end
     end
 
@@ -203,39 +207,6 @@ function [] = csfluxes(runs, ftype)
         disp(['Doing isobath ' num2str(kk) '/', ...
               num2str(length(indices))]);
 
-        if kk == 1
-            % cxi here = eastern edge because export occurs west of the eastern edge
-            % dimensions - (along-shore) x time
-            % The problem is that this is sensitive to contour
-            % detection.
-            if bathyax == 2
-                cxi = runs.eddy.rhovor.ee(tstart:end);
-            else
-                cxi = runs.eddy.rhovor.se(tstart:end);
-            end
-        else
-            if bathyax == 2
-                cxi = runs.eddy.mx(tstart:end);
-            else
-                cxi = runs.eddy.my(tstart:end);
-            end
-        end
-
-        % east and west (w.r.t cxi) masks
-        if bathyax == 2
-            westmask = bsxfun(@times, ...
-                              bsxfun(@lt, runs.eddy.xr(:,1), cxi(t0:tinf)), ...
-                              spongemask);
-        else
-            westmask = bsxfun(@times, ...
-                              bsxfun(@gt, runs.eddy.yr(1,:)', cxi(t0:tinf)), ...
-                              spongemask);
-        end
-        eastmask = bsxfun(@times, 1 - westmask, spongemask);
-
-        runs.csflux.westmask(:,:,kk) = westmask;
-        runs.csflux.eastmask(:,:,kk) = eastmask;
-
         volr = {runs.bathy.axis runs.csflux.ix(kk) runs.csflux.ix(kk)};
         volv = {runs.bathy.axis runs.csflux.ix(kk)-1 runs.csflux.ix(kk)};
 
@@ -244,7 +215,7 @@ function [] = csfluxes(runs, ftype)
         % average carefully to get values at RHO point
         csvel = squeeze(avg1(dc_roms_read_data(runs.dir, csvelid, [t0 tinf], ...
                                                volv, [], runs.rgrid, ftype, ...
-                                               'single'), bathyax));
+                                               precision), bathyax));
         csvel = csvel(2:end-1,:,:,:) * sgntamp;
 
         % process cross-shelf dye
@@ -252,13 +223,72 @@ function [] = csfluxes(runs, ftype)
                                   volr, [], runs.rgrid, ftype, 'single');
         csdye = csdye(2:end-1,:,:);
 
-        % read eddye
-        eddye = dc_roms_read_data(runs.dir, runs.eddname, [t0 tinf], ...
-                                  volr, [], runs.rgrid, ftype, 'single');
-        eddye = eddye(2:end-1,:,:);
+        % read eddye & define eddy water mass
+        eddymask = dc_roms_read_data(runs.dir, runs.eddname, [t0 tinf], ...
+                                     volr, [], runs.rgrid, ftype, 'single') > runs.eddy_thresh;
+        eddymask = eddymask(2:end-1,:,:);
 
-        % define eddy water mass
-        eddymask = eddye > runs.eddy_thresh;
+        % offshore and onshore masks
+        if bathyax == 2
+            cxi = runs.eddy.mx(tstart:end);
+        else
+            cxi = runs.eddy.my(tstart:end);
+        end
+
+        if bathyax == 2
+            offmask = bsxfun(@times, ...
+                             bsxfun(@lt, runs.eddy.xr(:,1), cxi(t0:tinf)), ...
+                             spongemask);
+        else
+            offmask = bsxfun(@times, ...
+                             bsxfun(@gt, runs.eddy.yr(1,:)', cxi(t0:tinf)), ...
+                             spongemask);
+        end
+        onmask = bsxfun(@times, 1 - offmask, spongemask);
+
+        if kk ~= 1
+            % New approach:
+            % +++++++++++++
+            % Go to first zero-crossing (i.e, do only offshore velocities).
+            % This is required only right at the shelfbreak. For ndloc = 0.17, this is not an
+            % issue. There, the eddy center based mask works well.
+            %
+            % Older approach:
+            % +++++++++++++++
+            % cxi at shelfbreak = eastern edge because export generally occurs west of the eastern edge
+            % dimensions - (along-shore) x time
+            % The problem is that this is sensitive to contour detection.
+
+            csvonmask = 1;
+            csvoffmask = 1;
+        else
+            % define a mask based on first zero-crossing at each depth
+            csvoffmask = csvel > 0;
+            % pick out region with eddy center
+            for tt=1:size(csvel, 3)
+                regions = bwconncomp(csvoffmask(:,:,tt), 8);
+                for zz=1:regions.NumObjects
+                    maskreg = zeros(regions.ImageSize);
+                    maskreg(regions.PixelIdxList{zz}) = 1;
+
+                    ix = find_approx(xvec, cxi(tt), 1);
+                    if any(maskreg(ix,:) == 1)
+                        csvoffmask(:,:,tt) = bsxfun(@and, ...
+                                                    bsxfun(@or, maskreg, offmask(:,tt)), spongemask);
+                        break;
+                    end
+                end
+            end
+
+            clear maskreg
+
+            csvonmask = ~csvoffmask;
+            offmask = 1;
+            onmask  = 1;
+        end
+
+        runs.csflux.offmask(:,:,kk) = logical(offmask);
+        runs.csflux.onmask(:,:,kk) = logical(onmask);
 
         if bathyax == 2
             zvec = runs.rgrid.z_r(:, runs.csflux.ix(kk), 1);
@@ -267,39 +297,38 @@ function [] = csfluxes(runs, ftype)
         end
         runs.csflux.vertbins(:,kk) = zvec;
 
-        runs.csflux.eddyxt(:,:,kk) = squeeze(trapz(zvec, ...
-                                                   eddymask .* csvel,2));
-        runs.csflux.west.eddyzt(:,:,kk) = ...
-            squeeze(nansum(bsxfun(@times, bsxfun(@times, squeeze(eddymask .* csvel), ...
-                                                 permute(westmask, ...
-                                                         [1 3 2])), dx),1));
-        runs.csflux.east.eddyzt(:,:,kk) = ...
-            squeeze(nansum(bsxfun(@times, bsxfun(@times, squeeze(eddymask .* csvel), ...
-                                                 permute(eastmask, ...
-                                                         [1 3 2])), dx),1));
+        runs.csflux.eddyxt(:,:,kk) = squeeze(trapz(zvec, eddymask .* csvel,2));
+        runs.csflux.off.eddyxt(:,:,kk) = squeeze(trapz(zvec, eddymask .* csvel .* csvoffmask,2));
+        runs.csflux.on.eddyxt(:,:,kk)  = squeeze(trapz(zvec, eddymask .* csvel .* csvonmask ,2));
+
+        runs.csflux.off.eddyzt(:,:,kk) = ...
+            squeeze(nansum(bsxfun(@times, bsxfun(@times, squeeze(eddymask .* csvel .* csvoffmask), ...
+                                                 permute(offmask, [1 3 2])), dx),1));
+        runs.csflux.on.eddyzt(:,:,kk) = ...
+            squeeze(nansum(bsxfun(@times, bsxfun(@times, squeeze(eddymask .* csvel .* csvonmask), ...
+                                                 permute(onmask, [1 3 2])), dx),1));
+
         % transports as a function of z only
-        runs.csflux.west.eddywater.vertitrans(:,kk) = ...
-            nansum(bsxfun(@times, runs.csflux.west.eddyzt(:,:,kk), dt), 2);
-        runs.csflux.east.eddywater.vertitrans(:,kk) = ...
-            nansum(bsxfun(@times, runs.csflux.east.eddyzt(:,:,kk), dt), 2);
+        runs.csflux.off.eddywater.vertitrans(:,kk) = ...
+            nansum(bsxfun(@times, runs.csflux.off.eddyzt(:,:,kk), dt), 2);
+        runs.csflux.on.eddywater.vertitrans(:,kk) = ...
+            nansum(bsxfun(@times, runs.csflux.on.eddyzt(:,:,kk), dt), 2);
 
         % calculate fluxes
         if runs.csflux.ix(kk) ~= sy2
-            runs.csflux.west.eddy(t0:tinf,kk) = squeeze(nansum( ...
-                bsxfun(@times, runs.csflux.eddyxt(:,:,kk) .* westmask, ...
-                       dx),1))';
+            runs.csflux.off.eddy(t0:tinf,kk) = squeeze(nansum( ...
+                bsxfun(@times, runs.csflux.off.eddyxt(:,:,kk) .* offmask, dx),1))';
 
-            runs.csflux.east.eddy(t0:tinf,kk) = squeeze(nansum( ...
-                bsxfun(@times, runs.csflux.eddyxt(:,:,kk) .* eastmask, ...
-                       dx),1))';
+            runs.csflux.on.eddy(t0:tinf,kk) = squeeze(nansum( ...
+                bsxfun(@times, runs.csflux.on.eddyxt(:,:,kk) .* onmask, dx),1))';
 
-            [runs.csflux.west.itrans.eddy(:,kk), ...
-             runs.csflux.west.avgflux.eddy(kk)] = ...
-                runs.integrate_flux(time, runs.csflux.west.eddy(:,kk));
+            [runs.csflux.off.itrans.eddy(:,kk), ...
+             runs.csflux.off.avgflux.eddy(kk)] = ...
+                runs.integrate_flux(time, runs.csflux.off.eddy(:,kk));
 
-            [runs.csflux.east.itrans.eddy(:,kk), ...
-             runs.csflux.east.avgflux.eddy(kk)] = ...
-                runs.integrate_flux(time, runs.csflux.east.eddy(:,kk));
+            [runs.csflux.on.itrans.eddy(:,kk), ...
+             runs.csflux.on.avgflux.eddy(kk)] = ...
+                runs.integrate_flux(time, runs.csflux.on.eddy(:,kk));
         end
 
         if do_energy
@@ -307,24 +336,19 @@ function [] = csfluxes(runs, ftype)
             error('CHECK INDICES OF READING');
             % read velocity and calculate pressure etc.
             asvel = avg1(dc_roms_read_data(runs.dir, asvelid, [t0 tinf], ...
-                                      {runs.bathy.axis runs.csflux.ix(kk) ...
-                                runs.csflux.ix(kk)}, ...
-                                      [], runs.rgrid, ftype, ...
-                                      'single'), 1);
+                                           {runs.bathy.axis runs.csflux.ix(kk) ...
+                                runs.csflux.ix(kk)}, [], runs.rgrid, ftype, 'single'), 1);
 
             % read velocity and calculate pressure etc.
             rho = dc_roms_read_data(runs.dir, 'rho', [t0 tinf], ...
                                       {runs.bathy.axis runs.csflux.ix(kk) ...
-                                runs.csflux.ix(kk)}, ...
-                                      [], runs.rgrid, ftype, ...
-                                      'single');
+                                runs.csflux.ix(kk)}, [], runs.rgrid, ftype, 'single');
             rho = rho(2:end-1,:,:);
 
             ke = 1/2 * rho .* (csvel.^2 + asvel.^2);
 
             pe = - runs.params.phys.g * bsxfun(@times, rho, ...
-                                               squeeze(runs.rgrid ...
-                                                       .z_r(:,runs.csflux.ix(kk),2:end-1))');
+                                               squeeze(runs.rgrid.z_r(:,runs.csflux.ix(kk),2:end-1))');
 
             % calculate pu term
             % dz = (y,z) > 0
@@ -355,7 +379,7 @@ function [] = csfluxes(runs, ftype)
                 subplot(2,2,zzz);
                 pind = indices(zzz);
                 %pcolorcen( bsxfun(@times, squeeze(csvel(:,:,:,pind)), ...
-                %                  westmask(:,pind))');
+                %                  offmask(:,pind))');
                 pcolorcen(squeeze(csvel(:,:,:,pind))');
                 center_colorbar; limc = caxis;
                 hold on;
@@ -380,58 +404,55 @@ function [] = csfluxes(runs, ftype)
             bins = flip(loc(kk):-3000:1000);
         end
         binmat = repmat(bins, [tinf 1]);
-        runs.csflux.west.bins{kk} = bins;
+        runs.csflux.off.bins{kk} = bins;
         for mmm = 1:length(bins)-1
             % calculate transport for each water mass bin
             binmask = (csdye < bins(mmm + 1)) & (csdye >= bins(mmm));
-            bintrans = squeeze(csvel .* binmask);
-            runs.csflux.west.slopewater.trans{kk}(t0:tinf, mmm) ...
+            bintransoff = squeeze(csvel .* binmask .* csvoffmask);
+            bintranson = squeeze(csvel .* binmask .* csvonmask);
+            runs.csflux.off.slopewater.trans{kk}(t0:tinf, mmm) ...
                 = squeeze(trapz(zvec, nansum(bsxfun(@times, ...
-                                                    bsxfun(@times, bintrans, ...
-                                                           permute(westmask, ...
-                                                              [1 3 2])), dx),1),2));
-            runs.csflux.east.slopewater.trans{kk}(t0:tinf, mmm) ...
+                                                    bsxfun(@times, bintransoff, ...
+                                                           permute(offmask, [1 3 2])), dx),1),2));
+            runs.csflux.on.slopewater.trans{kk}(t0:tinf, mmm) ...
                 = squeeze(trapz(zvec, nansum(bsxfun(@times, ...
-                                                    bsxfun(@times, bintrans, ...
-                                                           permute(eastmask, ...
-                                                              [1 3 2])), dx),1),2));
+                                                    bsxfun(@times, bintranson, ...
+                                                           permute(onmask, [1 3 2])), dx),1),2));
 
             % fn (z,t,bin)
-            runs.csflux.west.slopewater.vtrans{kk}(:,t0:tinf, mmm) = ...
-                squeeze(nansum(bsxfun(@times, bsxfun(@times, bintrans, ...
-                                                     permute(westmask, ...
-                                                             [1 3 2])), dx),1));
-            runs.csflux.east.slopewater.vtrans{kk}(:,t0:tinf, mmm) = ...
-                squeeze(nansum(bsxfun(@times, bsxfun(@times, bintrans, ...
-                                                     permute(eastmask, ...
-                                                             [1 3 2])), dx),1));
+            runs.csflux.off.slopewater.vtrans{kk}(:,t0:tinf, mmm) = ...
+                squeeze(nansum(bsxfun(@times, bsxfun(@times, bintransoff, ...
+                                                     permute(offmask, [1 3 2])), dx),1));
+            runs.csflux.on.slopewater.vtrans{kk}(:,t0:tinf, mmm) = ...
+                squeeze(nansum(bsxfun(@times, bsxfun(@times, bintranson, ...
+                                                     permute(onmask, [1 3 2])), dx),1));
         end
 
         % save envelope for across-shelfbreak only = f(time,loc)
         % integrate trans over bins
         if bathyax == 2 && sgntamp == -1
-            runs.csflux.west.slopewater.envelope(:,kk) = ...
+            runs.csflux.off.slopewater.envelope(:,kk) = ...
                 nanmax(avg1(binmat,2) .* fillnan( ...
-                    runs.csflux.west.slopewater.trans{kk} > 0, 0), [], 2);
-            runs.csflux.east.slopewater.envelope(:,kk) = ...
+                    runs.csflux.off.slopewater.trans{kk} > 0, 0), [], 2);
+            runs.csflux.on.slopewater.envelope(:,kk) = ...
                 nanmax(avg1(binmat,2) .* fillnan( ...
-                    runs.csflux.east.slopewater.trans{kk} > 0, 0), [], 2);
+                    runs.csflux.on.slopewater.trans{kk} > 0, 0), [], 2);
         else
-            runs.csflux.west.slopewater.envelope(:,kk) = ...
+            runs.csflux.off.slopewater.envelope(:,kk) = ...
                 nanmin(avg1(binmat,2) .* fillnan( ...
-                    runs.csflux.west.slopewater.trans{kk} > 0, 0), [], 2);
-            runs.csflux.east.slopewater.envelope(:,kk) = ...
+                    runs.csflux.off.slopewater.trans{kk} > 0, 0), [], 2);
+            runs.csflux.on.slopewater.envelope(:,kk) = ...
                 nanmin(avg1(binmat,2) .* fillnan( ...
-                    runs.csflux.east.slopewater.trans{kk} > 0, 0), [], 2);
+                    runs.csflux.on.slopewater.trans{kk} > 0, 0), [], 2);
         end
 
         % integrated transport = fn(y-origin bins, loc)
         % integrate trans over time
-        runs.csflux.west.slopewater.itrans{kk} = squeeze(nansum( ...
-            bsxfun(@times, runs.csflux.west.slopewater.trans{kk}, ...
+        runs.csflux.off.slopewater.itrans{kk} = squeeze(nansum( ...
+            bsxfun(@times, runs.csflux.off.slopewater.trans{kk}, ...
                    dt'), 1));
-        runs.csflux.east.slopewater.itrans{kk} = squeeze(nansum( ...
-            bsxfun(@times, runs.csflux.east.slopewater.trans{kk}, dt'), 1));
+        runs.csflux.on.slopewater.itrans{kk} = squeeze(nansum( ...
+            bsxfun(@times, runs.csflux.on.slopewater.trans{kk}, dt'), 1));
         toc;
 
         for ll=1:kk
@@ -446,68 +467,62 @@ function [] = csfluxes(runs, ftype)
 
             % transports - integrate in z - f(x,t)
             disp('Integrating in z...');
-            runs.csflux.slopext(:,:,kk,ll) = squeeze(trapz(zvec, ...
-                                                        slopemask .* csvel,2));
+            runs.csflux.slopext(:,:,kk,ll) = squeeze(trapz(zvec, slopemask .* csvel,2));
+            runs.csflux.off.slopext(:,:,kk,ll) = squeeze(trapz(zvec, ...
+                                                              slopemask .* csvel .* csvoffmask,2));
+            runs.csflux.on.slopext(:,:,kk,ll) = squeeze(trapz(zvec, ...
+                                                              slopemask .* csvel .* csvonmask,2));
 
             if do_energy
-                runs.csflux.ikefluxxt(:,:,kk,ll) = squeeze(trapz(zvec, ...
-                                                              keflux,2));
-                runs.csflux.ipefluxxt(:,:,kk,ll) = squeeze(trapz(zvec, ...
-                                                              peflux,2));
+                runs.csflux.ikefluxxt(:,:,kk,ll) = squeeze(trapz(zvec, keflux,2));
+                runs.csflux.ipefluxxt(:,:,kk,ll) = squeeze(trapz(zvec, peflux,2));
 
-                runs.csflux.eddy.ikefluxxt(:,:,kk) = squeeze(trapz(zvec, ...
-                                                                  eddymask ...
-                                                                  .* keflux,2));
-                runs.csflux.eddy.ipefluxxt(:,:,kk) = squeeze(trapz(zvec, ...
-                                                                  eddymask .* ...
-                                                                  peflux,2));
+                runs.csflux.eddy.ikefluxxt(:,:,kk) = squeeze(trapz(zvec, eddymask .* keflux,2));
+                runs.csflux.eddy.ipefluxxt(:,:,kk) = squeeze(trapz(zvec, eddymask .* peflux,2));
             end
 
             if ll == kk
-                temp = bsxfun(@times, squeeze(slopemask .* csvel), ...
-                              permute(westmask, [1 3 2]));
-                runs.csflux.west.slopewater.vmax(:,kk) = ...
-                    squeeze(nanmax(nanmax(abs(temp), [], 1), [], 2));
+                temp = bsxfun(@times, squeeze(slopemask .* csvel .* csvoffmask), ...
+                              permute(offmask, [1 3 2]));
+                runs.csflux.off.slopewater.vmax(:,kk) = squeeze(nanmax(nanmax(abs(temp), [], 1), [], 2));
             end
 
             % calculate transport as fn of vertical depth - west of
             % eddy only - f(z,t)
             disp('Binning vertically...');
-            runs.csflux.west.slopezt(:,:,kk,ll) = ...
-                squeeze(nansum(bsxfun(@times, bsxfun(@times, squeeze(slopemask .* csvel), ...
-                                                     permute(westmask, [1 3 2])), dx),1));
-            runs.csflux.east.slopezt(:,:,kk,ll) = ...
-                squeeze(nansum(bsxfun(@times, bsxfun(@times, squeeze(slopemask .* csvel), ...
-                                                     permute(eastmask, [1 3 2])), dx),1));
+            runs.csflux.off.slopezt(:,:,kk,ll) = ...
+                squeeze(nansum(bsxfun(@times, bsxfun(@times, squeeze(slopemask .* csvel .* csvoffmask), ...
+                                                     permute(offmask, [1 3 2])), dx),1));
+            runs.csflux.on.slopezt(:,:,kk,ll) = ...
+                squeeze(nansum(bsxfun(@times, bsxfun(@times, squeeze(slopemask .* csvel .* csvonmask), ...
+                                                     permute(onmask, [1 3 2])), dx),1));
 
             % transports as a function of z only
-            runs.csflux.west.slopewater.vertitrans(:,kk,ll) = ...
-                nansum(bsxfun(@times, runs.csflux.west.slopezt(:,:,kk,ll), dt), 2);
-            runs.csflux.east.slopewater.vertitrans(:,kk,ll) = ...
-                nansum(bsxfun(@times, runs.csflux.east.slopezt(:,:,kk,ll), dt), 2);
+            runs.csflux.off.slopewater.vertitrans(:,kk,ll) = ...
+                nansum(bsxfun(@times, runs.csflux.off.slopezt(:,:,kk,ll), dt), 2);
+            runs.csflux.on.slopewater.vertitrans(:,kk,ll) = ...
+                nansum(bsxfun(@times, runs.csflux.on.slopezt(:,:,kk,ll), dt), 2);
 
-            % don't need east-west paritition for edge of northern sponge
+            % don't need on-off paritition for edge of northern sponge
             disp('Calculating fluxes...');
             if runs.csflux.ix(kk) ~= sy2
                 % west of center - f(x,t)
-                runs.csflux.west.slope(t0:tinf,kk,ll) = squeeze(nansum( ...
-                    bsxfun(@times, runs.csflux.slopext(:,:,kk,ll) .* westmask, ...
-                           dx),1))';
+                runs.csflux.off.slope(t0:tinf,kk,ll) = squeeze(nansum( ...
+                    bsxfun(@times, runs.csflux.off.slopext(:,:,kk,ll) .* offmask, dx),1))';
 
                 % save average flux and itrans (west of center)
-                [runs.csflux.west.itrans.slope(:,kk,ll), ...
-                 runs.csflux.west.avgflux.slope(kk,ll)] = ...
-                    runs.integrate_flux(time, runs.csflux.west.slope(:,kk,ll));
+                [runs.csflux.off.itrans.slope(:,kk,ll), ...
+                 runs.csflux.off.avgflux.slope(kk,ll)] = ...
+                    runs.integrate_flux(time, runs.csflux.off.slope(:,kk,ll));
 
                 % east of center
-                runs.csflux.east.slope(t0:tinf,kk,ll) = squeeze(nansum( ...
-                    bsxfun(@times, runs.csflux.slopext(:,:,kk,ll) .* eastmask, ...
-                           dx),1))';
+                runs.csflux.on.slope(t0:tinf,kk,ll) = squeeze(nansum( ...
+                    bsxfun(@times, runs.csflux.on.slopext(:,:,kk,ll) .* onmask, dx),1))';
 
                 % save average flux and itrans (east of center)
-                [runs.csflux.east.itrans.slope(:,kk,ll), ...
-                 runs.csflux.east.avgflux.slope(kk,ll)] = ...
-                    runs.integrate_flux(time, runs.csflux.east.slope(:,kk,ll));
+                [runs.csflux.on.itrans.slope(:,kk,ll), ...
+                 runs.csflux.on.avgflux.slope(kk,ll)] = ...
+                    runs.integrate_flux(time, runs.csflux.on.slope(:,kk,ll));
             end
         end
 
@@ -534,18 +549,18 @@ function [] = csfluxes(runs, ftype)
                                      rv .* avg1(csvel,3),3));
 
             % now east & west of eddy center
-            runs.csflux.west.pv(t0:tinf,kk) = squeeze(nansum( ...
-                bsxfun(@times, pvcsflux .* westmask, ...
+            runs.csflux.off.pv(t0:tinf,kk) = squeeze(nansum( ...
+                bsxfun(@times, pvcsflux .* offmask, ...
                        1./runs.rgrid.pm(1,2:end-1)'),1))';
-            runs.csflux.east.pv(t0:tinf,kk) = squeeze(nansum( ...
-                bsxfun(@times, pvcsflux .* eastmask, ...
+            runs.csflux.on.pv(t0:tinf,kk) = squeeze(nansum( ...
+                bsxfun(@times, pvcsflux .* onmask, ...
                        1./runs.rgrid.pm(1,2:end-1)'),1))';
 
-            runs.csflux.west.rv(t0:tinf,kk) = squeeze(nansum( ...
-                bsxfun(@times, rvcsflux .* westmask, ...
+            runs.csflux.off.rv(t0:tinf,kk) = squeeze(nansum( ...
+                bsxfun(@times, rvcsflux .* offmask, ...
                        1./runs.rgrid.pm(1,2:end-1)'),1))';
-            runs.csflux.east.rv(t0:tinf,kk) = squeeze(nansum( ...
-                bsxfun(@times, rvcsflux .* eastmask, ...
+            runs.csflux.on.rv(t0:tinf,kk) = squeeze(nansum( ...
+                bsxfun(@times, rvcsflux .* onmask, ...
                        1./runs.rgrid.pm(1,2:end-1)'),1))';
         end
     end
@@ -572,6 +587,19 @@ function [] = csfluxes(runs, ftype)
 
     csflux = runs.csflux;
     asflux = runs.asflux;
+
+    if strcmpi(precision, 'single')
+        runs.csflux.slopext = single(runs.csflux.slopext);
+        runs.csflux.eddyxt = single(runs.csflux.eddyxt);
+        runs.csflux.off.slopext = single(runs.csflux.off.slopext);
+        runs.csflux.off.eddyxt = single(runs.csflux.off.eddyxt);
+        runs.csflux.on.slopext = single(runs.csflux.on.slopext);
+        runs.csflux.on.eddyxt = single(runs.csflux.on.eddyxt);
+        runs.csflux.off.slopezt = single(runs.csflux.off.slopezt);
+        runs.csflux.off.eddyzt = single(runs.csflux.off.eddyzt);
+        runs.csflux.on.slopezt = single(runs.csflux.on.slopezt);
+        runs.csflux.on.eddyzt = single(runs.csflux.on.eddyzt);
+    end
 
     disp('Saving data...');
     save([runs.dir '/fluxes.mat'], 'csflux', 'asflux');
