@@ -540,7 +540,7 @@ methods
 
             % find time when flux is increasing up
             try
-                trans  = runs.csflux.west.itrans.shelf(:,1);
+                trans  = runs.csflux.off.itrans.shelf(:,1);
                 mtrans = max(abs(trans));
                 runs.csflux.tscaleind = find_approx(trans, 0.1*mtrans, 1);
                 runs.csflux.tscale = runs.csflux.time(runs.csflux.tscaleind);
@@ -563,13 +563,13 @@ methods
                 [1 length(runs.eddy.t)]);
 
             try
-                runs.csflux.westmask = logical(runs.csflux.westmask);
-                runs.csflux.eastmask = logical(runs.csflux.eastmask);
+                runs.csflux.offmask = logical(runs.csflux.offmask);
+                runs.csflux.onmask = logical(runs.csflux.onmask);
 
                 runs.csflux.slopext = single(runs.csflux.slopext);
                 runs.csflux.eddyxt = single(runs.csflux.eddyxt);
-                runs.csflux.west.slopezt = single(runs.csflux.west.slopezt);
-                runs.csflux.west.eddyzt = single(runs.csflux.west.eddyzt);
+                runs.csflux.off.slopezt = single(runs.csflux.off.slopezt);
+                runs.csflux.off.eddyzt = single(runs.csflux.off.eddyzt);
                 runs.csflux.east.slopezt = single(runs.csflux.east.slopezt);
                 runs.csflux.east.eddyzt = single(runs.csflux.east.eddyzt);
             catch ME
@@ -1093,12 +1093,12 @@ methods
         [~,maxloc] = runs.calc_maxflux(isobath);
         tstart = maxloc-50;
 
-        [tstart,tend] = runs.flux_tindices(runs.csflux.west.slope(:, isobath, isobath));
+        [tstart,tend] = runs.flux_tindices(runs.csflux.off.slope(:, isobath, isobath));
 
         vertbins = runs.csflux.vertbins(:, isobath);
-        slopezt = runs.csflux.west.slopezt(:,:, isobath, isobath);
+        slopezt = runs.csflux.off.slopezt(:,:, isobath, isobath);
 
-        fullzprofile = runs.csflux.west.slopewater.vertitrans(:,isobath,isobath);
+        fullzprofile = runs.csflux.off.slopewater.vertitrans(:,isobath,isobath);
         newzprofile = trapz(runs.csflux.time(tstart:tend), ...
                             slopezt(:,tstart:tend), 2);
 
@@ -1128,7 +1128,7 @@ methods
                 matrix = runs.csflux.slopext(:,:,isobath, src);
                 nt = size(matrix,2);
 
-                %[~,nt] = runs.calc_maxflux(runs.csflux.west.slope(:,isobath));
+                %[~,nt] = runs.calc_maxflux(runs.csflux.off.slope(:,isobath));
 
                 mati = nan([length(xi) nt]);
                 for tt = [1:nt]
@@ -1141,7 +1141,7 @@ methods
 
                 runs.csflux.slopex.slopexti(:,:,isobath,src) = mati;
                 runs.csflux.slopex.flux(:,isobath,src) = slopex;
-                % this fit makes no sense without applying westmask.
+                % this fit makes no sense without applying offmask.
                 % [y0, X, x0] = ...
                 %     gauss_fit(xi, runs.csflux.slopex.flux(:,isobath,src), debug);
                 % if debug, title(runs.name); end
@@ -1150,7 +1150,7 @@ methods
                 % runs.csflux.slopex.x0(isobath,src) = x0;
 
                 % (z,t)
-                matrix = runs.csflux.west.slopezt(:,:,isobath, src);
+                matrix = runs.csflux.off.slopezt(:,:,isobath, src);
                 nt = size(matrix,2);
 
                 % integrate in time
@@ -1172,7 +1172,7 @@ methods
 
     function [] = plot_checkmaxflux(runs, isobath)
 
-        fluxvec = runs.csflux.west.slope(:,isobath,isobath);
+        fluxvec = runs.csflux.off.slope(:,isobath,isobath);
         figure;
         ax = subplot(211);
         [maxflux, maxloc] = runs.calc_maxflux(fluxvec);
@@ -1192,7 +1192,7 @@ methods
         lightDarkLines(length(runs.csflux.ix));
         for iso = 1:length(runs.csflux.ix)
             % figure; hold on;
-            flux = runs.csflux.west.slope(:,iso,iso);
+            flux = runs.csflux.off.slope(:,iso,iso);
             tvec = runs.csflux.time;
             zvec = runs.csflux.vertbins(:,iso);
 
@@ -1205,7 +1205,7 @@ methods
             jj = 1;
             for kk=indices
                 profile = trapz(tvec(1:kk), ...
-                                runs.csflux.west.slopezt(:,1:kk,iso,iso), ...
+                                runs.csflux.off.slopezt(:,1:kk,iso,iso), ...
                                 2);
                 norm = trapz(zvec, profile);
                 % plot(profile./norm, zvec);
@@ -1264,7 +1264,7 @@ methods
         insertAnnotation([runs.name '.plot_maxfluxloc']);
         for isobath = 1:length(runs.csflux.x)
             [~,maxloc] = runs.calc_maxflux( ...
-                runs.csflux.west.slope(:,isobath,isobath));
+                runs.csflux.off.slope(:,isobath,isobath));
             figure(hf);
             plot(runs.csflux.ndloc(isobath), ...
                  (runs.eddy.my(maxloc) - runs.csflux.x(isobath)) ...
@@ -1543,7 +1543,7 @@ methods
         beautify;
 
         subplot(2,1,2)
-        plot(runs.csflux.time/86400, runs.csflux.west.shelf(:,1));
+        plot(runs.csflux.time/86400, runs.csflux.off.shelf(:,1));
         limy = ylim; ylim([0 limy(2)]); linex(times);
         ylabel('Flux'); xlabel('Time (days)');
         beautify;
@@ -1892,7 +1892,7 @@ methods
             %plot(runs.time/86400,runs.eddy.vor.vol);
             %ylabel('Volume (m^3)');
             plot(runs.csflux.time/86400, ...
-                 runs.csflux.west.shelf(:,1)/1e6);
+                 runs.csflux.off.shelf(:,1)/1e6);
             hold all
             plot(runs.csflux.time/86400, ...
                  runs.csflux.east.slope(:,1)/1e6);
@@ -2337,7 +2337,7 @@ methods
         runs.eutrans.nodye.Itrans = nan([tinf length(loc)]);
 
         % extract streamer mask
-        strmask = reshape(full(runs.streamer.west.mask), runs.streamer.sz4dfull);
+        strmask = reshape(full(runs.streamer.off.mask), runs.streamer.sz4dfull);
 
         % loop over all isobaths
         for kk=1:length(loc)
@@ -2993,7 +2993,7 @@ methods
         Lz = runs.eddy.Lgauss(1);
 
         profile = ...
-            runs.csflux.west.slopewater.vertitrans(:,index);
+            runs.csflux.off.slopewater.vertitrans(:,index);
         vertbins = runs.csflux.vertbins(:,index);
         zvec = vertbins./ max(abs(vertbins));
 
@@ -3028,10 +3028,10 @@ methods
 
     function [] = plot_streamerwidth(runs)
         cxi = runs.eddy.vor.ee;
-        westmask = bsxfun(@times, ...
+        offmask = bsxfun(@times, ...
                           bsxfun(@lt, runs.eddy.xr(:,1), cxi), ...
                           ~runs.sponge(2:end-1,1));
-        eastmask = bsxfun(@times, 1 - westmask, ...
+        onmask = bsxfun(@times, 1 - offmask, ...
                           ~runs.sponge(2:end-1,1));
 
         shelfxt = runs.csflux.shelfxt;

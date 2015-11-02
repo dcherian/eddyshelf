@@ -4,7 +4,7 @@ function [] = build_streamer_section(runs)
 % make plots to check?
     debug_plot = 1;
 
-    runs.streamer.west.fit_circle = 1;
+    runs.streamer.off.fit_circle = 1;
 
     if ~isfield(runs.streamer,'yend')
         runs.detect_streamer_mask();
@@ -20,9 +20,9 @@ function [] = build_streamer_section(runs)
     cxind = vecfind(xr(:,1),runs.eddy.mx/1000);
     cyind = vecfind(yr(1,:),cy)';
 
-    for tind=1:size(runs.streamer.west.mask,2)
+    for tind=1:size(runs.streamer.off.mask,2)
         % now pick ONLY SURFACE
-        stream = reshape(full(runs.streamer.west.mask(:,tind)), ...
+        stream = reshape(full(runs.streamer.off.mask(:,tind)), ...
                          runs.streamer.sz3dfull);
         stream = stream(:,:,end); % SURFACE ONLY
 
@@ -113,7 +113,7 @@ function [] = build_streamer_section(runs)
             continue;
         end
 
-        if runs.streamer.west.fit_circle
+        if runs.streamer.off.fit_circle
             % first get discrete points
             % old version without joining
             indices = cat(1,skelcomps.PixelIdxList{sortnum});
@@ -220,11 +220,11 @@ function [] = build_streamer_section(runs)
         end
 
         % save locations in runs object
-        runs.streamer.west.xstr{tind}  = xstr;
-        runs.streamer.west.ystr{tind}  = ystr;
-        runs.streamer.west.ixstr{tind} = ixstr;
-        runs.streamer.west.iystr{tind} = iystr;
-        runs.streamer.west.dstr{tind}  = dstr;
+        runs.streamer.off.xstr{tind}  = xstr;
+        runs.streamer.off.ystr{tind}  = ystr;
+        runs.streamer.off.ixstr{tind} = ixstr;
+        runs.streamer.off.iystr{tind} = iystr;
+        runs.streamer.off.dstr{tind}  = dstr;
         runs.streamer.comment   = ...
             [' contour = 1 in streamer, 0 outside |\n ' ...
              ' (xstr,ystr) = cross-section through streamer (cell array) |\n ' ...

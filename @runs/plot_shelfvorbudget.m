@@ -9,7 +9,7 @@ function [] = plot_shelfvorbudget(runs)
     figure;
     subplot(2,1,1)
     [ax,h1,h2] = plotyy(time, runs.vorbudget.shelf.rv, runs.csflux.time/86400, ...
-                        runs.csflux.west.shelf/1e6);
+                        runs.csflux.off.shelf/1e6);
     set(ax(2), 'XTick', []);
     ylabel(ax(2), 'Cross-shelfbreak Transport (Sv)')
 

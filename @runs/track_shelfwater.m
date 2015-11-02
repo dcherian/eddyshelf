@@ -1,7 +1,7 @@
 % track where on the shelf the water exported across
 % the shelfbreak is coming from
 function [] = track_shelfwater(runs)
-    bins = runs.csflux.west.shelfwater.bins;
+    bins = runs.csflux.off.shelfwater.bins;
     time = runs.csflux.time/86400;
 
     % check
@@ -12,7 +12,7 @@ function [] = track_shelfwater(runs)
     end
 
     % in Sv and filtered with above check
-    trans = squeeze(runs.csflux.west.shelfwater.trans(:,1,1: ...
+    trans = squeeze(runs.csflux.off.shelfwater.trans(:,1,1: ...
                                                       ind)/1e6);
 
     % grid matrices

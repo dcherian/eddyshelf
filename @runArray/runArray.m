@@ -269,7 +269,7 @@ classdef runArray < handle
                 etind = run.tscaleind;
 
                 meanprox(ii) = nanmean(run.eddy.hcen(etind:end));
-                meanflux(ii) = nanmean(run.csflux.west.shelf(cstind: ...
+                meanflux(ii) = nanmean(run.csflux.off.shelf(cstind: ...
                                                              end));
                 meanLz(ii) = nanmean(run.eddy.Lgauss(1));
                 meancy(ii) = nanmean(run.eddy.cy(etind:end));
@@ -951,7 +951,7 @@ classdef runArray < handle
                 run = runArray.array(ii);
                 name = runArray.getname( ii);
 
-                env = run.csflux.west.shelfwater.envelope;
+                env = run.csflux.off.shelfwater.envelope;
                 tind = 1;
                 diagnostic = mean(run.bathy.xsb - env(tind:end));
 
@@ -1028,7 +1028,7 @@ classdef runArray < handle
                 %vec1 = run.eddy.vor.lmaj(run.tscaleind:end)./ ...
                 %       run.eddy.vor.lmin(run.tscaleind:end);
                 vec1 = run.eddy.vor.lmaj(run.tscaleind:end);
-                vec2 = run.csflux.west.shelf(run.tscaleind:end);
+                vec2 = run.csflux.off.gshelf(run.tscaleind:end);
 
                 vec1 = vec1 - mean(vec1);
                 vec2 = vec2 - mean(vec2);

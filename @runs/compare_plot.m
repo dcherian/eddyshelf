@@ -119,21 +119,21 @@ function [] = compare_plot(runs,num)
         figure(4);
         subplot(4,1,1);
         hold on;
-        plot(ftime, runs.csflux.west.shelf(:,1), 'Color', colors(ii,:));
+        plot(ftime, runs.csflux.off.shelf(:,1), 'Color', colors(ii,:));
         ylabel('Shelf water flux - sb');
         title('West');
         xlim(limx);
 
         subplot(4,1,2);
         hold on;
-        plot(ftime, runs.csflux.west.slope(:,1), 'Color', colors(ii,:));
+        plot(ftime, runs.csflux.off.slope(:,1), 'Color', colors(ii,:));
         ylabel('Slope water flux - sb');
         xlim(limx);
 
         try
             subplot(4,1,3);
             hold on;
-            plot(ftime, runs.csflux.west.pv(:,1), 'Color', colors(ii,:));
+            plot(ftime, runs.csflux.off.pv(:,1), 'Color', colors(ii,:));
             ylabel('PV flux');
             xlim(limx);
             catch ME
@@ -142,7 +142,7 @@ function [] = compare_plot(runs,num)
                 try
                     subplot(4,1,4);
                     hold on;
-                    plot(ftime, runs.csflux.west.rv(:,1), 'Color', colors(ii,:));
+                    plot(ftime, runs.csflux.off.rv(:,1), 'Color', colors(ii,:));
                     ylabel('RV flux');
                     xlim(limx);
                     catch ME
@@ -285,7 +285,7 @@ function [] = compare_plot(runs,num)
                                         subplot(2,1,1)
                                         hold on
                                         plot(runs.csflux.time/eddy.tscale, ...
-                                             runs.csflux.west.shelf(:,1)/1e6, 'Color', colors(ii,:));
+                                             runs.csflux.off.shelf(:,1)/1e6, 'Color', colors(ii,:));
                                         plot(runs.csflux.time/eddy.tscale, ...
                                              runs.csflux.east.slope(:,1)/1e6, 'Color', colors(ii,:), ...
                                              'LineStyle', linestyle{2});
@@ -304,14 +304,14 @@ function [] = compare_plot(runs,num)
                                         addlegend(hline, runs.name);
 
                                         % shelf water envelope
-                                        if isfield(runs.csflux.west.shelfwater, 'envelope')
-                                            normtrans = sum(runs.csflux.west.shelfwater.itrans);
+                                        if isfield(runs.csflux.off.shelfwater, 'envelope')
+                                            normtrans = sum(runs.csflux.off.shelfwater.itrans);
 
                                             figure(9)
                                             subplot(2,1,1)
                                             hold on
                                             hline = plot(runs.csflux.time/86400, ...
-                                                         runs.csflux.west.shelfwater.envelope/ runs.rrshelf, ...
+                                                         runs.csflux.off.shelfwater.envelope/ runs.rrshelf, ...
                                                          'Color', colors(ii,:));
                                             addlegend(hline, runs.name);
                                             xlabel('Time');
@@ -320,8 +320,8 @@ function [] = compare_plot(runs,num)
 
                                             subplot(2,1,2)
                                             hold on;
-                                            plot(runs.csflux.west.shelfwater.bins/runs.rrshelf, ...
-                                                 runs.csflux.west.shelfwater.itrans./normtrans, 'color', colors(ii,:));
+                                            plot(runs.csflux.off.shelfwater.bins/runs.rrshelf, ...
+                                                 runs.csflux.off.shelfwater.itrans./normtrans, 'color', colors(ii,:));
                                             ylabel('Total volume transported');
                                             xlabel('Bin = location / RR_{shelf} ');
                                         end
@@ -331,7 +331,7 @@ function [] = compare_plot(runs,num)
                                             figure(10)
                                             subplot(2,1,1)
                                             hold all
-                                            hline = plot(runs.csflux.time/86400, runs.csflux.west.shelf, ...
+                                            hline = plot(runs.csflux.time/86400, runs.csflux.off.shelf, ...
                                                          'Color', colors(ii,:));
                                             addlegend(hline, runs.name);
 

@@ -23,9 +23,9 @@ function [] = plot_fluxes(runs, isobath, source)
     hfig3 = []; %figure; % hovmoeller plots (z,t)
     hfig4 = []; %figure; % flux time-series
     hfig5 = []; %figure; % flux time-series at isobath
-    hfig6 = []; %figure; % flux cross-sections
+    hfig6 = figure; % flux cross-sections
     hfig7 = []; %figure; % streamer vmax
-    hfig8 = figure; % debug flux parameterization
+    hfig8 = []; %figure; % debug flux parameterization
     hfig9 = []; %figure; % vertical structure at maxloc
 
     hsb = runs.bathy.hsb;
@@ -40,7 +40,7 @@ function [] = plot_fluxes(runs, isobath, source)
         insertAnnotation([runs.name '.plot_fluxes']);
         subplot(121)
         lightDarkLines(n);
-        plot(runs.csflux.west.slopewater.vertitrans(:,isobath,source), ...
+        plot(runs.csflux.off.slopewater.vertitrans(:,isobath,source), ...
              runs.csflux.vertbins(:,isobath));
         liney(-1 * runs.bathy.hsb);
         legend(cellstr(num2str(runs.csflux.h(isobath)', '%.2f')), ...
@@ -58,12 +58,12 @@ function [] = plot_fluxes(runs, isobath, source)
         isochoose = 2:5;
         for iso=isochoose %length(runs.csflux.ix)
                           % this doesn't account for eddy transiting through isobath
-                          %fluxvec = runs.csflux.west.slopewater.vertitrans(:, ...
+                          %fluxvec = runs.csflux.off.slopewater.vertitrans(:, ...
                           %                                                 iso,iso);
-                          % [start,stop] = runs.flux_tindices(runs.csflux.west.slope(:, iso,iso));
+                          % [start,stop] = runs.flux_tindices(runs.csflux.off.slope(:, iso,iso));
             [~,~,start] = runs.locate_resistance;
             fluxvec = trapz(runs.csflux.time(start:end), ...
-                            runs.csflux.west.slopezt(:,start:end,iso,iso), 2);
+                            runs.csflux.off.slopezt(:,start:end,iso,iso), 2);
 
             zvec = runs.csflux.vertbins(:,iso)./hsb;
             trans = trapz(zvec, fluxvec);
@@ -114,7 +114,7 @@ function [] = plot_fluxes(runs, isobath, source)
         insertAnnotation([runs.name '.plot_fluxes']);
         for index=isobath
             zvec = runs.csflux.vertbins(:,index);
-            slopezt = runs.csflux.west.slopezt(:,:,index,source);
+            slopezt = runs.csflux.off.slopezt(:,:,index,source);
 
             subplot(2,ceil(n/2),index)
             pcolorcen(ti, zvec, slopezt);
@@ -130,7 +130,7 @@ function [] = plot_fluxes(runs, isobath, source)
         figure(hfig4)
         insertAnnotation([runs.name '.plot_fluxes']);
         lightDarkLines(n);
-        plot(ti, runs.csflux.west.slope(:,isobath, source));
+        plot(ti, runs.csflux.off.slope(:,isobath, source));
         legend(cellstr(num2str(runs.csflux.h', '%.0f')), ...
                'Location', 'NorthWest');
         title(runs.name);
@@ -145,12 +145,12 @@ function [] = plot_fluxes(runs, isobath, source)
         lightDarkLines(n);
         for ii=1:length(isobath)
             hplt(ii) = plot(ti, ...
-                            runs.csflux.west.slope(:,isobath(ii), ...
+                            runs.csflux.off.slope(:,isobath(ii), ...
                                                    isobath(ii)));
             [~, maxloc] = runs.calc_maxflux( ...
-                runs.csflux.west.slope(:,isobath(ii), ...
+                runs.csflux.off.slope(:,isobath(ii), ...
                                        isobath(ii)));
-            plot(ti(maxloc), runs.csflux.west.slope(maxloc,isobath(ii), ...
+            plot(ti(maxloc), runs.csflux.off.slope(maxloc,isobath(ii), ...
                                                     isobath(ii)), ...
                  'kx')
         end
@@ -171,7 +171,7 @@ function [] = plot_fluxes(runs, isobath, source)
 
         ix = runs.csflux.ix(isobath);
         [~,tindex] = runs.calc_maxflux(...
-            runs.csflux.west.slope(:,isobath,isobath));;
+            runs.csflux.off.slope(:,isobath,isobath));;
 
         % tindex = 55;
         % vnorm = runs.eddy.V(tindex);
@@ -250,7 +250,7 @@ function [] = plot_fluxes(runs, isobath, source)
         % % idmask = repmat(xvec < xfrac, [runs.rgrid.N 1]);
 
         % diagnosed flux
-        flux = runs.csflux.west.slope(tindex,isobath,isobath)
+        flux = runs.csflux.off.slope(tindex,isobath,isobath)
         % should agree with above
         vtrue = trapz(xvec, trapz(zvec, repnan(csvel .* mask,0), 2), 1)
 
@@ -266,9 +266,9 @@ function [] = plot_fluxes(runs, isobath, source)
             maximize;
 
             ax(1) = subplot(221);
-            [~,h1] = contourf(xvec, zvec, csvel', 20);
+            [~,h1] = contourf(xvec/1000, zvec, csvel', 20);
             hold on
-            contour(xvec/1000, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
+            contour(xvec/1000, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
             runs.add_timelabel(tindex);
             xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
             title(['Cross-shelf velocity (m/s) | ' runs.name]);
@@ -282,7 +282,7 @@ function [] = plot_fluxes(runs, isobath, source)
             ax(2) = subplot(224);
             pcolorcen(xvec/1000, zvec, runs.sgntamp*(csdye'-runs.bathy.xsb)/1000); % .* mask
             hold on; shading interp
-            contour(xvec/1000, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
+            contour(xvec/1000, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
             hcb = colorbar;
             xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
             title(['Cross-shelf dye (km) | ' runs.name]);
@@ -301,7 +301,7 @@ function [] = plot_fluxes(runs, isobath, source)
             contour(xvec/1000, zvec, rho', 30, 'k'); % .* mask
             clim = caxis;
             hold on; shading interp;
-            contour(xvec/1000, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
+            contour(xvec/1000, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
             caxis(clim);
             colorbar;
             xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
@@ -330,7 +330,7 @@ function [] = plot_fluxes(runs, isobath, source)
 
             figure(hfig6)
             subplot(222);
-            plot(abs(trapz(xvec, repnan(csvel.*mask',0), 1)), zvec);
+            plot(abs(trapz(xvec, repnan(csvel.*mask,0), 1)), zvec);
             beautify;
             ylabel('Z (m)');
             xlabel('|Transport| (m^2/s)');
@@ -388,7 +388,7 @@ function [] = plot_fluxes(runs, isobath, source)
 
         lightDarkLines(length(runs.csflux.ix));
         plot(runs.csflux.time/86400, ...
-             runs.csflux.west.slopewater.vmax(:,isobath) ./ ...
+             runs.csflux.off.slopewater.vmax(:,isobath) ./ ...
              runs.eddy.V(1));
         liney(1);
         legend(cellstr(num2str(runs.csflux.ndloc(isobath)', '%.2f')), ...
@@ -407,14 +407,14 @@ function [] = plot_fluxes(runs, isobath, source)
         lightDarkLines(length(isobath));
         for ii=isobath
             [~,maxloc] = runs.calc_maxflux(ii);
-            fluxvec = runs.csflux.west.slopezt(:,maxloc,ii,ii);
+            fluxvec = runs.csflux.off.slopezt(:,maxloc,ii,ii);
             zvec = runs.csflux.vertbins(:,ii);
             ideal = runs.streamer_ideal_profile(ii);
 
             plot(fluxvec./max(fluxvec), zvec);
             plot(ideal, zvec, 'k--');
             if length(isobath) == 1
-                fluxvec = runs.csflux.west.slopewater.vertitrans(:,ii,ii);
+                fluxvec = runs.csflux.off.slopewater.vertitrans(:,ii,ii);
                 plot(fluxvec./max(fluxvec), zvec);
                 legend('Instantaneous', 'Ideal', 'Total', ...
                        'Location', 'SouthEast');
@@ -428,7 +428,7 @@ function [] = plot_fluxes(runs, isobath, source)
         lightDarkLines(length(isobath));
         for ii=isobath
             [~,maxloc] = runs.calc_maxflux(ii);
-            plot(runs.csflux.west.slopezt(:,maxloc,ii,source), ...
+            plot(runs.csflux.off.slopezt(:,maxloc,ii,source), ...
                  runs.csflux.vertbins(:,ii));
         end
         legend(num2str(runs.csflux.h(isobath)', '%d'), 'Location', 'SouthEast');

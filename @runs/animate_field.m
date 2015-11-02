@@ -34,7 +34,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     csdcontourplot = 1; % contour csd contours
     try
-        isobath = [4 6 8];
+        isobath = [2 3 4];
         isobath(isobath > length(runs.csflux.x)) = [];
         csdcontours = runs.csflux.x(isobath);
     catch ME
@@ -90,7 +90,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
             %%% cross-sb shelf water flux
             tvec = runs.csflux.time/86400;
             for kkk=1:length(isobath)
-                vec(:,kkk) = runs.csflux.west.slope(:,isobath(kkk), ...
+                vec(:,kkk) = runs.csflux.off.slope(:,isobath(kkk), ...
                                                     isobath(kkk));
             end
 

@@ -29,7 +29,7 @@ function [] = animate_streamer_section(runs)
     % before time loop
     w = avg1(dc_roms_read_data(runs.dir, 'w', tindices, ...
                                {'y' 1 yend},[],runs.rgrid),3);
-    wstr = reshape(w,sz4dsp) .* runs.streamer.west.mask(:,t0:tend);
+    wstr = reshape(w,sz4dsp) .* runs.streamer.off.mask(:,t0:tend);
     clear w
 
     % grid matrices required for plotting
@@ -49,9 +49,9 @@ function [] = animate_streamer_section(runs)
         tind = t0+tt-1;
 
         % get section locations & make grid matrices
-        xstr = runs.streamer.west.xstr{tind};
-        ystr = runs.streamer.west.ystr{tind};
-        dstr = repmat(runs.streamer.west.dstr{tind},[1 runs.rgrid.N]);
+        xstr = runs.streamer.off.xstr{tind};
+        ystr = runs.streamer.off.ystr{tind};
+        dstr = repmat(runs.streamer.off.dstr{tind},[1 runs.rgrid.N]);
 
         ixmin = find_approx(xr(:,1),min(xstr));
         ixmax = find_approx(xr(:,1),max(xstr));
@@ -70,7 +70,7 @@ function [] = animate_streamer_section(runs)
         tindex = t0+tt-1;
         zlimit = [-1000 0];
 
-        streamer = reshape(full(runs.streamer.west.mask(:,t0+tt-1)) ...
+        streamer = reshape(full(runs.streamer.off.mask(:,t0+tt-1)) ...
                            ,sz3dfull);
 
         % read velocities & dyes in block form
@@ -89,7 +89,7 @@ function [] = animate_streamer_section(runs)
         xvmat = xvmat/1000; yvmat = yvmat/1000;
         xrmat = xrmat/1000; yrmat = yrmat/1000;
 
-        if runs.streamer.west.fit_circle
+        if runs.streamer.off.fit_circle
             N = runs.rgrid.N;
 
             % bathymetry along streamer
@@ -185,8 +185,8 @@ function [] = animate_streamer_section(runs)
             %strstr = round(reshape(F(xin,yin,zin), [N numel(xin)/N])');
 
         else
-            ixstr = runs.streamer.west.ixstr{tind};
-            iystr = runs.streamer.west.iystr{tind};
+            ixstr = runs.streamer.off.ixstr{tind};
+            iystr = runs.streamer.off.iystr{tind};
             indices = sub2ind(sz4dfull(1:2),ixstr,iystr);
 
             zlin = reshape(zr,sz3d2d);
@@ -248,9 +248,9 @@ function [] = animate_streamer_section(runs)
 
         figure(hfig);
         if tt == 1
-            limy = [0 nanmax(cat(1,runs.streamer.west.ystr{:}))+ ...
+            limy = [0 nanmax(cat(1,runs.streamer.off.ystr{:}))+ ...
                     10*runs.rgrid.dy/1000];
-            limx = [nanmin(cat(1,runs.streamer.west.xstr{:})) ...
+            limx = [nanmin(cat(1,runs.streamer.off.xstr{:})) ...
                     400]; % CHANGE THIS
             limz = [-1000 0];
 

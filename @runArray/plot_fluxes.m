@@ -9,8 +9,8 @@ function [] = plot_fluxes(runArray, isobath, source)
 
     corder_backup = runArray.sorted_colors;
 
-    hfig1 = []; %figure; ax1(1) = subplot(2,1,1); hold all; % shelf water flux time series
-                %ax1(2) = subplot(2,1,2); hold all;
+    hfig1 = figure; ax1(1) = subplot(2,1,1); hold all; % shelf water flux time series
+    ax1(2) = subplot(2,1,2); hold all;
 
     hfig2 = figure; hold all % integrated vertical structure / baroclinicity
 
@@ -25,9 +25,9 @@ function [] = plot_fluxes(runArray, isobath, source)
 
     hfig7 = []; %figure; hold on; % cross-shore bins
 
-    hfig8 = []; %figure; hold on; % streamer max. vel.
+    hfig8 = figure; hold on; % streamer max. vel.
 
-    hfig9 = figure; hold all;% instantaneous streamer vertical structure
+    hfig9 = []; %figure; hold all;% instantaneous streamer vertical structure
 
     nsmooth = 1;
 
@@ -58,12 +58,12 @@ function [] = plot_fluxes(runArray, isobath, source)
         fluxscl = 1; %run.eddyfluxscale;
         transscl = 1; He * Le^2;
 
-        fluxvec = run.csflux.west.slope(:,isobath, source);
+        fluxvec = run.csflux.off.slope(:,isobath, source);
         [start,stop] = run.flux_tindices(fluxvec);
-        ifluxvec = run.csflux.west.itrans.slope(:,isobath, source);
+        ifluxvec = run.csflux.off.itrans.slope(:,isobath, source);
         ttrans = max(abs(ifluxvec));
         ttransv = abs(trapz(run.csflux.vertbins(:,isobath), ...
-                        run.csflux.west.slopewater.vertitrans(:,isobath,source)));
+                        run.csflux.off.slopewater.vertitrans(:,isobath,source)));
 
         % ndtime = run.csflux.time/run.eddy.turnover;
         ndtime = run.csflux.time/run.csflux.time(start);
@@ -91,30 +91,28 @@ function [] = plot_fluxes(runArray, isobath, source)
         if ~isempty(hfig2)
             figure(hfig2)
             profile = ...
-                run.csflux.west.slopewater.vertitrans(:,isobath,source);
+                run.csflux.off.slopewater.vertitrans(:,isobath,source);
             vertbins = run.csflux.vertbins(:,isobath);
             zvec = vertbins ./ hsb; %max(abs(vertbins));
             zind = find_approx(vertbins, -1*hsb);
 
-            [~,~,zwidth,~] = run.streamer_peak(isobath);
+            [~,~,zwidth,~] = run.streamer_peak(isobath)
             if ~isnan(zwidth)
                 zind = [zind find_approx(vertbins, zwidth)];
             end
 
             bc = baroclinicity(zvec, profile);
             profile = profile ./ max(profile);
-            hgplt2(ff) = plot(profile, zvec, 'Color', hgplt1(ff).Color);
-            plot(profile(zind), zvec(zind), 'x', ...
-                 'Color', hgplt1(ff).Color);
-            names2{ff} =  [names{ff} ' | bc = ' num2str(bc, ...
-                                                        '%.3f')];
+            hgplt2(ff) = plot(profile, zvec, 'Color',hgplt1(ff).Color);
+            plot(profile(zind), zvec(zind), 'x', 'Color', hgplt1(ff).Color);
+            names2{ff} =  [names{ff} ' | bc = ' num2str(bc, '%.3f')];
         end
 
         %%%%%%%%%%%%% ENVELOPE
         if ~isempty(hfig3)
             figure(hfig3)
             % change from envelope to depth
-            env = run.csflux.west.slopewater.envelope(:,isobath,1);
+            env = run.csflux.off.slopewater.envelope(:,isobath,1);
             env(isnan(env)) = max(env);
             ind = vecfind(run.rgrid.y_rho(:,1), env);
             %metric = run.bathy.h(1,ind)./run.bathy.hsb .* ...
@@ -173,9 +171,9 @@ function [] = plot_fluxes(runArray, isobath, source)
             clear vnd y0oL
             for kk=1:length(yoR)
                 [start, stop] = ...
-                    run.flux_tindices(run.csflux.west.slopewater.vmax(:,kk));
+                    run.flux_tindices(run.csflux.off.slopewater.vmax(:,kk));
                 [vsmax,maxind] = ...
-                    max(run.csflux.west.slopewater.vmax(start:stop,kk), [],1);
+                    max(run.csflux.off.slopewater.vmax(start:stop,kk), [],1);
                 % swirl velocity at ζ = 0 contour
                 vscale = sqrt(2/exp(1))*run.eddy.V(start+maxind-1);
                 vnd(kk) = vsmax/vscale;
@@ -192,17 +190,17 @@ function [] = plot_fluxes(runArray, isobath, source)
             figure(hfig7)
             xsb = run.bathy.xsb;
 
-            bins = avg1(run.csflux.west.bins{isobath}, 2);
-            itrans = run.csflux.west.slopewater.itrans{isobath};
+            bins = avg1(run.csflux.off.bins{isobath}, 2);
+            itrans = run.csflux.off.slopewater.itrans{isobath};
             hgplt7(ff) = plot((bins-xsb)./R, itrans./ttrans);
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%%% STREAMER MAX VEL
         if ~isempty(hfig8)
             figure(hfig8)
-            [start,~] = run.flux_tindices(run.csflux.west.slope(:,isobath,isobath));
+            [start,~] = run.flux_tindices(run.csflux.off.slope(:,isobath,isobath));
             hgplt8(ff) = plot(ndtime, ...
-                              run.csflux.west.slopewater.vmax(:,isobath) ...
+                              run.csflux.off.slopewater.vmax(:,isobath) ...
                               / run.eddy.V(1), 'Color', hgplt1(ff).Color);
         end
 
@@ -210,9 +208,9 @@ function [] = plot_fluxes(runArray, isobath, source)
         if ~isempty(hfig9)
             figure(hfig9)
 
-            [~,tind] = run.calc_maxflux(run.csflux.west.slope(:,isobath,source));
+            [~,tind] = run.calc_maxflux(run.csflux.off.slope(:,isobath,source));
             zvec = run.csflux.vertbins(:,isobath)./run.bathy.hsb;
-            actual = run.csflux.west.slopezt(:,tind,isobath,source);
+            actual = run.csflux.off.slopezt(:,tind,isobath,source);
             actual = actual./max(actual);
             ideal = run.streamer_ideal_profile(isobath);
             hgplt9(ff) = plot(actual, zvec);

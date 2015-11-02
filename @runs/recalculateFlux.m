@@ -7,7 +7,7 @@ function [fluxvec] = recalculateFlux(runs, depth, isobath, source, debug)
     if ~exist('debug', 'var'), debug = 0; end
 
     vertbins = runs.csflux.vertbins(:,isobath);
-    slopezt = runs.csflux.west.slopezt(:,:, isobath, source);
+    slopezt = runs.csflux.off.slopezt(:,:, isobath, source);
 
     zind = find_approx(vertbins, -abs(depth), 1);
 
@@ -17,7 +17,7 @@ function [fluxvec] = recalculateFlux(runs, depth, isobath, source, debug)
         figure;
         plot(fluxvec);
         hold on
-        plot(runs.csflux.west.slope(:,isobath,source));
+        plot(runs.csflux.off.slope(:,isobath,source));
         legend(num2str(depth), 'Total');
     end
 end

@@ -14,9 +14,9 @@ function [] = detect_streamer_mask(runs)
     % allocate memory
     nanvec = nan(size(runs.time));
     runs.streamer.time = nanvec;
-    runs.streamer.west.vol = nanvec;
-    runs.streamer.west.zcen = nanvec;
-    runs.streamer.west.zdcen = nanvec;
+    runs.streamer.off.vol = nanvec;
+    runs.streamer.off.zcen = nanvec;
+    runs.streamer.off.zdcen = nanvec;
 
     % grid matrices required for plotting
     xsb = runs.bathy.xsb/1000;
@@ -37,7 +37,7 @@ function [] = detect_streamer_mask(runs)
     runs.streamer.sz3dfull = size(zr);
 
     % allocate streamer mask variable
-    runs.streamer.west.mask = sparse(runs.streamer.sz4dsp(1),szeta(3));
+    runs.streamer.off.mask = sparse(runs.streamer.sz4dsp(1),szeta(3));
 
     % grid cell volume
     dVs = reshape(runs.rgrid.dV(:,1:runs.streamer.yend,:), ...
@@ -143,20 +143,20 @@ function [] = detect_streamer_mask(runs)
         end
 
         % filter and save
-        runs.streamer.west.mask(:,tstart:tend) = sparse(reshape( ...
+        runs.streamer.off.mask(:,tstart:tend) = sparse(reshape( ...
             bsxfun(@times,streamer1,stream), ...
             sz4dsp));
         %clear west_mask streamer1 stream strtemp;
 
         % compress somehow
-        %streamnan = fillnan(runs.streamer.west.mask,0);
+        %streamnan = fillnan(runs.streamer.off.mask,0);
         % calculate statistics
         %xs = bsxfun(@times, streamnan, xr);
         %ys = bsxfun(@times, streamnan, yr);
-        zs = bsxfun(@times, runs.streamer.west.mask(:,tstart:tend), ...
+        zs = bsxfun(@times, runs.streamer.off.mask(:,tstart:tend), ...
                     reshape(zr,sz3dsp));
 
-        zdyestr = runs.streamer.west.mask(:,tstart:tend) .* ...
+        zdyestr = runs.streamer.off.mask(:,tstart:tend) .* ...
                   reshape(zdye,sz4dsp);
         %csdyestr = bsxfun(@times, streamnan, csdye);
 
@@ -164,19 +164,19 @@ function [] = detect_streamer_mask(runs)
         %dzd  = abs(zdyestr - zs);
 
         % calculate volume
-        runs.streamer.west.vol(tstart:tend) = runs.domain_integratesp( ...
-            runs.streamer.west.mask(:,tstart:tend), dVs);
+        runs.streamer.off.vol(tstart:tend) = runs.domain_integratesp( ...
+            runs.streamer.off.mask(:,tstart:tend), dVs);
 
         % Haven't used temperature yet
 
         % suffix cen = just centroids
         % suffix dcen = centroid weighted by dye value
-        runs.streamer.west.zcen(tstart:tend) = bsxfun(@rdivide, ...
+        runs.streamer.off.zcen(tstart:tend) = bsxfun(@rdivide, ...
                                                       runs.domain_integratesp(zs,dVs), ...
-                                                      runs.streamer.west.vol(tstart:tend));
-        runs.streamer.west.zdcen(tstart:tend) = bsxfun(@rdivide,...
+                                                      runs.streamer.off.vol(tstart:tend));
+        runs.streamer.off.zdcen(tstart:tend) = bsxfun(@rdivide,...
                                                        runs.domain_integratesp(zdyestr,dVs), ...
-                                                       runs.streamer.west.vol(tstart:tend));
+                                                       runs.streamer.off.vol(tstart:tend));
 
         % volume v/s depth plot for streamer
         % VECTORIZE SOMEHOW
@@ -186,13 +186,13 @@ function [] = detect_streamer_mask(runs)
         bins = -1*[0:dbin:1000];
         % required so that 0 bin doesn't get a ton of points
         %zsf = fillnan(full(zs),0);
-        %sz = size(runs.streamer.west.mask(:,tstart:tend));
+        %sz = size(runs.streamer.off.mask(:,tstart:tend));
         parfor kk=1:length(bins)-1
             temparray(kk,:) = sum(bsxfun(@times, ...
                                          (zs < bins(kk) & zs >= bins(kk+1)), ...
                                          dVs),1);
         end
-        runs.streamer.west.Vbin(:,tstart:tend) = temparray;
+        runs.streamer.off.Vbin(:,tstart:tend) = temparray;
         runs.streamer.bins = bins;
         toc;
     end

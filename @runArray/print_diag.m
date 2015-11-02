@@ -600,7 +600,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
             end
 
             if ~isfield(run.csflux, 'time') || ...
-                    isobath > size(run.csflux.west.slope, 3)
+                    isobath > size(run.csflux.off.slope, 3)
                 disp(['Skipping ' run.name]);
                 continue;
             end
@@ -609,7 +609,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
             integrate_zlimit = 2*hsb; % calculate flux above this depth
 
             fluxvec = run.recalculateFlux(integrate_zlimit, isobath, source);
-            % fluxvec = run.csflux.west.slope(:, isobath, source);
+            % fluxvec = run.csflux.off.slope(:, isobath, source);
             [maxflux, maxloc] = run.calc_maxflux(fluxvec);
             %maxflux = run.calc_avgflux(fluxvec);
             [~,~,restind] = run.locate_resistance;
@@ -617,7 +617,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
 
             if ~isfield(run.eddy, 'rhovor'), continue; end
 
-            % maxflux = max(run.csflux.west.slope(:,isobath, isobath));
+            % maxflux = max(run.csflux.off.slope(:,isobath, isobath));
             H = run.bathy.h(1, run.csflux.ix(isobath));
 
             % for parameterization
@@ -633,7 +633,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
             % 2.3 factor is taken care of later.
             V0 = V(tind); L0 = median(L(1:tind)); Lz0 = Lz(tind);
 
-            if hsb/Lz0 > 0.4 && isobath < 3
+            if hsb/Lz0 > 0.4 & isobath < 3 & run.bathy.sl_shelf == 0
                 warning('skipping because splitting is probably happening.');
                 continue;
             end
@@ -668,7 +668,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
                 %fluxscl = abs(V0) * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
                 %          * int(1 - erf(-z/Lz0), z, -H, 0); % works well
                 ideal = run.streamer_ideal_profile(isobath, maxloc);
-                %ideal = run.csflux.west.slopewater.vertitrans(:,isobath,isobath);
+                %ideal = run.csflux.off.slopewater.vertitrans(:,isobath,isobath);
                 ideal = ideal./max(ideal);
                 fluxscl = abs(V0) * L/2 * exp(-xfrac^2-y0oL^2) ...
                           * trapz(zvec, ideal);
@@ -735,7 +735,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
             zmax = [];
             kk = 1;
             for iso=args(1)%length(run.csflux.x)
-                vec = smooth(run.csflux.west.slopewater.vertitrans(:,iso,iso), ...
+                vec = smooth(run.csflux.off.slopewater.vertitrans(:,iso,iso), ...
                              nsmooth);
                 zvec = run.csflux.vertbins(:,iso);
 
@@ -774,19 +774,19 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
             parameterize = 1;
             iso = args(1);
 
-            if iso > size(run.csflux.west.slope, 3), continue; end
+            if iso > size(run.csflux.off.slope, 3), continue; end
 
             [~,~,zwidth] = run.streamer_peak(iso);
             prediction = run.predict_zpeak(iso, []);
 
-            name_points = 0;
+            name_points = 1;
 
             diags(ff) = abs(zwidth(1));
             plotx(ff) = abs(prediction);
 
             labx = 'Prediction (m)';
             laby = 'Observed peak width (m)';
-            force_0intercept = 1;
+            force_0intercept = 0;
             % continuity
             %Lz0 = Lz(maxloc);
             %fn = hsb * (1-erf(hsb/Lz0)) + Lz0/sqrt(pi)*(1 - exp(-(hsb/Lz0)^2));
@@ -802,12 +802,12 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
             end
 
             if ~isfield(run.csflux, 'time') || ...
-                    isobath > size(run.csflux.west.slope, 2)
+                    isobath > size(run.csflux.off.slope, 2)
                 continue;
             end
 
             [avgflux, err] = ...
-                run.calc_avgflux(run.csflux.west.slope(:,isobath, isobath));
+                run.calc_avgflux(run.csflux.off.slope(:,isobath, isobath));
 
             H = run.csflux.h(isobath);
             R = run.csflux.R;
@@ -883,7 +883,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
             [maxflux, maxloc] = run.calc_maxflux;
 
             vxt = run.csflux.shelfxt(:,:,1) .* ...
-                  run.csflux.westmask./run.bathy.hsb;
+                  run.csflux.offmask./run.bathy.hsb;
 
             diags(ff) = mean(vxt(:,maxloc) .* (vxt(:,maxloc) > 0));
             plotx(ff) = V(tind);
@@ -957,7 +957,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
         %%%%% test critical iflux hypothesis for eddy to
         %%%%% start moving northward
         if strcmpi(name, 'critical flux')
-            iflux = run.csflux.west.itrans.shelf(:,1);
+            iflux = run.csflux.off.itrans.shelf(:,1);
             dcy = diff(run.eddy.vor.cy);
 
             % make sure my time vectors are the same
@@ -973,14 +973,14 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
             %figure;
             %plotyy(run.eddy.t, run.eddy.vor.cy, ...
             %       run.csflux.time/86400, ...
-            %       run.csflux.west.shelf(:,1));
+            %       run.csflux.off.shelf(:,1));
             %linex(run.eddy.t(ind));
 
             %run.animate_zeta(ind, 1);
 
             % Get Flux at ind
             run.csflux.critrans = ...
-                run.csflux.west.itrans.shelf(ind,1);
+                run.csflux.off.itrans.shelf(ind,1);
 
             diags(ff) = run.csflux.critrans;
         end

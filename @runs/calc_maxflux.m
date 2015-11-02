@@ -4,7 +4,7 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin, debug)
     if ~exist('debug', 'var'), debug = 0; end
 
     if numel(fluxin) == 1
-        fluxin = runs.csflux.west.slope(:,fluxin,fluxin);
+        fluxin = runs.csflux.off.slope(:,fluxin,fluxin);
     end
 
     iflux = cumtrapz(runs.csflux.time, fluxin);

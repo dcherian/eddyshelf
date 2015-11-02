@@ -16,7 +16,7 @@ function [] = avgStreamerVelSection(runs)
 
     for isobath = 1:niso
         source = isobath;
-        [start,stop] = runs.flux_tindices(runs.csflux.west.slope(:, isobath, source));
+        [start,stop] = runs.flux_tindices(runs.csflux.off.slope(:, isobath, source));
         tindices = [start stop];
         ix = runs.csflux.ix(isobath); % WORKAROUND FOR CSFLUXES BUG
         volr = {runs.bathy.axis ix ix};
