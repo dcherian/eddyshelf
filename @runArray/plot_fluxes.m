@@ -25,7 +25,7 @@ function [] = plot_fluxes(runArray, isobath, source)
 
     hfig7 = []; %figure; hold on; % cross-shore bins
 
-    hfig8 = figure; hold on; % streamer max. vel.
+    hfig8 = []; %figure; hold on; % streamer max. vel.
 
     hfig9 = []; %figure; hold all;% instantaneous streamer vertical structure
 
@@ -96,7 +96,7 @@ function [] = plot_fluxes(runArray, isobath, source)
             zvec = vertbins ./ hsb; %max(abs(vertbins));
             zind = find_approx(vertbins, -1*hsb);
 
-            [~,~,zwidth,~] = run.streamer_peak(isobath)
+            [~,~,zwidth,~] = run.streamer_peak(isobath);
             if ~isnan(zwidth)
                 zind = [zind find_approx(vertbins, zwidth)];
             end

@@ -22,11 +22,11 @@ function [] = plot_yzsection(runs, days, loc)
     nt = length(tindices);
 
     hf1 = figure; maximize();% - eddye
-    hf2 = figure; maximize();% - rho
-    %hf3 = figure; maximize();% - zdye
-    hf4 = figure; maximize();% - u
-    hf5 = figure; maximize();% - v
-    hf6 = figure; maximize();% - csdye
+    %hf2 = figure; maximize();% - rho
+    % hf3 = figure; maximize();% - zdye
+    %hf4 = figure; maximize();% - u
+    %hf5 = figure; maximize();% - v
+    %hf6 = figure; maximize();% - csdye
     %zdback = double(squeeze(ncread(runs.out_file, runs.zdname, ...
     %                               [1 1 1 1], [1 Inf Inf
     %                               1])));
@@ -293,7 +293,7 @@ function common(obj, hf, yz, zmat, drho, ed, ii, days, loc, tindices)
 
     figure(hf);
     text(0.05 , 0.05, {['t = ' num2str(days(ii)) ' days']; ...
-                       ['y = ' num2str(str2double(loc)/1000, '%3.0f') ' km']}, ...
+                       ['x = ' num2str(str2double(loc)/1000, '%3.0f') ' km']}, ...
          'Units', 'normalized', 'Color', 'w');
 
     if ii == 1, ylabel('Z (m)'); end

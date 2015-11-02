@@ -583,8 +583,8 @@ classdef runArray < handle
                 cerr(ii) = Perr(2);
             end
 
-            linkaxes(hax, 'xy');
-            ylim([0 0.25]);
+            %linkaxes(hax, 'xy');
+            %ylim([0 0.25]);
             hax(1).YTick = hax(1).YTick(2:end);
             hax(4).YTick = hax(4).YTick(2:end);
             %hax(7).YTick = hax(7).YTick(2:end);
@@ -600,6 +600,8 @@ classdef runArray < handle
             hax(8).XLabel.String = labx;
             hax(4).YLabel.String = laby;
 
+            axes(hax(2));
+            title(['Integrated to 2H_{sb}']);
             % save to file
             fname = ['./params/param_' str];
             slope = mplt;
