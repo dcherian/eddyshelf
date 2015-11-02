@@ -52,16 +52,16 @@ function [v, mask] = makeStreamerSection(runs, isobath, maxloc, V0, L0, Lz0)
         xline = 0;
     end
 
-    if abs(runs.csflux.x(isobath) - runs.bathy.xsb) < 2000
+    %if abs(runs.csflux.x(isobath) - runs.bathy.xsb) < 2000
         % if close to shelfbreak use barotropic mask
-        mask = xmat < 0;
-        v = repmat(v(:,1), [1 size(v,2)]);
-    else
+        %    mask = xmat < 0;
+        %v = repmat(v(:,1), [1 size(v,2)]);
+        %else
         eddymask = ((xmat.^a + zmat.^a) > 1.0^a) .* (zmat < -width);
         %kinkmask = (((xmat-x0)/kxrad).^2 + ((zmat-z0)/kzrad).^2) <= 1;
-        kinkmask = ((xmat.^a + zmat.^a) > 0.7^a) .* (zmat > -width);
+        kinkmask = ((xmat.^a + zmat.^a) > 0.7^a) .* (zmat >= -width);
         mask = (xmat < xline) & (eddymask | kinkmask);
-    end
+        %end
 
     if debug
         figure;
