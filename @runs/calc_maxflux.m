@@ -52,6 +52,7 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin, debug)
     % for really deep shelfbreak runs, the second peak
     % is artificially small because of the splitting.
     if ~isempty(findstr(runs.name, 'ew-0')) | ...
+            ~isempty(findstr(runs.name, 'ew-1')) | ...
             ~isempty(findstr(runs.name, '1_wider')) | ...
             ~isempty(findstr(runs.name, '3_wider'))
         maxloc = locs(1);
@@ -70,8 +71,11 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin, debug)
     if strcmpi(runs.name, 'ew-2365-75km')
         maxloc = locs(2);
     end
+
     % with bottom friction, choose first peak
-    if ~isempty(strfind(runs.name, 'ew-5'))
+    % sloping shelf too
+    if ~isempty(strfind(runs.name, 'ew-5')) ...
+            | ~isempty(strfind(runs.name, 'ew-8'))
         maxloc = locs(1);
     end
 
