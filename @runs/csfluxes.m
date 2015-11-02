@@ -582,6 +582,9 @@ function [] = csfluxes(runs, ftype)
     % save fluxes
     runs.csflux.time = time;
 
+    runs.csflux.csvoffmask = csvoffmask;
+    runs.csflux.csvonmask = csvonmask;
+
     hash = githash([mfilename('fullpath') '.m']);
     runs.csflux.hash = hash;
 
