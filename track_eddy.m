@@ -66,9 +66,9 @@ function [eddy] = track_eddy(dir1)
             file = fname;
             [xr,yr,zr,~,~,~,grd] = dc_roms_var_grid(file,'temp');
             tic;
-            zeta = double(ncread(fname,'zeta'));
-            u     = squeeze(double(ncread(fname,'u',[1 1 size(zr,3) 1],[Inf Inf 1 Inf])));
-            v     = squeeze(double(ncread(fname,'v',[1 1 size(zr,3) 1],[Inf Inf 1 Inf])));
+            zeta = single(ncread(fname,'zeta'));
+            u     = squeeze(single(ncread(fname,'u',[1 1 size(zr,3) 1],[Inf Inf 1 Inf])));
+            v     = squeeze(single(ncread(fname,'v',[1 1 size(zr,3) 1],[Inf Inf 1 Inf])));
             toc;
         end
         f = grd.f(2:end-1,2:end-1)';
@@ -103,9 +103,8 @@ function [eddy] = track_eddy(dir1)
 
     zeta = sgn * zeta(2:end-1,2:end-1,:);
     vor = sign(params.phys.f0) * sgn * avg1(avg1( ...
-                    bsxfun(@rdivide, diff(v,1,1), diff(avg1(xr(:,:,1),2),1,1)) ...
-                  - bsxfun(@rdivide, diff(u,1,2), diff(avg1(yr(:,:,1),1),1,2)) ...
-                  ,1),2);
+        bsxfun(@rdivide, diff(v,1,1), diff(avg1(xr(:,:,1),2),1,1)) ...
+        - bsxfun(@rdivide, diff(u,1,2), diff(avg1(yr(:,:,1),1),1,2)),1),2);
 
     xr   = xr(2:end-1,2:end-1,end);
     yr   = yr(2:end-1,2:end-1,end);
@@ -197,14 +196,13 @@ function [eddy] = track_eddy(dir1)
             cy0 = eddy.vor.cy(tt-1);
             mask(ix1:ix2,iy1:iy2) = 1;
             % distance to shelfbreak in *m*
-%            d_sbreak = eddy.cx(tt-1)-sbreak;
+            % d_sbreak = eddy.cx(tt-1)-sbreak;
         end
 
         % interpolate to denser grid
         izeta = interp2(xrgrd,yrgrd,bsxfun(@minus,zeta(:,:,tt), zeta_bg)', ....
                         xrivec', yrivec)';
-        ivor = interp2(xrgrd, yrgrd, vor(:,:,tt)', xrivec', ...
-                       yrivec)';
+        ivor = interp2(xrgrd, yrgrd, vor(:,:,tt)', xrivec', yrivec)';
         irho = interp2(xrgrd, yrgrd, rho(:,:,tt)', xrivec', yrivec)';
 
         % find eddy using surface signatures
@@ -227,12 +225,9 @@ function [eddy] = track_eddy(dir1)
 
         % let's interpolate the masks back to the coarser grid
         imask = interp2(xri,yri,temp.mask',xrgrd,yrgrd,'nearest')';
-        ivormask = interp2(xri,yri,temp.vor.mask',xrgrd,yrgrd, ...
-                           'nearest')';
-        irhovormask = interp2(xri,yri,temp.rhovor.mask',xrgrd,yrgrd, ...
-                           'nearest')';
-        irhosshmask = interp2(xri,yri,temp.rhossh.mask',xrgrd,yrgrd, ...
-                           'nearest')';
+        ivormask = interp2(xri,yri,temp.vor.mask',xrgrd,yrgrd, 'nearest')';
+        irhovormask = interp2(xri,yri,temp.rhovor.mask',xrgrd,yrgrd, 'nearest')';
+        irhosshmask = interp2(xri,yri,temp.rhossh.mask',xrgrd,yrgrd, 'nearest')';
 
         % do more diagnostics
         % [cx,cy] = location of weighted center (first moment)
@@ -295,36 +290,38 @@ function [eddy] = track_eddy(dir1)
         % diagnose vertical scale (fit Gaussian / sine)
         imx = find_approx(xr(:,1),eddy.mx(tt),1);
         imy = find_approx(yr(1,:),eddy.my(tt),1);
+        eddy.imx(tt) = imx + 1; % back to original grid.
+        eddy.imy(tt) = imy + 1;
         ze  = squeeze(zr(imx,imy,:)); % z co-ordinate at center of eddy
         try
-            eddy.T(tt,:) = double(squeeze(ncread(file,tracer,[imx imy 1 tt-tt0], ...
+            eddy.T(tt,:) = single(squeeze(ncread(file,tracer,[imx imy 1 tt-tt0], ...
                             [1 1 Inf 1])));
         catch ME
             disp([' Moving to next file tt = ' num2str(tt) ' - ' char(fnames(kk))]);
             file = [dir1 '/' char(fnames(kk))];
             kk = kk +1;
             tt0 = tt-1;
-            eddy.T(tt,:) = double(squeeze(ncread(file,tracer,[imx imy 1 tt-tt0],[ ...
+            eddy.T(tt,:) = single(squeeze(ncread(file,tracer,[imx imy 1 tt-tt0],[ ...
                                                     1 1 Inf 1])));
         end
 
         try
-            eddy.dyecen(tt,:) = double(squeeze(ncread(file, 'dye_03', [imx imy 1 tt-tt0], ...
+            eddy.dyecen(tt,:) = single(squeeze(ncread(file, 'dye_03', [imx imy 1 tt-tt0], ...
                                                       [1 1 Inf 1])));
         catch ME
         end
 
         eddy.zT(tt,:) = ze;
         if params.bathy.axis == 'x'
-            Ti = double(squeeze(ncread(file, tracer, ...
+            Ti = single(squeeze(ncread(file, tracer, ...
                                        [imx  size(xr,2)  1 tt-tt0],[1 1 Inf 1])));
         else
-            Ti = double(squeeze(ncread(file, tracer, ...
+            Ti = single(squeeze(ncread(file, tracer, ...
                                        [size(xr,1)  imy  1 tt-tt0],[1 1 Inf 1])));
         end
         if strcmpi(tracer, 'rho')
             eddy.T(tt,:) = params.phys.T0 - 1./params.phys.TCOEF * ...
-                    (1000+eddy.T(tt,:) - params.phys.R0)/params.phys.R0;
+                (1000+eddy.T(tt,:) - params.phys.R0)/params.phys.R0;
             Ti = params.phys.T0 - 1./params.phys.TCOEF * ...
                  (1000 + Ti - params.phys.R0)/params.phys.R0;
         end
@@ -334,7 +331,7 @@ function [eddy] = track_eddy(dir1)
         opts = optimset('MaxFunEvals',1e5);
         if ~isfield(params.flags,'vprof_gaussian') || params.flags.vprof_gaussian
             [x2,~,exitflag] = fminsearch(@(x) gaussfit2(x,eddy.T(tt,:)',ze), ...
-                initGuess2,opts);
+                                         initGuess2,opts);
             if ~exitflag
                 x2(2) = NaN;
                 warning('Vertical scale = nan');
@@ -347,12 +344,12 @@ function [eddy] = track_eddy(dir1)
         else
             %fit sinusoid
             [x2,~,exitflag] = fminsearch(@(x) sinefit(x,eddy.T(tt,:)',ze), ...
-                                initGuess,opts);
+                                         initGuess,opts);
             if ~exitflag, x2(2) = NaN; end
             eddy.Lz2(tt) = abs(2*pi/x2(2));
             % save gaussian fit too
             [x2,~,exitflag] = fminsearch(@(x) gaussfit2(x,eddy.T(tt,:)',ze), ...
-                        initGuessGauss,opts);
+                                         initGuessGauss,opts);
             if ~exitflag, x2(2) = NaN; end
             eddy.Lgauss(tt) = abs(x2(2));
             %eddy.Lz3(tt) = NaN;
@@ -381,7 +378,6 @@ function [eddy] = track_eddy(dir1)
             % repeat for ρ contour
             eddy.rhossh.cvx(tt) = (eddy.rhossh.cx(tt) - eddy.rhossh.cx(tt-1))./dt/1000;
             eddy.rhossh.cvy(tt) = (eddy.rhossh.cy(tt) - eddy.rhossh.cy(tt-1))./dt/1000;
-
         end
     end
     %%
@@ -735,7 +731,7 @@ function [in] = extradiags(in, tt, vor, u, v, f, grd)
     in.Ro(tt) = abs(nansum(nansum(Roeddy .* dA, 1),2) / ...
                           in.area(tt));
 
-    KE = (avg1(u(:,2:end-1,tt),1).^2 + avg1(v(2:end-1,:, tt),2).^2);
+    KE = hypot(avg1(u(:,2:end-1,tt),1), avg1(v(2:end-1,:, tt),2));
     in.Vke(tt) = sqrt(nansum(nansum(KE .* dA, 1), 2) / in.area(tt));
 
 function [out] = detect_eddy(maskin, zeta, opt, grd)
