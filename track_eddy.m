@@ -11,7 +11,8 @@ function [eddy] = track_eddy(dir1)
 
         grd = runobj.rgrid;
 
-        if isempty(runobj.zeta)
+        if isempty(runobj.zeta) ...
+                | isequal(runobj.zeta(:,:,1), zeros(size(runobj.zeta(:,:,1))))
             runobj.read_zeta;
         end
         if isempty(runobj.usurf)
