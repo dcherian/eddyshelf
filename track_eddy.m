@@ -558,7 +558,7 @@ function [eddy] = eddy_diag(zeta, vor, rho, ...
 
             % Criterion 7 - solidity must be good - helps get rid of some
             % thin 'isthumuses'
-            %if props.Solidity  < 0.75, continue; end
+            if props.Solidity  < 0.75, continue; end
 
             % Criterion 8 - low 'rectangularity' - gets rid of rectangles
             % that are sometime picked up
@@ -621,7 +621,8 @@ function [eddy] = eddy_diag(zeta, vor, rho, ...
                     rthresh.vor = squeeze(nanmax(nanmax( ...
                         rho .* fillnan(eddy.vor.mask,0), [], 1), [], 2));
                 end
-                eddy.rhovor = detect_eddy(rho < rthresh.vor, zeta, opt, grd);
+                eddy.rhovor = detect_eddy((rho .* eddy.vor.mask) < rthresh.vor, ...
+                                          zeta, opt, grd);
                 eddy.rhossh = detect_eddy(rho < rthresh.ssh, zeta, opt, grd);
                 flag_found = 1;
                 fprintf('Eddy found with threshold %.3f \n', threshold);
