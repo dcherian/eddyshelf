@@ -1725,6 +1725,29 @@ methods
 
     %% analysis
 
+    function [vscale] = predict_verticalscale(runs, debug)
+        if ~exist('debug', 'var'), debug = 0; end
+
+        % Pedlosky pp. 413 (6.15.29)
+        phys = runs.params.phys;
+        D = runs.bathy.hsb;
+        f0 = phys.f0;
+
+        beta_t = -f0/D * runs.bathy.sl_shelf;
+        L = runs.eddy.rhovor.dia(1)/2;
+        K = 2*pi/L;
+        S = phys.N2 * D^2/f0^2/L^2;
+
+        %mu = D * K * sqrt(abs(beta_t * S/(beta_t+phys.beta)));
+        mu = (2*pi/L) * sqrt(phys.N2)/f0 * sqrt(abs(beta_t/(phys.beta+beta_t)));
+        vscale = 2*pi/mu;
+
+        if debug
+            zvec = runs.rgrid.z_r(:,runs.bathy.isb,1);
+            plot(cosh(mu * (zvec)/D), zvec);
+        end
+    end
+
      function [] = plot_csfluxes(runs, iso)
 
          error('deprecated!');
