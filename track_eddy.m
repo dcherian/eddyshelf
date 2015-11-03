@@ -379,6 +379,26 @@ function [eddy] = track_eddy(dir1)
             eddy.rhossh.cvx(tt) = (eddy.rhossh.cx(tt) - eddy.rhossh.cx(tt-1))./dt/1000;
             eddy.rhossh.cvy(tt) = (eddy.rhossh.cy(tt) - eddy.rhossh.cy(tt-1))./dt/1000;
         end
+
+        % do fits to velocity at eddy center
+        umat = avg1(u(:,2:end-1,tt), 1);
+        vmat = avg1(v(2:end-1,:,tt), 2);
+        [V0,L0,X0] = gauss_der_fit(yr(1,:) - eddy.my(tt), umat(imx,:));
+        eddy.fity.V0(tt) = abs(V0); eddy.fity.L(tt) = L0;
+        eddy.fity.x0(tt) = X0 + eddy.my(tt);
+
+        [V0,L0,X0] = gauss_der_fit(xr(:,1) - eddy.mx(tt), vmat(:,imy));
+        eddy.fitx.V0(tt) = abs(V0); eddy.fitx.L(tt) = L0;
+        eddy.fitx.x0(tt) = X0 + eddy.mx(tt);
+
+        % lets fit density while we're at it
+        [r0, L0, X0] = gauss_fit(yr(1,:) - eddy.my(tt), rho(imx,:,tt));
+        eddy.fity.rho0(tt) = r0; eddy.fity.Lrho(tt) = L0;
+        eddy.fity.x0(tt) = X0 + eddy.my(tt);
+
+        [r0, L0, X0] = gauss_fit(xr(:,1) - eddy.mx(tt), rho(:,imy,tt));
+        eddy.fitx.rho0(tt) = r0; eddy.fitx.Lrho(tt) = L0;
+        eddy.fitx.x0(tt) = X0 + eddy.mx(tt);
     end
     %%
     eddy.Lz2(abs(eddy.Lz2) > max(abs(zr(:)))) = NaN;
@@ -398,7 +418,8 @@ function [eddy] = track_eddy(dir1)
                     'Lmin/Lmaj = minor/major axis length | Ls = ' ...
                     'speed based definition in Chelton et al. (2011) ' ...
                     '| tmat = time vector in t x z array form | zT ' ...
-                    '= zvector at eddy center.'];
+                    '= zvector at eddy center | (fitx,fity) = parameters of fits in (x,y) ' ...
+                    'directions: contain amplitude, length scale and center for (rho,V)'];
 
     if exist('runobj', 'var')
         runobj.eddy = eddy;
