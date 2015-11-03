@@ -425,16 +425,17 @@ function [eddy] = track_eddy(dir1)
                     '= zvector at eddy center | (fitx,fity) = parameters of fits in (x,y) ' ...
                     'directions: contain amplitude, length scale and center for (rho,V)'];
 
+    % save git hash
+    eddy.hash = githash([mfilename('fullpath') '.m']);
+
     if exist('runobj', 'var')
         runobj.eddy = eddy;
     end
 
-    % save git hash
-    eddy.hash = githash([mfilename('fullpath') '.m']);
-
     save([dir1 '/eddytrack.mat'],'eddy', '-v7.3');
 
     disp('Done.');
+    drawnow;
     toc(ticstart);
 
 % Gaussian fit for vertical scale - called by fminsearch
@@ -824,6 +825,7 @@ function [out] = detect_eddy(maskin, zeta, opt, grd)
                                 'accept (' ...
                                 num2str(regions.NumObjects ...
                                         - mm) ' regions left): ']);
+                drawnow;
                 if ~answer
                     disp('region skipped');
                     flag_found == 0;

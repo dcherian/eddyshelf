@@ -103,7 +103,7 @@ function [] = csfluxes(runs, ftype)
                         'Slope(kk) = water onshore of loc(kk)'];
 
     % how much of the time vector should I read?
-    if isfield(runs.eddy, 'tend')
+    if isfield(runs.eddy, 'tend') & (runs.eddy.tend ~= 0)
         tinf = runs.eddy.tend;
     else
         tinf = length(runs.time);
