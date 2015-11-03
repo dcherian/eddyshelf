@@ -1,5 +1,6 @@
 function [eddy] = track_eddy(dir1)
 
+    ticstart = tic;
     if isobject(dir1)
         runobj = dir1;
         dir1 = runobj.dir;
@@ -111,6 +112,12 @@ function [eddy] = track_eddy(dir1)
     % make anomaly
     rho  = sgn * (rho(2:end-1,2:end-1,:) - rho(1,1,1));
 
+    % empty masks
+    eddy.mask = logical(zeros(size(zeta)));
+    eddy.vor.mask = logical(zeros(size(zeta)));
+    eddy.rhovor.mask = logical(zeros(size(zeta)));
+    eddy.rhossh.mask = logical(zeros(size(zeta)));
+
     % initial guess for vertical scale fit
     if ~isfield(params.flags,'vprof_gaussian') || params.flags.vprof_gaussian
         initGuess2(2) = params.eddy.depth;
@@ -173,7 +180,7 @@ function [eddy] = track_eddy(dir1)
             cx0 = nan;
             cy0 = nan;
         else
-            if tt == 394,
+            if tt == 111,
                 %keyboard % for debugging
             end
             mask = nan(sz);
@@ -238,7 +245,7 @@ function [eddy] = track_eddy(dir1)
         % diameter of circle with same area
         eddy.dia(tt) = temp.dia;
         % mask for diagnostic purposes
-        eddy.mask(:,:,tt) = logical(imask);
+        eddy.mask(:,:,tt) = logical(repnan(imask,0));
         eddy.thresh(tt) = temp.thresh;
         % eddy.vormask(:,:,tt) = ivormask;
         % number of pixels in eddy
@@ -379,7 +386,6 @@ function [eddy] = track_eddy(dir1)
     %%
     eddy.Lz2(abs(eddy.Lz2) > max(abs(zr(:)))) = NaN;
     %eddy.Lz3(abs(eddy.Lz3) > max(abs(zr(:)))) = NaN;
-    toc;
 
     eddy.tmat = repmat(eddy.t', [1 size(eddy.T,2)]);
 
@@ -407,6 +413,7 @@ function [eddy] = track_eddy(dir1)
     save([dir1 '/eddytrack.mat'],'eddy', '-v7.3');
 
     disp('Done.');
+    toc(ticstart);
 
 % Gaussian fit for vertical scale - called by fminsearch
 % calculates squared error
@@ -599,8 +606,7 @@ function [eddy] = eddy_diag(zeta, vor, rho, ...
 
             % find 0 rel. vor (max. speed) contour within SSH mask
             try
-                eddy.vor = detect_eddy(vor.*eddy.mask < 0, zeta, opt, ...
-                                       grd);
+                eddy.vor = detect_eddy(vor.*eddy.mask < 0, zeta, opt, grd);
                 % drhothresh based on ssh mask if it doesn't exist
                 if isempty(rthresh.ssh)
                     rthresh.ssh = squeeze(nanmax(nanmax( ...
@@ -616,8 +622,7 @@ function [eddy] = eddy_diag(zeta, vor, rho, ...
                         rho .* fillnan(eddy.vor.mask,0), [], 1), [], 2));
                 end
                 eddy.rhovor = detect_eddy(rho < rthresh.vor, zeta, opt, grd);
-                eddy.rhossh = detect_eddy(rho < rthresh.ssh, zeta, ...
-                                          opt, grd);
+                eddy.rhossh = detect_eddy(rho < rthresh.ssh, zeta, opt, grd);
                 flag_found = 1;
                 fprintf('Eddy found with threshold %.3f \n', threshold);
             catch ME
