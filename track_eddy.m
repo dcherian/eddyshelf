@@ -9,6 +9,10 @@ function [eddy] = track_eddy(dir1)
         N = runobj.rgrid.N;
         [xr,yr,zr,~,~,~] = dc_roms_var_grid(file,'temp');
 
+        disp('=======================')
+        disp([runobj.name '.track_eddy']);
+        disp('=======================')
+
         grd = runobj.rgrid;
 
         if isempty(runobj.zeta) ...

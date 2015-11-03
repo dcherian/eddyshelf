@@ -7,6 +7,10 @@ function [] = csfluxes(runs, ftype)
 % 2. Shelf water dye & eddy dye
     ticstart = tic;
 
+    disp('===================')
+    disp([runs.name '.csfluxes']);
+    disp('===================')
+
     % Use history or avg files?
     if ~exist('ftype', 'var') || isempty(ftype), ftype = 'his'; end
 

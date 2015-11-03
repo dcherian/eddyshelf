@@ -4,6 +4,10 @@ function [] = avgStreamerVelSection(runs)
     ticstart = tic;
     debug = 0;
 
+    disp('===================================')
+    disp([runs.name '.avgStreamerVelSection']);
+    disp('===================================')
+
     xivec = -200:runs.rgrid.dx/1000:200;
     xl = length(xivec);
     N = runs.rgrid.N;
