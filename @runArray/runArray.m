@@ -97,6 +97,10 @@ classdef runArray < handle
             runArray.filter = 1:runArray.len;
         end
 
+        function [] = reload(runArray, index)
+            runArray.array(index) = runs(runArray.array(index).dir);
+        end
+
         function [] = print_names(runArray)
             for ii=1:runArray.len
                 disp([num2str(ii) ' | ' runArray.array(ii).name]);
@@ -177,6 +181,8 @@ classdef runArray < handle
                 runArray.filter = 1:runArray.len;
             end
 
+            out = [];
+
             for ii=1:length(runArray.filter)
                 run = runArray.array(runArray.filter(ii));
                 [~,~,tind] = run.locate_resistance;
@@ -186,7 +192,11 @@ classdef runArray < handle
                     try
                         temp = eval(command);
                     catch ME
-                        out(ii) = NaN;
+                        if iscell(out)
+                            out{ii} = NaN;
+                        else
+                            out(ii) = NaN;
+                        end
                         outstr = 'failed';
                     end
                 end
