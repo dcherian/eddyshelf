@@ -822,10 +822,16 @@ classdef runArray < handle
                 ndtime = run.eddy.t*86400 / run.eddy.turnover;
 
                 [~,~,tind] = run.locate_resistance;
+                if ~isempty(run.csflux)
+                    [~,maxloc] = run.calc_maxflux(2);
+                end
 
                 eval(['vec = run.' tsname ';']);
                 hplt(ff) = plot(ndtime, vec);
                 plot(ndtime(tind), vec(tind), 'kx');
+                if exist('maxloc', 'var')
+                    plot(ndtime(maxloc), vec(maxloc), 'ko');
+                end
             end
 
             legend(hplt, names);

@@ -592,6 +592,20 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
 
 
         %%%%% shelf flux
+        if strcmpi(name, 'check max')
+            isobath = args(1);
+
+            % m^2/s
+            [start,stop] = ...
+                run.flux_tindices(run.csflux.off.slope(:,isobath, isobath));
+
+            keyboard;
+            vvec = trapz(run.csflux.time(start:stop), ....
+                         repnan(run.csflux.off.slopezt(:, start:stop, ...
+                                                        isobath, isobath),0), 2);
+
+        end
+
         if strcmpi(name, 'max flux')
             if isempty(args)
                 isobath = 3;
