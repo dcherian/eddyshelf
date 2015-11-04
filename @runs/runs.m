@@ -700,6 +700,37 @@ methods
         liney(0); linex(runs.ndtime(runs.traj.tind-t0));
     end
 
+    function [] = checkEddyDiags(runs)
+
+        if ~exist('isobath', 'var'), isobath = 1; end
+
+        [~,~,tind] = runs.locate_resistance;
+        for iso=1:length(runs.csflux.x)
+            [~,maxloc(iso)] = runs.calc_maxflux(iso);
+        end
+
+        figure; hold on
+        insertAnnotation([runs.name '.checkEddyDiags']);
+        subplot(211); hold on;
+        plot(runs.eddy.vor.dia/2000);
+        plot(runs.eddy.rhovor.dia/2000);
+        %plot(runs.eddy.fitx.Lrho/1000);
+        %plot(runs.eddy.fitx.L/1000);
+        plot(smooth(runs.eddy.fity.Lrho/1000, 30));
+        plot(smooth(runs.eddy.fity.L/1000, 30));
+        legend('L_{vor}','L_{rhovor}','L_{yrho}','L_{yv}','L_{xrho}', 'L_{xv}');
+        linex([tind maxloc]);
+        title(runs.name);
+
+        subplot(212); hold on;
+        plot(runs.eddy.vor.Vke);
+        plot(runs.eddy.rhovor.Vke);
+        plot(runs.eddy.fity.V0);
+        %plot(runs.eddy.fitx.V0);
+        legend('V_{vor}','V_{rhovor}','V_y','V_x');
+        linex([tind maxloc]);
+    end
+
     function [] = plot_velprofiles(runs, vname)
 
         if ~exist('vname', 'var'), vname = 'u'; end
