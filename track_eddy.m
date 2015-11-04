@@ -283,10 +283,10 @@ function [eddy] = track_eddy(dir1)
 
         if isempty(rthresh.ssh)
             rthresh.ssh = squeeze(nanmax(nanmax( ...
-                rho(:,:,1) .* fillnan(eddy.mask,0), [], 1), [], 2));
+                rho(:,:,1) .* fillnan(eddy.mask(:,:,1),0), [], 1), [], 2));
 
             rthresh.vor = squeeze(nanmax(nanmax( ...
-                rho(:,:,1) .* fillnan(eddy.vor.mask,0), [], 1), [], 2));
+                rho(:,:,1) .* fillnan(eddy.vor.mask(:,:,1),0), [], 1), [], 2));
         end
 
         eddy.rthresh = rthresh;
