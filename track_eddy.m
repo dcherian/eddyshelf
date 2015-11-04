@@ -408,6 +408,9 @@ function [eddy] = track_eddy(dir1)
     eddy.Lz2(abs(eddy.Lz2) > max(abs(zr(:)))) = NaN;
     %eddy.Lz3(abs(eddy.Lz3) > max(abs(zr(:)))) = NaN;
 
+    removeBadFits(eddy.fitx.L); removeBadFits(eddy.fitx.Lrho);
+    removeBadFits(eddy.fity.L); removeBadFits(eddy.fity.Lrho);
+
     eddy.tmat = repmat(eddy.t', [1 size(eddy.T,2)]);
 
     eddy.comment = ['(cx,cy) = Location of weighted center (m) | ' ...
@@ -437,6 +440,10 @@ function [eddy] = track_eddy(dir1)
     disp('Done.');
     drawnow;
     toc(ticstart);
+
+function [in] = removeBadFits(in)
+    in(in > 1e7) = NaN;
+    in(in < 0) = NaN;
 
 % Gaussian fit for vertical scale - called by fminsearch
 % calculates squared error

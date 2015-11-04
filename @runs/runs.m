@@ -348,6 +348,13 @@ methods
                     runs.params.eddy.U;
             end
 
+            runs.eddy.fitx.L = addnan(runs.eddy.fitx.L, 1e10);
+            runs.eddy.fitx.Lrho = addnan(runs.eddy.fitx.Lrho, 1e10);
+            runs.eddy.fity.L = addnan(runs.eddy.fity.L, 1e10);
+            runs.eddy.fity.Lrho = addnan(runs.eddy.fity.Lrho, 1e10);
+            runs.eddy.fitx.L(runs.eddy.fitx.L < 0) = NaN;
+            runs.eddy.fity.L(runs.eddy.fity.L < 0) = NaN;
+
             % non-dimensionalized time
             runs.ndtime = runs.time ./ runs.eddy.turnover;
 
