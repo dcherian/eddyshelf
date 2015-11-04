@@ -18,7 +18,7 @@ function [xx,yy,tind] = locate_resistance(runs, nsmooth, factor)
 
     % smooth velocity a lot!
     if runs.bathy.axis == 'y'
-        cen = smooth(runs.eddy.vor.cy, npts)/1000;
+        cen = smooth(runs.eddy.vor.cy(1:runs.eddy.tend), npts)/1000;
         mcen = runs.eddy.my/1000;
         %vel = smooth(runs.eddy.mvy, npts);
         % figure;
@@ -29,7 +29,7 @@ function [xx,yy,tind] = locate_resistance(runs, nsmooth, factor)
         % plot(smooth(runs.eddy.mvy, 15)); hold all
         % plot(vel);
     else
-        cen = smooth(runs.eddy.vor.cx, npts)/1000;
+        cen = smooth(runs.eddy.vor.cx(1:runs.eddy.tend), npts)/1000;
         mcen = runs.eddy.mx/1000;
     end
     ndtime = runs.eddy.t*86400./runs.eddy.turnover;

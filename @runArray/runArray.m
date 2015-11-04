@@ -186,6 +186,7 @@ classdef runArray < handle
             for ii=1:length(runArray.filter)
                 run = runArray.array(runArray.filter(ii));
                 [~,~,tind] = run.locate_resistance;
+                temp = [];
                 try
                     temp = eval(['run.' command]);
                 catch ME
@@ -197,16 +198,18 @@ classdef runArray < handle
                         else
                             out(ii) = NaN;
                         end
-                        outstr = 'failed';
                     end
                 end
 
-                if ischar(temp)
-                    out{ii} = temp;
-                else
-                    out(ii) = temp;
+                if ~isempty(temp)
+                    if ischar(temp)
+                        out{ii} = temp;
+                    else
+                        out(ii) = temp;
+                    end
                 end
-                if ~iscell(out) && (~ischar(out(ii)) && ~isnan(out(ii)))
+
+                if ~iscell(out) && (~ischar(out(ii)))
                     outstr = num2str(out(ii));
                 else
                     outstr = out{ii};
@@ -836,7 +839,11 @@ classdef runArray < handle
                     [~,maxloc] = run.calc_maxflux(2);
                 end
 
-                eval(['vec = run.' tsname ';']);
+                try
+                    eval(['vec = run.' tsname ';']);
+                catch
+                    eval(['vec = ' tsname ';']);
+                end
                 hplt(ff) = plot(ndtime, vec);
                 plot(ndtime(tind), vec(tind), 'kx');
                 if exist('maxloc', 'var')

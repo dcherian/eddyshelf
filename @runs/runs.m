@@ -327,7 +327,7 @@ methods
             runs.eddy.edgtscale = runs.eddy.t(runs.eddy.edgtscaleind) ...
                 * 86400;
 
-            if ~isfield(runs.eddy, 'tend')
+            if ~isfield(runs.eddy, 'tend') | (runs.eddy.tend == 0)
                 runs.eddy.tend = length(runs.eddy.dia);
             else
                 % truncate time vector just in case
