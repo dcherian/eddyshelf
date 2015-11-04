@@ -78,3 +78,10 @@ dpdz = diff(p)./diff(z)
 hold all
 plot(p, z)
 plot(dpdz, avg1(z));
+
+%% gaussian eddy
+syms r R
+v(r) = diff(exp(-(r/R)^2),r);
+vor(r) = diff(v,r);
+a = solve(diff(vor,r) == 0, r);
+vor(a)
