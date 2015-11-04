@@ -88,20 +88,25 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
             %locx = runs.asflux.x(2); locy = [];
 
             %%% cross-sb shelf water flux
-            tvec = runs.csflux.time/86400;
-            for kkk=1:length(isobath)
-                vec(:,kkk) = runs.csflux.off.slope(:,isobath(kkk), ...
-                                                    isobath(kkk));
-            end
-
-            laby = 'Slope water flux (m^3/s)';
-            locy = runs.bathy.xsb/1000; locx = [];
+            %tvec = runs.csflux.time/86400;
+            %for kkk=1:length(isobath)
+            %    vec(:,kkk) = runs.csflux.off.slope(:,isobath(kkk), ...
+            %                                        isobath(kkk));
+            %end
+            %laby = 'Slope water flux (m^3/s)';
+            %locy = runs.bathy.xsb/1000; locx = [];
 
             %%% area plot
             %vec = runs.eddy.vor.lmin .* runs.eddy.vor.lmaj;
             %tvec = runs.eddy.t;
             %laby = 'Surface area (m^2)';
             %locx = []; locy = [];
+
+            %%% length scales
+            vec = runs.eddy.rhovor.dia;
+            tvec = runs.eddy.t;
+            laby = 'Diameter';
+            locx = []; locy = [];
         catch ME
             disp('vecplot failed!');
             vecplot = 0;
