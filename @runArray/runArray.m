@@ -323,6 +323,41 @@ classdef runArray < handle
 
         end
 
+        function [] = mosaic_field(runArray, varname, timesteps, clim)
+            if length(runArray.filter) > 4
+                error('Too many runs selected for 2x2 mosaic!');
+            end
+
+            if ~exist('timesteps', 'var') | isempty(timesteps)
+                timesteps = {'max flux'; 'max flux'; 'max flux'; 'max flux'};
+            end
+
+            if ~exist('clim', 'var'), clim = []; end
+
+            filter = runArray.filter;
+
+            figure; maximize;
+            ax = packboth(2,2);
+            insertAnnotation('runArray.mosaic_field');
+            for ii=1:4
+                axes(ax(ii));
+                runArray.array(filter(ii)).animate_field(varname, gca, timesteps{ii}, 1);
+            end
+
+            linkaxes(ax, 'xy'); ylim([0 120]); xlim([150 400]);
+            if isempty(clim), clim = caxis; end
+
+            axes(ax(1));
+            colorbar('off'); xlabel(''); caxis(clim); ax(1).XTickLabel{end} = '';
+            axes(ax(3));
+            caxis(clim); colorbar('off'); ax(3).XTickLabel{end} = '';
+            axes(ax(2));
+            caxis(clim); ylabel(''); xlabel(''); colorbar('off'); ax(2).YTickLabel = {''};
+            axes(ax(4));
+            caxis(clim); ax(4).YTickLabel = {''}; ylabel('');
+            hcb = colorbar; moveColorbarOut2x2(hcb);
+        end
+
         function [] = streamerstats(runArray)
 
             if isempty(runArray.filter)
