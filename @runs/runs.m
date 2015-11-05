@@ -700,20 +700,25 @@ methods
         end
 
         if axis == 'x'
-            xvec = runs.rgrid.x_rho(1,:)/1000;
             ix = runs.eddy.imy(tindex);
             axname = 'y';
         else
-            xvec = runs.rgrid.y_rho(:,1)/1000;
             ix = runs.eddy.imx(tindex);
             axname = 'x';
         end
 
-        var = dc_roms_read_data(runs, varname, tindex, ...
-                                {axname ix ix; 'z' runs.rgrid.N runs.rgrid.N});
+        if ~strcmpi(varname, 'zeta') ...
+                & ~strcmpi(varname, 'ubar') & ~strcmpi(varname, 'vbar')
+            vol = {axname ix ix; 'z' runs.rgrid.N runs.rgrid.N};
+        else
+            vol = {axname ix ix};
+        end
 
-        if length(xvec) ~= length(var)
-            xvec = avg1(xvec);
+        [var, xax, yax]  = dc_roms_read_data(runs, varname, tindex, vol);
+        if axis == 'x'
+            xvec = xax;
+        else
+            xvec = yax;
         end
 
         axes(hax);
