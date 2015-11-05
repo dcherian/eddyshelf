@@ -2,7 +2,8 @@ function [handles] = animate_zslice(runs,varname,depth,tind,hax)
 
     if ~exist('hax', 'var'), figure; hax = gca; end
     if ~exist('tind','var'), tind = []; end
-    % varname = runs.process_varname(varname);
+    varname = runs.process_varname(varname);
+    tind = runs.process_time(tind);
     [~,tind,~,nt,stride] = roms_tindices(tind,Inf,length(runs.time));
 
     % quiver options

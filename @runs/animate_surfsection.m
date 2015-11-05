@@ -37,17 +37,19 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
     xvec = xr(2:end-1) - x0;
     zmat = runs.rgrid.z_r;
 
+    varname = runs.process_varname(varname);
+
     % read data here, so that I don't incur overhead at least for
     % surface fields.
 
     % cross-shelf dye?
-    if strcmpi(varname, 'csdye')
+    if strcmpi(varname, runs.csdname);
         runs.read_csdsurf;
         varname = runs.csdname;
     end
 
     % eddy dye?
-    if strcmpi(varname, 'eddye')
+    if strcmpi(varname, runs.eddname)
         runs.read_eddsurf;
         varname = runs.eddname;
     end

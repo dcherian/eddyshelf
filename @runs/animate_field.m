@@ -120,6 +120,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     if ~exist('t0', 'var'), t0 = 1; end
     if isempty(t0), [~,~,t0] = runs.locate_resistance; end
+    t0 = runs.process_time(t0);
     if ~exist('ntimes', 'var')
         ntimes = length(runs.time) - t0 + 1;
     end

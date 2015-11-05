@@ -679,6 +679,10 @@ methods
         if strcmpi(in, 'eddye')
             varname = runs.eddname;
         end
+
+        if strcmpi(in, 'zdye')
+            varname = runs.zdname;
+        end
     end
 
     function [runs] = reload(runs)
