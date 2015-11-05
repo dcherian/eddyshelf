@@ -79,6 +79,32 @@ function [] = plot_xzsection(runs, loc, day, debug_flux)
     mask = fillnan(bsxfun(@times, csdye < runs.csflux.x(isobath), ...
                           runs.csflux.offmask(:,tindex,isobath)),0);
 
+    if exist('isobath', 'var') & isobath == 1
+        % define a mask based on first zero-crossing at each depth
+        csvoffmask = csvel > 0;
+        % pick out region with eddy center
+        regions = bwconncomp(csvoffmask, 8);
+        spongemask = ~runs.sponge(2:end-1,ceil(size(runs.sponge,2)/2));
+        imx = runs.eddy.imx(tindex); %find_approx(xvec, runs.eddy.mx(tindex), 1);
+
+        for zz=1:regions.NumObjects
+            maskreg = zeros(regions.ImageSize);
+            maskreg(regions.PixelIdxList{zz}) = 1;
+            if any(maskreg(imx,:) == 1)
+                disp('Making csvel based mask');
+                csvoffmask = bsxfun(@and, ...
+                                    bsxfun(@or, maskreg, ...
+                                           runs.csflux.offmask(:,tindex,isobath)), ...
+                                    spongemask);
+                break;
+            end
+        end
+    else
+        csvoffmask = 1;
+    end
+
+    mask = mask .* csvoffmask;
+
     % profile I am assuming
     [videal, idmask] = runs.makeStreamerSection(isobath);
 
@@ -210,7 +236,7 @@ function [] = plot_xzsection(runs, loc, day, debug_flux)
         runs.add_timelabel(tindex);
         xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
         title(['Cross-shelf velocity (m/s) | ' runs.name]);
-        linex(xfrac*L/1000, 'xfrac');
+        % linex(xfrac*L/1000, 'xfrac');
         liney(-1 * [runs.eddy.Lgauss(tindex) runs.bathy.hsb], ...
               {'vertical scale'; 'h_{sb}'});
         caxis([-1 1] * max(abs(csvel(:)))); center_colorbar;
