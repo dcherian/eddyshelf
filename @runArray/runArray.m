@@ -55,6 +55,7 @@ classdef runArray < handle
             end
             runArray.len = kk-1;
             runArray.filter = [1:runArray.len];
+            runArray.test_hashes;
             toc(ticstart);
         end
 
@@ -70,7 +71,7 @@ classdef runArray < handle
                 runArray.array(len+1) = dir;
                 runArray.name{len+1} = runArray.array(len+1).name;
                 disp([runArray.array(len+1).name ' completed'])
-
+                runArray.test_hashes;
                 runArray.len = len + 1;
             catch ME
                 disp([dir ' did not work'])
@@ -164,14 +165,20 @@ classdef runArray < handle
 
         function [] = test_hashes(runArray)
             for ii=1:runArray.len
-                if ~strcmpi(runArray.array(ii).csflux.hash, ...
-                    'ee34764138b91a2d150b58c7791bc60d480847e1')
-                    if ~strcmpi(runArray.array(ii).csflux.hash, ...
-                                '2a76dc848f7ca33a4d6953ce79451e72293c72ee')
-                        warning([runArray.array(ii).name ' does not ' ...
-                                 'have most recent flux ' ...
-                                 'calculated']);
-                    end
+                if ~strfind(runArray.array(ii).eddy.hash, ...
+                            '31d29d2416ec11995254f795381167702715099a')
+                    warning([runArray.array(ii).name ' is outdated: eddy']);
+
+                end
+
+                if ~strfind(runArray.array(ii).csflux.hash, ...
+                            '31d29d2416ec11995254f795381167702715099a')
+                    warning([runArray.array(ii).name ' is outdated: csflux']);
+                end
+
+                if ~strfind(runArray.array(ii).streamer.hash, ...
+                            '801633fe52c9a30bbfd152ac9f71db8955196d8d')
+                    warning([runArray.array(ii).name ' is outdated: streamer']);
                 end
             end
         end
