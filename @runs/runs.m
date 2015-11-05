@@ -666,6 +666,39 @@ methods
         runs(dir);
     end
 
+    function [hplt] = plot_velprofilex(runs, varname, axis, tindex, hax)
+
+        tindex = runs.process_time(tindex);
+        varname = runs.process_varname(varname);
+
+        if ~exist('hax')
+            figure;
+            hax = gca;
+        end
+
+        if axis == 'x'
+            xvec = runs.rgrid.x_rho(1,:)/1000;
+            ix = runs.eddy.imy(tindex);
+            axname = 'y';
+        else
+            xvec = runs.rgrid.y_rho(:,1)/1000;
+            ix = runs.eddy.imx(tindex);
+            axname = 'x';
+        end
+
+        var = dc_roms_read_data(runs, varname, tindex, ...
+                                {axname ix ix; 'z' runs.rgrid.N runs.rgrid.N});
+
+        if length(xvec) ~= length(var)
+            xvec = avg1(xvec);
+        end
+
+        axes(hax);
+        hplt = plot(xvec - runs.bathy.xsb/1000, var); hold on;
+        xlabel([upper(axis) ' - ' upper(axis) '_{sb} (km)']);
+        ylabel(varname);
+    end
+
     function [] = plot_test1(runs)
         vmagn = hypot(avg1(runs.usurf(:,:,1),2), ...
                       avg1(runs.vsurf(:,:,1),1));

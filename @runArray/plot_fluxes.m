@@ -9,10 +9,10 @@ function [] = plot_fluxes(runArray, isobath, source)
 
     corder_backup = runArray.sorted_colors;
 
-    hfig1 = figure; ax1(1) = subplot(2,1,1); hold all; % shelf water flux time series
-    ax1(2) = subplot(2,1,2); hold all;
+    hfig1 = []; %figure; ax1(1) = subplot(2,1,1); hold all; % shelf water flux time series
+                % ax1(2) = subplot(2,1,2); hold all;
 
-    hfig2 = figure; hold all % integrated vertical structure / baroclinicity
+    hfig2 = []; %figure; hold all % integrated vertical structure / baroclinicity
 
     hfig3 = []; %figure; hold all; % envelope
 
@@ -28,6 +28,9 @@ function [] = plot_fluxes(runArray, isobath, source)
     hfig8 = []; %figure; hold on; % streamer max. vel.
 
     hfig9 = []; %figure; hold all;% instantaneous streamer vertical structure
+
+    hfig10 = figure; subplot(211); hold all; % horizontal velocity profile at surface
+    subplot(212); hold all;
 
     nsmooth = 1;
 
@@ -59,6 +62,7 @@ function [] = plot_fluxes(runArray, isobath, source)
         transscl = 1; He * Le^2;
 
         fluxvec = run.csflux.off.slope(:,isobath, source);
+        [maxf, maxi] = run.calc_maxflux(fluxvec);
         [start,stop] = run.flux_tindices(fluxvec);
         ifluxvec = run.csflux.off.itrans.slope(:,isobath, source);
         ttrans = max(abs(ifluxvec));
@@ -75,7 +79,6 @@ function [] = plot_fluxes(runArray, isobath, source)
         if ~isempty(hfig1)
             figure(hfig1)
             axes(ax1(1));
-            [maxf, maxi] = run.calc_maxflux(fluxvec);
             hgplt1(ff) = plot(ndtime, ...
                               smooth(fluxvec/fluxscl, nsmooth));
             plot(ndtime(maxi), maxf/fluxscl, 'x', ...
@@ -202,6 +205,9 @@ function [] = plot_fluxes(runArray, isobath, source)
             hgplt8(ff) = plot(ndtime, ...
                               run.csflux.off.slopewater.vmax(:,isobath) ...
                               / run.eddy.V(1), 'Color', hgplt1(ff).Color);
+            plot(ndtime(maxi), run.csflux.off.slopewater.vmax(maxi, isobath) ...
+                 / run.eddy.V(1), 'x', 'Color', hgplt1(ff).Color);
+
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%%% INSTANTANEOUS VERTICAL STRUCTURE
@@ -215,6 +221,18 @@ function [] = plot_fluxes(runArray, isobath, source)
             ideal = run.streamer_ideal_profile(isobath);
             hgplt9(ff) = plot(actual, zvec);
             plot(max(actual)*ideal, zvec, 'k--');
+        end
+
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%% velocity at shelfbreak
+        if ~isempty(hfig10)
+            figure(hfig10)
+            ax10(1) = subplot(211);
+            hgplt10(ff) = run.plot_velprofilex(run.csvelname, ...
+                                               run.bathy.axis, 'max flux', gca);
+            ax10(2) = subplot(212);
+            hh = run.plot_velprofilex(run.asvelname, ...
+                                      run.bathy.axis, 'max flux', gca);
+            hh.Color = hgplt10(ff).Color;
         end
     end
 
@@ -335,6 +353,22 @@ function [] = plot_fluxes(runArray, isobath, source)
         liney(-1);
         xlim([0 max(xlim)]);
         beautify;
+    end
+
+    if ~isempty(hfig10)
+        figure(hfig10)
+        subplot(211);
+        legend(hgplt10, names, 'Location', 'NorthEast');
+        ylabel('Cross-shelf velocity (m/s)');
+        linex(0); liney(0);
+        beautify;
+
+        subplot(212);
+        ylabel('Cross-shelf velocity (m/s)');
+        linex(0); liney(0);
+        beautify;
+
+        linkaxes(ax10, 'xy');
     end
 
     runArray.reset_colors(corder_backup);
