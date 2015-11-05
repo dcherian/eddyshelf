@@ -30,9 +30,7 @@ function [handles] = mosaic_zslice(runs, varname, depth, tind)
     set(hax(1), 'XTickLabel', {});
 
     handles(1).hcb = colorbar;
-    handles(1).hcb.Position(1) = 0.92;
-    handles(1).hcb.Position(2) = 0.35;
-    handles(1).hcb.Position(3) = 0.017;
+    moveColorbarOut2x2(handles(1).hcb);
 
     axes(hax(1));
     handles(1).htext(1) = text(0.05, 0.83, 'Surface cross-shelf dye', 'FontSize', 16, ...
