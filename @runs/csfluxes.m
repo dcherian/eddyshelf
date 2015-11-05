@@ -289,6 +289,10 @@ function [] = csfluxes(runs, ftype)
             csvonmask = ~csvoffmask;
             offmask = 1;
             onmask  = 1;
+
+            % save here because the variables get over-written later.
+            runs.csflux.csvoffmask = csvoffmask;
+            runs.csflux.csvonmask = csvonmask;
         end
 
         runs.csflux.offmask(:,:,kk) = logical(offmask);
@@ -585,9 +589,6 @@ function [] = csfluxes(runs, ftype)
 
     % save fluxes
     runs.csflux.time = time;
-
-    runs.csflux.csvoffmask = csvoffmask;
-    runs.csflux.csvonmask = csvonmask;
 
     hash = githash([mfilename('fullpath') '.m']);
     runs.csflux.hash = hash;
