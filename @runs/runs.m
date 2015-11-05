@@ -648,12 +648,35 @@ methods
         roms_info(runs.dir);
     end
 
-    function [varname] = process_varname(varname)
-        if strcmpi(varname, 'csdye')
+    function [tindex] = process_time(runs, in)
+
+        if ischar(in)
+            if strcmpi(in, 'max flux')
+                [~,tindex] = runs.calc_maxflux(1);
+                return
+            end
+
+            if strcmpi(in, 'resistance')
+                [~,~,tindex] = runs.locate_resistance;
+                return;
+            end
+
+            % days
+            tindex = find_approx(runs.time, str2double(in)*86400);
+        else
+            % actual index
+            tindex = in;
+        end
+    end
+
+    function [varname] = process_varname(runs, in)
+        varname = in;
+
+        if strcmpi(in, 'csdye')
             varname = runs.csdname;
         end
 
-        if strcmpi(varname, 'eddye')
+        if strcmpi(in, 'eddye')
             varname = runs.eddname;
         end
     end
