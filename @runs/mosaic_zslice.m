@@ -32,11 +32,16 @@ function [handles] = mosaic_zslice(runs, varname, depth, tind)
     handles(1).hcb = colorbar;
     moveColorbarOut2x2(handles(1).hcb);
 
+    pos = [0.83 0.77 0.71];
+    if runs.sgntamp < 0
+        pos = flip(1-pos);
+    end
+
     axes(hax(1));
-    handles(1).htext(1) = text(0.05, 0.83, 'Surface cross-shelf dye', 'FontSize', 16, ...
+    handles(1).htext(1) = text(0.05, pos(1), 'Surface cross-shelf dye', 'FontSize', 16, ...
                                'Units', 'Normalized', 'Color', runs.shelfSlopeColor);
-    handles(1).htext(3) = text(0.05, 0.77, 'Eddy core', 'FontSize', 16, ...
+    handles(1).htext(3) = text(0.05, pos(2), 'Eddy core', 'FontSize', 16, ...
                                'Units', 'Normalized', 'Color', runs.rhoContColor);
-    handles(1).htext(2) = text(0.05, 0.71, 'Surface eddy dye', 'FontSize', 16, ...
+    handles(1).htext(2) = text(0.05, pos(3), 'Surface eddy dye', 'FontSize', 16, ...
                                'Units', 'Normalized', 'Color', 'k');
 end
