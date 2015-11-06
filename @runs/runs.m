@@ -65,6 +65,12 @@ methods
     % constructor
     function [runs] = runs(dir, reset,  do_all)
 
+        ticstart = tic;
+
+        disp('=======================')
+        disp(['runs(' dir ')']);
+        disp('=======================')
+
         read_zeta = 0;
         if ~exist('reset','var')
             reset = 0;
@@ -94,68 +100,31 @@ methods
 
         % get grid
         zeta0 = double(ncread(runs.out_file,'zeta',[1 1 1],[Inf Inf 1]));
-        runs.rgrid = roms_get_grid(runs.out_file,runs.out_file, ...
-                        zeta0',1);
+        runs.rgrid = dc_roms_get_grid(runs.out_file,runs.out_file, zeta0',1);
         runs.rgrid.xr = runs.rgrid.x_rho';
         runs.rgrid.yr = runs.rgrid.y_rho';
-        runs.rgrid.z_r = single(runs.rgrid.z_r);
-        runs.rgrid.z_u = single(runs.rgrid.z_u);
-        runs.rgrid.z_v = single(runs.rgrid.z_v);
-        runs.rgrid.z_w = single(runs.rgrid.z_w);
-        %runs.rgrid.zr = permute(runs.rgrid.z_r,[3 2 1]);
-        runs.rgrid.z_uw = [];
-        runs.rgrid.z_vw = [];
-        runs.rgrid.zeta = [];
         runs.rgrid.dx = mean(1./runs.rgrid.pm(:));
         runs.rgrid.dy = mean(1./runs.rgrid.pn(:));
 
         % remove needless rgrid matrices
         runs.rgrid.angle = [];
-        runs.rgrid.x_psi = [];
-        runs.rgrid.y_psi = [];
-        if runs.rgrid.nomask
-            runs.rgrid.mask_rho = [];
-                runs.rgrid.mask_rho_nan = [];
-            runs.rgrid.mask_psi = [];
-            runs.rgrid.mask_u = [];
-            runs.rgrid.mask_v = [];
-        end
-        if runs.rgrid.nolatlon
-            runs.rgrid.lon_rho = [];
-            runs.rgrid.lon_psi = [];
-            runs.rgrid.lon_u = [];
-            runs.rgrid.lon_v = [];
 
-            runs.rgrid.lat_rho = [];
-            runs.rgrid.lat_psi = [];
-            runs.rgrid.lat_u = [];
-            runs.rgrid.lat_v = [];
-        end
-
-        runs.rbacksurf = ncread(runs.out_file, 'rho', [1 1 runs.rgrid.N ...
-                            1], [1 1 1 1]);
+        runs.rbacksurf = ncread(runs.out_file, 'rho', [1 1 runs.rgrid.N 1], [1 1 1 1]);
 
         % read zeta
         if ~runs.givenFile
             if read_zeta
                 runs.zeta = dc_roms_read_data(dir,'zeta',[],{},[],runs.rgrid, ...
-                                          'his', 'single');
+                                              'his', 'single');
             end
             runs.time = dc_roms_read_data(dir,'ocean_time',[],{}, ...
                                           [],runs.rgrid, 'his', 'single');
-            %try
-            %    runs.csdye  = roms_read_data(dir,runs.csdname, ...
-            %        [1 1 runs.rgrid.N 1],[Inf Inf 1 Inf]);
-            %catch ME
-            %end
         else
             if read_zeta
                 runs.zeta = (ncread(runs.out_file,'zeta'));
             end
             runs.time = (ncread(runs.out_file,'ocean_time'));
         end
-
-        runs.rgrid.ocean_time = runs.time;
 
         runs.makeVideo = 0; % no videos by default.
 
@@ -178,13 +147,6 @@ methods
         if isnan(runs.params.bg.vbt)
             runs.params.bg.vbt = 0;
         end
-
-        % sometimes I forget to change T0 in *.in file
-        % but they aren't stored in the history file output, only
-        % R0 is
-        % runs.params.phys.T0 = ncread(runs.out_file, 'T0');
-        % runs.params.phys.R0 = ncread(runs.out_file, 'R0');
-        % runs.params.phys.S0 = ncread(runs.out_file, 'S0');
 
         % fill bathy
         [runs.bathy.xsb,runs.bathy.isb,runs.bathy.hsb] = ...
@@ -241,14 +203,6 @@ methods
                 if strfind(ddesc,'z dye'), runs.zdname = dname; end
                 if strfind(ddesc,'along shelf'), runs.asdname = dname; end
                 if strfind(ddesc,'eddy dye'), runs.eddname = dname; end
-
-                %                     % see if variable is in output files
-                %try
-                %    runs.(vname) = roms_read_data(filename,dname ...
-                %       ,[1 1 runs.rgrid.N 1],[Inf Inf 1 Inf]);
-                %catch ME
-                %    warning([dname 'not in output files']);
-                %end
             catch ME
                 warning([dname 'not found in ini file']);
             end
@@ -263,8 +217,7 @@ methods
         end
 
         % load eddy track
-        if ~exist([dir '/eddytrack.mat'],'file') || reset == 1 ...
-                %|| ~exist('runs.eddy.cvx','var')
+        if ~exist([dir '/eddytrack.mat'],'file') || reset == 1
             try
                 runs.eddy = track_eddy(dir);
                 runs.noeddy = 0;
@@ -274,37 +227,14 @@ methods
                 runs.noeddy = 1;
             end
         else
-            if strfind(runs.out_file,'_004.nc')
-                edd = load([dir '/eddytrack_004.mat'],'eddy');
-            else
-                edd = load([dir '/eddytrack.mat'],'eddy');
-            end
+            edd = load([dir '/eddytrack.mat'],'eddy');
             runs.eddy = edd.eddy;
             runs.noeddy = 0;
         end
 
+
         % extra processing of eddy track
         if ~runs.noeddy
-            % rerun track_eddy if not new enough
-            if ~isfield(runs.eddy,'vor')
-                runs.eddy = track_eddy(dir);
-            end
-
-            % if gaussian profile then track_eddy fits Lz2. copy to
-            % Lgauss for backwards compatibility
-            if runs.params.flags.vprof_gaussian && ~runs.noeddy
-                if ~isnan(runs.eddy.Lz2)
-                    runs.eddy.Lgauss = runs.eddy.Lz2;
-                    runs.eddy.Lz2 = nan(size(runs.eddy.Lz2));
-                end
-            end
-
-            % cvx, cvy for vorticity contour
-            runs.eddy.cvx = [0 diff(runs.eddy.vor.cx)./ ...
-                diff(runs.eddy.t*86400)];
-            runs.eddy.cvy = [0 diff(runs.eddy.vor.cy)./ ...
-                diff(runs.eddy.t*86400)];
-
             runs.params.nondim.eddy.Bu = (runs.params.phys.f0 * ...
                                           runs.params.eddy.dia/2 / ...
                                           runs.params.eddy.depth).^2 / ...
@@ -312,20 +242,15 @@ methods
 
             % scale time by eddy translation
             if runs.bathy.axis == 'y'
-                runs.eddy.tscaleind = find_approx(runs.eddy.my, ...
-                                                  runs.bathy.xsl, 1);
+                runs.eddy.tscaleind = find_approx(runs.eddy.my, runs.bathy.xsl, 1);
             else
-                runs.eddy.tscaleind = find_approx(runs.eddy.mx, ...
-                                                  runs.bathy.xsl, 1);
+                runs.eddy.tscaleind = find_approx(runs.eddy.mx, runs.bathy.xsl, 1);
             end
-            runs.eddy.tscale = runs.eddy.t(runs.eddy.tscaleind) .* ...
-                86400;
+            runs.eddy.tscale = runs.eddy.t(runs.eddy.tscaleind) .* 86400;
 
             % find time when southern edge crosses slopebreak
-            runs.eddy.edgtscaleind = find_approx(runs.eddy.vor.se, ...
-                                                 runs.bathy.xsl, 1);
-            runs.eddy.edgtscale = runs.eddy.t(runs.eddy.edgtscaleind) ...
-                * 86400;
+            runs.eddy.edgtscaleind = find_approx(runs.eddy.vor.se, runs.bathy.xsl, 1);
+            runs.eddy.edgtscale = runs.eddy.t(runs.eddy.edgtscaleind) * 86400;
 
             if ~isfield(runs.eddy, 'tend') | (runs.eddy.tend == 0)
                 runs.eddy.tend = length(runs.eddy.dia);
@@ -340,35 +265,34 @@ methods
                 ./ runs.params.phys.f0^2 ./ (runs.eddy.vor.dia/2).^2;
 
             % eddy turnover time scale
-            try
-                runs.eddy.turnover = (runs.eddy.vor.dia(1)/2)./ ...
-                    runs.eddy.V(1);
-            catch ME
-                runs.eddy.turnover = (runs.eddy.vor.dia(1)/2)./ ...
-                    runs.params.eddy.U;
-            end
+            runs.eddy.turnover = (runs.eddy.rhovor.dia(1)/2) ./ runs.eddy.V(1);
 
-            runs.eddy.fitx.L = addnan(runs.eddy.fitx.L, 1e10);
-            runs.eddy.fitx.Lrho = addnan(runs.eddy.fitx.Lrho, 1e10);
-            runs.eddy.fity.L = addnan(runs.eddy.fity.L, 1e10);
-            runs.eddy.fity.Lrho = addnan(runs.eddy.fity.Lrho, 1e10);
-            runs.eddy.fitx.L(runs.eddy.fitx.L < 0) = NaN;
-            runs.eddy.fity.L(runs.eddy.fity.L < 0) = NaN;
+            try
+                runs.eddy.fitx.L = addnan(runs.eddy.fitx.L, 1e10);
+                runs.eddy.fitx.Lrho = addnan(runs.eddy.fitx.Lrho, 1e10);
+                runs.eddy.fity.L = addnan(runs.eddy.fity.L, 1e10);
+                runs.eddy.fity.Lrho = addnan(runs.eddy.fity.Lrho, 1e10);
+                runs.eddy.fitx.L(runs.eddy.fitx.L < 0) = NaN;
+                runs.eddy.fity.L(runs.eddy.fity.L < 0) = NaN;
+            catch
+            end
 
             % non-dimensionalized time
             runs.ndtime = runs.time ./ runs.eddy.turnover;
 
             % save memory by converting masks to logical
-            runs.eddy.mask = logical(repnan(runs.eddy.mask, 0));
-            runs.eddy.vormask = []; % delete. use vor.mask instead.
-            try
-                runs.eddy.vor.mask = logical(repnan(runs.eddy.vor.mask,                                                    0));
-                runs.eddy.rhovor.mask = logical(repnan(runs.eddy.rhovor.mask, ...
-                                                       0));
-                runs.eddy.rhossh.mask = logical(repnan(runs.eddy.rhossh.mask, ...
-                                                       0));
-            catch ME
+            if ~islogical(runs.eddy.mask)
+                runs.eddy.mask = logical(repnan(runs.eddy.mask, 0));
+                try
+                    runs.eddy.vor.mask = logical(repnan(runs.eddy.vor.mask, 0));
+                    runs.eddy.rhovor.mask = logical(repnan(runs.eddy.rhovor.mask, 0));
+                    runs.eddy.rhossh.mask = logical(repnan(runs.eddy.rhossh.mask, 0));
+                catch ME
+                end
             end
+
+            runs.eddy.xr = single(runs.eddy.xr);
+            runs.eddy.yr = single(runs.eddy.yr);
 
             % drhothresh based on ssh mask if it doesn't exist
             if ~isfield(runs.eddy, 'drhothreshssh')
@@ -402,14 +326,14 @@ methods
             runs.eddy.prox = (edge-runs.bathy.xsb);
 
             % time of reversal
-            try
-                runs.eddy.trevind = find(runs.eddy.cvx < 0,1,'first');
-                runs.eddy.trev = runs.time(runs.eddy.trevind);
-            catch ME
-                disp('Eddy did not reverse direction');
-                runs.eddy.trev = nan;
-            end
-            if isempty(runs.eddy.trev), runs.eddy.trev = NaN; end
+            % try
+            %     runs.eddy.trevind = find(runs.eddy.cvx < 0,1,'first');
+            %     runs.eddy.trev = runs.time(runs.eddy.trevind);
+            % catch ME
+            %     disp('Eddy did not reverse direction');
+            %     runs.eddy.trev = nan;
+            % end
+            % if isempty(runs.eddy.trev), runs.eddy.trev = NaN; end
 
             % Early et al (2011) estimates for zonal, meridional
             % velocities
@@ -448,7 +372,7 @@ methods
                 runs.eddy.hedge = h(1,iy);
             end
 
-            % remove needless h-matrix
+            % remove needless h-matrices
             runs.eddy.h = [];
 
             if isfield(runs.eddy.vor, 'Ro')
@@ -570,15 +494,17 @@ methods
                 [1 length(runs.eddy.t)]);
 
             try
-                runs.csflux.offmask = logical(runs.csflux.offmask);
-                runs.csflux.onmask = logical(runs.csflux.onmask);
+                if ~islogical(runs.csflux.offmask)
+                    runs.csflux.offmask = logical(runs.csflux.offmask);
+                    runs.csflux.onmask = logical(runs.csflux.onmask);
 
-                runs.csflux.slopext = single(runs.csflux.slopext);
-                runs.csflux.eddyxt = single(runs.csflux.eddyxt);
-                runs.csflux.off.slopezt = single(runs.csflux.off.slopezt);
-                runs.csflux.off.eddyzt = single(runs.csflux.off.eddyzt);
-                runs.csflux.east.slopezt = single(runs.csflux.east.slopezt);
-                runs.csflux.east.eddyzt = single(runs.csflux.east.eddyzt);
+                    runs.csflux.slopext = single(runs.csflux.slopext);
+                    runs.csflux.eddyxt = single(runs.csflux.eddyxt);
+                    runs.csflux.off.slopezt = single(runs.csflux.off.slopezt);
+                    runs.csflux.off.eddyzt = single(runs.csflux.off.eddyzt);
+                    runs.csflux.east.slopezt = single(runs.csflux.east.slopezt);
+                    runs.csflux.east.eddyzt = single(runs.csflux.east.eddyzt);
+                end
             catch ME
             end
         end
@@ -642,6 +568,7 @@ methods
             runs.tscale = runs.eddy.tscale;
             runs.tscaleind = runs.eddy.tscaleind;
         end
+        toc(ticstart);
     end
 
     function [] = info(runs)
@@ -683,6 +610,14 @@ methods
         if strcmpi(in, 'zdye')
             varname = runs.zdname;
         end
+
+        if strcmpi(in, 'csvel')
+            varname = runs.csvelname;
+        end
+
+        if strcmpi(in, 'asvel')
+            varname = runs.asvelname;
+        end
     end
 
     function [runs] = reload(runs)
@@ -693,7 +628,7 @@ methods
         runs(dir);
     end
 
-    function [hplt] = plot_velprofilex(runs, varname, axis, tindex, hax)
+    function [hplt] = plot_velprofilex(runs, varname, tindex, axname, ix, hax)
 
         tindex = runs.process_time(tindex);
         varname = runs.process_varname(varname);
@@ -701,14 +636,22 @@ methods
         if ~exist('hax')
             figure;
             hax = gca;
+        else
+            hold on;
         end
 
-        if axis == 'x'
-            ix = runs.eddy.imy(tindex);
-            axname = 'y';
+        if strcmpi(ix, 'sb')
+            ix = runs.bathy.isb;
+        end
+
+        if axname == 'x'
+            if ~exist('ix', 'var') | isempty(ix) | strcmpi(ix, 'cen')
+                ix = runs.eddy.imx(tindex);
+            end
         else
-            ix = runs.eddy.imx(tindex);
-            axname = 'x';
+            if ~exist('ix', 'var') | isempty(ix) | strcmpi(ix, 'cen')
+                ix = runs.eddy.imy(tindex);
+            end
         end
 
         if ~strcmpi(varname, 'zeta') ...
@@ -719,16 +662,24 @@ methods
         end
 
         [var, xax, yax]  = dc_roms_read_data(runs, varname, tindex, vol);
-        if axis == 'x'
-            xvec = xax;
+
+        if axname == 'x'
+            xvec = yax(:,1)/1000;
         else
-            xvec = yax;
+            xvec = xax(:,1)/1000;
+        end
+
+        if axname ~= runs.bathy.axis
+            xvec = xvec - runs.bathy.xsb/1000;
+            labx = [upper(axname) ' - ' upper(axname) '_{sb} (km)'];
+        else
+            eval(['xvec = xvec - runs.eddy.m' axname '(tindex)/1000;']);
+            labx = [upper(axname) ' - ' upper(axname) '_{cen} (km)'];
         end
 
         axes(hax);
-        hplt = plot(xvec - runs.bathy.xsb/1000, var); hold on;
-        xlabel([upper(axis) ' - ' upper(axis) '_{sb} (km)']);
-        ylabel(varname);
+        hplt = plot(xvec, var);
+        xlabel(labx); ylabel(varname);
     end
 
     function [] = plot_test1(runs)
