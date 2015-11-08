@@ -323,7 +323,7 @@ classdef runArray < handle
 
         end
 
-        function [] = mosaic_field(runArray, varname, timesteps, clim)
+        function [ax] = mosaic_field(runArray, varname, timesteps, clim)
             if length(runArray.filter) > 4
                 error('Too many runs selected for 2x2 mosaic!');
             end
@@ -374,7 +374,7 @@ classdef runArray < handle
             if ~exist('iz', 'var'), iz = []; end
 
             N = length(runArray.filter);
-            figure; maximize;
+            figure; maximize; insertAnnotation('runArray.mosaic_hovmoeller');
             ax = packboth(2,N/2);
 
             clim = [];
@@ -385,6 +385,10 @@ classdef runArray < handle
                 title('');
                 text(0.50, 0.90, str, 'Units', 'normalized');
                 clim = [clim caxis];
+
+                if ii == 1 | ii == 3
+                    ax(ii).XTickLabel = '';
+                end
             end
             linkaxes(ax, 'xy');
 
