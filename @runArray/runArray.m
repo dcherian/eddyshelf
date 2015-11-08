@@ -358,6 +358,42 @@ classdef runArray < handle
             hcb = colorbar; moveColorbarOut2x2(hcb);
         end
 
+        function [] = plotSSHgradient(runArray)
+            figure; hax = gca; maximize; hold all;
+            for ii = 1:length(runArray.filter)
+                ff = runArray.filter(ii);
+                hh(ii) = runArray.array(ff).plotSSHgradient('max flux', hax);
+                names{ii} = runArray.array(ff).name;
+            end
+
+            legend(hh, names);
+        end
+
+        function [ax] = mosaic_hovmoeller(runArray, varname, axname, loc, iz)
+
+            if ~exist('iz', 'var'), iz = []; end
+
+            N = length(runArray.filter);
+            figure; maximize;
+            ax = packboth(2,N/2);
+
+            clim = [];
+            for ii=1:N
+                ff = runArray.filter(ii);
+                runArray.array(ff).hovmoeller(varname, axname, loc, iz, ax(ii));
+                str = ax(ii).Title.String;
+                title('');
+                text(0.50, 0.90, str, 'Units', 'normalized');
+                clim = [clim caxis];
+            end
+            linkaxes(ax, 'xy');
+
+            clim = [min(clim) max(clim)];
+            for ii=1:N
+                caxis(clim);
+            end
+        end
+
         function [] = streamerstats(runArray)
 
             if isempty(runArray.filter)

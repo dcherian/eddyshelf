@@ -682,6 +682,32 @@ methods
         xlabel(labx); ylabel(varname);
     end
 
+    function [hplt] = plotSSHgradient(runs, tindex, hax)
+
+        if ~exist('hax', 'var')
+            figure;
+            insertAnnotation([runs.name '.plotSSHgradient']);
+            hax = gca;
+        end
+
+        ix = runs.bathy.isb;
+
+        tind = runs.process_time(tindex);
+
+        if runs.bathy.axis == 'y'
+            xvec = runs.rgrid.x_rho(1,:)'; - runs.eddy.mx(tind);
+        else
+            xvec = runs.rgrid.y_rho(:,1) - runs.eddy.my(tind);
+        end
+
+        zeta = dc_roms_read_data(runs, 'zeta', tind, {runs.bathy.axis ix ix});
+
+        dzdx = diff(zeta)./diff(xvec);
+
+        axes(hax);
+        hplt = plot(avg1(xvec/1000), dzdx);
+    end
+
     function [] = plot_test1(runs)
         vmagn = hypot(avg1(runs.usurf(:,:,1),2), ...
                       avg1(runs.vsurf(:,:,1),1));
