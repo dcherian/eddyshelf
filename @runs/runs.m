@@ -628,7 +628,7 @@ methods
         runs(dir);
     end
 
-    function [hplt] = plot_velprofilex(runs, varname, tindex, axname, ix, hax)
+    function [hplt] = plot_profilex(runs, varname, tindex, axname, ix, hax)
 
         tindex = runs.process_time(tindex);
         varname = runs.process_varname(varname);
@@ -636,6 +636,7 @@ methods
         if ~exist('hax')
             figure;
             hax = gca;
+            insertAnnotation([runs.name '.plot_profilex']);
         else
             hold on;
         end
@@ -664,16 +665,20 @@ methods
         [var, xax, yax]  = dc_roms_read_data(runs, varname, tindex, vol);
 
         if axname == 'x'
+            % for x = ix, plot against y
             xvec = yax(:,1)/1000;
+            mxname = 'my';
         else
+            % for y = iy, plot against x
             xvec = xax(:,1)/1000;
+            mxname = 'mx';
         end
 
         if axname ~= runs.bathy.axis
             xvec = xvec - runs.bathy.xsb/1000;
             labx = [upper(axname) ' - ' upper(axname) '_{sb} (km)'];
         else
-            eval(['xvec = xvec - runs.eddy.m' axname '(tindex)/1000;']);
+            eval(['xvec = xvec - runs.eddy.' mxname '(tindex)/1000;']);
             labx = [upper(axname) ' - ' upper(axname) '_{cen} (km)'];
         end
 

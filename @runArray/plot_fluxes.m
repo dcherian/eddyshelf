@@ -225,18 +225,16 @@ function [] = plot_fluxes(runArray, isobath, source)
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%% velocity at shelfbreak
         if ~isempty(hfig10)
+            tindex = 'max flux';
             figure(hfig10)
             ax10(1) = subplot(211);
-            hgplt10(ff) = run.plot_velprofilex(run.csvelname, ...
-                                               run.bathy.axis, 'max flux', gca);
+            hgplt10(ff) = run.plot_profilex([run.csvelname 'bar'], tindex, run.bathy.axis, 'sb', gca);
             ax10(2) = subplot(212);
-            hh = run.plot_velprofilex(run.asvelname, ...
-                                      run.bathy.axis, 'max flux', gca);
+            hh = run.plot_profilex([run.asvelname 'bar'], tindex, run.bathy.axis, 'sb', gca);
             hh.Color = hgplt10(ff).Color;
         end
     end
 
-    pause(0.5)
     if ~isempty(hfig1)
         figure(hfig1)
         insertAnnotation('runArray.plot_fluxes');
@@ -364,7 +362,7 @@ function [] = plot_fluxes(runArray, isobath, source)
         beautify;
 
         subplot(212);
-        ylabel('Cross-shelf velocity (m/s)');
+        ylabel('Along-shelf velocity (m/s)');
         linex(0); liney(0);
         beautify;
 
