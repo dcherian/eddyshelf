@@ -164,8 +164,8 @@ function [handles] = animate_zslice(runs,varname,depth,tind,hax)
         pause(0.1);
         set(hc,'ZData',var(:,:,tt));
         if addvelquiver
-            set(hq,'UData',u(:,:,tt));
-            set(hq,'VData',v(:,:,tt));
+            set(hq,'UData',u(:,:,tt)/uref);
+            set(hq,'VData',v(:,:,tt)/vref);
         end
         shading flat
         runs.update_rho_contour(he,tindex);
