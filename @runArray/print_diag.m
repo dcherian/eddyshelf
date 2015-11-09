@@ -613,7 +613,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
                 isobath = args(1);
             end
 
-            if ~isfield(run.csflux, 'time') || ...
+            if ~isfield(run.csflux, 'off') || ...
                     isobath > size(run.csflux.off.slope, 3)
                 disp(['Skipping ' run.name]);
                 continue;
@@ -1065,7 +1065,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
                      12, 'Rotation', 0, 'Color', clr, ...
                      'VerticalAlignment','Bottom');
             end
-            if ff == 1
+            if ff == 1 | isnan(diags(1))
                 if strfind(labx, '$$')
                     xlabel(labx, 'interpreter', 'latex');
                 else
