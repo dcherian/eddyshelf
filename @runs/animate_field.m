@@ -5,7 +5,10 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     runs.video_init(name);
     titlestr = [];
 
-    dt = 3;
+    % zoom in axis?
+    limx = [165 410]; limy = [0 120];
+
+    dt = 2;
     factor = 1; % scale variable (1 by default)
 
     csfluxplot = 0; % 0 = no flux plot
@@ -303,9 +306,12 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         center_colorbar;
     end
     if strcmpi(name, 'pv')
-        keyboard;
         caxis([min(min(runs.pvsurf(:,:,1))) ...
                max(max(runs.pvsurf(:,:,1)))]);
+    end
+    if strcmpi(varname, 'eddsurf')
+        colormap(runs.eddyeColormap);
+        caxis([0 1]);
     end
     clim = caxis;
 
@@ -433,6 +439,9 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         colorbar('hide');
         correct_ticks('y',[],[2 6]);
     end
+
+    if ~isempty(limx), xlim(limx); end
+    if ~isempty(limy), ylim(limy); end
 
     % second plot
     if subplots_flag == 'x'
