@@ -3172,7 +3172,7 @@ methods
 
     %% colors and colormaps
     function [colors] = eddyeColormap(runs)
-        colors = brighten(cbrewer('seq', 'Reds', 20), 0.2);
+        colors = brighten(cbrewer('seq', 'Reds', 20), 0.4);
         colors = colors(1:end-3,:);
     end
     function [color] = shelfSlopeColor(runs)
