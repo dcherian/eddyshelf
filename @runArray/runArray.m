@@ -764,6 +764,39 @@ classdef runArray < handle
             end
         end
 
+        function [] = plot_avgProfile(runArray, varname, axname, ix, mask)
+            if ~exist('axname', 'var'), axname = 'y'; end
+            if ~exist('ix', 'var'), ix = 'sb'; end
+            if ~exist('mask', 'var'), mask = 1; end
+
+            figure; hold all
+            insertAnnotation('runArray.plot_avgProfile');
+            for ii=1:length(runArray.filter)
+                ff = runArray.filter(ii);
+                run = runArray.array(ff);
+                names{ii} = runArray.getname(ff);
+
+                [vm,mm,xi] = run.avgProfile(varname, axname, ix, mask);
+                if strcmpi(varname, 'zeta'), vm = vm - min(vm); end
+                ind = find(mm == 1, 1, 'first');
+
+                hplt(ii) = plot(xi/1000, vm);
+                plot(xi(ind)/1000, vm(ind), 'x', 'Color', hplt(ii).Color);
+            end
+            ylabel(varname);
+            xlabel('X - X_{edd} (km)');
+            title(['mean ' varname ' | ' axname ' = ' ix]);
+            if mask == 1
+                hax = gca;
+                hax.Title.String = [hax.Title.String ...
+                                    ' | cross = eddy water boundary'];
+            end
+            legend(hplt, names);
+            beautify;
+            linex(0);
+            if ~strcmpi(varname, 'zeta'), liney(0); end
+        end
+
         function [] = plot_zetacyc(runArray)
 
             corder_backup = runArray.sorted_colors;
