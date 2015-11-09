@@ -165,20 +165,34 @@ classdef runArray < handle
 
         function [] = test_hashes(runArray)
             for ii=1:runArray.len
-                if ~strfind(runArray.array(ii).eddy.hash, ...
-                            '31d29d2416ec11995254f795381167702715099a')
-                    warning([runArray.array(ii).name ' is outdated: eddy']);
-
+                try
+                    msg = [runArray.array(ii).name ' is outdated: eddy'];
+                    if ~strfind(runArray.array(ii).eddy.hash, ...
+                                '31d29d2416ec11995254f795381167702715099a')
+                        warning(msg);
+                    end
+                catch ME
+                    warning(msg);
                 end
 
-                if ~strfind(runArray.array(ii).csflux.hash, ...
-                            '31d29d2416ec11995254f795381167702715099a')
-                    warning([runArray.array(ii).name ' is outdated: csflux']);
+                try
+                    msg = [runArray.array(ii).name ' is outdated: csflux'];
+                    if ~strfind(runArray.array(ii).csflux.hash, ...
+                                '31d29d2416ec11995254f795381167702715099a')
+                        warning(msg);
+                    end
+                catch ME
+                    warning(msg);
                 end
 
-                if ~strfind(runArray.array(ii).streamer.hash, ...
-                            '801633fe52c9a30bbfd152ac9f71db8955196d8d')
-                    warning([runArray.array(ii).name ' is outdated: streamer']);
+                try
+                    msg = [runArray.array(ii).name ' is outdated: streamer'];
+                    if ~strfind(runArray.array(ii).streamer.hash, ...
+                                '801633fe52c9a30bbfd152ac9f71db8955196d8d')
+                        warning(msg);
+                    end
+                catch ME
+                    warning(msg);
                 end
             end
         end
