@@ -43,6 +43,8 @@ properties
     params
     % fluxes - cross-shore & along-shore; - energy fluxes
     csflux; asflux;
+    % stats of eddy water on shelf
+    onshelf;
     % transport - TO BE DEPRECATED
     eutrans;
     % streamer properties
