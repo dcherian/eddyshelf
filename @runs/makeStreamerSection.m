@@ -2,6 +2,7 @@
 function [v, mask] = makeStreamerSection(runs, isobath, maxloc, V0, L0, Lz0)
 
     debug = 0;
+    circle_kink = 0;
 
     if ~exist('maxloc', 'var') || isempty(maxloc)
         [~,maxloc] = runs.calc_maxflux(isobath);
@@ -37,10 +38,12 @@ function [v, mask] = makeStreamerSection(runs, isobath, maxloc, V0, L0, Lz0)
     [width, zpeak] = runs.predict_zpeak(isobath, 'use');
     width = abs(width/Lz0); zpeak = abs(zpeak/Lz0);
 
-    %kzrad = width/2; % kink radius - z
-    %kxrad = kzrad; % kink radius - x
-    %x0 = -xfrac-kxrad; -xfrac-kxrad;
-    %z0 = -1 * width/3;
+    if circle_kink
+        kzrad = width/2; % kink radius - z
+        kxrad = kzrad; % kink radius - x
+        x0 = -xfrac-kxrad; -xfrac-kxrad;
+        z0 = -1 * width/3;
+    end
     xline = 0; -xfrac;
 
     a = 2;
@@ -57,11 +60,13 @@ function [v, mask] = makeStreamerSection(runs, isobath, maxloc, V0, L0, Lz0)
         %    mask = xmat < 0;
         %v = repmat(v(:,1), [1 size(v,2)]);
         %else
-        eddymask = ((xmat.^a + zmat.^a) > 1.0^a) .* (zmat < -width);
-        %kinkmask = (((xmat-x0)/kxrad).^2 + ((zmat-z0)/kzrad).^2) <= 1;
+    eddymask = ((xmat.^a + zmat.^a) > 1.0^a) .* (zmat < -width);
+    if circle_kink
+        kinkmask = (((xmat-x0)/kxrad).^2 + ((zmat-z0)/kzrad).^2) <= 1;
+    else
         kinkmask = ((xmat.^a + zmat.^a) > 0.7^a) .* (zmat >= -width);
-        mask = (xmat < xline) & (eddymask | kinkmask);
-        %end
+    end
+    mask = (xmat < xline) & (eddymask | kinkmask);
 
     if debug
         figure;
