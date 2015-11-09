@@ -47,6 +47,11 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     modify_bathy = 1; % modify bathymetric contours to show
                       % isobaths corresponding to csdcontours?
 
+    addvelquiver = 1; % velocity vectors?
+    dxi = 5; dyi = 5; % decimate vectors
+    uref = 1; vref = uref; % scale vectors
+    scale = 3;
+
     % eddy diagnostics
     drawtrack = 1; % plot eddy track?
     drawedgetrack = 0; % plot eddy's edge tracks?
@@ -229,6 +234,10 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         runs.read_velsurf(t0, ntimes);
     end
 
+    if addvelquiver
+        runs.read_velsurf(t0, ntimes);
+    end
+
     if ~strcmpi(name, 'eddye')
         addcsdye = 0;
     end
@@ -299,6 +308,25 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
                max(max(runs.pvsurf(:,:,1)))]);
     end
     clim = caxis;
+
+    if addvelquiver
+        % get on interior RHO points
+        u = avg1(runs.usurf(:,2:end-1,:),1);
+        v = avg1(runs.vsurf(2:end-1,:,:),2);
+
+        rangex = runs.spng.sx1:dxi:runs.spng.sx2;
+        rangey = runs.spng.sy1:dyi:runs.spng.sy2;
+
+        % V = hypot(u,v);
+        % u(V > 0.4*max(V(:))) = 0;
+        % v(V > 0.4*max(V(:))) = 0;
+        % clear V;
+
+        hq = quiver(runs.eddy.xr(rangex, rangey)/1000, ...
+                    runs.eddy.yr(rangex, rangey)/1000, ...
+                    u(rangex, rangey, ii)./uref, v(rangex, rangey, ii)./vref, scale, ...
+                    'Color', 'k', 'LineWidth', 2);
+    end
 
     if csdcontourplot
         hcsd = runs.plot_surf('csdsurf', 'contour', ii);
@@ -528,6 +556,10 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
             hz.CData = hz.CData / factor;
             if vorcontourplot
                 runs.update_eddy_contour(he,ii);
+            end
+            if addvelquiver
+                set(hq,'UData',u(rangex, rangey, ii)/uref);
+                set(hq,'VData',v(rangex, rangey, ii)/vref);
             end
 
             if addzeta
