@@ -351,25 +351,39 @@ classdef runArray < handle
             filter = runArray.filter;
 
             figure; maximize;
-            ax = packboth(2,2);
+            ax = packboth(ceil(length(runArray.filter)/2), 2);
             insertAnnotation('runArray.mosaic_field');
-            for ii=1:4
+            for ii=1:length(runArray.filter)
+                if iscell(timesteps)
+                    tstep = timesteps{ii};
+                else
+                    if ischar(timesteps)
+                        tstep = timesteps;
+                    else
+                        tstep = timesteps(ii);
+                    end
+                end
+
                 axes(ax(ii));
-                runArray.array(filter(ii)).animate_field(varname, gca, timesteps{ii}, 1);
+                runArray.array(filter(ii)).animate_field(varname, gca, tstep, 1);
             end
 
-            linkaxes(ax, 'xy'); ylim([0 120]); xlim([150 400]);
+            linkaxes(ax, 'xy'); axis tight;
             if isempty(clim), clim = caxis; end
 
             axes(ax(1));
             colorbar('off'); xlabel(''); caxis(clim); ax(1).XTickLabel{end} = '';
-            axes(ax(3));
-            caxis(clim); colorbar('off'); ax(3).XTickLabel{end} = '';
             axes(ax(2));
             caxis(clim); ylabel(''); xlabel(''); colorbar('off'); ax(2).YTickLabel = {''};
-            axes(ax(4));
-            caxis(clim); ax(4).YTickLabel = {''}; ylabel('');
-            hcb = colorbar; moveColorbarOut2x2(hcb);
+            try
+                axes(ax(3));
+                caxis(clim); colorbar('off'); ax(3).XTickLabel{end} = '';
+                axes(ax(4));
+                caxis(clim); ax(4).YTickLabel = {''}; ylabel('');
+                hcb = colorbar; moveColorbarOut2x2(hcb);
+            catch ME
+                hcb = colorbar; moveColorbarOut1x2(hcb);
+            end
         end
 
         function [] = plotSSHgradient(runArray)
