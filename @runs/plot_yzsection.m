@@ -16,8 +16,8 @@ function [] = plot_yzsection(runs, days, loc)
         %tindices = vecfind(runs.time/86400, days)
         %end
 
-    tindices = days;
-    days = runs.eddy.t(days);
+    tindices = runs.process_time(days);
+    days = runs.eddy.t(tindices);
 
     nt = length(tindices);
 

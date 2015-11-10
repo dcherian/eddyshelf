@@ -9,8 +9,8 @@ function [] = plot_fluxes(runArray, isobath, source)
 
     corder_backup = runArray.sorted_colors;
 
-    hfig1 = []; %figure; ax1(1) = subplot(2,1,1); hold all; % shelf water flux time series
-                % ax1(2) = subplot(2,1,2); hold all;
+    hfig1 = figure; ax1(1) = subplot(2,1,1); hold all; % shelf water flux time series
+    ax1(2) = subplot(2,1,2); hold all;
 
     hfig2 = []; %figure; hold all % integrated vertical structure / baroclinicity
 
@@ -29,8 +29,8 @@ function [] = plot_fluxes(runArray, isobath, source)
 
     hfig9 = []; %figure; hold all;% instantaneous streamer vertical structure
 
-    hfig10 = figure; subplot(211); hold all; % horizontal velocity profile at surface
-    subplot(212); hold all;
+    hfig10 = []; %figure; subplot(211); hold all; % horizontal velocity profile at surface
+                 % subplot(212); hold all;
 
     nsmooth = 1;
 
@@ -249,6 +249,7 @@ function [] = plot_fluxes(runArray, isobath, source)
         xlabel('Non-dimensional time');
         legend(hgplt1, names);
         beautify;
+        pause(0.1);
     end
 
     if ~isempty(hfig2)
@@ -290,7 +291,6 @@ function [] = plot_fluxes(runArray, isobath, source)
         beautify;
     end
 
-    pause(0.5);
     if ~isempty(hfig5)
         figure(hfig5)
         insertAnnotation('runArray.plot_fluxes');
@@ -322,7 +322,6 @@ function [] = plot_fluxes(runArray, isobath, source)
         beautify;
     end
 
-    pause(0.5);
     if ~isempty(hfig7)
         figure(hfig7)
         insertAnnotation('runArray.plot_fluxes');

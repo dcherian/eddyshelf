@@ -37,6 +37,8 @@ function [hh] = plot_sections(runArray, varname, ndtimes)
             run = runArray.array(ff);
             name = runArray.getname(ff);
 
+            varname = run.process_varname(varname);
+
             if exist('ndtimes', 'var')
                 ndtime = run.ndtime;
                 % find required tindices
