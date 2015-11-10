@@ -44,6 +44,8 @@ function [] = calcShelfPenetration(runs)
     onshelf.edd = calcdiags(onshelf.edd, runs.eddy_thresh, yvec, runs.bathy.isb);
     onshelf.rho = calcdiags(onshelf.rho, 0.4*max(abs(onshelf.rho.profile(:))), yvec, runs.bathy.isb);
 
+    onshelf.rho.minrho = min(onshelf.rho.profile, [], 1);
+
     hash = githash([mfilename('fullpath') '.m']);
     onshelf.hash = hash;
     onshelf.factor = factor;
