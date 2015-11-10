@@ -996,6 +996,7 @@ classdef runArray < handle
 
             legend(hplt, names);
             title(tsname);
+            xlabel('Non-dimensional time');
             beautify;
             runArray.reset_colors(corder_backup);
         end
