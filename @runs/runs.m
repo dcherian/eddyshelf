@@ -511,6 +511,14 @@ methods
             end
         end
 
+        % load eddy water diagnostics if the file exists
+        if exist([dir '/onshelf.mat'],'file') && reset ~= 1
+            disp('Loading eddy-on-shelf diagnostics');
+            data = load([dir '/onshelf.mat']);
+            runs.onshelf = data.onshelf;
+            clear data
+        end
+
         % load jet diagnostics if the file exists
         if exist([dir '/jet.mat'],'file') && reset ~= 1
             disp('Loading jet diagnostics');
