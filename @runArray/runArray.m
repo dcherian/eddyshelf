@@ -795,7 +795,7 @@ classdef runArray < handle
                 ind = find(mm == 1, 1, 'first');
 
                 hplt(ii) = plot(xi/1000, vm);
-                plot(xi(ind)/1000, vm(ind), 'x', 'Color', hplt(ii).Color);
+                plot(xi(ind)/1000, vm(ind), 'x', 'Color', hplt(ii).Color, 'MarkerSize', 18);
             end
             ylabel(varname);
             xlabel('X - X_{edd} (km)');
