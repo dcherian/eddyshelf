@@ -1,4 +1,3 @@
-
 % water mass census in full domain
 function [] = water_census(runs)
 
@@ -39,13 +38,13 @@ function [] = water_census(runs)
 
     % include sponge filtering in dV
     % i.e., set dV=0 in sponge region
-    dV = reshape(bsxfun(@times, runs.rgrid.dV, ~runs.sponge), sz3dsp);
+    dV = double(reshape(bsxfun(@times, runs.rgrid.dV, ~runs.sponge), sz3dsp));
 
     % not sure if dz is needed
     %dz = dV ./ runs.rgrid.dx ./ runs.rgrid.dy;
     xsp = reshape(repmat(runs.rgrid.xr,[1 1 runs.rgrid.N]), sz3dsp);
     ysp = reshape(repmat(runs.rgrid.yr,[1 1 runs.rgrid.N]), sz3dsp);
-    zsp = reshape(permute(runs.rgrid.z_r,[3 2 1]), sz3dsp);
+    zsp = double(reshape(permute(runs.rgrid.z_r,[3 2 1]), sz3dsp));
 
     ntime = length(runs.time);
 
@@ -159,15 +158,15 @@ function [] = water_census(runs)
 
     time = runs.time/86400;
     runs.water.comment = [''];
+
+    runs.water.totvol = sum(dV(:));
+    runs.water.shvol = sum(dV(:) .* full(regsh));
+    runs.water.slvol = sum(dV(:) .* full(regsl));
+    runs.water.dpvol = sum(dV(:) .* full(regdp));
+
+    runs.water.hash = githash([mfilename('fullpath') '.m']);
+
     water = runs.water;
-
-    water.totvol = sum(dV(:));
-    water.shvol = sum(dV(:) .* full(regsh));
-    water.slvol = sum(dV(:) .* full(regsl));
-    water.dpvol = sum(dV(:) .* full(regdp));
-
-    water.hash = githash([mfilename('fullpath') '.m']);
-
     save([runs.dir '/watermass.mat'], 'water');
 
     %%
