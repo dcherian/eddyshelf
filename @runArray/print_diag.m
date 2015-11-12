@@ -603,14 +603,15 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
             vvec = trapz(run.csflux.time(start:stop), ....
                          repnan(run.csflux.off.slopezt(:, start:stop, ...
                                                         isobath, isobath),0), 2);
-
         end
 
         if strcmpi(name, 'max flux')
             if isempty(args)
                 isobath = 3;
+                factor = 2;
             else
                 isobath = args(1);
+                factor = args(2);
             end
 
             if ~isfield(run.csflux, 'off') || ...
@@ -620,18 +621,18 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
             end
 
             source = isobath;
-            integrate_zlimit = 2*hsb; % calculate flux above this depth
+            integrate_zlimit = factor*hsb; % calculate flux above this depth
 
             fluxvec = run.recalculateFlux(integrate_zlimit, isobath, source);
             % fluxvec = run.csflux.off.slope(:, isobath, source);
-            [maxflux, maxloc] = run.calc_maxflux(fluxvec);
+            [maxflux, maxloc, err] = run.calc_maxflux(fluxvec);
+            % [maxflux, maxloc] = max(fluxvec);
             %maxflux = run.calc_avgflux(fluxvec);
             [~,~,restind] = run.locate_resistance;
             if isnan(maxflux), continue; end
 
             if ~isfield(run.eddy, 'rhovor'), continue; end
 
-            % maxflux = max(run.csflux.off.slope(:,isobath, isobath));
             H = run.bathy.h(1, run.csflux.ix(isobath));
 
             % for parameterization

@@ -676,6 +676,12 @@ classdef runArray < handle
                 isobath(1) = [];
             end
 
+            if strcmpi(str, 'max flux') | strcmpi(str, 'avg flux')
+                factor = 2; % to 2xH_{sb}
+            else
+                factor = [];
+            end
+
             figure;
             insertAnnotation(['runArray.plot_fluxparam(' str ')']);
             slopeplot = 3;
@@ -684,7 +690,7 @@ classdef runArray < handle
                 iso = isobath(ii);
                 if ii >= slopeplot, hh = ii+1; else hh = ii; end
                 axes(hax(hh));
-                [~, ~, ~, P, Perr] = runArray.print_diag(str, iso, ...
+                [~, ~, ~, P, Perr] = runArray.print_diag(str, [iso factor], ...
                                                          hax(hh), 'no_name_points');
                 labx = hax(hh).XLabel.String;
                 laby = hax(hh).YLabel.String;
@@ -724,7 +730,9 @@ classdef runArray < handle
             hax(4).YLabel.String = laby;
 
             axes(hax(2));
-            title(['Integrated to 2H_{sb}']);
+            if ~isempty(factor)
+                title(['Integrated to ' num2str(factor) 'H_{sb}']);
+            end
             % save to file
             fname = ['./params/param_' str];
             slope = mplt;
