@@ -30,10 +30,9 @@ function [v, mask] = makeStreamerSection(runs, isobath, maxloc, V0, L0, Lz0)
     yoR = runs.csflux.ndloc(isobath); % y/R - used in csflux
     y0oL =  R/L0 * (1 - yoR); % y0/L - used in derivation
     xfrac = sqrt(1 - y0oL^2);
-
     %y0oL = (runs.eddy.my(maxloc) - runs.csflux.x(isobath))/L0;
-    %if isobath < 3, y0oL = 0; end
-    v = -2.3 * V0 * xmat .* exp(-xmat.^2 - y0oL.^2) .* (1-erf(-zmat));
+
+    v = -2.3 * V0 * xmat .* exp(-xmat.^2) .* (1-erf(-zmat));
 
     [width, zpeak] = runs.predict_zpeak(isobath, 'use');
     width = abs(width/Lz0); zpeak = abs(zpeak/Lz0);
@@ -55,25 +54,46 @@ function [v, mask] = makeStreamerSection(runs, isobath, maxloc, V0, L0, Lz0)
         xline = 0;
     end
 
-    %if abs(runs.csflux.x(isobath) - runs.bathy.xsb) < 2000
+    if abs(runs.csflux.x(isobath) - runs.bathy.xsb) < 2000
         % if close to shelfbreak use barotropic mask
-        %    mask = xmat < 0;
-        %v = repmat(v(:,1), [1 size(v,2)]);
-        %else
-    eddymask = ((xmat.^a + zmat.^a) > 1.0^a) .* (zmat < -width);
-    if circle_kink
-        kinkmask = (((xmat-x0)/kxrad).^2 + ((zmat-z0)/kzrad).^2) <= 1;
+        % account for sloping shelf by integrating only
+        % to Rhines length scale (L_β). This needs to be
+        % normalized by L0, of course.
+        if runs.bathy.sl_shelf ~= 0
+            betash = runs.params.phys.f0/runs.bathy.hsb * runs.bathy.sl_shelf;
+            Lbeta = sqrt(V0/betash) / L0;
+
+            if Lbeta > 1
+                % for gentle slopes, I shouldn't do anything.
+                Lbeta = 0;
+            end
+        else
+            Lbeta = 0;
+        end
+        mask = xmat < (-Lbeta);
+
+        % xline = -Lbeta;
     else
-        kinkmask = ((xmat.^a + zmat.^a) > 0.7^a) .* (zmat >= -width);
+        eddymask = ((xmat.^a + zmat.^a) > 1.0^a) .* (zmat < -width);
+        if circle_kink
+            kinkmask = (((xmat-x0)/kxrad).^2 + ((zmat-z0)/kzrad).^2) <= 1;
+        else
+            kinkmask = ((xmat.^a + zmat.^a) > 0.7^a) .* (zmat >= -width);
+        end
+        mask = (xmat < xline) & (eddymask | kinkmask);
     end
-    mask = (xmat < xline) & (eddymask | kinkmask);
 
     if debug
         figure;
+        pcolorcen(xmat, zmat, v);
+        center_colorbar;
         hold on
-        contour(xmat, zmat, kinkmask, 'k');
-        contour(xmat, zmat, eddymask, 'r');
-        linex(xline);
+        try
+            contour(xmat, zmat, kinkmask, 'k');
+            contour(xmat, zmat, eddymask, 'r');
+            linex(xline);
+        catch ME
+        end
         contour(xmat, zmat, mask, 'b');
         keyboard;
     end
