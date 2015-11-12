@@ -66,11 +66,19 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
         tind = run.tscaleind;
         [~,uind,~] = unique(run.time, 'stable');
         ndtime = run.eddy.t * 86400 / run.eddy.turnover;
-        Lx = run.eddy.vor.lmaj;
+        %        try
+        %    Lx = run.eddy.rhovor.dia/2;
+        %catch ME
+            Lx = run.eddy.vor.lmaj;
+            %end
         Ly = run.eddy.vor.lmin;
         Lz = run.eddy.Lgauss;
         Ls = run.eddy.Ls;
-        Ro = run.eddy.Ro;
+        try
+            Ro = run.eddy.rhovor.Ro;
+        catch ME
+            Ro = run.eddy.Ro;
+        end
         V = run.eddy.V;
         if isfield(run.eddy, 'Vb'), Vb = run.eddy.Vb; end
 
@@ -92,6 +100,11 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
         hsl = run.bathy.hsl;
         xsb = run.bathy.xsb;
         xsl = run.bathy.xsl;
+        if run.bathy.axis == 'y'
+            fsb = run.rgrid.f(run.bathy.isb,1);
+        else
+            fsb = run.rgrid.f(1,run.bathy.isb);
+        end
         Sa = run.bathy.S_sl;
         beta_t = f0 * alpha./Lz(1);
         N = sqrt(run.params.phys.N2);
