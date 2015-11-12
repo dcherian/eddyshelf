@@ -54,7 +54,7 @@ function [varmean,maskmean,xivec] = avgProfile(runs, varname, axname, ix, mask)
     end
 
     xivec = [-200:200]*1000;
-    for tt=1:size(var,2)
+    for tt=1:length(mx) % only as long as I can track the eddy.
         vari(:,tt) = interp1(xvec-mx(tt), var(:,tt), xivec);
         if mask
             maski(:,tt) = interp1(xvec-mx(tt), maskvar(:,tt), xivec);

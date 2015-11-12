@@ -796,6 +796,13 @@ classdef runArray < handle
 
                 hplt(ii) = plot(xi/1000, vm);
                 plot(xi(ind)/1000, vm(ind), 'x', 'Color', hplt(ii).Color, 'MarkerSize', 18);
+
+                phys = run.params.phys;
+                betash = phys.f0/run.bathy.hsb * run.bathy.sl_shelf;
+                Lbeta = sqrt(run.eddy.V(1)/betash);
+                %[~,maxind] = max(vm);
+                %ind2 = find_approx(xi(maxind) - Lbeta, xi, 1);
+                %plot(xi(ind2)/1000, vm(ind2), '.', 'Color', hplt(ii).Color, 'MarkerSize', 18);
             end
             ylabel(varname);
             xlabel('X - X_{edd} (km)');
