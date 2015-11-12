@@ -965,6 +965,27 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
             name_points = 1;
         end
 
+        % width of inflow supply jet
+        if strcmpi(name, 'inflow')
+            if run.bathy.sl_shelf == 0, continue; end
+
+            [~,maxloc] = run.calc_maxflux(1);
+            V = run.eddy.rhovor.Vke(maxloc);
+            beta_t = run.bathy.sl_shelf * f0/run.bathy.hsb;
+
+            [start,stop]  = run.flux_tindices(run.csflux.off.slope(:,1,1));
+            start = ceil((start+stop)/2);
+            width = nanmean(smooth(run.onshelf.edd.env(start:stop), 10));
+
+            diags(ff) = width/1000;
+            plotx(ff) = sqrt(V/beta_t)/1000;
+
+            laby = 'Source (km)';
+            labx = '$$\sqrt{U/\beta_t}$$ (km)';
+            name_points = 1;
+        end
+
+
         %%%%%%%%%%%%%%%%%%%% deprecated
 
         %%%%%
