@@ -642,7 +642,7 @@ methods
         runs(dir);
     end
 
-    function [hplt] = plot_profilex(runs, varname, tindex, axname, ix, hax)
+    function [hplt, var, xvec] = plot_profilex(runs, varname, tindex, axname, ix, hax)
 
         tindex = runs.process_time(tindex);
         varname = runs.process_varname(varname);
@@ -680,7 +680,7 @@ methods
 
         if axname == 'x'
             % for x = ix, plot against y
-            xvec = yax(:,1)/1000;
+            xvec = yax(1,:)/1000;
             mxname = 'my';
         else
             % for y = iy, plot against x
