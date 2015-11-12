@@ -174,8 +174,8 @@ function [] = plot_xzsection(runs, loc, day, debug_flux)
     hcb.TickLabelsMode = 'auto';
     hcb.TickDirection = 'out';
     hcb.Limits = [cmin cmax];
-    hcb.Ticks = [cmin cmin/2 0 round((runs.bathy.xsl + xsb)/2000 - xsb/1000) ...
-                 round(runs.params.eddy.cy/1000 - xsb/1000)];
+    hcb.Ticks = sort([cmin/2 cmin 0 round((runs.bathy.xsl + xsb)/2000 - xsb/1000) ...
+                 round(runs.params.eddy.cy/1000 - xsb/1000)]);
     % hcb.TickLabels{1} = ['Shelfbreak - ' num2str(-1*hcb.Ticks(1)) ' km'];
     hcb.TickLabels{2} = 'Shelf Water';
     % hcb.TickLabels{3} = 'Shelfbreak';

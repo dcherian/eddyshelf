@@ -267,7 +267,11 @@ methods
                 ./ runs.params.phys.f0^2 ./ (runs.eddy.vor.dia/2).^2;
 
             % eddy turnover time scale
-            runs.eddy.turnover = (runs.eddy.rhovor.dia(1)/2) ./ runs.eddy.V(1);
+            try
+                runs.eddy.turnover = (runs.eddy.rhovor.dia(1)/2) ./ runs.eddy.V(1);
+            catch ME
+                runs.eddy.turnover = (runs.eddy.vor.dia(1)/2) ./ runs.eddy.V(1);
+            end
 
             try
                 runs.eddy.fitx.L = addnan(runs.eddy.fitx.L, 1e10);

@@ -315,6 +315,8 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     end
     clim = caxis;
 
+    % clim = [-1 1]*3e-3;
+
     if addvelquiver
         % get on interior RHO points
         u = avg1(runs.usurf(:,2:end-1,:),1);

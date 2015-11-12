@@ -16,8 +16,8 @@ function [] = plot_fluxes(runArray, isobath, source)
 
     hfig3 = []; %figure; hold all; % envelope
 
-    hfig4 = []; %figure; subplot(2,1,1); hold all; % eddy water flux
-                %subplot(2,1,2); hold all
+    hfig4 = figure; subplot(2,1,1); hold all; % eddy water flux
+            subplot(2,1,2); hold all
 
     hfig5 = []; %figure; hold on;% along shelf structure
 
@@ -61,7 +61,8 @@ function [] = plot_fluxes(runArray, isobath, source)
         fluxscl = 1; %run.eddyfluxscale;
         transscl = 1; He * Le^2;
 
-        fluxvec = run.csflux.off.slope(:,isobath, source);
+        %fluxvec = run.csflux.off.slope(:,isobath, source);
+        fluxvec = run.recalculateFlux(-2*hsb,isobath);
         [maxf, maxi] = run.calc_maxflux(fluxvec);
         [start,stop] = run.flux_tindices(fluxvec);
         ifluxvec = run.csflux.off.itrans.slope(:,isobath, source);
@@ -130,12 +131,12 @@ function [] = plot_fluxes(runArray, isobath, source)
             figure(hfig4)
             subplot(2,1,1)
             hgplt4(ff) = plot(ndtime, ...
-                              smooth((run.csflux.east.eddy(:, isobath))/fluxscl, ...
+                              smooth((run.csflux.on.eddy(:, isobath))/fluxscl, ...
                                      nsmooth), 'Color', hgplt1(ff).Color);
 
             subplot(2,1,2)
             plot(ndtime, ...
-                 run.csflux.east.itrans.eddy(:,isobath)/transscl, ...
+                 run.csflux.on.itrans.eddy(:,isobath)/transscl, ...
                  'Color', hgplt1(ff).Color);
         end
 
