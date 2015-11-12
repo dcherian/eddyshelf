@@ -75,8 +75,7 @@ function [maxflux, maxloc, err] = calc_maxflux(runs, fluxin, debug)
 
     % with bottom friction, choose first peak
     % sloping shelf too
-    if ~isempty(strfind(runs.name, 'ew-5')) ...
-            | ~isempty(strfind(runs.name, 'ew-8'))
+    if ~isempty(strfind(runs.name, 'ew-8'))
         maxloc = locs(1);
     end
 
@@ -93,7 +92,8 @@ function [maxflux, maxloc, err] = calc_maxflux(runs, fluxin, debug)
     maxloc = maxloc + start - 1;
     maxflux = fluxin(maxloc,1);
 
-    if strcmpi(runs.name, 'ew-4341')
+    if strcmpi(runs.name, 'ew-4341') | ...
+            ~isempty(strfind(runs.name, 'ew-50'))
         [maxflux, maxloc] = max(fluxin);
     end
 
