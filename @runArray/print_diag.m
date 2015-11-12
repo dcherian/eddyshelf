@@ -691,11 +691,19 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
                 %          *  Lz0 * (H/Lz0 + 1/sqrt(pi));
             end
 
+
+            debug_fluxes = 1;
+            if debug_fluxes
+                disp(sprintf(['maxflux = %.2f mSv, fluxscl = %.2f mSv | ' ...
+                             'V0 = %.2f m/s, L0 = %.2f km, Lz0 = %.2f m'], ...
+                             maxflux/1000, fluxscl/1000, V0, L0/1000, Lz0));
+            end
+
             norm = eddyscl;
 
             diags(ff) = maxflux/norm;
             plotx(ff) = double(fluxscl)/norm;
-            error(ff) = 0.10*diags(ff);
+            error(ff) = err/norm; 0.10*diags(ff);
 
             % colorize
             if run.bathy.sl_shelf ~= 0
