@@ -89,6 +89,7 @@ function [maxflux, maxloc, err] = calc_maxflux(runs, fluxin, debug)
     if ~exist('maxloc', 'var'), maxloc = locs(2); end
 
     % correct time shift
+    %maxflux = fluxvec(maxloc);
     maxloc = maxloc + start - 1;
     maxflux = fluxin(maxloc,1);
 
@@ -97,7 +98,11 @@ function [maxflux, maxloc, err] = calc_maxflux(runs, fluxin, debug)
         [maxflux, maxloc] = max(fluxin);
     end
 
-    %[maxflux, maxloc] = max(fluxin);
+    [maxflux, maxloc] = max(fluxin);
+    %maxloc = maxloc + start - 1;
+
+    % maxflux = median(fluxvec(locs));
+    err = std(fluxvec(locs))/sqrt(length(locs));
 
     if exist('hfig', 'var')
         linex(maxloc - start + 1);
