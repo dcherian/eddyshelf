@@ -1,5 +1,5 @@
 % return magnitude and time index of max flux
-function [maxflux, maxloc] = calc_maxflux(runs, fluxin, debug)
+function [maxflux, maxloc, err] = calc_maxflux(runs, fluxin, debug)
 
     if ~exist('debug', 'var'), debug = 0; end
 
@@ -9,6 +9,7 @@ function [maxflux, maxloc] = calc_maxflux(runs, fluxin, debug)
 
     iflux = cumtrapz(runs.csflux.time, fluxin);
     [start,stop] = runs.flux_tindices(fluxin);
+    err = 0;
 
     % This smoothing is used only to make peak detection work
     % better. i.e., this makes maxloc a better estimate neglecting
