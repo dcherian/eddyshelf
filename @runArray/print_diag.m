@@ -641,20 +641,32 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
             %V0 = V1*2.3;
 
             tind = maxloc;
-            V = smooth(run.eddy.rhovor.Vke, 1);
-            L = smooth(run.eddy.rhovor.dia/2, 1);
-            Lz = smooth(run.eddy.Lgauss,1);
+            nsmth = 10;
+            %try
+            V = smooth(hypot(run.eddy.fitx.V0, run.eddy.fity.V0), nsmth);
+            L = smooth(hypot(run.eddy.fitx.Lrho, run.eddy.fity.Lrho), nsmth);
+
+            %V = smooth(run.eddy.rhovor.Vke, 1);
+            %L = smooth(run.eddy.rhovor.dia/2, 1);
+
+            Lz = smooth(run.eddy.Lgauss, nsmth);
             % this seems to work best
             % 2.3 factor is taken care of later.
-            V0 = V(tind); L0 = median(L(1:tind)); Lz0 = Lz(tind);
+            V(V > 1) = NaN;
+            V0 = nanmedian(V(1:tind)); L0 = nanmedian(L(1:tind)); Lz0 = Lz(tind);
 
-            if hsb/Lz0 > 0.4 & isobath < 3 & run.bathy.sl_shelf == 0
+            % not much difference
+            %V0 = round(V0, 2);
+            %L0 = round(L0/1000, 0)*1000;
+            %Lz0 = round(Lz0, 1);
+
+            if hsb/Lz0 > 0.5 & run.bathy.sl_shelf == 0
                 warning('skipping because splitting is probably happening.');
                 continue;
             end
 
             % for normalization
-            scaletind = tind;
+            % scaletind = tind;
             %eddyscl = V(scaletind) * L(scaletind) * Lz(scaletind);
             eddyscl = V0 * L0 * Lz0;
 
@@ -667,8 +679,11 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
                 [v,mask] = run.makeStreamerSection(isobath, maxloc, V0, L0, Lz0);
                 zind = find_approx(zvec, -integrate_zlimit);
                 vmask = v .* mask;
-                vmaskedd = v .* (~mask) .* (v<0) * 2;
+
                 fluxscl = trapz(zvec(zind:end), trapz(xvec, vmask(:,zind:end), 1), 2);
+
+                % scale based on transport in eddy? (based on mask)
+                % vmaskedd = v .* (~mask) .* (v<0) * 2;
                 % eddyscl = trapz(zvec(zind:end), trapz(xvec, vmaskedd(:,zind:end), 1), 2);
             else
                 % syms x z
@@ -713,7 +728,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
                 clr = 'b';
             end
 
-            mark_outliers = 1; name_points = 1;
+            mark_outliers = 0; name_points = 1;
             parameterize = 1; logscale = 0;
             force_0intercept = 0;
             errorbarflag = 0; line_45 = 0;
