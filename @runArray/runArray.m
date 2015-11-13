@@ -337,55 +337,6 @@ classdef runArray < handle
 
         end
 
-        function [ax] = mosaic_field(runArray, varname, timesteps, clim)
-            if length(runArray.filter) > 4
-                error('Too many runs selected for 2x2 mosaic!');
-            end
-
-            if ~exist('timesteps', 'var') | isempty(timesteps)
-                timesteps = {'max flux'; 'max flux'; 'max flux'; 'max flux'};
-            end
-
-            if ~exist('clim', 'var'), clim = []; end
-
-            filter = runArray.filter;
-
-            figure; maximize;
-            ax = packboth(ceil(length(runArray.filter)/2), 2);
-            insertAnnotation('runArray.mosaic_field');
-            for ii=1:length(runArray.filter)
-                if iscell(timesteps)
-                    tstep = timesteps{ii};
-                else
-                    if ischar(timesteps)
-                        tstep = timesteps;
-                    else
-                        tstep = timesteps(ii);
-                    end
-                end
-
-                axes(ax(ii));
-                runArray.array(filter(ii)).animate_field(varname, gca, tstep, 1);
-            end
-
-            linkaxes(ax, 'xy'); axis tight;
-            if isempty(clim), clim = caxis; end
-
-            axes(ax(1));
-            colorbar('off'); xlabel(''); caxis(clim); ax(1).XTickLabel{end} = '';
-            axes(ax(2));
-            caxis(clim); ylabel(''); xlabel(''); colorbar('off'); ax(2).YTickLabel = {''};
-            try
-                axes(ax(3));
-                caxis(clim); colorbar('off'); ax(3).XTickLabel{end} = '';
-                axes(ax(4));
-                caxis(clim); ax(4).YTickLabel = {''}; ylabel('');
-                hcb = colorbar; moveColorbarOut2x2(hcb);
-            catch ME
-                hcb = colorbar; moveColorbarOut1x2(hcb);
-            end
-        end
-
         function [] = plotSSHgradient(runArray)
             figure; hax = gca; maximize; hold all;
             for ii = 1:length(runArray.filter)
@@ -395,35 +346,6 @@ classdef runArray < handle
             end
 
             legend(hh, names);
-        end
-
-        function [ax] = mosaic_hovmoeller(runArray, varname, axname, loc, iz)
-
-            if ~exist('iz', 'var'), iz = []; end
-
-            N = length(runArray.filter);
-            figure; maximize; insertAnnotation('runArray.mosaic_hovmoeller');
-            ax = packboth(2,N/2);
-
-            clim = [];
-            for ii=1:N
-                ff = runArray.filter(ii);
-                runArray.array(ff).hovmoeller(varname, axname, loc, iz, ax(ii));
-                str = ax(ii).Title.String;
-                title('');
-                text(0.50, 0.90, str, 'Units', 'normalized');
-                clim = [clim caxis];
-
-                if ii == 1 | ii == 3
-                    ax(ii).XTickLabel = '';
-                end
-            end
-            linkaxes(ax, 'xy');
-
-            clim = [min(clim) max(clim)];
-            for ii=1:N
-                caxis(clim);
-            end
         end
 
         function [] = streamerstats(runArray)
