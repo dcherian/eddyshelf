@@ -167,8 +167,8 @@ classdef runArray < handle
             for ii=1:runArray.len
                 try
                     msg = [runArray.array(ii).name ' is outdated: eddy'];
-                    if ~strfind(runArray.array(ii).eddy.hash, ...
-                                '31d29d2416ec11995254f795381167702715099a')
+                    if isempty(strfind(runArray.array(ii).eddy.hash, ...
+                                       '31d29d2416ec11995254f795381167702715099a'))
                         warning(msg);
                     end
                 catch ME
@@ -177,8 +177,8 @@ classdef runArray < handle
 
                 try
                     msg = [runArray.array(ii).name ' is outdated: csflux'];
-                    if ~strfind(runArray.array(ii).csflux.hash, ...
-                                '31d29d2416ec11995254f795381167702715099a')
+                    if isempty(strfind(runArray.array(ii).csflux.hash, ...
+                                       '38b662d3b7c0cb2d1f19965d0c88767e8c6c1f4c'))
                         warning(msg);
                     end
                 catch ME
@@ -187,8 +187,8 @@ classdef runArray < handle
 
                 try
                     msg = [runArray.array(ii).name ' is outdated: streamer'];
-                    if ~strfind(runArray.array(ii).streamer.hash, ...
-                                '801633fe52c9a30bbfd152ac9f71db8955196d8d')
+                    if isempty(strfind(runArray.array(ii).streamer.hash, ...
+                                       '801633fe52c9a30bbfd152ac9f71db8955196d8d'))
                         warning(msg);
                     end
                 catch ME
