@@ -27,7 +27,7 @@ function [] = csfluxes(runs, ftype)
     vorname = [runs.dir '/ocean_vor.nc'];
 
     tstart = 1;
-    revind = runs.eddy.trevind;
+    % revind = runs.eddy.trevind;
 
     % quantities for area-averaging if needed
     h = runs.bathy.h(2:end-1,2:end-1);
@@ -120,6 +120,7 @@ function [] = csfluxes(runs, ftype)
     end
 
     time = runs.time(1:tinf);
+    runs.csflux.time = time;
     t0 = 1;
 
     % size for initialization
@@ -211,7 +212,7 @@ function [] = csfluxes(runs, ftype)
     end
 
     % for integrated transport diagnostics
-    dt = [time(2)-time(1) diff(time)];
+    dt = [time(2)-time(1) diff(time)'];
     if bathyax == 2
         dx = 1./runs.rgrid.pm(1,2:end-1)';
     else
@@ -284,7 +285,7 @@ function [] = csfluxes(runs, ftype)
             csvoffmask = csvel > 0;
             % pick out region with eddy center
             for tt=1:size(csvel, 3)
-                flag_found = 0;
+                flag_found(tt) = 0;
                 regions = bwconncomp(csvoffmask(:,:,tt), 8);
                 ix = find_approx(xvec, cxi(tt), 1);
                 iwe = find_approx(xvec, runs.eddy.rhovor.we(tt), 1);
@@ -294,23 +295,36 @@ function [] = csfluxes(runs, ftype)
                     maskreg = zeros(regions.ImageSize);
                     maskreg(regions.PixelIdxList{zz}) = 1;
 
-                    if any(maskreg(ceil(ix/2),:) == 1)
+                    if any(maskreg(ix,:) == 1)
                         csvoffmask(:,:,tt) = maskreg;
-                        flag_found = 1;
+                        flag_found(tt) = 1;
                         break;
                     end
                 end
 
                 % sometimes eddy center is a few grid points off,
                 % then look for midpoint of western edge and center
-                if ~flag_found
+                if ~flag_found(tt)
                     for zz=1:regions.NumObjects
                         maskreg = zeros(regions.ImageSize);
                         maskreg(regions.PixelIdxList{zz}) = 1;
 
                         if any(maskreg(ceil((ix+iwe)/2),:) == 1)
                             csvoffmask(:,:,tt) = maskreg;
-                            flag_found = 1;
+                            flag_found(tt) = 1;
+                            break;
+                        end
+                    end
+                end
+
+                if ~flag_found(tt)
+                    for zz=1:regions.NumObjects
+                        maskreg = zeros(regions.ImageSize);
+                        maskreg(regions.PixelIdxList{zz}) = 1;
+
+                        if any(maskreg(ix-5,:) == 1)
+                            csvoffmask(:,:,tt) = maskreg;
+                            flag_found(tt) = 1;
                             break;
                         end
                     end
@@ -630,7 +644,7 @@ function [] = csfluxes(runs, ftype)
     end
 
     % save fluxes
-    runs.csflux.time = time;
+    runs.csflux.flag_found = flag_found;
 
     hash = githash([mfilename('fullpath') '.m']);
     runs.csflux.hash = hash;
