@@ -1,5 +1,5 @@
 %  animate 2D field at the surface presumably.
-function [] = animate_field(runs, name, hax, t0, ntimes)
+function [handles] = animate_field(runs, name, hax, t0, ntimes)
     if ~exist('hax','var'), hax = []; end
 
     runs.video_init(name);
@@ -37,7 +37,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
 
     csdcontourplot = 1; % contour csd contours
     try
-        isobath = [2 3 4];
+        isobath = [1 7];
         isobath(isobath > length(runs.csflux.x)) = [];
         csdcontours = runs.csflux.x(isobath);
     catch ME
@@ -50,7 +50,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     modify_bathy = 1; % modify bathymetric contours to show
                       % isobaths corresponding to csdcontours?
 
-    addvelquiver = 1; % velocity vectors?
+    addvelquiver = 0; % velocity vectors?
     dxi = 5; dyi = 5; % decimate vectors
     uref = 1; vref = uref; % scale vectors
     scale = 3;
@@ -297,10 +297,10 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     ii=t0;
 
     % plot field
-    hz = runs.plot_surf(varname, 'pcolor', ii);
-    hz.CData = hz.CData / factor;
+    handles.hfield = runs.plot_surf(varname, 'pcolor', ii);
+    handles.hfield.CData = handles.hfield.CData / factor;
     hold on;
-    colorbar;
+    handles.hcb = colorbar;
     if ~strcmpi(name, 'csdye') && ~strcmpi(name, 'rho') ...
             && ~strcmpi(name, 'dye_01')
         center_colorbar;
@@ -330,17 +330,17 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         % v(V > 0.4*max(V(:))) = 0;
         % clear V;
 
-        hq = quiver(runs.eddy.xr(rangex, rangey)/1000, ...
+        handles.hquiv = quiver(runs.eddy.xr(rangex, rangey)/1000, ...
                     runs.eddy.yr(rangex, rangey)/1000, ...
                     u(rangex, rangey, ii)./uref, v(rangex, rangey, ii)./vref, scale, ...
                     'Color', 'k', 'LineWidth', 2);
     end
 
     if csdcontourplot
-        hcsd = runs.plot_surf('csdsurf', 'contour', ii);
-        hcsd.LevelList = csdcontours;
-        hcsd.Color = runs.shelfSlopeColor();
-        hcsd.LineWidth = 2;
+        handles.hcsd = runs.plot_surf('csdsurf', 'contour', ii);
+        handles.hcsd.LevelList = csdcontours;
+        handles.hcsd.Color = runs.shelfSlopeColor();
+        handles.hcsd.LineWidth = 2;
     end
 
     if strcmpi(name, 'ubot') || strcmpi(name, 'vbot')
@@ -349,7 +349,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     end
 
     % bathy
-    hbathy = runs.plot_bathy('contour', [1 1 1]*0.7);
+    handles.hbathy = runs.plot_bathy('contour', [1 1 1]*0.7);
     if csdcontourplot && modify_bathy
         if runs.bathy.axis == 'y'
             ax = runs.rgrid.y_rho(:,1);
@@ -359,31 +359,31 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
             hvec = runs.bathy.h(:,1);
         end
         ind = vecfind(ax, csdcontours);
-        hbathy{1}.LevelList = round(hvec(ind));
+        handles.hbathy{1}.LevelList = round(hvec(ind));
     end
 
     % plot track
     if drawtrack
-        plot(runs.eddy.mx/1000, runs.eddy.my/1000);
+        handles.htrack = plot(runs.eddy.mx/1000, runs.eddy.my/1000);
         if drawedgetrack
             if runs.bathy.axis == 'y'
-                plot(runs.eddy.mx/1000, runs.eddy.vor.ne/1000);
-                plot(runs.eddy.mx/1000, runs.eddy.vor.se/1000);
+                handles.hedgetrack(1) = plot(runs.eddy.mx/1000, runs.eddy.vor.ne/1000);
+                handles.hedgetrack(2) = plot(runs.eddy.mx/1000, runs.eddy.vor.se/1000);
             else
-                plot(runs.eddy.vor.ee/1000, runs.eddy.my/1000);
-                plot(runs.eddy.vor.we/1000, runs.eddy.my/1000);
+                handles.hedgetrack(1) = plot(runs.eddy.vor.ee/1000, runs.eddy.my/1000);
+                handles.hedgetrack(2) = plot(runs.eddy.vor.we/1000, runs.eddy.my/1000);
             end
         end
     end
 
     if drawcenter
-        hcen = plot(runs.eddy.mx(ii)/1000, runs.eddy.my(ii)/1000, 'kx');
+        handles.hcentrack = plot(runs.eddy.mx(ii)/1000, runs.eddy.my(ii)/1000, 'kx');
     end
 
     % zeta too?
     if addzeta
-        hzeta = runs.plot_surf('zeta','contour', ii);
-        set(hzeta, 'Color', 'k', 'LineWidth', 2);
+        handles.hzeta = runs.plot_surf('zeta','contour', ii);
+        set(handles.hzeta, 'Color', 'k', 'LineWidth', 2);
     end
 
     % plot eddy contours
@@ -391,10 +391,10 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
         he = runs.plot_eddy_contour('contour',ii);
     end
     if sshplot
-        he2 = runs.plot_eddy_sshcontour('contour',ii);
+        handles.hssh = runs.plot_eddy_sshcontour('contour',ii);
     end
     if rhocontourplot
-        he3 = runs.plot_rho_contour('contour', ii);
+        handles.hrho = runs.plot_rho_contour('contour', ii);
     end
 
     % telescoping lines
@@ -409,13 +409,13 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     end
 
     % misc stuff
-    ht = runs.set_title(titlestr,ii);
+    handles.htitle = runs.set_title(titlestr,ii);
     xlabel('X (km)');ylabel('Y (km)');
     axis image;
 
     if strcmpi(name, 'zeta')
         if dyeplot
-            [~,hedd2] = contour(runs.rgrid.x_rho(ix,iy)/1000, ...
+            [~,handles.hdye] = contour(runs.rgrid.x_rho(ix,iy)/1000, ...
                                 runs.rgrid.y_rho(ix,iy)/1000, ...
                                 runs.eddsurf(ix,iy,ii)', ...
                                 [1 1]*0.95, 'LineWidth', ...
@@ -434,7 +434,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
     maximize(gcf); pause(0.2);
     beautify([16 16 18]);
     ax(1) = gca;
-    htext = runs.add_timelabel(ii);
+    handles.htlabel = runs.add_timelabel(ii);
 
     if addcsdye
         caxis([-1 1]*1.5);
@@ -563,22 +563,22 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
                 %hline = drawLine(L);
             end
 
-            runs.update_surf(varname, hz,ii);
-            hz.CData = hz.CData / factor;
+            runs.update_surf(varname, handles.hfield,ii);
+            handles.hfield.CData = handles.hfield.CData / factor;
             if vorcontourplot
                 runs.update_eddy_contour(he,ii);
             end
             if addvelquiver
-                set(hq,'UData',u(rangex, rangey, ii)/uref);
-                set(hq,'VData',v(rangex, rangey, ii)/vref);
+                set(handles.hquiv,'UData',u(rangex, rangey, ii)/uref);
+                set(handles.hquiv,'VData',v(rangex, rangey, ii)/vref);
             end
 
             if addzeta
-                runs.update_surf('zeta', hzeta, ii);
+                runs.update_surf('zeta', handles.hzeta, ii);
             end
 
             if csdcontourplot
-                runs.update_surf('csdsurf', hcsd, ii);
+                runs.update_surf('csdsurf', handles.hcsd, ii);
             end
 
             if pointplot
@@ -587,22 +587,22 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
             end
 
             if drawcenter
-                hcen.XData = runs.eddy.mx(ii)/1000;
-                hcen.YData = runs.eddy.my(ii)/1000;
+                handles.hcentrack.XData = runs.eddy.mx(ii)/1000;
+                handles.hcentrack.YData = runs.eddy.my(ii)/1000;
             end
 
             % ssh contour
             if sshplot
-                runs.update_eddy_sshcontour(he2,ii);
+                runs.update_eddy_sshcontour(handles.hssh,ii);
             end
             if rhocontourplot
-                runs.update_rho_contour(he3,ii);
+                runs.update_rho_contour(handles.hrho,ii);
             end
-            runs.update_title(ht,titlestr,ii);
+            runs.update_title(handles.htitle,titlestr,ii);
 
             % eddye contours
             if dyeplot
-                set(hedd2, 'ZData', runs.eddsurf(ix,iy,ii)');
+                set(handles.hdye, 'ZData', runs.eddsurf(ix,iy,ii)');
             end
 
             % slopewater flux plots
@@ -637,7 +637,7 @@ function [] = animate_field(runs, name, hax, t0, ntimes)
             end
 
             % update time label
-            runs.update_timelabel(htext, ii);
+            runs.update_timelabel(handles.htlabel, ii);
             runs.video_update();
             pause(1);
         end

@@ -14,6 +14,8 @@ function [] = hovmoeller(runs, varname, axname, loc, iz, hax)
         hax = gca;
     end
 
+    handles.hax = hax;
+
     if strcmpi(loc, 'sb')
         loc = num2str(runs.bathy.xsb);
     end
@@ -62,12 +64,12 @@ function [] = hovmoeller(runs, varname, axname, loc, iz, hax)
 
     axes(hax);
     if axname == 'y'
-        pcolorcen(xmat, tmat, var);
+        handles.hplt = pcolorcen(xmat, tmat, var);
     else
-        pcolorcen(tmat, xmat, var);
+        handles.hplt = pcolorcen(tmat, xmat, var);
     end
 
-    colorbar;
+    handles.hcb = colorbar;
     if ~strcmpi(varname, 'rho'), center_colorbar; end
     hold on
     if axname == 'y'
@@ -85,8 +87,8 @@ function [] = hovmoeller(runs, varname, axname, loc, iz, hax)
         xlabel('Time (days)');
         if runs.bathy.axis == 'y', liney(0, 'shelfbreak'); end
     end
-    title([runs.name ' |  ' varname ' | ' axname ' = ' ...
-           num2str(str2double(loc)/1000, '%d') ' km']);
+    handles.htitle = title([runs.name ' |  ' varname ' | ' axname ' = ' ...
+                        num2str(str2double(loc)/1000, '%d') ' km']);
     beautify;
 
     % wave - estimate
