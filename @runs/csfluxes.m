@@ -11,6 +11,8 @@ function [] = csfluxes(runs, ftype)
     disp([runs.name '.csfluxes']);
     disp('===================')
 
+    reset = 0; % 1 means redo all isobaths
+
     % Use history or avg files?
     if ~exist('ftype', 'var') || isempty(ftype), ftype = 'his'; end
 
@@ -33,39 +35,45 @@ function [] = csfluxes(runs, ftype)
     % sort out isobaths across which to calculate transports
     Y = max(runs.rgrid.y_rho(:));
 
-    runs.csflux = [];
-
     % is cyclone? if so, -1; else 0
     sgntamp = runs.sgntamp;
 
+    xsb = runs.bathy.xsb; xsl = runs.bathy.xsl;
+
     % Non-dimensional isobath = (y_{isobath} - y_{sb})/(Eddy center
     % location)
-    xsb = runs.bathy.xsb; xsl = runs.bathy.xsl;
-    if runs.bathy.axis == 'y'
-        [~,R,restind] = runs.locate_resistance;
+
+    if reset
+        runs.csflux = [];
+        if runs.bathy.axis == 'y'
+            [~,R,restind] = runs.locate_resistance;
+        else
+            [R,~,restind] = runs.locate_resistance;
+        end
+        if isempty(R)
+            error(['locate_resistance didn''t return anything for ' runs.name]);
+        end
+        R = abs(R - xsb);
+        runs.csflux.ndloc = linspace(0,2,13);
+        runs.csflux.R = R;
+        loc = runs.csflux.ndloc * R * sgntamp + xsb;
+        if ~runs.params.flags.flat_bottom
+            runs.csflux.ndloc(sgntamp * loc > sgntamp * xsl) = [];
+            loc(sgntamp*loc > sgntamp*xsl) = [];
+        else
+            % remove the wall location
+            runs.csflux.ndloc(1) = [];
+            loc(1) = [];
+        end
+        runs.animate_field('zeta',[],restind,1);
+        if runs.bathy.axis == 'y'
+            liney(loc/1000, [], 'r');
+        else
+            linex(loc/1000, [], 'r');
+        end
     else
-        [R,~,restind] = runs.locate_resistance;
-    end
-    if isempty(R)
-        error(['locate_resistance didn''t return anything for ' runs.name]);
-    end
-    R = abs(R - xsb);
-    runs.csflux.ndloc = linspace(0,2,13);
-    runs.csflux.R = R;
-    loc = runs.csflux.ndloc * R * sgntamp + xsb;
-    if ~runs.params.flags.flat_bottom
-        runs.csflux.ndloc(sgntamp * loc > sgntamp * xsl) = [];
-        loc(sgntamp*loc > sgntamp*xsl) = [];
-    else
-        % remove the wall location
-        runs.csflux.ndloc(1) = [];
-        loc(1) = [];
-    end
-    runs.animate_field('zeta',[],restind,1);
-    if runs.bathy.axis == 'y'
-        liney(loc/1000, [], 'r');
-    else
-        linex(loc/1000, [], 'r');
+        R = runs.csflux.R;
+        loc = runs.csflux.ndloc * R * sgntamp + xsb;
     end
 
     if runs.params.bathy.axis == 'x'
@@ -90,17 +98,19 @@ function [] = csfluxes(runs, ftype)
 
     sz = size(runs.sponge);
 
-    % save locations
-    runs.csflux.x = loc;
-    % save indices for locations - w.r.t INTERIOR RHO POINTS
-    runs.csflux.ix = indices;
-    % save isobath values
-    runs.csflux.h = ceil(runs.bathy.h(1,runs.csflux.ix));
+    if reset
+        % save locations
+        runs.csflux.x = loc;
+        % save indices for locations - w.r.t INTERIOR RHO POINTS
+        runs.csflux.ix = indices;
+        % save isobath values
+        runs.csflux.h = ceil(runs.bathy.h(1,runs.csflux.ix));
 
-    runs.csflux.comment = ['shelf / slope / eddy= which water mass am I ', ...
-                        ' targeting? |\n (x,ix,h) = (location, index, depth) ' ...
-                        'at which I''m calculating transport |\n ' ...
-                        'Slope(kk) = water onshore of loc(kk)'];
+        runs.csflux.comment = ['shelf / slope / eddy= which water mass am I ', ...
+                            ' targeting? |\n (x,ix,h) = (location, index, depth) ' ...
+                            'at which I''m calculating transport |\n ' ...
+                            'Slope(kk) = water onshore of loc(kk)'];
+    end
 
     % how much of the time vector should I read?
     if isfield(runs.eddy, 'tend') & (runs.eddy.tend ~= 0)
@@ -122,73 +132,75 @@ function [] = csfluxes(runs, ftype)
         szfluxxt = [szfull(1)-2 tinf nloc];
     end
 
-    % initialize - mass flux variables
-    runs.csflux.off.slope = nan(szflux);
-    runs.csflux.off.eddy = nan(szflux);
+    if reset
+        % initialize - mass flux variables
+        runs.csflux.off.slope = nan(szflux);
+        runs.csflux.off.eddy = nan(szflux);
 
-    runs.csflux.off.itrans.slope = nan(szflux);
-    runs.csflux.off.itrans.eddy = nan(szflux);
+        runs.csflux.off.itrans.slope = nan(szflux);
+        runs.csflux.off.itrans.eddy = nan(szflux);
 
-    runs.csflux.on.slope = nan(szflux);
-    runs.csflux.on.eddy = nan(szflux);
+        runs.csflux.on.slope = nan(szflux);
+        runs.csflux.on.eddy = nan(szflux);
 
-    runs.csflux.on.itrans.slope = nan(szflux);
-    runs.csflux.on.itrans.eddy = nan(szflux);
+        runs.csflux.on.itrans.slope = nan(szflux);
+        runs.csflux.on.itrans.eddy = nan(szflux);
 
-    runs.csflux.off.bins = cell([1 nloc]);
+        runs.csflux.off.bins = cell([1 nloc]);
 
-    runs.csflux.off.slopewater.vmax = nan([tinf nloc]);
+        runs.csflux.off.slopewater.vmax = nan([tinf nloc]);
 
-    runs.csflux.off.slopewater.trans = cell([1 nloc nloc]);
-    runs.csflux.on.slopewater.vtrans = cell([1 nloc nloc]);
-    runs.csflux.off.slopewater.itrans = cell([1 nloc nloc]);
-    runs.csflux.off.slopewater.envelope = nan([tinf nloc]);
+        runs.csflux.off.slopewater.trans = cell([1 nloc nloc]);
+        runs.csflux.on.slopewater.vtrans = cell([1 nloc nloc]);
+        runs.csflux.off.slopewater.itrans = cell([1 nloc nloc]);
+        runs.csflux.off.slopewater.envelope = nan([tinf nloc]);
 
-    runs.csflux.on.slopewater.trans = cell([1 nloc nloc]);
-    runs.csflux.on.slopewater.vtrans = cell([1 nloc nloc]);
-    runs.csflux.on.slopewater.itrans = cell([1 nloc nloc]);
-    runs.csflux.on.slopewater.envelope = nan([tinf nloc]);
+        runs.csflux.on.slopewater.trans = cell([1 nloc nloc]);
+        runs.csflux.on.slopewater.vtrans = cell([1 nloc nloc]);
+        runs.csflux.on.slopewater.itrans = cell([1 nloc nloc]);
+        runs.csflux.on.slopewater.envelope = nan([tinf nloc]);
 
-    runs.csflux.slopext  = nan(szfluxxt);
-    runs.csflux.eddyxt   = nan(szfluxxt);
-    runs.csflux.offmask = logical(zeros(szfluxxt));
-    runs.csflux.onmask = logical(zeros(szfluxxt));
+        runs.csflux.slopext  = nan(szfluxxt);
+        runs.csflux.eddyxt   = nan(szfluxxt);
+        runs.csflux.offmask = logical(zeros(szfluxxt));
+        runs.csflux.onmask = logical(zeros(szfluxxt));
 
-    runs.csflux.off.slopezt = nan([runs.rgrid.N tinf nloc nloc]);
-    runs.csflux.off.eddyzt = nan([runs.rgrid.N tinf nloc nloc]);
-    runs.csflux.on.slopezt = nan([runs.rgrid.N tinf nloc nloc]);
-    runs.csflux.on.eddyzt = nan([runs.rgrid.N tinf nloc nloc]);
+        runs.csflux.off.slopezt = nan([runs.rgrid.N tinf nloc nloc]);
+        runs.csflux.off.eddyzt = nan([runs.rgrid.N tinf nloc nloc]);
+        runs.csflux.on.slopezt = nan([runs.rgrid.N tinf nloc nloc]);
+        runs.csflux.on.eddyzt = nan([runs.rgrid.N tinf nloc nloc]);
 
-    runs.csflux.off.slopewater.vertitrans = nan([runs.rgrid.N nloc]);
-    runs.csflux.off.eddywater.vertitrans = nan([runs.rgrid.N nloc]);
-    runs.csflux.on.slopewater.vertitrans = nan([runs.rgrid.N nloc]);
-    runs.csflux.on.eddywater.vertitrans = nan([runs.rgrid.N nloc]);
+        runs.csflux.off.slopewater.vertitrans = nan([runs.rgrid.N nloc]);
+        runs.csflux.off.eddywater.vertitrans = nan([runs.rgrid.N nloc]);
+        runs.csflux.on.slopewater.vertitrans = nan([runs.rgrid.N nloc]);
+        runs.csflux.on.eddywater.vertitrans = nan([runs.rgrid.N nloc]);
 
-    % initialize - pv fluxes
-    if exist(vorname, 'file') && dopv == 1
-        pvtime = ncread(vorname, 'ocean_time');
-        if isequal(pvtime', time) || isequal(pvtime, time)
-            dopv = 1;
-            runs.csflux.off.pv = nan(szflux);
-            runs.csflux.off.rv = nan(szflux);
-            runs.csflux.on.pv = nan(szflux);
-            runs.csflux.on.rv = nan(szflux);
+        % initialize - pv fluxes
+        if exist(vorname, 'file') && dopv == 1
+            pvtime = ncread(vorname, 'ocean_time');
+            if isequal(pvtime', time) || isequal(pvtime, time)
+                dopv = 1;
+                runs.csflux.off.pv = nan(szflux);
+                runs.csflux.off.rv = nan(szflux);
+                runs.csflux.on.pv = nan(szflux);
+                runs.csflux.on.rv = nan(szflux);
+            end
         end
-    end
 
-    % initialize - energy fluxes
-    if do_energy
-        % total
-        runs.csflux.ikeflux = nan(szflux);
-        runs.csflux.ipeflux = nan(szflux);
-        runs.csflux.ikefluxxt = nan(szfluxxt);
-        runs.csflux.ipefluxxt = nan(szfluxxt);
+        % initialize - energy fluxes
+        if do_energy
+            % total
+            runs.csflux.ikeflux = nan(szflux);
+            runs.csflux.ipeflux = nan(szflux);
+            runs.csflux.ikefluxxt = nan(szfluxxt);
+            runs.csflux.ipefluxxt = nan(szfluxxt);
 
-        % masked by eddye
-        runs.csflux.eddy.ikeflux = nan(szflux);
-        runs.csflux.eddy.ipeflux = nan(szflux);
-        runs.csflux.eddy.ikefluxxt = nan(szfluxxt);
-        runs.csflux.eddy.ipefluxxt = nan(szfluxxt);
+            % masked by eddye
+            runs.csflux.eddy.ikeflux = nan(szflux);
+            runs.csflux.eddy.ipeflux = nan(szflux);
+            runs.csflux.eddy.ikefluxxt = nan(szfluxxt);
+            runs.csflux.eddy.ipefluxxt = nan(szfluxxt);
+        end
     end
 
     % sponge mask
