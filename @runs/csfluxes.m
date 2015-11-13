@@ -262,6 +262,8 @@ function [] = csfluxes(runs, ftype)
         end
         onmask = bsxfun(@times, 1 - offmask, spongemask);
 
+        offmask = logical(offmask); onmask = logical(onmask);
+
         if kk ~= 1
             % New approach:
             % +++++++++++++
@@ -282,20 +284,48 @@ function [] = csfluxes(runs, ftype)
             csvoffmask = csvel > 0;
             % pick out region with eddy center
             for tt=1:size(csvel, 3)
+                flag_found = 0;
                 regions = bwconncomp(csvoffmask(:,:,tt), 8);
+                ix = find_approx(xvec, cxi(tt), 1);
+                iwe = find_approx(xvec, runs.eddy.rhovor.we(tt), 1);
+
+                % find region with eddy center
                 for zz=1:regions.NumObjects
                     maskreg = zeros(regions.ImageSize);
                     maskreg(regions.PixelIdxList{zz}) = 1;
 
-                    ix = find_approx(xvec, cxi(tt), 1);
-                    if any(maskreg(ix,:) == 1)
-                        csvoffmask(:,:,tt) = bsxfun(@and, ...
-                                                    bsxfun(@or, maskreg, offmask(:,tt)), spongemask);
+                    if any(maskreg(ceil(ix/2),:) == 1)
+                        csvoffmask(:,:,tt) = maskreg;
+                        flag_found = 1;
                         break;
+                    end
+                end
+
+                % sometimes eddy center is a few grid points off,
+                % then look for midpoint of western edge and center
+                if ~flag_found
+                    for zz=1:regions.NumObjects
+                        maskreg = zeros(regions.ImageSize);
+                        maskreg(regions.PixelIdxList{zz}) = 1;
+
+                        if any(maskreg(ceil((ix+iwe)/2),:) == 1)
+                            csvoffmask(:,:,tt) = maskreg;
+                            flag_found = 1;
+                            break;
+                        end
                     end
                 end
             end
 
+            csvelbar = squeeze(avg1(dc_roms_read_data(runs.dir, [csvelid 'bar'], [t0 tinf], ...
+                                                      volv, [], runs.rgrid, ftype, ...
+                                                      precision), bathyax));
+            csvelbar = csvelbar(2:end-1,:,:,:) * sgntamp;
+
+            % apply other refinements
+            csvoffmask = bsxfun(@and, csvoffmask, permute(csvelbar > 0, [1 3 2]));
+            csvoffmask = bsxfun(@and, csvoffmask, spongemask);
+            csvoffmask = bsxfun(@or, csvoffmask, permute(offmask, [1 3 2]));
             clear maskreg
 
             csvonmask = ~csvoffmask;
