@@ -15,7 +15,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
 
     if ~strcmpi(name, 'nondim') && ~strcmpi(name, 'beta gyre') ...
             && ~strcmpi(name, 'bfric') && ~strcmpi(name, 'hbl') ...
-            && ~strcmpi(name, 'arrest')
+            && ~strcmpi(name, 'arrest') && isempty(strfind(commands, 'no_plots'))
         plots = 1;
     else
         plots = 0;
@@ -52,6 +52,8 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
         titlestr = name;
         if ~isempty(args), titlestr = [titlestr ' | args = ' num2str(args)]; end
         rmse = 0;
+    else
+        titlestr = [];
     end
 
     for ff=1:length(runArray.filter)
