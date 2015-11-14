@@ -1208,6 +1208,19 @@ methods
         legend('all time', 'restricted time interval');
     end
 
+    function [] = plot_recalculatedFlux(runs, factor)
+        if ~exist('factor', 'var'), factor = 2; end
+
+        figure;
+        insertAnnotation([runs.name '.plot_recalculatedFlux(' factor ')']);
+        hold on;
+        lightDarkLines(length(runs.csflux.x));
+        for iso=1:length(runs.csflux.x)
+            fluxvec = runs.recalculateFlux(runs.bathy.hsb, iso, iso);
+            hplt(iso) = plot(runs.csflux.time/86400, fluxvec);
+        end
+    end
+
     function [] = streamerstruct(runs)
     % calculate along-shelf streamer structure on interpolated grid
         debug = 0;
