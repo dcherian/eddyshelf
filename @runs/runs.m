@@ -1212,6 +1212,7 @@ methods
     % calculate along-shelf streamer structure on interpolated grid
         debug = 0;
 
+        error('Deprecated. use avgStreamerVelSection instead.');
         xr = runs.rgrid.x_rho(1,:)';
         cen = runs.eddy.mx;
         % x-grid to interpolate on to

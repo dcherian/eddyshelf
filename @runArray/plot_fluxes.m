@@ -142,28 +142,15 @@ function [] = plot_fluxes(runArray, isobath, source)
 
         %%%%%%%%%%%%%%%%%%%%% ALONG SHELF STRUCTURE
         if ~isempty(hfig5)
-            if ~isfield(run.csflux, 'slopex')
-                run.streamerstruct;
-            end
-
             figure(hfig5)
-            R = run.csflux.R;
-            L = run.eddy.vor.dia(1)/2;
-            Lz0 = Lz(1);
-            xi = run.csflux.slopex.xi;
+            vmean = run.streamer.off.vmean(:,:,isobath);
+            xivec = run.streamer.xivec * 1000;
+            zvec = run.streamer.zvec(:,isobath);
+            L = run.eddy.rhovor.dia(1)/2;
+            ivmean = squeeze(trapz(zvec, vmean, 2));
 
-            yoR = run.csflux.ndloc(isobath); % y/R - used in csflux
-            y0oL = R/L * (1 - yoR); % y0/L - used in derivation
-            xfrac = sqrt(1 - y0oL^2);
-
-            xloc = find_approx(xi./L, -xfrac, 1);
-
-            xi = run.csflux.slopex.xi;
-            slopex = run.csflux.slopex.flux(:,isobath, source);
-            hgplt5(ff) = plot(xi./L, slopex./ttrans, 'Color', ...
+            hgplt5(ff) = plot(xivec./L, ivmean./ttrans, 'Color', ...
                               hgplt1(ff).Color);
-            plot(xi(xloc)./L, slopex(xloc)./ttrans, 'x', ...
-                 'Color', hgplt1(ff).Color);
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%% STREAMER VELOCITY
