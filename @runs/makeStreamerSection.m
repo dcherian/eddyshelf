@@ -54,24 +54,29 @@ function [v, mask] = makeStreamerSection(runs, isobath, maxloc, V0, L0, Lz0)
         xline = 0;
     end
 
-    if abs(runs.csflux.x(isobath) - runs.bathy.xsb) < 2000
+    if isobath == 1
         % if close to shelfbreak use barotropic mask
         % account for sloping shelf by integrating only
         % to Rhines length scale (L_β). This needs to be
         % normalized by L0, of course.
+        % I use x/L = -1 as a reference for where there is almost
+        % no velocity. So, starting at -1, integrate a distance of L_β.
+        % So, mask is x/L < -(1-L_β)
+        % If no shelf slope, L_β is set to 1, so that I integrate over all
+        % offshore flow.
         if runs.bathy.sl_shelf ~= 0
             betash = runs.params.phys.f0/runs.bathy.hsb * runs.bathy.sl_shelf;
             Lbeta = sqrt(V0/betash) / L0;
 
             if Lbeta > 1
                 % for gentle slopes, I shouldn't do anything.
-                Lbeta = 0;
+                Lbeta = 1;
             end
         else
-            Lbeta = 0;
+            Lbeta = 1;
         end
-        mask = xmat < (-Lbeta);
 
+        mask = xmat < -(1-Lbeta);
         % xline = -Lbeta;
     else
         eddymask = ((xmat.^a + zmat.^a) > 1.0^a) .* (zmat < -width);
