@@ -21,7 +21,7 @@ function [handles] = mosaic_zslice(runs, varname, depth, tind)
     [handles(1).supax, handles(1).htitle] = ...
         suplabel([runs.name ' | ' varname ' | z = -' num2str(abs(depth)) 'm'], 't');
     handles(1).supax.Position(4) = 0.85;
-    handles(1).FontWeight = 'normal';
+    handles(1).htitle.FontWeight = 'normal';
 
     set(hax(2), 'YTickLabel', {}, 'XTickLabel', {});
     xlabel(hax(1), ''); xlabel(hax(2), '');
