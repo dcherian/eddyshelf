@@ -661,8 +661,8 @@ classdef runArray < handle
             intercept = cplt;
             hash = githash('./@runArray/print_diag.m');
             comment = ['(slope, intercept) = straight line fit | err = error in fit ' ...
-                       '| isobath = location index'];
-            save(fname, 'isobath', 'slope', 'intercept', 'err', 'hash');
+                       '| isobath = location index | factor = integrate down to factor x H_sb'];
+            save(fname, 'isobath', 'slope', 'intercept', 'err', 'hash', 'factor');
 
             hax(slopeplot) = subplot(3,3,slopeplot);
             errorbar(runArray.array(1).csflux.ndloc(isobath), ...
