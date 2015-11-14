@@ -29,7 +29,7 @@ function [ax] = mosaic_field(runArray, varname, timesteps, clim)
         end
 
         axes(ax(ii));
-        runArray.array(filter(ii)).animate_field(varname, gca, tstep, 1);
+        handles(ii) = runArray.array(filter(ii)).animate_field(varname, gca, tstep, 1);
     end
 
     linkaxes(ax, 'xy'); axis tight;

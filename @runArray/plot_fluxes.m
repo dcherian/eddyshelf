@@ -34,11 +34,11 @@ function [] = plot_fluxes(runArray, isobath, source)
 
     nsmooth = 1;
 
+    nn = 1;
     for ff=1:length(runArray.filter)
         ii = runArray.filter(ff);
 
         run = runArray.array(ii);
-        names{ff} = getname(runArray, ii);
 
         if run.params.flags.flat_bottom
             continue;
@@ -48,6 +48,8 @@ function [] = plot_fluxes(runArray, isobath, source)
             disp(['Skipping ' run.name]);
             continue;
         end
+
+        names{nn} = getname(runArray, ii); nn = nn + 1;
 
         locstr = num2str(run.csflux.ndloc(isobath), 2);
 
@@ -80,10 +82,8 @@ function [] = plot_fluxes(runArray, isobath, source)
         if ~isempty(hfig1)
             figure(hfig1)
             axes(ax1(1));
-            hgplt1(ff) = plot(ndtime, ...
-                              smooth(fluxvec/fluxscl, nsmooth));
-            plot(ndtime(maxi), maxf/fluxscl, 'x', ...
-                 'Color', hgplt1(ff).Color);
+            hgplt1(ff) = plot(ndtime, smooth(fluxvec/fluxscl, nsmooth));
+            plot(ndtime(maxi), maxf/fluxscl, 'x', 'Color', hgplt1(ff).Color);
             axes(ax1(2));
             plot(ndtime, ifluxvec/transscl, 'Color', hgplt1(ff).Color);
         else

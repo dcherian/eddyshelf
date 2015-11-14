@@ -11,7 +11,7 @@ function [ax] = mosaic_hovmoeller(runArray, varname, axname, loc, iz)
     clim = [];
     for ii=1:N
         ff = runArray.filter(ii);
-        runArray.array(ff).hovmoeller(varname, axname, loc, iz, ax(ii));
+        handles(ii) = runArray.array(ff).hovmoeller(varname, axname, loc, iz, ax(ii));
         str = ax(ii).Title.String;
         title('');
         text(0.50, 0.90, str, 'Units', 'normalized');
