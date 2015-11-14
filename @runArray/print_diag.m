@@ -619,12 +619,18 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
         end
 
         if strcmpi(name, 'max flux')
+            default_factor = 2; % integrate to 2xHsb
+
             if isempty(args)
                 isobath = 3;
-                factor = 2;
+                factor = default_factor;
             else
                 isobath = args(1);
-                factor = args(2);
+                if length(args) == 2
+                    factor = args(2);
+                else
+                    factor = default_factor;
+                end
             end
 
             if ~isfield(run.csflux, 'off') || ...
