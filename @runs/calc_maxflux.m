@@ -93,16 +93,19 @@ function [maxflux, maxloc, err] = calc_maxflux(runs, fluxin, debug)
     maxloc = maxloc + start - 1;
     maxflux = fluxin(maxloc,1);
 
-    if strcmpi(runs.name, 'ew-4341') | ...
-            ~isempty(strfind(runs.name, 'ew-50'))
+    if ~isempty(strfind(runs.name, 'ew-50'))
         [maxflux, maxloc] = max(fluxin);
     end
 
-    [maxflux, maxloc] = max(fluxin);
+    %[maxflux, maxloc] = max(fluxvec);
     %maxloc = maxloc + start - 1;
 
     % maxflux = median(fluxvec(locs));
-    err = std(fluxvec(locs))/sqrt(length(locs));
+    if length(locs) > 4
+        err = std(fluxvec(locs))/sqrt(length(locs));
+    else
+        err = 0;
+    end
 
     if exist('hfig', 'var')
         linex(maxloc - start + 1);
