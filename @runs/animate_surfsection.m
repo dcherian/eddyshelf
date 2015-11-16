@@ -19,7 +19,7 @@ function [] = animate_surfsection(runs, varname, varname1, t0, ntimes)
     makeVideo = runs.makeVideo;
 
     y0 = runs.eddy.my;
-    % y0 = runs.csflux.x(4) * ones(size(runs.time));
+    % y0 = (runs.bathy.xsb+30e3) * ones(size(runs.time));
     csfluxflag = 0;
     if csfluxflag
         isobath = 1;

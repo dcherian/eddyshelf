@@ -16,10 +16,10 @@ function [] = plot_fluxes(runArray, isobath, source)
 
     hfig3 = []; %figure; hold all; % envelope
 
-    hfig4 = figure; subplot(2,1,1); hold all; % eddy water flux
-            subplot(2,1,2); hold all
+    hfig4 = []; % figure; subplot(2,1,1); hold all; % eddy water flux
+            % subplot(2,1,2); hold all
 
-    hfig5 = []; %figure; hold on;% along shelf structure
+    hfig5 = figure; hold on;% along shelf structure
 
     hfig6 = []; %figure; hold on; % streamer velocity
 
@@ -149,7 +149,7 @@ function [] = plot_fluxes(runArray, isobath, source)
             L = run.eddy.rhovor.dia(1)/2;
             ivmean = squeeze(trapz(zvec, vmean, 2));
 
-            hgplt5(ff) = plot(xivec./L, ivmean./ttrans, 'Color', ...
+            hgplt5(ff) = plot(xivec./L, ivmean, 'Color', ...
                               hgplt1(ff).Color);
         end
 

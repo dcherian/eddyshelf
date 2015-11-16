@@ -21,8 +21,8 @@ function [] = plot_yzsection(runs, days, loc)
 
     nt = length(tindices);
 
-    hf1 = figure; maximize();% - eddye
-    %hf2 = figure; maximize();% - rho
+    % hf1 = figure; maximize();% - eddye
+    hf2 = figure; maximize();% - rho
     % hf3 = figure; maximize();% - zdye
     %hf4 = figure; maximize();% - u
     %hf5 = figure; maximize();% - v

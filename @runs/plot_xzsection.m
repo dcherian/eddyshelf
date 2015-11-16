@@ -23,8 +23,8 @@ function [] = plot_xzsection(runs, loc, day, debug_flux)
             isobath = loc;
             loc = runs.csflux.x(isobath);
             if isempty(tindex)
-                [~,tindex] = runs.calc_maxflux(...
-                    runs.csflux.off.slope(:,isobath,isobath));;
+                [~,tindex] = runs.calc_maxflux( ...
+                    runs.recalculateFlux(2*runs.bathy.hsb, isobath, isobath));
             end
         else
             if runs.bathy.axis == 'y'

@@ -6,7 +6,7 @@ function [] = plot_fluxes(runs, isobath, source)
     % source of water
     if ~exist('source', 'var'), source = 1; end
     % across which isobath
-    if ~exist('isobath', 'var'), isobath = 1:n; end
+    if ~exist('isobath', 'var') | isempty(isobath), isobath = 1:n; end
 
     n = length(isobath);
 
@@ -20,8 +20,8 @@ function [] = plot_fluxes(runs, isobath, source)
     hfig1 = []; %figure; % streamer vertical structure
     hfig2 = []; %figure; % hovmoeller plots (x,t)
     hfig3 = []; %figure; % hovmoeller plots (z,t)
-    hfig4 = []; %figure; % flux time-series
-    hfig5 = []; %figure; % flux time-series at isobath
+    hfig4 = []; %figure; % flux time-series for given source
+    hfig5 = figure; % flux time-series at isobath
     hfig7 = []; %figure; % streamer vmax
     hfig9 = []; %figure; % vertical structure at maxloc
 
