@@ -687,7 +687,9 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
             %L0 = round(L0/1000, 0)*1000;
             %Lz0 = round(Lz0, 1);
 
-            if hsb/Lz0 > 0.5 & run.bathy.sl_shelf == 0
+            if hsb/Lz0 > 0.5 & run.bathy.sl_shelf == 0 ...
+                    | (strcmpi(run.name, 'ew-2041') & (isobath > 3)) ...
+                    | strcmpi(run.name, 'ew-2043')
                 warning('skipping because splitting is probably happening.');
                 continue;
             end
