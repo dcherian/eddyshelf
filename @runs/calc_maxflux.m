@@ -96,8 +96,12 @@ function [maxflux, maxloc, err] = calc_maxflux(runs, fluxin, debug)
     % being shed
     if ~exist('maxloc', 'var'), maxloc = locs(1); end
 
-    if strcmpi(runs.name, 'ew-2041')
-        maxloc = locs(2);
+    if strcmpi(runs.name, 'ew-2041') | strcmpi(runs.name, 'ew-4343')
+        if length(locs) > 1
+            maxloc = locs(2);
+        else
+            maxloc = locs(1);
+        end
         %maxflux = fluxvec(maxloc);
         maxloc = maxloc + start - 1; % correct time shift
         maxflux = fluxin(maxloc,1);
