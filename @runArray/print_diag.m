@@ -642,7 +642,13 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
             end
 
             source = isobath;
-            integrate_zlimit = factor*hsb; % calculate flux above this depth
+            if ~isinf(factor)
+                integrate_zlimit = factor*hsb; % calculate flux above this depth
+                fluxvec = run.recalculateFlux(integrate_zlimit, isobath, source);
+            else
+                integrate_zlimit = run.csflux.h(isobath);
+                fluxvec = run.csflux.off.slope(:, isobath, source);
+            end
 
             fluxvec = run.recalculateFlux(integrate_zlimit, isobath, source);
             % fluxvec = run.csflux.off.slope(:, isobath, source);
@@ -652,7 +658,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
             [~,~,restind] = run.locate_resistance;
             if isnan(maxflux), continue; end
 
-            if ~isfield(run.eddy, 'rhovor'), continue; end
+            % if ~isfield(run.eddy, 'rhovor'), continue; end
 
             H = run.bathy.h(1, run.csflux.ix(isobath));
 
@@ -662,9 +668,9 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
             %V0 = V1*2.3;
 
             tind = maxloc;
-            nsmth = 10;
+            nsmth = 30;
             %try
-            V = smooth(hypot(run.eddy.fitx.V0, run.eddy.fity.V0), nsmth);
+            V = smooth(hypot(run.eddy.fitx.V0, run.eddy.fity.V0), nsmth) / 2.3;
             L = smooth(hypot(run.eddy.fitx.Lrho, run.eddy.fity.Lrho), nsmth);
 
             %V = smooth(run.eddy.rhovor.Vke, 1);
@@ -695,10 +701,10 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
 
             use_numerics = 1;
             if use_numerics
-                xvec = (run.rgrid.x_rho(1,2:end-1) - run.eddy.mx(maxloc));
+                xvec = run.rgrid.x_rho(1,2:end-1);
 
                 [v,mask] = run.makeStreamerSection(isobath, maxloc, V0, L0, Lz0);
-                zind = find_approx(zvec, -integrate_zlimit);
+                zind = find_approx(zvec, -abs(integrate_zlimit));
                 vmask = v .* mask;
 
                 fluxscl = trapz(zvec(zind:end), trapz(xvec, vmask(:,zind:end), 1), 2);
