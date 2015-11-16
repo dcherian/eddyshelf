@@ -11,7 +11,12 @@ function [fluxvec] = recalculateFlux(runs, depth, isobath, source, debug)
 
     zind = find_approx(vertbins, -abs(depth), 1);
 
-    fluxvec = trapz(vertbins(zind:end), slopezt(zind:end,:), 1)';
+    if ~strcmpi(runs.name, 'ew-2041')
+        nsmth = 7;
+    else
+        nsmth = 4;
+    end
+    fluxvec = smooth(trapz(vertbins(zind:end), slopezt(zind:end,:), 1)', nsmth);
 
     if debug
         figure;
