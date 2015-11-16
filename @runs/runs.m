@@ -1210,14 +1210,15 @@ methods
         legend('all time', 'restricted time interval');
     end
 
-    function [] = plot_recalculatedFlux(runs, factor)
+    function [] = plot_recalculatedFlux(runs, factor, isobath)
         if ~exist('factor', 'var'), factor = 2; end
+        if ~exist('isobath', 'var'), isobath = 1:length(runs.csflux.x); end
 
         figure;
         insertAnnotation([runs.name '.plot_recalculatedFlux(' factor ')']);
         hold on;
-        lightDarkLines(length(runs.csflux.x));
-        for iso=1:length(runs.csflux.x)
+        if length(isobath) > 1, lightDarkLines(length(isobath)); end
+        for iso=isobath
             fluxvec = runs.recalculateFlux(runs.bathy.hsb, iso, iso);
             hplt(iso) = plot(runs.csflux.time/86400, fluxvec);
         end
