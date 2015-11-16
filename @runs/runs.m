@@ -280,6 +280,8 @@ methods
                 runs.eddy.fity.Lrho = addnan(runs.eddy.fity.Lrho, 1e10);
                 runs.eddy.fitx.L(runs.eddy.fitx.L < 0) = NaN;
                 runs.eddy.fity.L(runs.eddy.fity.L < 0) = NaN;
+                runs.eddy.fitx.V0(runs.eddy.fitx.V0 > 1) = NaN;
+                runs.eddy.fity.V0(runs.eddy.fity.V0 > 1) = NaN;
             catch
             end
 
