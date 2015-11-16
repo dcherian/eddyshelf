@@ -52,52 +52,58 @@ function [maxflux, maxloc, err] = calc_maxflux(runs, fluxin, debug)
     % low Rh runs seem to lose annulus fluid earlier.
     % for really deep shelfbreak runs, the second peak
     % is artificially small because of the splitting.
-    if ~isempty(findstr(runs.name, 'ew-0')) | ...
-            ~isempty(findstr(runs.name, 'ew-1')) | ...
-            ~isempty(findstr(runs.name, '1_wider')) | ...
-            ~isempty(findstr(runs.name, '3_wider'))
-        maxloc = locs(1);
-    end
-    if ~isempty(strfind(runs.name, 'ew-40')) ...
-            | ~isempty(strfind(runs.name, 'ew-83'))
-        maxloc = locs(1);
-    end
+    % if ~isempty(findstr(runs.name, 'ew-0')) | ...
+    %         ~isempty(findstr(runs.name, 'ew-1')) | ...
+    %         ~isempty(findstr(runs.name, '1_wider')) | ...
+    %         ~isempty(findstr(runs.name, '3_wider'))
+    %     maxloc = locs(1);
+    % end
+    %if ~isempty(strfind(runs.name, 'ew-40')) ...
+    %        | ~isempty(strfind(runs.name, 'ew-83'))
+    %    maxloc = locs(1);
+    %end
 
     % For some reason there is a secondary peak.
     % This might be fixed with a peak width criterion
     % but that might screw up something else.
-    if strcmpi(runs.name, 'ew-35')
-        maxloc = locs(3);
-    end
-    if strcmpi(runs.name, 'ew-2365-75km')
-        maxloc = locs(1);
-    end
+    % if strcmpi(runs.name, 'ew-35') | strcmpi(runs.name, 'ew-36')
+    %     maxloc = locs(1);
+    % end
+    % if strcmpi(runs.name, 'ew-37')
+    %     maxloc = locs(3);
+    % end
 
-    % with bottom friction, choose first peak
-    % sloping shelf too
-    if ~isempty(strfind(runs.name, 'ew-8'))
-        maxloc = locs(1);
-    end
+    % if strcmpi(runs.name, 'ew-2365-75km')
+    %     maxloc = locs(1);
+    % end
 
-    if length(locs) == 1
-        maxloc = locs(1);
-    end
+    % % with bottom friction, choose first peak
+    % % sloping shelf too
+    % if ~isempty(strfind(runs.name, 'ew-8'))
+    %     maxloc = locs(1);
+    % end
+
+    % if ~isempty(strfind(runs.name, 'ew-5'))
+    %     [maxflux, maxloc] = max(fluxin);
+    % end
+
+    %if length(locs) == 1
+    %    maxloc = locs(1);
+    %end
 
     % select the second peak by default
     % This should, in general, correspond to annulus fluid
     % being shed
-    if ~exist('maxloc', 'var'), maxloc = locs(2); end
+    if ~exist('maxloc', 'var'), maxloc = locs(1); end
 
-    % correct time shift
-    %maxflux = fluxvec(maxloc);
-    maxloc = maxloc + start - 1;
-    maxflux = fluxin(maxloc,1);
-
-    if ~isempty(strfind(runs.name, 'ew-5'))
-        [maxflux, maxloc] = max(fluxin);
+    if strcmpi(runs.name, 'ew-2041')
+        maxloc = locs(2);
+        %maxflux = fluxvec(maxloc);
+        maxloc = maxloc + start - 1; % correct time shift
+        maxflux = fluxin(maxloc,1);
+    else
+        [maxflux, maxloc] = max(fluxvec); maxloc = maxloc + start - 1;
     end
-
-    % [maxflux, maxloc] = max(fluxvec); maxloc = maxloc + start - 1;
 
     % maxflux = median(fluxvec(locs));
     if length(locs) > 4
