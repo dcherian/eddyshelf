@@ -18,7 +18,7 @@ function [avgflux, err] = calc_avgflux(runs, fluxvec)
 
     % change origin
     ifluxvec = (ifluxvec - ifluxvec(1));
-    tvec = (tvec - tvec(1));
+    tvec = (tvec - tvec(1))';
 
     E = [ones(size(tvec))' tvec'];
 
