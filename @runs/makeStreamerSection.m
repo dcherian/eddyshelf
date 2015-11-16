@@ -9,7 +9,9 @@ function [v, mask] = makeStreamerSection(runs, isobath, maxloc, V0, L0, Lz0)
     end
 
     if ~exist('V0', 'var') || isempty(V0)
-        V0 = runs.eddy.rhovor.Vke(maxloc);
+        %V0 = runs.eddy.rhovor.Vke(maxloc);
+        vel = smooth(hypot(runs.eddy.fitx.V0, runs.eddy.fity.V0), 20) / 2.3;
+        V0 = vel(maxloc);
     end
 
     if ~exist('L0', 'var') || isempty(L0)
@@ -42,17 +44,18 @@ function [v, mask] = makeStreamerSection(runs, isobath, maxloc, V0, L0, Lz0)
         kxrad = kzrad; % kink radius - x
         x0 = -xfrac-kxrad; -xfrac-kxrad;
         z0 = -1 * width/3;
-    end
-    xline = 0; -xfrac;
-
-    a = 2;
-    if ~isreal(xfrac)
+        if ~isreal(xfrac)
         % complex xfrac -- cannot be trusted
         % make the kink (semi-circle) intersect the eddy contour
         xfrac = sqrt(1 - (width)^2);
         x0 = -xfrac;
         xline = 0;
     end
+
+    end
+    xline = 0;
+
+    a = 2;
 
     if isobath == 1
         % if close to shelfbreak use barotropic mask
@@ -77,7 +80,6 @@ function [v, mask] = makeStreamerSection(runs, isobath, maxloc, V0, L0, Lz0)
         end
 
         mask = xmat < -(1-Lbeta);
-        % xline = -Lbeta;
     else
         eddymask = ((xmat.^a + zmat.^a) > 1.0^a) .* (zmat < -width);
         if circle_kink
@@ -100,6 +102,5 @@ function [v, mask] = makeStreamerSection(runs, isobath, maxloc, V0, L0, Lz0)
         catch ME
         end
         contour(xmat, zmat, mask, 'b');
-        keyboard;
     end
 end
