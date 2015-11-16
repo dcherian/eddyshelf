@@ -1,6 +1,7 @@
 % return magnitude and time index of max flux
-function [maxflux, maxloc, err] = calc_maxflux(runs, fluxin, debug)
+function [maxflux, maxloc, err] = calc_maxflux(runs, fluxin, isobath, debug)
 
+    if ~exist('isobath', 'var'), isobath = 0; end
     if ~exist('debug', 'var'), debug = 0; end
 
     if numel(fluxin) == 1
@@ -91,26 +92,34 @@ function [maxflux, maxloc, err] = calc_maxflux(runs, fluxin, debug)
     %    maxloc = locs(1);
     %end
 
-    % select the second peak by default
-    % This should, in general, correspond to annulus fluid
-    % being shed
-    if ~exist('maxloc', 'var'), maxloc = locs(1); end
+    % by default, plain maximum
+    [~, maxloc] = max(fluxvec);
 
+    % choose second peak everywhere for ew-4343 and ew-2041
     if strcmpi(runs.name, 'ew-2041') | strcmpi(runs.name, 'ew-4343')
         if length(locs) > 1
             maxloc = locs(2);
         else
             maxloc = locs(1);
         end
-        %maxflux = fluxvec(maxloc);
-        maxloc = maxloc + start - 1; % correct time shift
-        maxflux = fluxin(maxloc,1);
-    else
-        [maxflux, maxloc] = max(fluxvec); maxloc = maxloc + start - 1;
     end
 
+    %if strcmpi(runs.name, 'ew-2365-75km')
+    %    maxloc = locs(1);
+    %end
+
+    if strcmpi(runs.name, 'ew-04')
+        maxloc = locs(1);
+    end
+    if strcmpi(runs.name, 'ew-06')
+        maxloc = locs(1);
+    end
+
+    maxloc = maxloc + start - 1;
+    maxflux = fluxin(maxloc,1);
+
     % maxflux = median(fluxvec(locs));
-    if length(locs) > 4
+    if length(locs) > 3
         err = std(fluxvec(locs))/sqrt(length(locs));
     else
         err = 0;
