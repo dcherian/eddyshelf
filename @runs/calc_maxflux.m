@@ -70,7 +70,7 @@ function [maxflux, maxloc, err] = calc_maxflux(runs, fluxin, debug)
         maxloc = locs(3);
     end
     if strcmpi(runs.name, 'ew-2365-75km')
-        maxloc = locs(2);
+        maxloc = locs(1);
     end
 
     % with bottom friction, choose first peak
@@ -93,12 +93,11 @@ function [maxflux, maxloc, err] = calc_maxflux(runs, fluxin, debug)
     maxloc = maxloc + start - 1;
     maxflux = fluxin(maxloc,1);
 
-    if ~isempty(strfind(runs.name, 'ew-50'))
+    if ~isempty(strfind(runs.name, 'ew-5'))
         [maxflux, maxloc] = max(fluxin);
     end
 
-    %[maxflux, maxloc] = max(fluxvec);
-    %maxloc = maxloc + start - 1;
+    % [maxflux, maxloc] = max(fluxvec); maxloc = maxloc + start - 1;
 
     % maxflux = median(fluxvec(locs));
     if length(locs) > 4
