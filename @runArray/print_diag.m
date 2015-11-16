@@ -650,42 +650,19 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
                 fluxvec = run.csflux.off.slope(:, isobath, source);
             end
 
-            fluxvec = run.recalculateFlux(integrate_zlimit, isobath, source);
-            % fluxvec = run.csflux.off.slope(:, isobath, source);
-            [maxflux, maxloc, err] = run.calc_maxflux(fluxvec);
-            % [maxflux, maxloc] = max(fluxvec);
-            %maxflux = run.calc_avgflux(fluxvec);
-            [~,~,restind] = run.locate_resistance;
+            [maxflux, maxloc, err] = run.calc_maxflux(fluxvec,isobath);
+            % [~,~,restind] = run.locate_resistance;
             if isnan(maxflux), continue; end
-
-            % if ~isfield(run.eddy, 'rhovor'), continue; end
-
-            H = run.bathy.h(1, run.csflux.ix(isobath));
-
-            % for parameterization
-            %[V1, L, x0] = run.fit_vel(tind);
-            % V1/V0 = 2.3 quite dependably
-            %V0 = V1*2.3;
-
-            tind = maxloc;
-            nsmth = 30;
-            %try
-            V = smooth(hypot(run.eddy.fitx.V0, run.eddy.fity.V0), nsmth) / 2.3;
-            L = smooth(hypot(run.eddy.fitx.Lrho, run.eddy.fity.Lrho), nsmth);
 
             %V = smooth(run.eddy.rhovor.Vke, 1);
             %L = smooth(run.eddy.rhovor.dia/2, 1);
 
+            tind = maxloc;
+            nsmth = 30;
+            V = smooth(hypot(run.eddy.fitx.V0, run.eddy.fity.V0), nsmth) / 2.3;
+            L = smooth(hypot(run.eddy.fitx.Lrho, run.eddy.fity.Lrho), nsmth);
             Lz = smooth(run.eddy.Lgauss, nsmth);
-            % this seems to work best
-            % 2.3 factor is taken care of later.
-            V(V > 1) = NaN;
             V0 = nanmedian(V(1:tind)); L0 = nanmedian(L(1:tind)); Lz0 = Lz(tind);
-
-            % not much difference
-            %V0 = round(V0, 2);
-            %L0 = round(L0/1000, 0)*1000;
-            %Lz0 = round(Lz0, 1);
 
             if hsb/Lz0 > 0.5 & run.bathy.sl_shelf == 0 ...
                     | (strcmpi(run.name, 'ew-2041') & (isobath > 3)) ...
@@ -700,43 +677,22 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
             eddyscl = V0 * L0 * Lz0;
 
             zvec = run.csflux.vertbins(:, isobath);
+            xvec = run.rgrid.x_rho(1,2:end-1);
 
-            use_numerics = 1;
-            if use_numerics
-                xvec = run.rgrid.x_rho(1,2:end-1);
+            [v,mask] = run.makeStreamerSection(isobath, maxloc, V0, L0, Lz0);
+            zind = find_approx(zvec, -abs(integrate_zlimit));
+            vmask = v .* mask;
 
-                [v,mask] = run.makeStreamerSection(isobath, maxloc, V0, L0, Lz0);
-                zind = find_approx(zvec, -abs(integrate_zlimit));
-                vmask = v .* mask;
+            fluxscl = trapz(zvec(zind:end), trapz(xvec, vmask(:,zind:end), 1), 2);
 
-                fluxscl = trapz(zvec(zind:end), trapz(xvec, vmask(:,zind:end), 1), 2);
-
-                % scale based on transport in eddy? (based on mask)
-                % vmaskedd = v .* (~mask) .* (v<0) * 2;
-                % eddyscl = trapz(zvec(zind:end), trapz(xvec, vmaskedd(:,zind:end), 1), 2);
-            else
-                % syms x z
-
-                %a = 2;
-                % distance of eddy center from shelfbreak
-                %R = run.csflux.R;
-                %yoR = run.csflux.ndloc(isobath); % y/R - used in csflux
-                %y0oL =  R/L0 * (1 - yoR); % y0/L - used in derivation
-                %xfrac = sqrt(1 - y0oL^a);
-
-                %fluxscl = abs(V0) * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
-                %          * int(1 - erf(-z/Lz0), z, -H, 0); % works well
-                ideal = run.streamer_ideal_profile(isobath, maxloc);
-                %ideal = run.csflux.off.slopewater.vertitrans(:,isobath,isobath);
-                ideal = ideal./max(ideal);
-                fluxscl = abs(V0) * L/2 * exp(-xfrac^2-y0oL^2) ...
-                          * trapz(zvec, ideal);
-                %fluxscl = abs(V0) * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
-                %          *  Lz0 * (H/Lz0 + 1/sqrt(pi));
+            if ff == 1000
+                figure(1000);
+                hold on;
+                plot(fluxvec/eddyscl);
+                plot(maxloc, fluxvec(maxloc)/eddyscl, 'kx');
             end
 
-
-            debug_fluxes = 1;
+            debug_fluxes = 0;
             if debug_fluxes
                 disp(sprintf(['maxflux = %.2f mSv, fluxscl = %.2f mSv | ' ...
                              'V0 = %.2f m/s, L0 = %.2f km, Lz0 = %.2f m'], ...
@@ -749,18 +705,18 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
             plotx(ff) = double(fluxscl)/norm;
             error(ff) = err/norm; 0.10*diags(ff);
 
-            % colorize
-            if run.bathy.sl_shelf ~= 0
-                clr = 'r';
+            if error(ff) ~= 0
+                errorbarflag = 1;
+            else
+                errorbarflag = 0;
             end
-            if run.params.misc.rdrg ~= 0
-                clr = 'b';
-            end
+
+            clr = colorize(run);
 
             mark_outliers = 0; name_points = 1;
             parameterize = 1; logscale = 0;
             force_0intercept = 0;
-            errorbarflag = 0; line_45 = 0;
+            line_45 = 0;
             laby = 'Measured max flux at isobath / Eddy volume flux';
             labx = 'Parameterization / Eddy volume flux';
             titlestr = [titlestr ' | ND isobath = ' ...
@@ -1316,5 +1272,18 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
         end
 
         beautify([18 22 26]);
+    end
+end
+
+% colorize points
+function [clr] = colorize(run)
+    clr = 'k';
+
+    if run.bathy.sl_shelf ~= 0
+        clr = 'r';
+    end
+
+    if run.params.misc.rdrg ~= 0
+        clr = 'b';
     end
 end
