@@ -1,7 +1,8 @@
-function [] = plot_fluxes(runArray, isobath, source)
+function [] = plot_fluxes(runArray, isobath, source, factor)
 
     if ~exist('isobath', 'var'), isobath = 2; end
     if ~exist('source', 'var'), source = isobath; end
+    if ~exist('factor', 'var'), factor = 2; end
 
     if isempty(runArray.filter)
         runArray.filter = 1:runArray.len;
@@ -19,7 +20,7 @@ function [] = plot_fluxes(runArray, isobath, source)
     hfig4 = []; % figure; subplot(2,1,1); hold all; % eddy water flux
             % subplot(2,1,2); hold all
 
-    hfig5 = figure; hold on;% along shelf structure
+    hfig5 = []; %figure; hold on;% along shelf structure
 
     hfig6 = []; %figure; hold on; % streamer velocity
 
@@ -64,7 +65,7 @@ function [] = plot_fluxes(runArray, isobath, source)
         transscl = 1; He * Le^2;
 
         %fluxvec = run.csflux.off.slope(:,isobath, source);
-        fluxvec = run.recalculateFlux(-2*hsb,isobath);
+        fluxvec = run.recalculateFlux(-factor*hsb,isobath);
         [maxf, maxi] = run.calc_maxflux(fluxvec);
         [start,stop] = run.flux_tindices(fluxvec);
         ifluxvec = run.csflux.off.itrans.slope(:,isobath, source);
