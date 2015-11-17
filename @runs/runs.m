@@ -607,8 +607,12 @@ methods
             % days
             tindex = find_approx(runs.time, str2double(in)*86400);
         else
-            % actual index
-            tindex = in;
+            if isinf(in)
+                tindex = length(runs.time);
+            else
+                % actual index
+                tindex = in;
+            end
         end
     end
 
