@@ -818,87 +818,88 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
         end
 
         if strcmpi(name, 'avg flux')
+            default_factor = 2; % integrate to 2xHsb
+
             if isempty(args)
                 isobath = 3;
+                factor = default_factor;
             else
                 isobath = args(1);
+                if length(args) == 2
+                    factor = args(2);
+                else
+                    factor = default_factor;
+                end
             end
 
-            if ~isfield(run.csflux, 'time') || ...
-                    isobath > size(run.csflux.off.slope, 2)
+            if ~isfield(run.csflux, 'off') || isobath > size(run.csflux.off.slope, 3)
+                disp(['Skipping ' run.name]);
                 continue;
             end
 
-            [avgflux, err] = ...
-                run.calc_avgflux(run.csflux.off.slope(:,isobath, isobath));
+            source = isobath;
+            if ~isinf(factor)
+                integrate_zlimit = factor*hsb; % calculate flux above this depth
+                fluxvec = run.recalculateFlux(integrate_zlimit, isobath, source);
+            else
+                integrate_zlimit = run.csflux.h(isobath);
+                fluxvec = run.csflux.off.slope(:, isobath, source);
+            end
 
-            H = run.csflux.h(isobath);
-            R = run.csflux.R;
-            V0 = V(1)/ 0.43;
-            L = run.eddy.vor.dia(1)/2;
-            Lz0 = Lz(1);
+            [avgflux, err] = run.calc_avgflux(fluxvec);
+            [start,stop] = run.flux_tindices(fluxvec);
+            [~,~,restind] = run.locate_resistance;
 
-            yoR = run.csflux.ndloc(isobath); % y/R - used in csflux
-            y0oL = R/L * (1 - yoR); % y0/L - used in derivation
-            xfrac = sqrt(1 - y0oL^2);
+            t0 = 1; start;
+            tind = start;
 
-            %syms x z;
-            %fluxscl = -1 * V0 * ...
-            %          int(x/L*exp(-(x/L)^2), -Inf, -xfrac*L) * exp(-y0oL^2) ...
-            %          * int(1 - erf(z/Lz0), z, -H, 0);
+            nsmth = 10;
+            V = smooth(hypot(run.eddy.fitx.V0, run.eddy.fity.V0), nsmth) / 2.3;
+            L = smooth(hypot(run.eddy.fitx.Lrho, run.eddy.fity.Lrho), nsmth);
+            Lz = smooth(run.eddy.Lgauss, nsmth);
+            V0 = nanmedian(V(t0:tind)); L0 = nanmedian(L(t0:tind)); Lz0 = nanmedian(Lz(t0:tind));
 
-            [zvec, ideal] = run.streamer_ideal_profile(isobath);
-            fluxscl = -abs(V0) * L/2 * exp(-xfrac^2) * exp(-y0oL^2) ...
-                      * trapz(zvec, ideal);
+            if hsb/Lz0 > 0.5 & run.bathy.sl_shelf == 0 ...
+                    | (strcmpi(run.name, 'ew-2041') & (isobath > 3)) ...
+                    | strcmpi(run.name, 'ew-2043')
+                warning('skipping because splitting is probably happening.');
+                continue;
+            end
 
-            %transscl = 0.075 * g/f0 .* run.eddy.amp(ind) .* hsb/1000;
-            %transscl = 0.023 * Lx(1) * V(tind) * hsb / 1000 + 0.0;
-            transscl = double(fluxscl); %V(1) * H * Lx(1);
+            % for normalization
+            % scaletind = tind;
+            %eddyscl = V(scaletind) * L(scaletind) * Lz(scaletind);
+            eddyscl = V0 * L0 * Lz0;
+
+            [v,mask, xvec, zvec] = run.makeStreamerSection(isobath, [], V0, L0, Lz0);
+            zind = find_approx(zvec, -abs(integrate_zlimit));
+            vmask = v .* mask;
+
+            fluxscl = trapz(zvec(zind:end), trapz(xvec, vmask(:,zind:end), 1), 2);
+
+            debug_fluxes = 1;
+            if debug_fluxes
+                disp(sprintf(['avgflux = %.2f mSv, fluxscl = %.2f mSv | ' ...
+                             'V0 = %.2f m/s, L0 = %.2f km, Lz0 = %.2f m'], ...
+                             avgflux/1000, fluxscl/1000, V0, L0/1000, Lz0));
+            end
 
             diagstr = [num2str(avgflux/1000,'%.2f') '±' ...
                        num2str(err/1000,'%.2f') ' mSv | scale = ' ...
-                       num2str(transscl)];
+                       num2str(fluxscl)];
 
-            % colorize
-            if run.bathy.S_sh ~= 0
-                % ptName = 'sh';
-                clr = 'g';
-            end
-            %if run.params.misc.rdrg ~= 0
-            %    % ptName = 'f';
-            %    clr = 'r';
-            %end
-
-            if round(hsb/Lz(1),2) > 0.13
-                clr = 'r';
-            end
-            if round(hsb/Lz(1),2) < 0.13
-                clr = 'b';
-            end
-
-            %if run.params.nondim.eddy.Rh < 10
-            %    clr = 'b';
-            %end
-
-            % plot error
-            %if ff == 1 || ~exist('hfig_fluxerr', 'var')
-            %    hfig_fluxerr = figure; hold on;
-            %end
-            % paramerr = avgflux/1000 - transscl;
-            % figure(hfig_fluxerr)
-            % plot(run.eddy.Ro(tind), paramerr, '*');
-            % xlabel('Ro'); ylabel('paramerr');
+            clr = colorize(run);
 
             parameterize = 1;
-            errorbarflag = 1; name_points = 0; line_45 = 0;
+            errorbarflag = 1; name_points = 1; line_45 = 0;
             laby = 'Flux (mSv)';
             labx = 'Parameterization (mSv)';
             titlestr = [titlestr ' | ND isobath = ' ...
                         num2str(run.csflux.ndloc(:,isobath))];
 
-            diags(ff) = avgflux/1000;
-            error(ff) = err/1000;
-            plotx(ff) = transscl;
+            diags(ff) = avgflux/eddyscl;
+            error(ff) = err/eddyscl;
+            plotx(ff) = fluxscl/eddyscl;
         end
 
         if strcmpi(name, 'streamervel')
