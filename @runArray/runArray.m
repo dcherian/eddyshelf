@@ -612,8 +612,8 @@ classdef runArray < handle
                 iso = isobath(ii);
                 if ii >= slopeplot, hh = ii+1; else hh = ii; end
                 axes(hax(hh));
-                [~, ~, ~, P, Perr] = runArray.print_diag(str, [iso factor], ...
-                                                         hax(hh), 'no_name_points');
+                [~, ~, ~, ~, P, Perr] = runArray.print_diag(str, [iso factor], ...
+                                                            hax(hh), 'no_name_points');
                 labx = hax(hh).XLabel.String;
                 laby = hax(hh).YLabel.String;
                 xlabel(''); ylabel(''); title('');

@@ -1,4 +1,4 @@
-function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, commands)
+function [diags, plotx, err, rmse, P, Perr] = print_diag(runArray, name, args, hax, commands)
 
     if ~exist('args', 'var'), args = []; end
     if ~exist('hax', 'var'), hax = []; end
@@ -24,6 +24,7 @@ function [diags, plotx, rmse, P, Perr] = print_diag(runArray, name, args, hax, c
     annostr = ['runArray.print_diag(' name ')'];
     diags = nan(size(runArray.filter));
     plotx = diags;
+    err = diags;
     P = nan([2 1]); % slope and intercept
     Perr = nan([2 1]); % error bounds on slope and intercept
 
