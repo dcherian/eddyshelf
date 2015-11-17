@@ -1,5 +1,5 @@
 % makes streamer mask for numerical parameterization
-function [v, mask] = makeStreamerSection(runs, isobath, maxloc, V0, L0, Lz0)
+function [v, mask, xvec, zvec] = makeStreamerSection(runs, isobath, maxloc, V0, L0, Lz0)
 
     debug = 0;
     circle_kink = 0;
@@ -23,7 +23,7 @@ function [v, mask] = makeStreamerSection(runs, isobath, maxloc, V0, L0, Lz0)
     end
 
     zvec = runs.csflux.vertbins(:, isobath);
-    xvec = (runs.rgrid.x_rho(1,2:end-1) - runs.eddy.mx(maxloc));
+    xvec = runs.rgrid.x_rho(1,2:end-1) - mean(runs.rgrid.x_rho(1,:));
 
     % normalized grid matrices to create mask
     [xmat, zmat] = ndgrid(xvec/L0, zvec/Lz0);
