@@ -1,4 +1,4 @@
-function [diags, plotx, err, rmse, P, Perr] = print_diag(runArray, name, args, hax, commands)
+function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args, hax, commands)
 
     if ~exist('args', 'var'), args = []; end
     if ~exist('hax', 'var'), hax = []; end
@@ -24,7 +24,7 @@ function [diags, plotx, err, rmse, P, Perr] = print_diag(runArray, name, args, h
     annostr = ['runArray.print_diag(' name ')'];
     diags = nan(size(runArray.filter));
     plotx = diags;
-    err = diags;
+    error = diags;
     P = nan([2 1]); % slope and intercept
     Perr = nan([2 1]); % error bounds on slope and intercept
 
@@ -47,7 +47,6 @@ function [diags, plotx, err, rmse, P, Perr] = print_diag(runArray, name, args, h
         kozak = 0; % fancy Kozak scatterplot
         labx = ' '; laby = ' ';
         clr = 'k';
-        error = [];
         parameterize = 0;
         mark_outliers = 0;
         titlestr = name;
@@ -1145,32 +1144,41 @@ function [diags, plotx, err, rmse, P, Perr] = print_diag(runArray, name, args, h
         limx = xlim;
         limy = ylim;
 
-        xvec = linspace(0.5*min(plotx(:)), 1*max(plotx), 100);
+        xvec = linspace(0.5*nanmin(plotx(:)), 1*nanmax(plotx), 100);
 
         if ~force_0intercept
-            E = [plotx' ones(size(plotx'))];
+            E = [cut_nan(plotx') ones(size(cut_nan(plotx')))];
         else
-            E = plotx';
+            E = cut_nan(plotx');
         end
 
-        [P,Pint,R,Rint,stats] = regress(diags', E, 0.05);
+        if ~isempty(cut_nan(error)) & ~strcmpi(name, 'max flux')
+            disp('Using weighted least squares');
+            disp(['% error: ' num2str(round(100*error./diags))]);
 
-        % diagnose outliers
-        outind = logical(zeros(size(plotx)));
-        for ii=1:size(Rint,1)
-            if ~((Rint(ii,1) <= 0) && (Rint(ii,2) >= 0))
-                outind(ii) = true;
+            [P,stderror] = lscov(E, cut_nan(diags'), 1./cut_nan(error));
+            tval = abs(conft(0.05,length(diags)));
+            Perr = tval * stderror;
+
+            Pint = [P-Perr, P+Perr];
+        else
+            [P,Pint,R,Rint,stats] = regress(cut_nan(diags'), E, 0.05);
+
+            Perr(1) = P(1) - Pint(1,1);
+            Perr(2) = P(2) - Pint(2,1);
+
+            % diagnose outliers
+            outind = logical(zeros(size(plotx)));
+            for ii=1:size(Rint,1)
+                if ~((Rint(ii,1) <= 0) && (Rint(ii,2) >= 0))
+                    outind(ii) = true;
+                end
             end
-        end
 
-        %if any(outind == 1)
-        %    % redo
-        %    [P,Pint,R,Rint,stats] = regress(diags(~outind)', E(~outind,:), 0.05);
-        %end
-
-        % mark outliers
-        if mark_outliers
-            plot(plotx(outind), diags(outind), 'ro', 'MarkerSize', 13);
+            % mark outliers
+            if mark_outliers
+                plot(plotx(outind), diags(outind), 'ro', 'MarkerSize', 13);
+            end
         end
 
         if force_0intercept
@@ -1204,9 +1212,6 @@ function [diags, plotx, err, rmse, P, Perr] = print_diag(runArray, name, args, h
                         num2str(abs(Pint(1,1)-P(1)), '%.2f')];
             intstr = [intstr '\pm' ...
                       num2str(abs(Pint(2,1)-P(2)), '%.2f')];
-
-            Perr(1) = P(1) - Pint(1,1);
-            Perr(2) = P(2) - Pint(2,1);
         end
 
         if force_0intercept, intstr = '0'; end
