@@ -21,6 +21,9 @@ function [] = csfluxes(runs, ftype)
     % calculate energy fluxes?
     do_energy = 0;
 
+    % debug?
+    debug = 0;
+
     % do PV fluxes?
     dopv = 0;
 
@@ -62,11 +65,14 @@ function [] = csfluxes(runs, ftype)
             runs.csflux.ndloc(1) = [];
             loc(1) = [];
         end
-        runs.animate_field('zeta',[],restind,1);
-        if runs.bathy.axis == 'y'
-            liney(loc/1000, [], 'r');
-        else
-            linex(loc/1000, [], 'r');
+
+        if debug
+            runs.animate_field('zeta',[],restind,1);
+            if runs.bathy.axis == 'y'
+                liney(loc/1000, [], 'r');
+            else
+                linex(loc/1000, [], 'r');
+            end
         end
     else
         R = runs.csflux.R;
