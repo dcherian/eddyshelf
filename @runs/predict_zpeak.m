@@ -2,22 +2,25 @@
 % flag == use : apply parameterization
 % flag == detect : constant = 1;
 % By defualt, flag = use.
-function [width, zpeak] = predict_zpeak(runs, iso, flag)
+function [width, zpeak] = predict_zpeak(runs, iso, flag, maxloc)
 
     if ~exist('flag', 'var'), flag = 'use'; end
+    if ~exist('maxloc', 'var'), maxloc = []; end
 
     eddy = runs.params.eddy;
     phys = runs.params.phys;
 
     if ~isfield('eddy', 'rhovor'), width = NaN; zpeak = NaN; end
-    [~,maxloc] = runs.calc_maxflux(iso);
-    Ly = runs.eddy.rhovor.dia(maxloc)/2;
+    if isempty(maxloc)
+        [~,maxloc] = runs.calc_maxflux(iso);
+    end
+    Ly = runs.eddy.rhovor.dia(1)/2; % using maxloc does not change much
     %Lz = smooth(Lz, 30);
     %Ro = smooth(Ro, 1);
     %Ly = runs.eddy.rhovor.dia(1)/2;
     R = runs.csflux.R;
     yoR = runs.csflux.ndloc(iso);
-    y0oL =  R/Ly * (1 - yoR); % y0/L - used in derivation
+    y0oL = R/Ly * (1 - yoR); % y0/L - used in derivation
     xfrac = 0.7;
 
     % calculate density profiles

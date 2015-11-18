@@ -36,7 +36,7 @@ function [v, mask, xvec, zvec] = makeStreamerSection(runs, isobath, maxloc, V0, 
 
     v = -2.3 * V0 * xmat .* exp(-xmat.^2) .* (1-erf(-zmat));
 
-    [width, zpeak] = runs.predict_zpeak(isobath, 'use');
+    [width, zpeak] = runs.predict_zpeak(isobath, 'use', maxloc);
     width = abs(width/Lz0); zpeak = abs(zpeak/Lz0);
 
     if circle_kink
