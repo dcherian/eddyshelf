@@ -699,7 +699,7 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
                              maxflux/1000, fluxscl/1000, V0, L0/1000, Lz0));
             end
 
-            norm = eddyscl;
+            norm = 1000; eddyscl;
 
             diags(ff) = maxflux/norm;
             plotx(ff) = double(fluxscl)/norm;
@@ -713,12 +713,18 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
 
             clr = colorize(run);
 
+            if norm == 1000
+                normstr = '(mSv)';
+            else
+                normstr = '/ Eddy volume flux';
+            end
+
             mark_outliers = 0; name_points = 1;
             parameterize = 1; logscale = 0;
             force_0intercept = 0;
             line_45 = 0;
-            laby = 'Measured max flux at isobath / Eddy volume flux';
-            labx = 'Parameterization / Eddy volume flux';
+            laby = ['Measured max flux at isobath ' normstr];
+            labx = ['Parameterization ' normstr];
             titlestr = [titlestr ' | ND isobath = ' ...
                         num2str(run.csflux.ndloc(:,isobath))];
         end
@@ -890,16 +896,23 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
 
             clr = colorize(run);
 
+            norm = 1000; eddyscl;
+            if norm == 1000
+                normstr = '(mSv)';
+            else
+                normstr = '/ Eddy volume flux';
+            end
+
             parameterize = 1;
             errorbarflag = 1; name_points = 1; line_45 = 0;
-            laby = 'Flux (mSv)';
-            labx = 'Parameterization (mSv)';
+            laby = ['Average flux ' normstr];
+            labx = ['Parameterization ' normstr];
             titlestr = [titlestr ' | ND isobath = ' ...
                         num2str(run.csflux.ndloc(:,isobath))];
 
-            diags(ff) = avgflux/eddyscl;
-            error(ff) = err/eddyscl;
-            plotx(ff) = fluxscl/eddyscl;
+            diags(ff) = avgflux/norm;
+            error(ff) = err/norm;
+            plotx(ff) = fluxscl/norm;
         end
 
         if strcmpi(name, 'streamervel')
@@ -1161,6 +1174,8 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
             Perr = tval * stderror;
 
             Pint = [P-Perr, P+Perr];
+            r = corrcoef(cut_nan(diags), cut_nan(plotx)); % R - value
+            stats(1) = r(2)^2; % return R² always.
         else
             [P,Pint,R,Rint,stats] = regress(cut_nan(diags'), E, 0.05);
 
