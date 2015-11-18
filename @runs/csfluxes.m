@@ -11,7 +11,7 @@ function [] = csfluxes(runs, ftype)
     disp([runs.name '.csfluxes']);
     disp('===================')
 
-    reset = 0; % 1 means redo all isobaths
+    reset = 1; % 1 means redo all isobaths
 
     % Use history or avg files?
     if ~exist('ftype', 'var') || isempty(ftype), ftype = 'his'; end
@@ -58,9 +58,6 @@ function [] = csfluxes(runs, ftype)
         runs.csflux.R = R;
         loc = runs.csflux.ndloc * R * sgntamp + xsb;
         if ~runs.params.flags.flat_bottom
-            runs.csflux.ndloc(sgntamp * loc > sgntamp * xsl) = [];
-            loc(sgntamp*loc > sgntamp*xsl) = [];
-        else
             % remove the wall location
             runs.csflux.ndloc(1) = [];
             loc(1) = [];
