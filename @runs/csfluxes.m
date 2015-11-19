@@ -60,7 +60,7 @@ function [] = csfluxes(runs, ftype)
         runs.csflux.ndloc = linspace(0,2,13);
         runs.csflux.R = R;
         loc = runs.csflux.ndloc * R * sgntamp + xsb;
-        if ~runs.params.flags.flat_bottom
+        if runs.params.flags.flat_bottom
             % remove the wall location
             runs.csflux.ndloc(1) = [];
             loc(1) = [];
