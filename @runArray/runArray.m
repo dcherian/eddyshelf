@@ -594,7 +594,8 @@ classdef runArray < handle
             if ~exist('str', 'var'), str = 'max'; end
 
             isobath = 1:8;
-            if isobath(1) == 1 && ~strcmpi(str, 'max flux')
+            if isobath(1) == 1 & ...
+                    ~(strcmpi(str, 'max flux') | strcmpi(str, 'avg flux'))
                 isobath(1) = [];
             end
 
@@ -664,14 +665,21 @@ classdef runArray < handle
                        '| isobath = location index | factor = integrate down to factor x H_sb'];
             save(fname, 'isobath', 'slope', 'intercept', 'err', 'hash', 'factor');
 
+            mmagn = 10^(orderofmagn(mplt(1)));
+            cmagn = 10^(orderofmagn(cplt(1)));
+
+            minmagn = max([mmagn cmagn]);
+            mmagn = mmagn./minmagn;
+            cmagn = cmagn./minmagn;
+
             hax(slopeplot) = subplot(3,3,slopeplot);
             errorbar(runArray.array(1).csflux.ndloc(isobath), ...
-                     mplt, err, 'k.-', 'LineWidth', 2, 'MarkerSize', 20);
+                     mplt./mmagn, err./mmagn, 'k.-', 'LineWidth', 2, 'MarkerSize', 20);
             hold on;
             errorbar(runArray.array(1).csflux.ndloc(isobath), ...
-                     10*cplt, 10*cerr, 'b.-', 'LineWidth', 2, 'MarkerSize', 20);
-            legend('Slope of fit', '10xConstant', 'Location', 'NorthEast', ...
-                   'FontSize', 16);
+                     cplt/cmagn, cerr/cmagn, 'b.-', 'LineWidth', 2, 'MarkerSize', 20);
+            legend([num2str(1/mmagn) ' x Slope of fit'], [num2str(1/cmagn) ' x Intercept'], ...
+                   'Location', 'NorthEast', 'FontSize', 16);
             xlabel('Location (y/R)');
             xlim([-0.05 2]);
             hax(slopeplot).YTick = sort([hax(slopeplot).YTick min(mplt) max(mplt)]);
