@@ -111,7 +111,7 @@ function [] = plot_xzsection(runs, loc, day, debug_flux)
     mask = mask;
 
     % profile I am assuming
-    [videal, idmask] = runs.makeStreamerSection(isobath);
+    [videal, idmask, xmask, zmask] = runs.makeStreamerSection(isobath);
 
     tind = tindex; % FOR PARAMETERISATION
                    % syms x z;
@@ -248,9 +248,9 @@ function [] = plot_xzsection(runs, loc, day, debug_flux)
         beautify;
 
         ax(2) = subplot(2,3,[4 5]);
-        [~,h1] = contourf(xvec/1000, zvec, videal', 20);
+        [~,h1] = contourf(xmask/1000, zmask, videal', 20);
         hold on
-        contour(xvec/1000, zvec, repnan(idmask',0), [1 1], 'k', 'LineWidth', 2);
+        contour(xmask/1000, zmask, repnan(idmask',0), [1 1], 'k', 'LineWidth', 2);
         runs.add_timelabel(tindex);
         xlabel('(X - X_{eddy})/L_{eddy}'); ylabel('Z (m)');
         title('Idealized');
@@ -263,7 +263,7 @@ function [] = plot_xzsection(runs, loc, day, debug_flux)
         subplot(2,3,[3 6]);
         plot(trapz(xvec, repnan(csvel.*mask,0), 1), zvec);
         hold on;
-        plot(trapz(xvec, videal.*idmask, 1), zvec);
+        plot(trapz(xmask, videal.*idmask, 1), zmask);
         legend('Actual', 'Ideal', 'Location', 'SouthEast');
         beautify;
 
