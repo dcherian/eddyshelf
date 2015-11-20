@@ -3,49 +3,31 @@
 % returns center locations and time index
 % nsmooth is number of turnover periods to smooth over
 % factor * v_min is what I'm looking for.
-function [xx,yy,tind] = locate_resistance(runs, nsmooth, factor)
+function [xx,yy,tind,cvy] = locate_resistance(runs, nsmooth, factor)
 
     debug_plot = 0;
 
     if ~exist('factor', 'var'), factor = 1/4; end
-    if ~exist('nsmooth', 'var'), nsmooth = 10; end
-    % number of points to smooth over.
-    npts = (nsmooth*runs.eddy.turnover/86400);
+    if ~exist('nsmooth', 'var'), nsmooth = []; end
 
     % support cyclones too
     sgn = sign(runs.params.eddy.tamp) * ...
           sign(runs.params.phys.f0);
+    vel = sgn * runs.smoothCenterVelocity(nsmooth);
 
-    % smooth velocity a lot!
-    if runs.bathy.axis == 'y'
-        cen = smooth(runs.eddy.vor.cy(1:runs.eddy.tend), npts)/1000;
-        mcen = runs.eddy.my/1000;
-        %vel = smooth(runs.eddy.mvy, npts);
-        % figure;
-        % subplot(211)
-        % plot(runs.eddy.my/1000); hold all
-        % plot(cy);
-        % subplot(212)
-        % plot(smooth(runs.eddy.mvy, 15)); hold all
-        % plot(vel);
-    else
-        cen = smooth(runs.eddy.vor.cx(1:runs.eddy.tend), npts)/1000;
-        mcen = runs.eddy.mx/1000;
-    end
-    ndtime = runs.eddy.t*86400./runs.eddy.turnover;
-    vel = sgn * [0; diff(cen)./diff(smooth(runs.eddy.t', npts))];
-    %vel = sgn * smooth(runs.eddy.rhovor.cvy, npts);
+    tvec = runs.eddy.t(1:runs.eddy.tend);
+    ndtime = tvec*86400./runs.eddy.turnover;
 
     % locate minimum, i.e., max. southward/westward speed
     % but limit search to first 'n' turnover time scales
     it = find_approx(ndtime, 10);
-    ind0 = find(vel(it:end) > 0, 1, 'first');
+    ind0 = length(ndtime); %find(vel(it:end) > 0, 1, 'first');
     [mn, imin] = min(vel(5:ind0));
     %[mn, imin] = min(vel(:));
 
     vv = vel(imin:end) - mn * factor;
     tind = find(vv > 0, 1, 'first');
-    tind = tind + imin;
+    tind = tind + imin - 1;
 
     if tind >= (length(runs.eddy.my)-10)
         disp(['WARNING: ' runs.name ' - Location within ten timesteps ' ...
@@ -54,10 +36,12 @@ function [xx,yy,tind] = locate_resistance(runs, nsmooth, factor)
 
     xx = runs.eddy.mx(tind);
     yy = runs.eddy.my(tind);
+    cvy = vel(tind);
 
     runs.res.xx = xx;
     runs.res.yy = yy;
     runs.res.tind = tind;
+    runs.res.cvy = cvy;
 
     if debug_plot
         figure;

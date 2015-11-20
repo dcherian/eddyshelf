@@ -440,35 +440,44 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
                             num2str(run.traj.tcrit) 'T'];
             else
                 nsmooth = 10;
-                factor = 1/3;
-                [~,~,tind] = run.locate_resistance(nsmooth, factor);
-                Y = run.eddy.my(tind) - run.bathy.xsb; ...
-                    run.eddy.my(tind);
-                titlestr = ['Water depth at which cross-isobath translation ' ...
-                            'velocity drops by ' num2str(1-factor,2)];
+                [~,~,tind,H,err] = run.averageResistance(nsmooth);
+                %factor = 1/4;
+                %[~,~,tind] = run.locate_resistance(nsmooth, factor);
+                %Y = run.eddy.my(tind) - run.bathy.xsb; ...
+                %    run.eddy.my(tind);
+                %titlestr = ['Water depth at which cross-isobath translation ' ...
+                %            'velocity drops by ' num2str(1-factor,2)];
             end
-            if isempty(tind), continue; end
+            if isempty(tind)
+                warning(['Skipping  ' run.name '. locate_resistance did not work.']);
+                continue;
+            end
 
             H = run.eddy.hcen(tind);
             t0 = 1; %run.eddy.tscaleind;
             titlestr = [titlestr ' | t0 = ' num2str(t0)];
 
             Lz0 = Lz(1); %*run.eddy.grfactor(1);
-            beta_t = (alpha*abs(fcen(tind))/Lz(tind));
+            beta_t = (alpha*abs(f0)/Lz0);
+
+            [clr, ptName] = colorize(run, ptName);
 
             zz = H./Lz0;
             diags(ff) = (1-erf(zz)); %./((zz*(1-erf(zz)) + 1/sqrt(pi) * ...
                                      %(1 - exp(-zz^2))));
             plotx(ff) = beta/beta_t./(1-beta/beta_t);
-            errorbarflag = 0; kozak = 1;
-            name_points = 1; line_45 = 0;
+            error(1,ff) = (1 - erf((H - err(4))./Lz0)) - diags(ff);
+            error(2,ff) = (1 - erf((H + err(4))./Lz0)) - diags(ff);
+
+            errorbarflag = 1; kozak = 0;
+            name_points = 0; line_45 = 0;
             parameterize = 1;
             slope = num2str(round(alpha*1e3));
 
-            if errorbarflag
-                error(ff) = 2/sqrt(pi) * exp(-(H/Lz(t0))^2) * ...
-                    (alpha * run.traj.yerr)/Lz(t0);
-            end
+            %if errorbarflag
+            %    error(ff) = 2/sqrt(pi) * exp(-(H/Lz(t0))^2) * ...
+            %        (alpha * run.traj.yerr)/Lz(t0);
+            %end
 
             % mark NS isobath runs with gray points
             if run.bathy.axis == 'x'
@@ -1094,8 +1103,12 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
             figure(hfig);
             axes(hax);
             if errorbarflag
-                errorbar(plotx(ff), diags(ff), error(ff), 'x', ...
-                         'LineWidth', 2, 'Color', clr);
+                if size(error,1) == 1
+                    error(2,:) = error(1,:);
+                end
+
+                errorbar(plotx(ff), diags(ff), abs(error(1,ff)), abs(error(2,ff)), ...
+                         'x', 'LineWidth', 2, 'Color', clr);
             else
                 plot(plotx(ff), diags(ff), '.', 'Color', clr, ...
                      'MarkerSize', 20);
@@ -1152,6 +1165,7 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
 
         if ~isempty(cut_nan(error)) & ~strcmpi(name, 'max flux')
             disp('Using weighted least squares');
+            error = mean(abs(error),1);
             disp(['% error: ' num2str(round(100*error./diags))]);
 
             [P,stderror] = lscov(E, cut_nan(diags'), 1./cut_nan(error));

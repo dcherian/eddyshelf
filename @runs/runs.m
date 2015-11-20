@@ -1224,8 +1224,72 @@ methods
         if length(isobath) > 1, lightDarkLines(length(isobath)); end
         for iso=isobath
             fluxvec = runs.recalculateFlux(runs.bathy.hsb, iso, iso);
+            [start, stop] = runs.flux_tindices(fluxvec);
+            [maxf, maxl] = runs.calc_maxflux(fluxvec);
+
+            subplot(211); hold on;
             hplt(iso) = plot(runs.csflux.time/86400, fluxvec);
+            plot(runs.csflux.time(maxl)/86400, fluxvec(maxl), 'kx');
+            plot(runs.csflux.time([start stop])/86400, fluxvec([start stop]), 'kx');
+
+            subplot(212); hold on;
+            plot(runs.csflux.time/86400, cumtrapz(runs.csflux.time, fluxvec));
         end
+    end
+
+    function [cvy] = smoothCenterVelocity(runs, nsmooth)
+        if ~exist('nsmooth', 'var') | isempty(nsmooth), nsmooth = 10; end
+
+        % number of points to smooth over.
+        npts = (nsmooth*runs.eddy.turnover/86400);
+
+        if runs.bathy.axis == 'y'
+            cen = smooth(runs.eddy.vor.cy(1:runs.eddy.tend), npts)/1000;
+            mcen = runs.eddy.my/1000;
+            %vel = smooth(runs.eddy.mvy, npts);
+            % figure;
+            % subplot(211)
+            % plot(runs.eddy.my/1000); hold all
+            % plot(cy);
+            % subplot(212)
+            % plot(smooth(runs.eddy.mvy, 15)); hold all
+            % plot(vel);
+        else
+            cen = smooth(runs.eddy.vor.cx(1:runs.eddy.tend), npts)/1000;
+            mcen = runs.eddy.mx/1000;
+        end
+        tvec = runs.eddy.t(1:runs.eddy.tend);
+        cvy = [0; diff(cen)./diff(smooth(tvec', npts))];
+    end
+
+    function [meanx, meany, meant, meanh, err] = averageResistance(runs, nsmooth)
+
+        if ~exist('nsmooth', 'var'), nsmooth = []; end
+
+        factors = 0.5:0.05:0.8;
+        N = length(factors);
+        for ff = 1:length(factors)
+            [xx(ff), yy(ff), tt(ff), ~] = ...
+                runs.locate_resistance(nsmooth, factors(ff));
+        end
+
+        hh = runs.eddy.hcen(tt);
+
+        meanx = mean(xx); meany = mean(yy); meant = ceil(mean(tt)); meanh = mean(hh);
+        err(1) = conft(0.05, N-1) * std(xx)/sqrt(N);
+        err(2) = conft(0.05, N-1) * std(yy)/sqrt(N);
+        err(3) = conft(0.05, N-1) * std(tt)/sqrt(N);
+        err(4) = conft(0.05, N-1) * std(hh)/sqrt(N);
+    end
+
+    function [itsl, itse, tsl, tse] = getEddyCenterTimeScales(runs)
+    % time indices when eddy center/southern edge cross slopebreak
+        itsl = find_approx(runs.eddy.my, runs.bathy.xsl, 1);
+        itse = find_approx(runs.eddy.my - runs.eddy.vor.dia(1)/2, ...
+                           runs.bathy.xsl, 1);
+
+        tsl = runs.time(itsl);
+        tse = runs.time(itse);
     end
 
     function [] = streamerstruct(runs)
