@@ -14,6 +14,9 @@ function [avgflux, err] = calc_avgflux(runs, fluxvec, debug)
     tvec = double(runs.csflux.time(start:stop));
     tvec = (tvec - tvec(1))';
 
+    [tvec, uind] = unique(tvec);
+    fluxvec = fluxvec(uind);
+
     avgflux = mean(fluxvec);
     dof = calcdof(fluxvec);
     err = abs(conft(0.05, dof-1) * std(fluxvec) / sqrt(dof));
@@ -27,7 +30,7 @@ function [avgflux, err] = calc_avgflux(runs, fluxvec, debug)
         liney([avgflux-err avgflux avgflux+err]);
 
         subplot(2,1,2);
-        plot(tvec,ifluxvec);
+        plot(tvec,cumtrapz(tvec*86400, fluxvec));
         hold on
         plot([0 tvec(end)], [0 (avgflux - err)*86400*tvec(end)]);
         plot([0 tvec(end)], [0 avgflux*86400*tvec(end)]);
