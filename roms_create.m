@@ -598,7 +598,7 @@ if flags.front
         S.Tra = S.temp;
     end
 
-    front.dT = front.dRho/abs(coef)/R0; % delta tracer across front
+    front.dT = front.dRho/abs(coef)/phys.R0; % delta tracer across front
     % divide dT/2 since tanh goes from (-1 to 1)*dT -> 2dT across front
     x0     = bathy.xsb + (zrmat + bathy.hsb)/front.slope;
     S.Tra  = front.dT/2 * (tanh( (axmat-x0)/front.Lx)) .* exp(- (zrmat/front.Lz).^2);
@@ -644,7 +644,8 @@ if flags.front
     %fig;pcolorcen(squeeze(avg1(xrmat(:,ymid,:),1))/1000,squeeze(avg1(zrmat(:,ymid,:))),squeeze(S.Trax_sig(:,ymid,:)));
 
     % calculate velocity field
-    vel_shear = zeta_sign * g*coef .* bsxfun(@rdivide,avg1(S.Trax,i_as),avg1(f,i_as));
+    vel_shear = zeta_sign * phys.g * coef ...
+        .* bsxfun(@rdivide,avg1(S.Trax,i_as),avg1(f,i_as));
     vmat = zeros(size(velzmat)); % zero vel. at bottom
     for ii=2:size(velzmat,3) % bottom to top
         vmat(:,:,ii) = vmat(:,:,ii-1) + vel_shear(:,:,ii).*(velzmat(:,:,ii)-velzmat(:,:,ii-1));
@@ -1299,61 +1300,6 @@ if flags.eddy
 %         cbfreeze(hcb,'off');
 %        spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
 %     end
-
-    xedd = eddy.ix;
-    yedd = eddy.iy;
-
-    % check temperature profile
-    figure;
-    axe(1) = subplot(241);
-     contourf(squeeze(xrmat(:,yedd,:))/fx,squeeze(zrmat(:,yedd,:)),squeeze(S.temp(:,yedd,:)),20);
-    colorbar;
-    title('temp (y=mid)');
-    xlabel(['x' lx]); ylabel('z (m)');
-    axe(2) = subplot(242);
-    contourf(squeeze(yrmat(xedd,:,:))/fy,squeeze(zrmat(xedd,:,:)),squeeze(S.temp(xedd,:,:)),20);
-    colorbar;
-    title('temp (x=mid)');
-    xlabel(['y' ly]); ylabel('z (m)');
-
-    axe(3) = subplot(243);
-    contourf(squeeze(xvmat(:,yedd,:))/fx,squeeze(zvmat(:,yedd,:)),squeeze(S.v(:,yedd,:)),20);
-    colorbar;
-    title('v (y=mid)');
-    xlabel(['x' lx]); ylabel('z (m)');
-    axe(4) = subplot(244);
-    contourf(squeeze(yumat(xedd,:,:))/fy,squeeze(zumat(xedd,:,:)),squeeze(S.u(xedd,:,:)),20);
-    colorbar;
-    title('u (x=mid)');
-    xlabel(['y' ly]); ylabel('z (m)');
-
-    axe(5) = subplot(245);
-    contourf(squeeze(xrmat(:,yedd,:))/fx,squeeze(zrmat(:,yedd,:)),squeeze(eddy.temp(:,yedd,:)),20);
-    colorbar;
-    title('Eddy temp (y=mid)');
-    xlabel(['x' lx]); ylabel('z (m)');
-    axe(6) = subplot(246);
-    contourf(squeeze(yrmat(xedd,:,:))/fy,squeeze(zrmat(xedd,:,:)),squeeze(eddy.temp(xedd,:,:)),20);
-    colorbar;
-    title('Eddy temp (x=mid)');
-    xlabel(['y' ly]); ylabel('z (m)');
-
-    axe(7) = subplot(247);
-    contourf(squeeze(xvmat(:,yedd,:))/fx,squeeze(zvmat(:,yedd,:)),squeeze(eddy.v(:,yedd,:)),20);
-    colorbar;
-    title('eddy v (y=mid)');
-    xlabel(['x' lx]); ylabel('z (m)');
-    axe(8) = subplot(248);
-    contourf(squeeze(yumat(xedd,:,:))/fy,squeeze(zumat(xedd,:,:)),squeeze(eddy.u(xedd,:,:)),20);
-    colorbar;
-    title('eddy u (x=mid)');
-    xlabel(['y' ly]); ylabel('z (m)');
-
-    linkaxes([axe(1) axe(3) axe(5) axe(7)],'xy');
-    linkaxes([axe(2) axe(4) axe(6) axe(8)],'xy');
-
-    %spaceplots(0.03*ones([1 4]),0.05*ones([1 2]))
-
     %% estimate speed based on van leeuwin (2007)
 
     % first, K.E
@@ -1407,6 +1353,74 @@ if flags.eddy
 
     toc;
 end
+
+%% Density and check plots
+S.rho = phys.R0*(1 - phys.TCOEF * (S.temp-phys.T0) + phys.SCOEF * (S.salt-phys.S0));
+
+xedd = eddy.ix;
+yedd = eddy.iy;
+
+% check temperature profile
+figure;
+axe(1) = subplot(241);
+contourf(squeeze(xrmat(:,yedd,:))/fx,squeeze(zrmat(:,yedd,:)),squeeze(S.temp(:,yedd,:)),20);
+colorbar;
+title('temp (y=mid)');
+xlabel(['x' lx]); ylabel('z (m)');
+axe(2) = subplot(242);
+contourf(squeeze(yrmat(xedd,:,:))/fy,squeeze(zrmat(xedd,:,:)),squeeze(S.temp(xedd,:,:)),20);
+colorbar;
+title('temp (x=mid)');
+xlabel(['y' ly]); ylabel('z (m)');
+
+axe(3) = subplot(243);
+contourf(squeeze(xvmat(:,yedd,:))/fx,squeeze(zvmat(:,yedd,:)),squeeze(S.v(:,yedd,:)),20);
+colorbar;
+title('v (y=mid)');
+xlabel(['x' lx]); ylabel('z (m)');
+axe(4) = subplot(244);
+contourf(squeeze(yumat(xedd,:,:))/fy,squeeze(zumat(xedd,:,:)),squeeze(S.u(xedd,:,:)),20);
+colorbar;
+title('u (x=mid)');
+xlabel(['y' ly]); ylabel('z (m)');
+
+if ~flags.front
+    axe(5) = subplot(245);
+    contourf(squeeze(xrmat(:,yedd,:))/fx,squeeze(zrmat(:,yedd,:)),squeeze(eddy.temp(:,yedd,:)),20);
+    colorbar;
+    title('Eddy temp (y=mid)');
+    xlabel(['x' lx]); ylabel('z (m)');
+    axe(6) = subplot(246);
+    contourf(squeeze(yrmat(xedd,:,:))/fy,squeeze(zrmat(xedd,:,:)),squeeze(eddy.temp(xedd,:,:)),20);
+    colorbar;
+    title('Eddy temp (x=mid)');
+    xlabel(['y' ly]); ylabel('z (m)');
+else
+    axe(5) = subplot(245);
+    contourf(squeeze(xrmat(:,yedd,:))/fx,squeeze(zrmat(:,yedd,:)),squeeze(S.rho(:,yedd,:)),20);
+    colorbar;
+    title('rho (y=mid)');
+    xlabel(['x' lx]); ylabel('z (m)');
+    axe(5) = subplot(246);
+    contourf(squeeze(yrmat(xedd,:,:))/fy,squeeze(zrmat(xedd,:,:)),squeeze(S.rho(xedd,:,:)),20);
+    colorbar;
+    title('rho (x=mid)');
+    xlabel(['y' ly]); ylabel('z (m)');
+end
+
+axe(7) = subplot(247);
+contourf(squeeze(xvmat(:,yedd,:))/fx,squeeze(zvmat(:,yedd,:)),squeeze(eddy.v(:,yedd,:)),20);
+colorbar;
+title('eddy v (y=mid)');
+xlabel(['x' lx]); ylabel('z (m)');
+axe(8) = subplot(248);
+contourf(squeeze(yumat(xedd,:,:))/fy,squeeze(zumat(xedd,:,:)),squeeze(eddy.u(xedd,:,:)),20);
+colorbar;
+title('eddy u (x=mid)');
+xlabel(['y' ly]); ylabel('z (m)');
+
+linkaxes([axe(1) axe(3) axe(5) axe(7)],'xy');
+linkaxes([axe(2) axe(4) axe(6) axe(8)],'xy');
 
 %% add barotropic velocity for advection (OBC initial condition also)
 
@@ -1511,7 +1525,7 @@ write_params_to_ini(INI_NAME,nondim);
 fprintf('\n Parameters written \n');
 toc;
 
-%% Misc calculations (ubar,vbar,rho,pv) - shouldn't require changes
+%% Misc calculations (ubar,vbar,pv) - shouldn't require changes
 
 % Add random perturbation
 zeta0 = S.zeta; % save for thermal wind check later
@@ -1534,9 +1548,6 @@ if ~flags.spinup
                      5, S.h, S.zeta,0);
     [S.ubar,S.vbar] = uv_barotropic(S.u,S.v,Hz);
 end
-
-S.rho = phys.R0*(1 - phys.TCOEF * (S.temp-phys.T0) + phys.SCOEF * (S.salt-phys.S0));
-
 toc;
 
 % setup for pv calculation
