@@ -470,26 +470,6 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
                     (alpha * run.traj.yerr)/Lz(t0);
             end
 
-            try
-                if run.params.flags.conststrat == 0
-                    ptName = ' N^2';
-                    clr = [231,41,138]/255;
-                end
-            catch ME
-                if run.params.eddy.tamp < 0
-                    ptName = ' C';
-                    clr = [117,112,179]/255;
-                else
-                    if run.params.phys.f0 < 0
-                        ptName = ' f^{-}';
-                        clr = [27,158,119]/255;
-                    else
-                        clr = 'k';
-                        ptName = ''; %[runName];
-                    end
-                end
-                %ptName = num2str(err,2);
-            end
             % mark NS isobath runs with gray points
             if run.bathy.axis == 'x'
                 clr = [1 1 1]*0.75;
@@ -1298,14 +1278,33 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
 end
 
 % colorize points
-function [clr] = colorize(run)
+function [clr, ptName] = colorize(run, ptName)
     clr = 'k';
 
-    if run.bathy.sl_shelf ~= 0
-        clr = 'r';
-    end
+    try
+        if run.params.flags.conststrat == 0
+            ptName = ' N^2';
+            clr = [231,41,138]/255;
+        end
+    catch ME
+        if run.bathy.sl_shelf ~= 0
+            clr = 'r';
+        end
 
-    if run.params.misc.rdrg ~= 0
-        clr = 'b';
+        if run.params.misc.rdrg ~= 0
+            clr = 'b';
+        end
+
+        if run.params.eddy.tamp < 0
+            ptName = ' C';
+            clr = [117,112,179]/255;
+        else
+            if run.params.phys.f0 < 0
+                ptName = ' f^{-}';
+                clr = [27,158,119]/255;
+            else
+                clr = 'k';
+            end
+        end
     end
 end
