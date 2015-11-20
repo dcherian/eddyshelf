@@ -691,7 +691,7 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
                 errorbarflag = 0;
             end
 
-            clr = colorize(run);
+            [clr, ptName] = colorize(run, ptName);
 
             if norm == 1000
                 normstr = '(mSv)';
@@ -1104,7 +1104,12 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
             % add run names
             if (name_points | strfind(commands, 'name_points')) ...
                     & isempty(strfind(commands, 'no_name_points'))
-                if strip_ew, ptName = ptName(4:end); end
+                if strip_ew
+                    ll = strfind(ptName, 'ew-');
+                    if ~isempty(ll)
+                        ptName = ptName(ll+3:end);
+                    end
+                end
 
                 text(plotx(ff), diags(ff), ptName, 'FontSize', ...
                      12, 'Rotation', 0, 'Color', clr, ...
@@ -1285,26 +1290,26 @@ function [clr, ptName] = colorize(run, ptName)
         if run.params.flags.conststrat == 0
             ptName = ' N^2';
             clr = [231,41,138]/255;
+            return;
         end
     catch ME
-        if run.bathy.sl_shelf ~= 0
-            clr = 'r';
-        end
+    end
 
-        if run.params.misc.rdrg ~= 0
-            clr = 'b';
-        end
+    if run.bathy.sl_shelf ~= 0
+        clr = 'r';
+    end
 
-        if run.params.eddy.tamp < 0
-            ptName = ' C';
-            clr = [117,112,179]/255;
-        else
-            if run.params.phys.f0 < 0
-                ptName = ' f^{-}';
-                clr = [27,158,119]/255;
-            else
-                clr = 'k';
-            end
-        end
+    if run.params.misc.rdrg ~= 0
+        clr = 'b';
+    end
+
+    if run.params.eddy.tamp < 0
+        ptName = ' C';
+        clr = [117,112,179]/255;
+    end
+
+    if run.params.phys.f0 < 0
+        ptName = ' f^{-}';
+        clr = [27,158,119]/255;
     end
 end
