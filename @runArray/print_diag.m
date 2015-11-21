@@ -422,42 +422,39 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
         end
         %%%%% Flierl (1987) bottom torque hypothesis.
         if strcmpi(name, 'bottom torque')
-
             Ro = Ro(1);
             %Lx = run.eddy.vor.dia(1)/2;
             H0 = hcen(1);
             Tamp = run.params.eddy.tamp;
             TCOEF = run.params.phys.TCOEF;
 
-            tanhfitflag = 0;
-            if tanhfitflag %|| run.params.eddy.tamp < 0
-                run.fit_traj()
-
-                tind = run.traj.tind;
-                Y = run.eddy.my(tind); %run.traj.Y;
-
-                titlestr = ['tanh(t/T) at t = ' ...
-                            num2str(run.traj.tcrit) 'T'];
-            else
-                nsmooth = 10;
+            avgresflag = 0;
+            if avgresflag %|| run.params.eddy.tamp < 0
+                nsmooth = 20;
                 [~,~,tind,H,err] = run.averageResistance(nsmooth);
+                titlestr = ['Using average resistance'];
+                errorbarflag = 1;
+
                 %factor = 1/4;
                 %[~,~,tind] = run.locate_resistance(nsmooth, factor);
                 %Y = run.eddy.my(tind) - run.bathy.xsb; ...
                 %    run.eddy.my(tind);
-                %titlestr = ['Water depth at which cross-isobath translation ' ...
-                %            'velocity drops by ' num2str(1-factor,2)];
+            else
+                tind = run.fitCenterVelocity;
+                H = run.eddy.hcen(tind);
+                titlestr = ['Using fits to translation velocity'];
+                errorbarflag = 0;
             end
+
             if isempty(tind)
                 warning(['Skipping  ' run.name '. locate_resistance did not work.']);
                 continue;
             end
 
-            H = run.eddy.hcen(tind);
-            t0 = 1; %run.eddy.tscaleind;
+            t0 = 1;run.eddy.tscaleind;
             titlestr = [titlestr ' | t0 = ' num2str(t0)];
 
-            Lz0 = Lz(1); %*run.eddy.grfactor(1);
+            Lz0 = Lz(t0); %*run.eddy.grfactor(1);
             beta_t = (alpha*abs(f0)/Lz0);
 
             [clr, ptName] = colorize(run, ptName);
@@ -466,18 +463,16 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
             diags(ff) = (1-erf(zz)); %./((zz*(1-erf(zz)) + 1/sqrt(pi) * ...
                                      %(1 - exp(-zz^2))));
             plotx(ff) = beta/beta_t./(1-beta/beta_t);
-            error(1,ff) = (1 - erf((H - err(4))./Lz0)) - diags(ff);
-            error(2,ff) = (1 - erf((H + err(4))./Lz0)) - diags(ff);
 
-            errorbarflag = 1; kozak = 0;
+            if avgresflag
+                error(1,ff) = (1 - erf((H - err(4))./Lz0)) - diags(ff);
+                error(2,ff) = (1 - erf((H + err(4))./Lz0)) - diags(ff);
+            end
+
+            kozak = 0;
             name_points = 0; line_45 = 0;
             parameterize = 1;
             slope = num2str(round(alpha*1e3));
-
-            %if errorbarflag
-            %    error(ff) = 2/sqrt(pi) * exp(-(H/Lz(t0))^2) * ...
-            %        (alpha * run.traj.yerr)/Lz(t0);
-            %end
 
             % mark NS isobath runs with gray points
             if run.bathy.axis == 'x'
@@ -486,7 +481,6 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
 
             laby = '$$\frac{U_b}{U_s} = 1 - \mathrm{erf}(\frac{H}{L_z^0})$$';
             labx = '$$\beta/\beta_t$$';
-            %if ff == 1, hax = subplot(121); hold all; end
         end
 
         if strcmpi(name, 'btrq')
