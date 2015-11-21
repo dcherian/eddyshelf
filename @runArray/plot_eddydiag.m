@@ -211,13 +211,14 @@ function [] = plot_eddydiag(runArray)
         if ~isempty(hfig9)
             cvy = run.smoothCenterVelocity ./ run.eddy.V(1);
             tfit = run.fitCenterVelocity;
+            [~,~,tres,~,~] = run.averageResistance;
 
             figure(hfig9)
             subplot(211)
-            hgplt9(ff) = plot(ndtime, run.eddy.rhovor.cvx./run.eddy.V(1));
+            hgplt9(ff) = plot(ndtime, run.eddy.cvx./run.eddy.V(1));
             subplot(212)
             plot(ndtime, cvy, 'Color', hgplt9(ff).Color);
-            t(1) = plot(ndtime(tind), cvy(tind), 'kx');
+            t(1) = plot(ndtime(tres), cvy(tres), 'kx');
             t(2) = plot(ndtime(tfit), cvy(tfit), ...
                         '+', 'Color', hgplt9(ff).Color, 'MarkerSize', 14);
             t(3) = plot(ndtime(tsl), cvy(tsl), ...
@@ -320,7 +321,7 @@ function [] = plot_eddydiag(runArray)
         liney(0);
         ylabel('Center y-velocity / Eddy velocity scale');
         xlabel('Non-dimensional time');
-        legend(t, {'Resistance'; 'Fit to center velocity', ...
+        legend(t, {'avg resistance'; 'Fit to center velocity'; ...
                    'Center crosses slope'; 'SE crosses slope'}, ...
                'Location', 'SouthEast');
         beautify;
