@@ -7,6 +7,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes)
 
     % zoom in axis?
     limx = [165 410]; limy = [0 120];
+    limx = []; limy = [];
 
     dt = 2;
     factor = 1; % scale variable (1 by default)

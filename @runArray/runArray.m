@@ -164,9 +164,10 @@ classdef runArray < handle
         end
 
         function [] = test_hashes(runArray)
+            disp('======= eddy =======');
             for ii=1:runArray.len
                 try
-                    msg = [runArray.array(ii).name ' is outdated: eddy'];
+                    msg = [runArray.array(ii).name];
                     if isempty(strfind(runArray.array(ii).eddy.hash, ...
                                        '31d29d2416ec11995254f795381167702715099a'))
                         warning(msg);
@@ -174,7 +175,10 @@ classdef runArray < handle
                 catch ME
                     warning(msg);
                 end
+            end
 
+            disp('======= csflux =======');
+            for ii=1:runArray.len
                 try
                     msg = [runArray.array(ii).name ' is outdated: csflux'];
                     if isempty(strfind(runArray.array(ii).csflux.hash, ...
@@ -184,16 +188,19 @@ classdef runArray < handle
                 catch ME
                     warning(msg);
                 end
+            end
 
+            disp('======= streamer =======');
+            for ii=1:runArray.len
                 try
                     msg = [runArray.array(ii).name ' is outdated: streamer'];
                     if isempty(strfind(runArray.array(ii).streamer.hash, ...
-                                       '801633fe52c9a30bbfd152ac9f71db8955196d8d'))
+                                       '801633fe52c9a30bbfd152ac9f71'))
                         warning(msg);
                     end
                 catch ME
                     warning(msg);
-                end
+                 end
             end
         end
 
@@ -754,6 +761,19 @@ classdef runArray < handle
             beautify;
             linex(0);
             if ~strcmpi(varname, 'zeta'), liney(0); end
+        end
+
+        function [] = plot_maxflux(runArray)
+            figure; hax = gca;
+            subplot(211); hold on;
+            subplot(212); hold on;
+            for ii=1:8
+                [actual, param] = runArray.print_diag('max flux', ii, hax, 'no_plots')
+                subplot(211); hold on;
+                plot(ii, actual, 'x');
+                subplot(212); hold on;
+                plot(ii, param, 'x');
+            end
         end
 
         function [] = plot_zetacyc(runArray)
