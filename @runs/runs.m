@@ -1282,6 +1282,22 @@ methods
         err(4) = conft(0.05, N-1) * std(hh)/sqrt(N);
     end
 
+    function [itfit, tfit, T] = fitCenterVelocity(runs, debug)
+
+        if ~exist('debug', 'var'), debug = 0; end
+
+        cvy = runs.smoothCenterVelocity;
+
+        [~,imin] = min(cvy);
+        tvec = runs.eddy.t*86400;
+
+        [v0, T, t0] = gauss_fit(tvec(imin:end) - tvec(imin), ...
+                                cvy(imin:end)./cvy(imin), debug);
+        if debug, linex(T); end
+        tfit = T + tvec(imin) + t0;
+        itfit = find_approx(tvec, tfit, 1);
+    end
+
     function [itsl, itse, tsl, tse] = getEddyCenterTimeScales(runs)
     % time indices when eddy center/southern edge cross slopebreak
         itsl = find_approx(runs.eddy.my, runs.bathy.xsl, 1);
