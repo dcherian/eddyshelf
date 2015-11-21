@@ -22,8 +22,8 @@ function [] = plot_eddydiag(runArray)
     hfig4 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2); hold all;
 
     % Ro, L-scale, U-scale
-    hfig5 = figure; subplot(3,1,1); hold all; subplot(3,1,2); hold  all;
-            subplot(3,1,3); hold all;
+    hfig5 = []; %figure; subplot(3,1,1); hold all; subplot(3,1,2); hold  all;
+                %subplot(3,1,3); hold all;
 
     hfig6 = []; %figure; hold all
 
@@ -50,11 +50,9 @@ function [] = plot_eddydiag(runArray)
         %tscale = run.tscale; find_approx(asp, 0.5, 1);
         %ndtime = run.eddy.t/tscale * 86400;
         run.fit_traj(1.0);
-        [~,~,tind] = run.locate_resistance;
-        tsl = find_approx(run.eddy.my, run.bathy.xsl, 1);
-        tse = find_approx(run.eddy.my - run.eddy.vor.dia(1)/2, ...
-                                  run.bathy.xsl, 1);
-        ndtime = run.eddy.t*86400 ./ run.eddy.turnover;
+        [~,~,tind,cvyres] = run.locate_resistance;
+        [tsl,tse] = run.getEddyCenterTimeScales;
+        ndtime = run.eddy.t(1:run.eddy.tend)*86400 ./ run.eddy.turnover;
         if isempty(runArray.name)
             name{ff} = run.name;
         else
@@ -211,19 +209,21 @@ function [] = plot_eddydiag(runArray)
 
         % x and y velocities
         if ~isempty(hfig9)
+            cvy = run.smoothCenterVelocity ./ run.eddy.V(1);
+            tfit = run.fitCenterVelocity;
+
             figure(hfig9)
             subplot(211)
             hgplt9(ff) = plot(ndtime, run.eddy.rhovor.cvx./run.eddy.V(1));
             subplot(212)
-            plot(ndtime, run.eddy.rhovor.cvy./run.eddy.V(1), 'Color', ...
-                 hgplt9(ff).Color);
-            plot(ndtime(tind), run.eddy.rhovor.cvy(tind)./run.eddy.V(1), ...
-                 'kx');
-            plot(ndtime(tsl), run.eddy.rhovor.cvy(tsl)./run.eddy.V(1), ...
-                  '.', 'Color', hgplt9(ff).Color, 'MarkerSize', ...
-                 34);
-            plot(ndtime(tse), run.eddy.rhovor.cvy(tse)./run.eddy.V(1), ...
-                 'o', 'Color', hgplt9(ff).Color, 'MarkerSize', 14);
+            plot(ndtime, cvy, 'Color', hgplt9(ff).Color);
+            t(1) = plot(ndtime(tind), cvy(tind), 'kx');
+            t(2) = plot(ndtime(tfit), cvy(tfit), ...
+                        '+', 'Color', hgplt9(ff).Color, 'MarkerSize', 14);
+            t(3) = plot(ndtime(tsl), cvy(tsl), ...
+                        '.', 'Color', hgplt9(ff).Color, 'MarkerSize', 34);
+            t(4) = plot(ndtime(tse), cvy(tse), ...
+                        'o', 'Color', hgplt9(ff).Color, 'MarkerSize', 14);
         end
     end
 
@@ -313,14 +313,17 @@ function [] = plot_eddydiag(runArray)
         subplot(211);
         liney(0);
         ylabel('Center x-velocity / Eddy velocity scale');
+        legend(hgplt9, name);
         beautify;
 
         subplot(212);
         liney(0);
         ylabel('Center y-velocity / Eddy velocity scale');
         xlabel('Non-dimensional time');
+        legend(t, {'Resistance'; 'Fit to center velocity', ...
+                   'Center crosses slope'; 'SE crosses slope'}, ...
+               'Location', 'SouthEast');
         beautify;
-        legend(hgplt9, name);
     end
 
     runArray.reset_colors(corder_backup);
