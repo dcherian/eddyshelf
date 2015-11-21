@@ -31,7 +31,7 @@ function [xx,yy,tind,cvy] = locate_resistance(runs, nsmooth, factor)
 
     if tind >= (length(runs.eddy.my)-10)
         disp(['WARNING: ' runs.name ' - Location within ten timesteps ' ...
-                            'of end']);
+              'of end | factor = ' num2str(factor)]);
     end
 
     xx = runs.eddy.mx(tind);

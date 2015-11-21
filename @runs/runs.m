@@ -1266,13 +1266,20 @@ methods
 
         if ~exist('nsmooth', 'var'), nsmooth = []; end
 
-        factors = 0.5:0.05:0.8;
+        factors = 1 - [0.55:0.05:0.90];
         N = length(factors);
+
+        xx = nan([1 N]); yy = xx; tt = xx;
         for ff = 1:length(factors)
-            [xx(ff), yy(ff), tt(ff), ~] = ...
-                runs.locate_resistance(nsmooth, factors(ff));
+            try
+                [xx(ff), yy(ff), tt(ff), ~] = runs.locate_resistance(nsmooth, factors(ff));
+            catch
+            end
         end
 
+        xx = cut_nan(xx); yy = cut_nan(yy); tt = cut_nan(tt);
+
+        N = length(xx);
         hh = runs.eddy.hcen(tt);
 
         meanx = mean(xx); meany = mean(yy); meant = ceil(mean(tt)); meanh = mean(hh);
