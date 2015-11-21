@@ -1293,7 +1293,8 @@ methods
 
         if ~exist('debug', 'var'), debug = 0; end
 
-        cvy = runs.smoothCenterVelocity;
+        sgn = runs.sgntamp * sign(runs.params.phys.f0);
+        cvy = sgn* runs.smoothCenterVelocity;
 
         [~,imin] = min(cvy);
         tvec = runs.eddy.t*86400;
