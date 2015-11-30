@@ -24,7 +24,7 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
     annostr = ['runArray.print_diag(' name ')'];
     diags = nan(size(runArray.filter));
     plotx = diags;
-    error = diags;
+    error = repmat(diags, [2 1]);
     P = nan([2 1]); % slope and intercept
     Perr = nan([2 1]); % error bounds on slope and intercept
 
@@ -96,6 +96,8 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
         beta = run.params.phys.beta;
         use run.params.phys
         f0 = abs(f0);
+
+        sgn = sign(run.params.phys.f0) * sign(run.params.eddy.tamp);
 
         alpha = run.bathy.sl_slope;
         hsb = run.bathy.hsb;
@@ -295,7 +297,7 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
             eval(['diags(ff) = abs(d' en 'dt);']);
             plotx(ff) = beta * Lx(1) ./ f0; %...
             %(beta * Lz(1) - alpha * f0 * (1-erf(hedge(1)./Lz(1))));
-            eval(['error(ff) = abs(error_' en ');']);
+            eval(['error(1,ff) = abs(error_' en ');']);
 
             errorbarflag = 1;
             name_points = 1;
@@ -686,9 +688,9 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
 
             diags(ff) = maxflux/norm;
             plotx(ff) = double(fluxscl)/norm;
-            error(ff) = err/norm; 0.10*diags(ff);
+            error(1,ff) = err/norm; 0.10*diags(ff);
 
-            if error(ff) ~= 0
+            if error(1,ff) ~= 0
                 errorbarflag = 1;
             else
                 errorbarflag = 0;
@@ -762,7 +764,7 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
                 [P,Pint,R,Rint,stats] = regress(zmax', E, 0.05);
 
                 errorbarflag = 0;
-                error(ff) = Pint(2) - P(2);
+                error(1,ff) = Pint(2) - P(2);
             else
                 P(2) = zmax;
             end
@@ -894,7 +896,7 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
                         num2str(run.csflux.ndloc(:,isobath))];
 
             diags(ff) = avgflux/norm;
-            error(ff) = err/norm;
+            error(1,ff) = err/norm;
             plotx(ff) = fluxscl/norm;
         end
 
@@ -1096,11 +1098,13 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
         if plots
             figure(hfig);
             axes(hax);
-            if errorbarflag
-                if size(error,1) == 1
-                    error(2,:) = error(1,:);
-                end
 
+            [clr,ptName] = colorize(run, ptName);
+
+            if errorbarflag
+                if ~isnan(error(1,ff)) && isnan(error(2,ff))
+                    error(2,ff) = error(1,ff);
+                end
                 errorbar(plotx(ff), diags(ff), abs(error(1,ff)), abs(error(2,ff)), ...
                          'x', 'LineWidth', 2, 'Color', clr);
             else
