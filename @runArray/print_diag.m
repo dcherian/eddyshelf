@@ -707,7 +707,7 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
                              maxflux/1000, fluxscl/1000, V0, L0/1000, Lz0));
             end
 
-            norm = 1000; eddyscl;
+            norm = eddyscl;
 
             diags(ff) = maxflux/norm;
             plotx(ff) = double(fluxscl)/norm;
@@ -862,10 +862,10 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
 
             [avgflux, err] = run.calc_avgflux(fluxvec);
             [start,stop] = run.flux_tindices(fluxvec);
-            [~,~,restind] = run.locate_resistance;
+            %[~,~,restind] = run.locate_resistance;
 
             t0 = 1; start;
-            tind = start;
+            tind = ceil( (start+stop)/2);
 
             nsmth = 10;
             V = smooth(hypot(run.eddy.fitx.V0, run.eddy.fity.V0), nsmth) / 2.3;
@@ -904,7 +904,7 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
 
             [clr, ptName] = colorize(run, ptName);
 
-            norm = 1000; eddyscl;
+            norm = eddyscl;
             if norm == 1000
                 normstr = '(mSv)';
             else
