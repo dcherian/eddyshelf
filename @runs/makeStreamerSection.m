@@ -34,7 +34,8 @@ function [v, mask, xvec, zvec] = makeStreamerSection(runs, isobath, maxloc, V0, 
     xfrac = sqrt(1 - y0oL^2);
     %y0oL = (runs.eddy.my(maxloc) - runs.csflux.x(isobath))/L0;
 
-    v = -2.3 * V0 * xmat .* exp(-xmat.^2) .* (1-erf(-zmat));
+    a = 2;
+    v = -2.3 * V0 * xmat.^(a-1) .* exp(-xmat.^a) .* (1-erf(-zmat));
 
     [width, zpeak] = runs.predict_zpeak(isobath, 'use', maxloc);
     width = abs(width/Lz0); zpeak = abs(zpeak/Lz0);
@@ -45,17 +46,15 @@ function [v, mask, xvec, zvec] = makeStreamerSection(runs, isobath, maxloc, V0, 
         x0 = -xfrac-kxrad; -xfrac-kxrad;
         z0 = -1 * width/3;
         if ~isreal(xfrac)
-        % complex xfrac -- cannot be trusted
-        % make the kink (semi-circle) intersect the eddy contour
-        xfrac = sqrt(1 - (width)^2);
-        x0 = -xfrac;
-        xline = 0;
+            % complex xfrac -- cannot be trusted
+            % make the kink (semi-circle) intersect the eddy contour
+            xfrac = sqrt(1 - (width)^2);
+            x0 = -xfrac;
+            xline = 0;
+        end
     end
 
-    end
     xline = 0;
-
-    a = 2;
 
     if isobath == 1
         % if close to shelfbreak use barotropic mask
@@ -85,7 +84,7 @@ function [v, mask, xvec, zvec] = makeStreamerSection(runs, isobath, maxloc, V0, 
         if circle_kink
             kinkmask = (((xmat-x0)/kxrad).^2 + ((zmat-z0)/kzrad).^2) <= 1;
         else
-            kinkmask = ((xmat.^a + zmat.^a) > 0.7^a) .* (zmat >= -width);
+            kinkmask = ((xmat.^a + zmat.^a) > (2/exp(1))^a) .* (zmat >= -width);
         end
         mask = (xmat < xline) & (eddymask | kinkmask);
     end
