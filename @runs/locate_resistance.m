@@ -15,7 +15,8 @@ function [xx,yy,tind,cvy] = locate_resistance(runs, nsmooth, factor)
           sign(runs.params.phys.f0);
     vel = sgn * runs.smoothCenterVelocity(nsmooth);
 
-    tvec = runs.eddy.t(1:runs.eddy.tend);
+    vel = vel(1:runs.eddy.tend-1);
+    tvec = runs.eddy.t(1:runs.eddy.tend-1);
     ndtime = tvec*86400./runs.eddy.turnover;
 
     % locate minimum, i.e., max. southward/westward speed
@@ -47,7 +48,7 @@ function [xx,yy,tind,cvy] = locate_resistance(runs, nsmooth, factor)
         figure;
         insertAnnotation('runArray.locate_resistance');
         subplot(221)
-        plot(ndtime, mcen);
+        plot(ndtime, runs.eddy.my(1:runs.eddy.tend-1));
         title(runs.name);
         linex(ndtime(tind));
 
