@@ -184,8 +184,8 @@ function [eddy] = track_eddy(dir1)
             cx0 = nan;
             cy0 = nan;
         else
-            if tt == 111,
-                %keyboard % for debugging
+            if tt == 29,
+                % keyboard % for debugging
             end
             mask = nan(sz);
             lx = eddy.dia(tt-1)/2 + limit_x;
@@ -810,7 +810,7 @@ function [out] = detect_eddy(maskin, zeta, opt, grd)
 
         % check displacement of center
         % should be less than 10 grid cells
-        if ~isnan(out.cx) && ~isnan(out.cy)
+        if (~isnan(out.cx) && ~isnan(out.cy))
             answer = 1;
             if hypot(out.cx-grd.cxn1, out.cy-grd.cyn1) > ...
                     10*hypot(dx,dy)

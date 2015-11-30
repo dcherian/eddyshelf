@@ -188,9 +188,9 @@ methods
 
         % rossby radii
         runs.rrdeep = sqrt(runs.params.phys.N2)*max(runs.bathy.h(:)) ...
-                    /mean(runs.rgrid.f(:))/pi;
+                    /abs(mean(runs.rgrid.f(:)))/pi;
         runs.rrshelf = sqrt(runs.params.phys.N2)*max(runs.bathy.hsb) ...
-                    /mean(runs.rgrid.f(:))/pi;
+                    /abs(mean(runs.rgrid.f(:)))/pi;
 
         % figure out dye names
         for ii=1:4

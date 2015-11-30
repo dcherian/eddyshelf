@@ -528,11 +528,34 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
             diags(ff) = V(tind)./beta/Ls(tind).^2;
         end
 
+        if strcmpi(name, 'deccel')
+            [itsl,itse,tsl,tse] = run.getEddyCenterTimeScales;
+            [~,~,restind] = run.averageResistance;
+            if isnan(restind), continue; end
+            tres = run.time(restind);
+
+            [~,tfit,tscl] = run.fitCenterVelocity;
+            V0 = run.eddy.V(itse);
+            Lrh = sqrt(V0/beta);
+
+            diags(ff) = tscl; %(tres-tse);
+            plotx(ff) = 1./beta ./abs(run.rrdeep);
+
+            laby = 't_{res} - t_{SE}';
+            name_points = 1;
+        end
+
+        if strcmpi(name, 'initial distance')
+            [~,tfit,tscl] = run.fitCenterVelocity;
+
+            diags(ff) = tscl;
+            plotx(ff) = sgn * (run.params.eddy.cy - run.bathy.xsl)/abs(run.rrdeep);
+        end
+
         % compare against flat bottom rest latitude
         if strcmpi(name, 'rest latitude')
             [~,~,tind] = run.locate_resistance();
 
-            sgn = sign(f0) * sign(run.params.eddy.tamp);
             Yb2 = max(run.rgrid.y_rho(:))/2;
             y = Yb2 + 1./beta * (fcen(1)*(1-sgn*Ro(tind)) - f0);
 

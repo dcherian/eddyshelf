@@ -49,7 +49,7 @@ function [] = plot_eddydiag(runArray)
 
         %tscale = run.tscale; find_approx(asp, 0.5, 1);
         %ndtime = run.eddy.t/tscale * 86400;
-        run.fit_traj(1.0);
+        %run.fit_traj(1.0);
         [~,~,tind,cvyres] = run.locate_resistance;
         [tsl,tse] = run.getEddyCenterTimeScales;
         ndtime = run.eddy.t(1:run.eddy.tend)*86400 ./ run.eddy.turnover;

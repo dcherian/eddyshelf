@@ -942,8 +942,8 @@ classdef runArray < handle
                 names{ff} = runArray.name{ii};
                 ndtime = run.eddy.t*86400 / run.eddy.turnover;
 
-                [~,~,tind] = run.locate_resistance;
-                if ~isempty(run.csflux)
+                [~,~,tind] = run.averageResistance;
+                if isfield(run.csflux, 'off')
                     [~,maxloc] = run.calc_maxflux(2);
                 end
 
