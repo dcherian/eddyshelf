@@ -74,7 +74,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
                         run.csflux.off.slopewater.vertitrans(:,isobath,source)));
 
         % ndtime = run.csflux.time/run.eddy.turnover;
-        ndtime = run.csflux.time/run.csflux.time(start);
+        ndtime = run.csflux.time/86400;
 
         R = run.csflux.R;
         [~,~,restind] = run.locate_resistance;

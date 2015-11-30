@@ -902,7 +902,7 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
                        num2str(err/1000,'%.2f') ' mSv | scale = ' ...
                        num2str(fluxscl)];
 
-            clr = colorize(run);
+            [clr, ptName] = colorize(run, ptName);
 
             norm = 1000; eddyscl;
             if norm == 1000
@@ -1186,6 +1186,7 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
 
         if ~isempty(cut_nan(error)) & ~strcmpi(name, 'max flux')
             disp('Using weighted least squares');
+
             error = mean(abs(error),1);
             disp(['% error: ' num2str(round(100*error./diags))]);
 
@@ -1235,7 +1236,7 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
         hparam = plot(xvec, c*xvec + P(2), '--', ...
                       'Color', [1 1 1]*0.65);
         slopestr = num2str(c, '%.2f');
-        intstr = num2str(P(2), '%.2f');
+        intstr = num2str(P(2), '%.4f');
 
         if exist('Pint', 'var')
             hparam(2) = plot(xvec, Pint(1,1) * xvec + Pint(2,1), ...
@@ -1246,7 +1247,7 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
             slopestr = [slopestr '\pm' ...
                         num2str(abs(Pint(1,1)-P(1)), '%.2f')];
             intstr = [intstr '\pm' ...
-                      num2str(abs(Pint(2,1)-P(2)), '%.2f')];
+                      num2str(abs(Pint(2,1)-P(2)), '%.4f')];
         end
 
         if force_0intercept, intstr = '0'; end
@@ -1258,7 +1259,7 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
         tlen = 0;
         if exist('stats', 'var')
             disp(['stats = ' num2str(stats)]);
-            textstr{1} = ['r^2 = ' num2str(stats(1), '%.2f')];
+            textstr{1} = ['r = ' num2str(sqrt(stats(1)), '%.2f')];
             textstr{2} = ['rmse = ' num2str(rmse, '%.2f')];
             tlen = 2;
         end

@@ -28,6 +28,7 @@ function [avgflux, err] = calc_avgflux(runs, fluxvec, debug)
         subplot(2,1,1);
         plot(tvec, fluxvec);
         liney([avgflux-err avgflux avgflux+err]);
+        title(runs.name);
 
         subplot(2,1,2);
         plot(tvec,cumtrapz(tvec*86400, fluxvec));

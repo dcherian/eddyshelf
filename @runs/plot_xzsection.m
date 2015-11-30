@@ -108,7 +108,7 @@ function [] = plot_xzsection(runs, loc, day, debug_flux)
     else
         csvoffmask = 1;
     end
-    mask = mask;
+    mask = csvoffmask;
 
     % profile I am assuming
     [videal, idmask, xmask, zmask] = runs.makeStreamerSection(isobath);
