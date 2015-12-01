@@ -164,12 +164,13 @@ classdef runArray < handle
         end
 
         function [] = test_hashes(runArray)
+            warning on;
             disp('======= eddy =======');
             for ii=1:runArray.len
                 try
                     msg = [runArray.array(ii).name];
                     if isempty(strfind(runArray.array(ii).eddy.hash, ...
-                                       '31d29d2416ec11995254f795381167702715099a'))
+                                       '31d29d2416ec11995254f79538116'))
                         warning(msg);
                     end
                 catch ME
@@ -182,7 +183,7 @@ classdef runArray < handle
                 try
                     msg = [runArray.array(ii).name ' is outdated: csflux'];
                     if isempty(strfind(runArray.array(ii).csflux.hash, ...
-                                       '38b662d3b7c0cb2d1f19965d0c88767e8c6c1f4c'))
+                                       'e93ad5ccbb187146f69153f5ec7a8dc062ed9a31'))
                         warning(msg);
                     end
                 catch ME
