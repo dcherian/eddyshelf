@@ -284,70 +284,76 @@ function [] = csfluxes(runs, ftype)
             csvonmask = 1;
             csvoffmask = 1;
         else
-            % define a mask based on first zero-crossing at each depth
-            csvoffmask = csvel > 0;
-            % pick out region with eddy center
-            for tt=1:size(csvel, 3)
-                flag_found(tt) = 0;
-                regions = bwconncomp(csvoffmask(:,:,tt), 8);
-                ix = find_approx(xvec, cxi(tt), 1);
-                iwe = find_approx(xvec, runs.eddy.rhovor.we(tt), 1);
+            csvonmask = 1;
+            csvoffmask = 1;
+            offmask = repmat(spongemask, [1 size(runs.csflux.offmask, 2)]);
+            onmask = repmat(spongemask, [1 size(runs.csflux.offmask, 2)]);
 
-                % find region with eddy center
-                for zz=1:regions.NumObjects
-                    maskreg = zeros(regions.ImageSize);
-                    maskreg(regions.PixelIdxList{zz}) = 1;
+            flag_found = 1;
+            % % define a mask based on first zero-crossing at each depth
+            % csvoffmask = csvel > 0;
+            % % pick out region with eddy center
+            % for tt=1:size(csvel, 3)
+            %     flag_found(tt) = 0;
+            %     regions = bwconncomp(csvoffmask(:,:,tt), 8);
+            %     ix = find_approx(xvec, cxi(tt), 1);
+            %     iwe = find_approx(xvec, runs.eddy.rhovor.we(tt), 1);
 
-                    if any(maskreg(ix,:) == 1)
-                        csvoffmask(:,:,tt) = maskreg;
-                        flag_found(tt) = 1;
-                        break;
-                    end
-                end
+            %     % find region with eddy center
+            %     for zz=1:regions.NumObjects
+            %         maskreg = zeros(regions.ImageSize);
+            %         maskreg(regions.PixelIdxList{zz}) = 1;
 
-                % sometimes eddy center is a few grid points off,
-                % then look for midpoint of western edge and center
-                if ~flag_found(tt)
-                    for zz=1:regions.NumObjects
-                        maskreg = zeros(regions.ImageSize);
-                        maskreg(regions.PixelIdxList{zz}) = 1;
+            %         if any(maskreg(ix,:) == 1)
+            %             csvoffmask(:,:,tt) = maskreg;
+            %             flag_found(tt) = 1;
+            %             break;
+            %         end
+            %     end
 
-                        if any(maskreg(ceil((ix+iwe)/2),:) == 1)
-                            csvoffmask(:,:,tt) = maskreg;
-                            flag_found(tt) = 1;
-                            break;
-                        end
-                    end
-                end
+            %     % sometimes eddy center is a few grid points off,
+            %     % then look for midpoint of western edge and center
+            %     if ~flag_found(tt)
+            %         for zz=1:regions.NumObjects
+            %             maskreg = zeros(regions.ImageSize);
+            %             maskreg(regions.PixelIdxList{zz}) = 1;
 
-                if ~flag_found(tt)
-                    for zz=1:regions.NumObjects
-                        maskreg = zeros(regions.ImageSize);
-                        maskreg(regions.PixelIdxList{zz}) = 1;
+            %             if any(maskreg(ceil((ix+iwe)/2),:) == 1)
+            %                 csvoffmask(:,:,tt) = maskreg;
+            %                 flag_found(tt) = 1;
+            %                 break;
+            %             end
+            %         end
+            %     end
 
-                        if any(maskreg(ix-5,:) == 1)
-                            csvoffmask(:,:,tt) = maskreg;
-                            flag_found(tt) = 1;
-                            break;
-                        end
-                    end
-                end
-            end
+            %     if ~flag_found(tt)
+            %         for zz=1:regions.NumObjects
+            %             maskreg = zeros(regions.ImageSize);
+            %             maskreg(regions.PixelIdxList{zz}) = 1;
 
-            csvelbar = squeeze(avg1(dc_roms_read_data(runs.dir, [csvelid 'bar'], [t0 tinf], ...
-                                                      volv, [], runs.rgrid, ftype, ...
-                                                      precision), bathyax));
-            csvelbar = csvelbar(2:end-1,:,:,:) * sgntamp;
+            %             if any(maskreg(ix-5,:) == 1)
+            %                 csvoffmask(:,:,tt) = maskreg;
+            %                 flag_found(tt) = 1;
+            %                 break;
+            %             end
+            %         end
+            %     end
+            % end
 
-            % apply other refinements
-            csvoffmask = bsxfun(@and, csvoffmask, permute(csvelbar > 0, [1 3 2]));
-            csvoffmask = bsxfun(@and, csvoffmask, spongemask);
-            csvoffmask = bsxfun(@or, csvoffmask, permute(offmask, [1 3 2]));
-            clear maskreg
+            % csvelbar = squeeze(avg1(dc_roms_read_data(runs.dir, [csvelid 'bar'], [t0 tinf], ...
+            %                                           volv, [], runs.rgrid, ftype, ...
+            %                                           precision), bathyax));
+            % csvelbar = csvelbar(2:end-1,:,:,:) * sgntamp;
 
-            csvonmask = ~csvoffmask;
-            offmask = 1;
-            onmask  = 1;
+            % % apply other refinements
+            % csvoffmask = bsxfun(@and, csvoffmask, permute(csvelbar > 0, [1 3 2]));
+            % csvoffmask = bsxfun(@and, csvoffmask, spongemask);
+            % csvoffmask = bsxfun(@or, csvoffmask, permute(offmask, [1 3 2]));
+            % clear maskreg
+
+            % csvonmask = ~csvoffmask;
+            % offmask = 1;
+            % onmask  = 1;
 
             % save here because the variables get over-written later.
             runs.csflux.csvoffmask = csvoffmask;
