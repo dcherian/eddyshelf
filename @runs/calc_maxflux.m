@@ -114,12 +114,15 @@ function [maxflux, maxloc, err] = calc_maxflux(runs, fluxin, isobath, debug)
     if strcmpi(runs.name, 'ew-06')
         maxloc = locs(1);
     end
+    if strcmpi(runs.name, 'ew-2340') | strcmpi(runs.name, 'ew-2345')
+        maxloc = locs(3);
+    end
 
     maxloc = maxloc + start - 1;
     maxflux = fluxin(maxloc,1);
 
     % maxflux = median(fluxvec(locs));
-    if length(locs) > 3
+    if length(locs) > 2
         err = std(fluxvec(locs))/sqrt(length(locs));
     else
         err = 0;
