@@ -183,7 +183,7 @@ classdef runArray < handle
                 try
                     msg = [runArray.array(ii).name ' is outdated: csflux'];
                     if isempty(strfind(runArray.array(ii).csflux.hash, ...
-                                       'e93ad5ccbb187146f69153f5ec7a8dc062ed9a31'))
+                                       '141a4d86569bf6c18cd31f8dd77ea55b5a72d76'));
                         warning(msg);
                     end
                 catch ME
