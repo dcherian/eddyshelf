@@ -1245,7 +1245,7 @@ methods
 
         if runs.bathy.axis == 'y'
             cen = smooth(runs.eddy.vor.cy(1:runs.eddy.tend), npts)/1000;
-            mcen = runs.eddy.my/1000;
+            mcen = runs.eddy.my(1:runs.eddy.tend)'/1000;
             %vel = smooth(runs.eddy.mvy, npts);
             % figure;
             % subplot(211)
@@ -1256,7 +1256,7 @@ methods
             % plot(vel);
         else
             cen = smooth(runs.eddy.vor.cx(1:runs.eddy.tend), npts)/1000;
-            mcen = runs.eddy.mx/1000;
+            mcen = runs.eddy.mx(1:runs.eddy.tend)'/1000;
         end
         tvec = runs.eddy.t(1:runs.eddy.tend);
         cvy = [0; diff(cen)./diff(smooth(tvec', npts))];

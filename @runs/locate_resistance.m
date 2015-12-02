@@ -23,6 +23,9 @@ function [xx,yy,tind,cvy] = locate_resistance(runs, nsmooth, factor)
     % but limit search to first 'n' turnover time scales
     it = find_approx(ndtime, 10);
     ind0 = length(ndtime); %find(vel(it:end) > 0, 1, 'first');
+    if strcmpi(runs.name, 'ew-8352')
+        ind0 = ind0 - 30;
+    end
     [mn, imin] = min(vel(5:ind0));
     %[mn, imin] = min(vel(:));
 
