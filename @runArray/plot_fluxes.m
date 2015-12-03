@@ -62,7 +62,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         Le = run.eddy.vor.dia(1)/2;
 
         fluxscl = 1; %run.eddyfluxscale;
-        transscl = 1; He * Le^2;
+        transscl = 1000; He * Le^2;
 
         %fluxvec = run.csflux.off.slope(:,isobath, source);
         fluxvec = run.recalculateFlux(-factor*hsb,isobath);
@@ -87,6 +87,8 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
             plot(ndtime(maxi), maxf/fluxscl, 'x', 'Color', hgplt1(ff).Color);
             axes(ax1(2));
             plot(ndtime, ifluxvec/transscl, 'Color', hgplt1(ff).Color);
+            plot(ndtime([start stop]), ifluxvec([start stop])/transscl, ...
+                 'o', 'Color', hgplt1(ff).Color, 'MarkerSize', 8);
         else
             colors = runArray.sorted_colors;%get(gca, 'ColorOrder');
             hgplt1(ff).Color = colors(ff,:);
@@ -229,14 +231,14 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         insertAnnotation('runArray.plot_fluxes');
         subplot(2,1,1)
         title(['Slope water | ND isobath = ', locstr]);
-        ylabel('Flux / Eddy Flux above sb');
+        ylabel('Flux (mSv)');
         liney(0, [], [1 1 1]*0.75);
+        legend(hgplt1, names);
         beautify;
 
         subplot(2,1,2)
-        ylabel('Vol_{transport}/ Vol_{eddy}');
-        xlabel('Non-dimensional time');
-        legend(hgplt1, names);
+        ylabel('Volume transported (m^3)');
+        xlabel('Time (days)');
         beautify;
         pause(0.1);
     end
