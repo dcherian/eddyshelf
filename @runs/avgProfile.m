@@ -1,4 +1,5 @@
 % Averages 'varname' at 'axname' = 'ix' after applying 'mask'
+% Average is taken over time interval returned by flux_tindices.
 %   mask == 1, indicate boundary of shelf/eddy water
 %      [varmean,maskmean,xivec] = avgProfile(runs, varname, axname, ix, mask)
 function [varmean,maskmean,xivec] = avgProfile(runs, varname, axname, ix, mask)
@@ -6,6 +7,8 @@ function [varmean,maskmean,xivec] = avgProfile(runs, varname, axname, ix, mask)
     if ~exist('mask', 'var'), mask = 0; end
 
     varname = runs.process_varname(varname);
+
+    [xres, yres] = runs.locate_resistance;
 
     if strcmpi(ix, 'sb')
         ix = runs.bathy.isb;
@@ -15,9 +18,15 @@ function [varmean,maskmean,xivec] = avgProfile(runs, varname, axname, ix, mask)
         if ~exist('ix', 'var') | isempty(ix) | strcmpi(ix, 'cen')
             ix = runs.eddy.imx(tindex);
         end
+        if strcmpi(ix, 'res')
+            ix = num2str(xres);
+        end
     else
         if ~exist('ix', 'var') | isempty(ix) | strcmpi(ix, 'cen')
             ix = runs.eddy.imy(tindex);
+        end
+        if strcmpi(ix, 'res')
+            ix = num2str(yres);
         end
     end
 
@@ -46,7 +55,7 @@ function [varmean,maskmean,xivec] = avgProfile(runs, varname, axname, ix, mask)
     if axname == 'x'
         % for x = ix, plot against y
         xvec = yax(1,:);
-        mx = runs.eddy.my;
+        mx = runs.bathy.xsb * ones(size(runs.eddy.my)); runs.eddy.my;
     else
         % for y = iy, plot against x
         xvec = xax(:,1);
