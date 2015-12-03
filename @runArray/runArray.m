@@ -740,8 +740,15 @@ classdef runArray < handle
                 if strcmpi(varname, 'zeta'), vm = vm - min(vm); end
                 ind = find(mm == 1, 1, 'first');
 
-                hplt(ii) = plot(xi/1000, vm);
-                plot(xi(ind)/1000, vm(ind), 'x', 'Color', hplt(ii).Color, 'MarkerSize', 18);
+                if axname == 'y'
+                    hplt(ii) = plot(xi/1000, vm);
+                    plot(xi(ind)/1000, vm(ind), 'x', ...
+                         'Color', hplt(ii).Color, 'MarkerSize', 18);
+                else
+                    hplt(ii) = plot(vm, xi/1000);
+                    plot(vm(ind), xi(ind)/1000, 'x', ...
+                         'Color', hplt(ii).Color, 'MarkerSize', 18);
+                end
 
                 phys = run.params.phys;
                 betash = phys.f0/run.bathy.hsb * run.bathy.sl_shelf;
@@ -750,8 +757,14 @@ classdef runArray < handle
                 %ind2 = find_approx(xi(maxind) - Lbeta, xi, 1);
                 %plot(xi(ind2)/1000, vm(ind2), '.', 'Color', hplt(ii).Color, 'MarkerSize', 18);
             end
-            ylabel(varname);
-            xlabel('X - X_{edd} (km)');
+
+            if axname == 'y'
+                ylabel(varname);
+                xlabel('X - X_{edd} (km)');
+            else
+                ylabel('Y - Y_{sb} (km)');
+                xlabel(varname);
+            end
             title(['mean ' varname ' | ' axname ' = ' ix]);
             if mask == 1
                 hax = gca;
