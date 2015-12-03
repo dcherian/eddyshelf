@@ -472,9 +472,9 @@ function [] = csfluxes(runs, ftype)
         tic;
         disp('Binning horizontally...');
         if (bathyax == 2) && (sgntamp == -1)
-            bins = loc(kk):3000:max(runs.rgrid.y_rho(:));
+            bins = loc(kk):1000:max(runs.rgrid.y_rho(:));
         else
-            bins = flip(loc(kk):-3000:1000);
+            bins = flip(loc(kk):-1000:1000);
         end
         binmat = repmat(bins, [tinf 1]);
         runs.csflux.off.bins{kk} = bins;
