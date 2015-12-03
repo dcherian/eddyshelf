@@ -1320,7 +1320,7 @@ end
 
 % colorize points
 function [clr, ptName] = colorize(run, ptName)
-    clr = 'k';
+    clr = [96 125 139]/255;
 
     try
         if run.params.flags.conststrat == 0
@@ -1332,11 +1332,16 @@ function [clr, ptName] = colorize(run, ptName)
     end
 
     if run.bathy.sl_shelf ~= 0
-        clr = 'r';
+        clr = [255 87 34]/255;
     end
 
     if run.params.misc.rdrg ~= 0
-        clr = 'b';
+        clr = [63 81 181]/255;
+    end
+
+    if (run.bathy.sl_shelf ~=0) ...
+            & (run.params.misc.rdrg ~= 0)
+        clr = [255 160 0]/255;
     end
 
     if run.params.eddy.tamp < 0
