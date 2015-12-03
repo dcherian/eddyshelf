@@ -1530,6 +1530,16 @@ methods
         end
     end
 
+    function [] = checkFluxReference(runs)
+
+        figure;
+        plot(runs.eddy.mx/1000, runs.eddy.my/1000);
+        if runs.bathy.axis == 'y'
+            liney(runs.bathy.xsb/1000 + runs.csflux.R/1000);
+        end
+        xlabel('X (km)'); ylabel('Y (km)');
+    end
+
     % read eddy-dye at surface and save it
     function [] = read_eddsurf(runs, t0, ntimes)
         if ~exist('t0', 'var'), t0 = 1; end
