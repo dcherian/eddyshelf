@@ -214,7 +214,15 @@ classdef runArray < handle
 
             for ii=1:length(runArray.filter)
                 run = runArray.array(runArray.filter(ii));
-                [~,~,tind] = run.locate_resistance;
+                [~,~,tres] = run.locate_resistance;
+                [~,maxloc] = run.calc_maxflux(2);
+
+                use run.params;
+                eddy = run.eddy; csflux = run.csflux; bathy = run.bathy;
+
+                beta_sl = phys.f0 * bathy.sl_slope./bathy.hsl;
+                beta_sh = phys.f0 * bathy.sl_shelf./bathy.hsb;
+
                 temp = [];
                 try
                     temp = eval(['run.' command]);
