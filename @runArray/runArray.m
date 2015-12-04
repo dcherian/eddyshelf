@@ -607,18 +607,17 @@ classdef runArray < handle
         end
 
         function [] = plot_fluxparam(runArray, str)
-            if ~exist('str', 'var'), str = 'max'; end
-
-            isobath = 1:8;
-            if isobath(1) == 1 & ...
-                    ~(strcmpi(str, 'max flux') | strcmpi(str, 'avg flux'))
-                isobath(1) = [];
-            end
 
             if strcmpi(str, 'max flux') | strcmpi(str, 'avg flux')
                 factor = 2; % to 2xH_{sb}
             else
                 factor = [];
+            end
+
+            isobath = 1:8;
+            if isobath(1) == 1 & ...
+                    ~(strcmpi(str, 'max flux') | strcmpi(str, 'avg flux'))
+                isobath(1) = [];
             end
 
             figure;
@@ -629,8 +628,10 @@ classdef runArray < handle
                 iso = isobath(ii);
                 if ii >= slopeplot, hh = ii+1; else hh = ii; end
                 axes(hax(hh));
-                [~, ~, ~, ~, P, Perr] = runArray.print_diag(str, [iso factor], ...
-                                                            hax(hh), 'no_name_points');
+                [diags(ii,:), plotx(ii,:), err(ii,:), norm(ii,:), color, ...
+                 ~, P, Perr] = runArray.print_diag(str, [iso factor], hax(hh), ...
+                                                   'no_name_points');
+
                 labx = hax(hh).XLabel.String;
                 laby = hax(hh).YLabel.String;
                 xlabel(''); ylabel(''); title('');
@@ -647,7 +648,7 @@ classdef runArray < handle
 
                 mplt(ii) = P(1);
                 cplt(ii) = P(2);
-                err(ii) = Perr(1);
+                merr(ii) = Perr(1);
                 cerr(ii) = Perr(2);
             end
 
@@ -672,14 +673,17 @@ classdef runArray < handle
             if ~isempty(factor)
                 title(['Integrated to ' num2str(factor) 'H_{sb}']);
             end
+
             % save to file
             fname = ['./params/param_' str];
             slope = mplt;
             intercept = cplt;
             hash = githash('./@runArray/print_diag.m');
-            comment = ['(slope, intercept) = straight line fit | err = error in fit ' ...
-                       '| isobath = location index | factor = integrate down to factor x H_sb'];
-            save(fname, 'isobath', 'slope', 'intercept', 'err', 'hash', 'factor');
+            comment = ['(slope, intercept) = straight line fit | (merr,cerr) = error in fit ' ...
+                       '| isobath = location index | factor = integrate down to factor x ' ...
+                       'H_sb | (diags, plotx, err, norm) = function(isobath, run)'];
+            save(fname, 'isobath', 'slope', 'intercept', 'merr', 'cerr', 'hash', 'factor', ...
+                 'diags', 'plotx', 'err', 'norm', 'color');
 
             mmagn = 10^(orderofmagn(mplt(1)));
             cmagn = 10^(orderofmagn(cplt(1)));
@@ -690,7 +694,7 @@ classdef runArray < handle
 
             hax(slopeplot) = subplot(3,3,slopeplot);
             errorbar(runArray.array(1).csflux.ndloc(isobath), ...
-                     mplt./mmagn, err./mmagn, 'k.-', 'LineWidth', 2, 'MarkerSize', 20);
+                     mplt./mmagn, merr./mmagn, 'k.-', 'LineWidth', 2, 'MarkerSize', 20);
             hold on;
             errorbar(runArray.array(1).csflux.ndloc(isobath), ...
                      cplt/cmagn, cerr/cmagn, 'b.-', 'LineWidth', 2, 'MarkerSize', 20);
