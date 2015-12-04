@@ -1173,6 +1173,24 @@ methods
         linkaxes(ax, 'x');
     end
 
+    function [V0, L0, Lz0] = EddyScalesForFlux(runs, tstart, tend, nsmth)
+
+        if ~exist('tstart', 'var')
+            error('EddyScalesForFlux: provide at least one time instant.');
+        end
+        if ~exist('tend', 'var'), tend = tstart; end
+        if ~exist('nsmth', 'var'), nsmth = 10; end
+
+        V = smooth(hypot(runs.eddy.fitx.V0, runs.eddy.fity.V0), nsmth) / 2.3;
+        %V = smooth(runs.eddy.rhovor.Vke, nsmth) / 2.3;
+        L = smooth(hypot(runs.eddy.fitx.Lrho, runs.eddy.fity.Lrho), nsmth);
+        Lz = smooth(runs.eddy.Lgauss, nsmth);
+
+        V0 = nanmedian(V(tstart:tend));
+        L0 = nanmedian(L(tstart:tend));
+        Lz0 = nanmedian(Lz(tstart:tend));
+    end
+
     function [fluxscl] = eddyfluxscale(runs)
 
     % integrate velocity profile from surface to z=-H
