@@ -1,4 +1,5 @@
-function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args, hax, commands)
+function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
+        print_diag(runArray, name, args, hax, commands)
 
     if ~exist('args', 'var'), args = []; end
     if ~exist('hax', 'var'), hax = []; end
@@ -24,9 +25,11 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
     annostr = ['runArray.print_diag(' name ')'];
     diags = nan(size(runArray.filter));
     plotx = diags;
-    error = repmat(diags, [2 1]);
+    err = repmat(diags, [2 1]);
+    norm = ones(size(diags));
     P = nan([2 1]); % slope and intercept
     Perr = nan([2 1]); % error bounds on slope and intercept
+    save_diags = 0;
 
     if plots
         if isempty(hax)
@@ -297,7 +300,7 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
             eval(['diags(ff) = abs(d' en 'dt);']);
             plotx(ff) = beta * Lx(1) ./ f0; %...
             %(beta * Lz(1) - alpha * f0 * (1-erf(hedge(1)./Lz(1))));
-            eval(['error(1,ff) = abs(error_' en ');']);
+            eval(['err(1,ff) = abs(error_' en ');']);
 
             errorbarflag = 1;
             name_points = 1;
@@ -703,12 +706,12 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
 
             diags(ff) = flux/plotnorm;
             plotx(ff) = double(fluxscl)/plotnorm;
-            error(1,ff) = errflx/plotnorm;
+            err(1,ff) = errflx/plotnorm;
 
             diagstr = [num2str(flux/1000,'%.2f') '±' ...
                        num2str(errflx/1000,'%.2f') ' mSv | scale = ' num2str(fluxscl)];
 
-            if error(1,ff) ~= 0
+            if err(1,ff) ~= 0
                 errorbarflag = 1;
             else
                 errorbarflag = 0;
@@ -722,6 +725,7 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
                 normstr = '/ Eddy volume flux';
             end
 
+            save_diags = 0;
             mark_outliers = 0; name_points = 1;
             parameterize = 1; logscale = 0;
             force_0intercept = 0;
@@ -1028,10 +1032,10 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
             [clr,ptName] = colorize(run, ptName);
 
             if errorbarflag
-                if ~isnan(error(1,ff)) && isnan(error(2,ff))
-                    error(2,ff) = error(1,ff);
+                if ~isnan(err(1,ff)) && isnan(err(2,ff))
+                    err(2,ff) = err(1,ff);
                 end
-                errorbar(plotx(ff), diags(ff), abs(error(1,ff)), abs(error(2,ff)), ...
+                errorbar(plotx(ff), diags(ff), abs(err(1,ff)), abs(err(2,ff)), ...
                          'x', 'LineWidth', 2, 'Color', clr);
             else
                 plot(plotx(ff), diags(ff), '.', 'Color', clr, ...
@@ -1067,12 +1071,19 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
             end
         end
 
+        color(ff,:) = clr;
         disp([num2str(ii,'%02d') ' | ' run.name ' | ' name ' = ' diagstr ' | plotx ' ...
               '= ' num2str(plotx(ff))]);
     end
 
     if exist('sortedflag', 'var') & sortedflag
         runArray.reset_colors(cb);
+    end
+
+    if save_diags
+        savename = name;
+        savename(isspace(name)) = [];
+        save(['./diags/diags_' savename '.mat']);
     end
 
     if parameterize && plots
@@ -1087,13 +1098,13 @@ function [diags, plotx, error, rmse, P, Perr] = print_diag(runArray, name, args,
             E = cut_nan(plotx');
         end
 
-        if ~isempty(cut_nan(error)) & ~strcmpi(name, 'max flux')
+        if ~isempty(cut_nan(err)) & ~strcmpi(name, 'max flux')
             disp('Using weighted least squares');
 
-            error = mean(abs(error),1);
-            disp(['% error: ' num2str(round(100*error./diags))]);
+            err = mean(abs(err),1);
+            disp(['% error: ' num2str(round(100*err./diags))]);
 
-            [P,stderror] = lscov(E, cut_nan(diags'), 1./cut_nan(error));
+            [P,stderror] = lscov(E, cut_nan(diags'), 1./cut_nan(err));
             tval = abs(conft(0.05,length(diags)));
             Perr = tval * stderror;
 
