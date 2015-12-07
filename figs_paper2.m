@@ -3,5 +3,8 @@ if ~exist('ew', 'var') | ~strcmpi(ew.name, 'ew-34')
     ew = runs('../topoeddy/runew-34/');
 end
 
-fluxvec = ew.recalculateFlux(2*ew.bathy.hsb,3,3);
-ew.calc_avgflux(fluxvec, 1);
+factor = 2;
+handles = ew.plot_fluxts(factor, 3, 3);
+handles.htitle.String = ['Flux of water above ' num2str(factor) 'H_{sb}'];
+maximize; drawnow;
+export_fig images/paper2/flux-diags.png
