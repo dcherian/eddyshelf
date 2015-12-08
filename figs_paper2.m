@@ -13,5 +13,7 @@ export_fig images/paper2/flux-diags.png
 
 %% x-z sections
 handles = ew34.plot_xzsection(isobath, 225);
-maximize; drawnow;
+correct_ticks('y', [], 3, handles.hax([1 3 4]));
+correct_ticks('y', [], 4, handles.hax([2]));
+drawnow;
 export_fig images/paper2/ew-34-xzsection.png
