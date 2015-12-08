@@ -163,14 +163,14 @@ function [handles] = plot_xzsection(runs, loc, day, debug_flux)
     end
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    handles.hax(2) = subplot(224);
+    handles.hax(4) = subplot(224);
     handles.hcsdye = pcolorcen(xvec/1000, zvec, runs.sgntamp*(csdye'-xsb)/1000); % .* mask
     hold on; shading interp
     [~,handles.hmask(4)] = ...
         contour(xvec/1000, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
     [~,hrho(1)] = contour(xvec/1000, zvec, rho', 30, 'k'); % .* mask
     handles.hcb(4) = colorbar;
-    title('Cross-shelf dye (km)');
+    title('Cross-shelf dye  - Y_{sb} (km)');
     linkaxes(handles.hax, 'xy');
     common(runs, tindex);
 
@@ -180,13 +180,13 @@ function [handles] = plot_xzsection(runs, loc, day, debug_flux)
     handles.hcb(4).TickLabelsMode = 'auto';
     handles.hcb(4).TickDirection = 'out';
     handles.hcb(4).Limits = [cmin cmax];
-    handles.hcb(4).Ticks = sort([cmin/2 cmin 0 ...
+    handles.hcb(4).Ticks = sort([cmin ...
                         round((runs.bathy.xsl + xsb)/2000 - xsb/1000) ...
                         round(runs.params.eddy.cy/1000 - xsb/1000)]);
     % handles.hcb(4).TickLabels{1} = ['Shelfbreak - ' num2str(-1*handles.hcb(4).Ticks(1)) ' km'];
-    handles.hcb(4).TickLabels{2} = 'Shelf Water';
+    handles.hcb(4).TickLabels{1} = 'Shelf Water';
     % handles.hcb(4).TickLabels{3} = 'Shelfbreak';
-    handles.hcb(4).TickLabels{4} = 'Slope Water';
+    handles.hcb(4).TickLabels{2} = 'Slope Water';
     handles.hcb(4).TickLabels{end} = 'Eddy Water';
     beautify;
 
