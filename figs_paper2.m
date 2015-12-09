@@ -6,17 +6,17 @@ factor = 2;
 isobath = 4;
 
 %% flux diagnostics
-handles = ew34.plot_fluxts(factor, isobath, isobath);
+handles = ew34.plot_fluxts(factor, 3, 3);
 handles.htitle.String = ['Flux of water above ' num2str(factor) 'H_{sb}'];
 maximize; drawnow;
-export_fig images/paper2/flux-diags.png
+export_fig -a1 images/paper2/flux-diags.png
 
 %% x-z sections
 handles = ew34.plot_xzsection(isobath, 225);
 correct_ticks('y', [], 3, handles.hax([1 3 4]));
 correct_ticks('y', [], 4, handles.hax([2]));
 drawnow;
-export_fig images/paper2/ew-34-xzsection.png
+export_fig -a1 images/paper2/ew-34-xzsection.png
 
 %% secondary eddy
 if ~exist('ew2360', 'var') | ~strcmpi(ew2360.name, 'ew-2360_wider')
@@ -29,11 +29,11 @@ opt.csdcontours = ew2360.csflux.x(isobath);
 handles = ew2360.secondary_vortices(95, [xx yy], opt);
 correct_ticks('y', [], '198', handles.hax(1));
 handles.hax(1).Title.String = 'Cross shelf dye - X_{sb} (km)';
-export_fig images/paper2/ew-2360-secondary-cyclone.png
+export_fig -a1 images/paper2/ew-2360-secondary-cyclone.png
 
 %% z-slice
 opt.csdcontours = ew34.csflux.x(isobath);
-handles = ew34.mosaic_zslice('dye_03', 200, [225 235 245 260], opt);
+handles = ew34.mosaic_zslice('dye_03', 100, [225 235 245 255], opt);
 for ii=1:length(handles)
     handles(ii).eddsurf.Visible = 'off';
     handles(1).htext(2).Visible = 'off';
@@ -49,4 +49,4 @@ handles(1).htitle.FontWeight = 'normal';
 handles(1).supax.Position(4) = 0.87;
 axes(handles(1).hax); correct_ticks('y', '', '0');
 axes(handles(3).hax); correct_ticks('y', '', '0');
-export_fig images/paper2/ew-34-mosaic-zslice.png
+export_fig -a1 images/paper2/ew-34-mosaic-zslice.png
