@@ -1,5 +1,5 @@
 %  animate 2D field at the surface presumably.
-function [handles] = animate_field(runs, name, hax, t0, ntimes)
+function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     if ~exist('hax','var'), hax = []; end
 
     runs.video_init(name);
@@ -51,7 +51,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes)
     modify_bathy = 1; % modify bathymetric contours to show
                       % isobaths corresponding to csdcontours?
 
-    addvelquiver = 0; % velocity vectors?
+    addvelquiver = 1; % velocity vectors?
     dxi = 5; dyi = 5; % decimate vectors
     uref = 1; vref = uref; % scale vectors
     scale = 3;
@@ -64,6 +64,14 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes)
     % grid diagnostics
     telesplot = 0;  % plot lines where grid stretching starts
                     % and ends
+
+    if exist('opt', 'var') & ~isempty(opt)
+        fields = fieldnames(opt);
+        for ff = 1:length(fields)
+            eval([fields{ff} ' = opt.' fields{ff} ';']);
+        end
+    end
+    %%%%%%%%%%%%%%%%%%% options processing ends
 
     if pointplot
         px = (runs.eddy.mx + runs.eddy.vor.dia(1))/1000;
