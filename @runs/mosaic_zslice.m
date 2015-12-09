@@ -1,5 +1,7 @@
 %        [handles] = mosaic_zslice(runs, varname, depth, tind)
-function [handles] = mosaic_zslice(runs, varname, depth, tind)
+function [handles] = mosaic_zslice(runs, varname, depth, tind, opt)
+
+    if ~exist('opt', 'var'), opt = []; end
 
     n = length(tind);
 
@@ -9,7 +11,7 @@ function [handles] = mosaic_zslice(runs, varname, depth, tind)
     hax = packboth(2,ceil(n/2));
     for ii=1:n
         axes(hax(ii));
-        handles(ii) = runs.animate_zslice(varname, depth, tind(ii), hax(ii));
+        handles(ii) = runs.animate_zslice(varname, depth, tind(ii), hax(ii), opt);
         title('');
         colorbar('off');
 

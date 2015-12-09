@@ -1,7 +1,9 @@
-function [handles] = animate_zslice(runs,varname,depth,tind,hax)
+function [handles] = animate_zslice(runs,varname,depth,tind,hax,opt)
 
     if ~exist('hax', 'var'), figure; hax = gca; end
     if ~exist('tind','var'), tind = []; end
+    if ~exist('opt', 'var'), opt = []; end
+
     varname = runs.process_varname(varname);
     tind = runs.process_time(tind);
     [~,tind,~,nt,stride] = roms_tindices(tind,Inf,length(runs.time));
@@ -11,8 +13,20 @@ function [handles] = animate_zslice(runs,varname,depth,tind,hax)
     dxi = 10; dyi = 3;
     uref = runs.eddy.V(1)/10; vref = uref;
 
-    csdlevels = [1 3 5]; % for surface contours.
-    csdlevels(csdlevels > length(runs.csflux.x)) = [];
+    csdcontours = runs.csflux.x([1 3 5]); % for surface contours.
+    csdcontours(csdcontours > runs.csflux.x(end)) = [];
+
+    if exist('opt', 'var') & ~isempty(opt)
+        fields = fieldnames(opt);
+        for ff = 1:length(fields)
+            eval([fields{ff} ' = opt.' fields{ff} ';']);
+        end
+    end
+
+    if length(csdcontours) == 1
+        % don't inadvertently choke contour with a large number!
+        csdcontours = [1 1] * csdcontours;
+    end
 
     runs.video_init(['z' num2str(depth) '-' varname]);
     if strcmpi(varname,'rv') || strcmpi(varname, 'pv')
@@ -124,7 +138,7 @@ function [handles] = animate_zslice(runs,varname,depth,tind,hax)
     end
     he = runs.plot_rho_contour('contour',tind(1));
     [~,hcsd] = contour(runs.rgrid.x_rho'/1e3, runs.rgrid.y_rho'/1e3, ...
-                       runs.csdsurf(:,:,tind(1)), runs.csflux.x(csdlevels), ...
+                       runs.csdsurf(:,:,tind(1)), csdcontours, ...
                        'Color', runs.shelfSlopeColor, 'LineWidth', 2);
     [~,hedd] = contour(runs.rgrid.x_rho'/1e3, runs.rgrid.y_rho'/1e3, ...
                        runs.eddsurf(:,:,tind(1)), [0.9 0.9], ...
@@ -146,7 +160,7 @@ function [handles] = animate_zslice(runs,varname,depth,tind,hax)
         end
     end
     xlabel('X (km)'); ylabel('Y (km)');
-    hbathy = runs.plot_bathy('contour','k');
+    hbathy = runs.plot_bathy('contour', [1 1 1]*0.65);
     htime = runs.add_timelabel(tind(1));
     beautify;
 
