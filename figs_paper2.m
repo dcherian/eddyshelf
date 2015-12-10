@@ -5,6 +5,19 @@ end
 factor = 2;
 isobath = 4;
 
+%% field map
+opt.csdcontourplot = 1;
+opt.csdcontours = ew34.csflux.x([1 4 8]);
+opt.addvelquiver = 0;
+opt.zetaOnFirstPlot = 1;
+handles = ew34.mosaic_field('csdye', [1 150 200 250 300 380], opt);
+ylim([0 250]);
+handles.supax.Position(4) = 0.70;
+handles.htitle.String = 'Surface cross-shelf dye (km)';
+handles.hcb.delete;
+correct_ticks('y', [], {'50', '100'}, handles.hax([1 4]));
+export_fig -a1 images/paper2/ew-34-surface-csdye.png
+
 %% flux diagnostics
 handles = ew34.plot_fluxts(factor, 3, 3);
 handles.htitle.String = ['Flux of water above ' num2str(factor) 'H_{sb}'];
