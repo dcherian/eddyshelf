@@ -30,6 +30,22 @@ hleg.Box = 'off';
 hleg.Position(2) = hleg.Position(2) - 0.03;
 export_fig -a1 images/paper2/ew-34-surface-csdye.png
 
+%% center tracks
+set(groot,'DefaultAxesColorOrder', cbrewer('qual', 'Paired', 8));
+if ~exist('ew', 'var')
+    folders = {'runew-34', 'runew-8341', 'runew-5343', 'runew-5341', ...
+               'runew-2340', 'runew-2341_wider'};
+    names = {'Base case', 'S_{sh} = 0.05', 'r = 5e-4', 'r = 5e-3', ...
+             'H_{sb} = 100m', 'H_{sb} = 300m'};
+    ew = runArray(folders, names, 0, 1); % reduced version - only eddy diags
+end
+ew.plot_penetration;
+title('');
+pbaspect([1.618 1 1]);
+set(gcf, 'Position', [675 175 1080 924]);
+columnlegend(3, names, 'Location', 'NorthWest');
+export_fig -a1 -png -pdf images/paper2/centracks
+
 %% flux diagnostics
 handles = ew34.plot_fluxts(factor, 3, 3);
 handles.htitle.String = ['Flux of water above ' num2str(factor) 'H_{sb}'];
