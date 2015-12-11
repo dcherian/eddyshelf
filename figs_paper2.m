@@ -4,13 +4,14 @@ if ~exist('ew34', 'var') | ~strcmpi(ew34.name, 'ew-34')
 end
 factor = 2;
 isobath = 4;
+timesteps = [1 150 200 250 300 380];
 
 %% field map
 opt.csdcontourplot = 1;
 opt.csdcontours = ew34.csflux.x([1 4 8]);
 opt.addvelquiver = 0;
 opt.zetaOnFirstPlot = 1;
-handles = ew34.mosaic_field('csdye', [1 150 200 250 300 380], opt);
+handles = ew34.mosaic_field('csdye', timesteps, opt);
 handles.hfield{1}.hzeta.LevelList = handles.hfield{1}.hzeta.LevelList(1:2:end);
 handles.hcb.delete;
 
@@ -49,7 +50,60 @@ export_fig -a1 -png -pdf images/paper2/centracks
 handles = ew34.plot_fluxts(factor, 3, 3);
 handles.htitle.String = ['Flux of water above ' num2str(factor) 'H_{sb}'];
 maximize; drawnow;
+% mark timesteps
 export_fig -a1 images/paper2/flux-diags.png
+
+%% surface map and instantaneous flux
+folders = {'ew-4341', 'ew-34', 'ew-2341_wider'};
+if ~exist('ewflux', 'var'), ewflux = runArray(folders); end
+N = length(folders);
+times = [180 200 250];
+opt.csfluxplot = 1;
+opt.nocolorbar = 1;
+opt.csdcontourplot = 0;
+opt.addvelquiver = 0;
+opt.csfluxIsobath = 1;
+clear handles
+figure;
+for ii=1:3
+    run = ewflux.array(ii);
+    [~,~,tres] = run.locate_resistance;
+    hax(ii) = subplot(5,3,[1 4 7] + (ii-1));
+    hax(N+ii) = subplot(5,3,[10 13] + (ii-1));
+    opt.dy = 0; run.bathy.xsb/1000;
+
+    handles(ii) = run.animate_field('csdye', hax([ii N+ii]), times(ii), 1, opt);
+    handles(ii).hfield.CData = handles(ii).hfield.CData - run.bathy.xsb/1000;
+
+    if opt.csdcontourplot
+        handles(ii).hcsd.ZData = handles(ii).hcsd.ZData - run.bathy.xsb;
+        handles(ii).hcsd.LevelList = handles(ii).hcsd.LevelList - run.bathy.xsb;
+    end
+
+    axes(hax(ii)); caxis([-30 200]);
+    handles(ii).htitle.String = ['\lambda = H_{sb}/L_z = ', ...
+                        num2str(run.bathy.hsb/run.eddy.Lgauss(tres), '%.2f')];
+    axes(hax(ii));
+    xlabel(''); set(gca, 'XTickLabel', []); colorbar('off');
+    axes(hax(N+ii));
+    title('');
+
+    if ii ~= 1
+        axes(hax(ii)); ylabel('');
+        axes(hax(N+ii)); ylabel('');
+    end
+end
+
+axes(hax(4));
+ylabel('\int v(x,z) dz');
+axes(hax(N));
+hcb = colorbar('southoutside');
+pos = hcb.Position;
+hcb.Position(1) = 0.5 - pos(3)/2;
+hcb.Position(2) = 0.5 + pos(4)/2;
+hcb.Label.String = 'Cross shelf dye - X_{sb} (km)';
+
+export_fig -a1 images/paper2/inst-flux.png
 
 %% x-z sections
 handles = ew34.plot_xzsection(isobath, 225);
