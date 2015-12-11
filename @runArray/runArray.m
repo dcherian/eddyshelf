@@ -151,9 +151,6 @@ classdef runArray < handle
                 else
                     set(groot, 'defaultAxesColorOrder', colors);
                 end
-            else
-                set(groot, 'defaultAxesColorOrder', ...
-                            cbrewer('qual','Dark2',runArray.len));
             end
         end
 
