@@ -65,7 +65,7 @@ methods(Static)
 end
 methods
     % constructor
-    function [runs] = runs(dir, reset,  do_all)
+    function [runs] = runs(dir, reset,  do_all, reduced)
 
         ticstart = tic;
 
@@ -74,13 +74,10 @@ methods
         disp('=======================')
 
         read_zeta = 0;
-        if ~exist('reset','var')
-            reset = 0;
-        end
 
-        if ~exist('do_all', 'var')
-            do_all = 0;
-        end
+        if ~exist('reset','var'), reset = 0; end
+        if ~exist('do_all', 'var'), do_all = 0; end
+        if ~exist('reduced', 'var'), reduced = 0; end
 
         if isdir(dir)
             runs.dir = dir;
@@ -453,7 +450,7 @@ methods
         % end
 
         % load water mass data
-        if exist([dir '/watermass.mat'],'file') && reset ~= 1
+        if exist([dir '/watermass.mat'],'file') && reset ~= 1 & ~reduced
             disp('Loading water mass data');
             water = load([dir '/watermass.mat'], 'water');
             runs.water = water.water;
@@ -462,7 +459,7 @@ methods
 
         % load vorticity budget data
           % load water mass data
-        if exist([dir '/vorbudget.mat'],'file') && reset ~= 1
+        if exist([dir '/vorbudget.mat'],'file') && reset ~= 1 & ~reduced
             disp('Loading vorticity budget');
             vorbudget = load([dir '/vorbudget.mat'], 'vorbudget');
             runs.vorbudget = vorbudget.vorbudget;
@@ -470,7 +467,7 @@ methods
         end
 
         % load fluxes if the file exists
-        if exist([dir '/fluxes.mat'],'file') && reset ~= 1
+        if exist([dir '/fluxes.mat'],'file') && reset ~= 1 & ~reduced
             disp('Loading fluxes');
             data = load([dir '/fluxes.mat']);
             if isfield(data, 'csflux'), runs.csflux = data.csflux; end
@@ -518,7 +515,7 @@ methods
         end
 
         % load eddy water diagnostics if the file exists
-        if exist([dir '/onshelf.mat'],'file') && reset ~= 1
+        if exist([dir '/onshelf.mat'],'file') && reset ~= 1 & ~reduced
             disp('Loading eddy-on-shelf diagnostics');
             data = load([dir '/onshelf.mat']);
             runs.onshelf = data.onshelf;
@@ -526,7 +523,7 @@ methods
         end
 
         % load jet diagnostics if the file exists
-        if exist([dir '/jet.mat'],'file') && reset ~= 1
+        if exist([dir '/jet.mat'],'file') && reset ~= 1 & ~reduced
             disp('Loading jet diagnostics');
             data = load([dir '/jet.mat']);
             runs.jet = data.jet;
@@ -534,7 +531,7 @@ methods
         end
 
         % load bottom torque diagnostics if the file exists
-        if exist([dir '/bottom.mat'],'file') && reset ~= 1
+        if exist([dir '/bottom.mat'],'file') && reset ~= 1 & ~reduced
             disp('Loading bottom torque diagnostics');
             data = load([dir '/bottom.mat']);
             runs.bottom = data.bottom;
@@ -542,7 +539,7 @@ methods
         end
 
         % load angular momentum diagnostics if the file exists
-        if exist([dir '/angmom.mat'],'file') && reset ~= 1
+        if exist([dir '/angmom.mat'],'file') && reset ~= 1 & ~reduced
             disp('Loading angular momentum diagnostics');
             data = load([dir '/angmom.mat']);
             runs.angmom = data.angmom;
@@ -550,16 +547,15 @@ methods
         end
 
         % load average streamer section diagnostics if the file exists
-        if exist([dir '/avgstreamer.mat'],'file') && reset ~= 1
+        if exist([dir '/avgstreamer.mat'],'file') && reset ~= 1 & ~reduced
             disp('Loading streamer diagnostics');
             data = load([dir '/avgstreamer.mat']);
             runs.streamer = data.streamer;
             clear data
         end
 
-
         % load trajectory fit
-        if exist([dir '/traj.mat'],'file') && reset ~= 1
+        if exist([dir '/traj.mat'],'file') && reset ~= 1 & ~reduced
             disp('Loading trajectory');
             data = load([dir '/traj.mat']);
             runs.traj = data.traj;
@@ -567,7 +563,7 @@ methods
         end
 
         % load eddy energy diagnostics if the file exists
-        if exist([dir '/energy.mat'],'file') && reset ~= 1
+        if exist([dir '/energy.mat'],'file') && reset ~= 1 & ~reduced
             disp('Loading energy diagnostics');
             data = load([dir '/energy.mat']);
             runs.eddy.energy = data.energy;

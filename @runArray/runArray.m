@@ -19,10 +19,11 @@ classdef runArray < handle
     end
     methods
         % constructor
-        function [runArray] = runArray(folders, name, reset)
+        function [runArray] = runArray(folders, name, reset, reduced)
 
             ticstart = tic;
             if ~exist('reset', 'var'), reset = 0; end
+            if ~exist('reduced', 'var'), reduced = 0; end
 
             if ~iscell(folders), folders = cellstr(folders); end
 
@@ -37,7 +38,7 @@ classdef runArray < handle
                         runArray.folders{kk} = ['../topoeddy/' folders{ii}];
                     end
                     runArray.array(kk) = runs(runArray.folders{kk}, ...
-                                              reset);
+                                              reset, 0, reduced);
                     disp([runArray.array(kk).name ' completed'])
 
                     if ~exist('name', 'var') || isempty(name)
