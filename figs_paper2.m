@@ -41,7 +41,6 @@ if ~exist('ew', 'var')
 end
 ew.plot_penetration;
 title('');
-pbaspect([1.618 1 1]);
 set(gcf, 'Position', [675 175 1080 924]);
 columnlegend(3, names, 'Location', 'NorthWest');
 export_fig -a1 -png -pdf images/paper2/centracks
