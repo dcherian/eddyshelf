@@ -9,11 +9,13 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     limx = [165 410]; limy = [0 120];
     limx = []; limy = [];
 
-    dt = 2;
+    dt = 2; dx = 0; dy = 0;
     factor = 1; % scale variable (1 by default)
 
     csfluxplot = 0; % 0 = no flux plot
                     % 1 = instantaneous x-profile;
+    csfluxIsobath = 4; % for profile
+
     asfluxplot = 0; % 0 = no flux plot
                     % 1 = instantaneous y-profile;
                     % 2 = time series plot : left, right and total
@@ -55,6 +57,8 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     dxi = 5; dyi = 5; % decimate vectors
     uref = 1; vref = uref; % scale vectors
     scale = 3;
+
+    nocolorbar = 0;
 
     % eddy diagnostics
     drawtrack = 1; % plot eddy track?
@@ -275,7 +279,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     end
 
     % if provided with axis handle, then assume no subplots
-    if ~isempty(hax)
+    if ~isempty(hax) & length(hax) == 1
         subplots_flag = [];
     end
 
@@ -290,23 +294,37 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% actually plot
     if isempty(hax)
-        figure;
+        handles.hfig = figure;
         insertAnnotation([runs.name '.animate_field(' name ')']);
+        if subplots_flag == 'x'
+            handles.subax(1) = subplot(5,1,[1 2 3]);
+            handles.subax(2) = subplot(5,1,[4 5]);
+        else
+            if subplots_flag == 'y'
+                handles.subax(1) = subplot(1,3,[1 2]);
+                handles.subax(2) = subplot(1,3,3);
+            else
+                % no subplots
+                handles.subax(1) = gca;
+            end
+        end
     else
-        axis(hax);
-    end
-
-    if subplots_flag == 'x'
-        ax(1) = subplot(5,1,[1 2 3]);
-    else
-        if subplots_flag == 'y'
-            ax(1) = subplot(1,3,[1 2]);
+        handles.hfig = gcf;
+        if length(hax) == 2
+            handles.subax(1) = hax(1);
+            handles.subax(2) = hax(2);
+        else
+            handles.subax(1) = axes(hax);
         end
     end
+
     ii=t0;
 
     % plot field
+    axes(handles.subax(1));
     handles.hfield = runs.plot_surf(varname, 'pcolor', ii);
+    handles.hfield.YData = handles.hfield.YData - dy;
+    handles.hfield.XData = handles.hfield.XData - dx;
     handles.hfield.CData = handles.hfield.CData / factor;
     hold on;
     handles.hcb = colorbar;
@@ -339,10 +357,10 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         % v(V > 0.4*max(V(:))) = 0;
         % clear V;
 
-        handles.hquiv = quiver(runs.eddy.xr(rangex, rangey)/1000, ...
-                    runs.eddy.yr(rangex, rangey)/1000, ...
-                    u(rangex, rangey, ii)./uref, v(rangex, rangey, ii)./vref, scale, ...
-                    'Color', 'k', 'LineWidth', 2);
+        handles.hquiv = quiver(runs.eddy.xr(rangex, rangey)/1000 - dx, ...
+                               runs.eddy.yr(rangex, rangey)/1000 - dy, ...
+                               u(rangex, rangey, ii)./uref, v(rangex, rangey, ii)./vref, scale, ...
+                               'Color', 'k', 'LineWidth', 2);
     end
 
     if csdcontourplot
@@ -350,6 +368,8 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         handles.hcsd.LevelList = csdcontours;
         handles.hcsd.Color = runs.shelfSlopeColor();
         handles.hcsd.LineWidth = 2;
+        handles.hcsd.XData = handles.hcsd.XData - dx;
+        handles.hcsd.YData = handles.hcsd.YData - dy;
     end
 
     if strcmpi(name, 'ubot') || strcmpi(name, 'vbot')
@@ -359,12 +379,16 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
 
     % bathy
     handles.hbathy = runs.plot_bathy('contour', [1 1 1]*0.7);
+    for bb=1:3
+        handles.hbathy{bb}.XData = handles.hbathy{bb}.XData - dx;
+        handles.hbathy{bb}.YData = handles.hbathy{bb}.YData - dy;
+    end
     if csdcontourplot && modify_bathy
         if runs.bathy.axis == 'y'
-            ax = runs.rgrid.y_rho(:,1);
+            ax = runs.rgrid.y_rho(:,1) - dy;
             hvec = runs.bathy.h(1,:);
         else
-            ax = runs.rgrid.x_rho(1,:);
+            ax = runs.rgrid.x_rho(1,:) - dx;
             hvec = runs.bathy.h(:,1);
         end
         ind = vecfind(ax, csdcontours);
@@ -373,37 +397,49 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
 
     % plot track
     if drawtrack
-        handles.htrack = plot(runs.eddy.mx/1000, runs.eddy.my/1000);
+        handles.htrack = plot(runs.eddy.mx/1000 - dx, runs.eddy.my/1000 - dy);
         if drawedgetrack
             if runs.bathy.axis == 'y'
-                handles.hedgetrack(1) = plot(runs.eddy.mx/1000, runs.eddy.vor.ne/1000);
-                handles.hedgetrack(2) = plot(runs.eddy.mx/1000, runs.eddy.vor.se/1000);
+                handles.hedgetrack(1) = plot(runs.eddy.mx/1000 - dx, ...
+                                             runs.eddy.vor.ne/1000 - dy);
+                handles.hedgetrack(2) = plot(runs.eddy.mx/1000 - dx, ...
+                                             runs.eddy.vor.se/1000 - dy);
             else
-                handles.hedgetrack(1) = plot(runs.eddy.vor.ee/1000, runs.eddy.my/1000);
-                handles.hedgetrack(2) = plot(runs.eddy.vor.we/1000, runs.eddy.my/1000);
+                handles.hedgetrack(1) = plot(runs.eddy.vor.ee/1000 - dx, ...
+                                             runs.eddy.my/1000 - dy);
+                handles.hedgetrack(2) = plot(runs.eddy.vor.we/1000 - dx, ...
+                                             runs.eddy.my/1000 - dy);
             end
         end
     end
 
     if drawcenter
-        handles.hcentrack = plot(runs.eddy.mx(ii)/1000, runs.eddy.my(ii)/1000, 'kx');
+        handles.hcen = plot(runs.eddy.mx(ii)/1000 - dx, runs.eddy.my(ii)/1000 - dy, 'kx');
     end
 
     % zeta too?
     if addzeta
         handles.hzeta = runs.plot_surf('zeta','contour', ii);
+        handles.hzeta.XData = handles.hzeta.XData - dx;
+        handles.hzeta.YData = handles.hzeta.YData - dy;
         set(handles.hzeta, 'Color', 'k', 'LineWidth', 2);
     end
 
     % plot eddy contours
     if vorcontourplot
         he = runs.plot_eddy_contour('contour',ii);
+        handles.he.XData = handles.he.XData - dx;
+        handles.he.YData = handles.he.YData - dy;
     end
     if sshplot
         handles.hssh = runs.plot_eddy_sshcontour('contour',ii);
+        handles.hssh.XData = handles.hssh.XData - dx;
+        handles.hssh.YData = handles.hssh.YData - dy;
     end
     if rhocontourplot
         handles.hrho = runs.plot_rho_contour('contour', ii);
+        handles.hrho.XData = handles.hrho.XData - dx;
+        handles.hrho.YData = handles.hrho.YData - dy;
     end
 
     % telescoping lines
@@ -414,7 +450,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
 
     % mark point
     if pointplot
-        hpt = plot(px(ii), py(ii), 'kx', 'MarkerSize', 22);
+        hpt = plot(px(ii) - dx, py(ii) - dy, 'kx', 'MarkerSize', 22);
     end
 
     % misc stuff
@@ -424,8 +460,8 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
 
     if strcmpi(name, 'zeta')
         if dyeplot
-            [~,handles.hdye] = contour(runs.rgrid.x_rho(ix,iy)/1000, ...
-                                runs.rgrid.y_rho(ix,iy)/1000, ...
+            [~,handles.hdye] = contour(runs.rgrid.x_rho(ix,iy)/1000 - dx, ...
+                                runs.rgrid.y_rho(ix,iy)/1000 - dy, ...
                                 runs.eddsurf(ix,iy,ii)', ...
                                 [1 1]*0.95, 'LineWidth', ...
                                 2, 'Color', 'r');
@@ -437,12 +473,11 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     %               1, -1*runs.eddy.vor.angle(ii)*pi/180);
     %       hline = drawLine(L);
     if vecplot
-        linex(locx); liney(locy);
+        linex(locx - dx); liney(locy - dy);
     end
     caxis(clim); % restore colorbar limits
-    maximize(gcf); pause(0.2);
+    maximize(gcf); % pause(0.2);
     beautify([16 16 18]);
-    ax(1) = gca;
     handles.htlabel = runs.add_timelabel(ii);
 
     if addcsdye
@@ -451,12 +486,16 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         correct_ticks('y',[],[2 6]);
     end
 
+    if nocolorbar
+        colorbar('hide');
+    end
+
     if ~isempty(limx), xlim(limx); end
     if ~isempty(limy), ylim(limy); end
 
     % second plot
     if subplots_flag == 'x'
-        ax(2) = subplot(5,1,[4 5]);
+        axes(handles.subax(2));
         if vecplot
             hvec = plot(tvec, vec);
             htime = linex(tvec(ii));
@@ -494,27 +533,30 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
             beautify;
 
             axes(ax);
-            linex(runs.asflux.x(asindex)/1000);
+            linex(runs.asflux.x(asindex)/1000 - dx);
         end
 
         if csfluxplot == 1
-            slopext = runs.csflux.slopext(ix-1, :, index);
-            hflux = plot(runs.rgrid.xr(ix,1)/1000, ...
+            slopext = runs.csflux.slopext(ix-1, :, csfluxIsobath);
+            hflux = plot(runs.rgrid.xr(ix,1)/1000 - dx, ...
                          slopext(:, ii));
-            ylim([min(slopext(:)) max(slopext(:))]);
-            hee = linex(runs.eddy.vor.ee(ii)/1000);
-            oldpos = get(ax(1), 'Position');
-            newpos = get(ax(2), 'Position');
-            newpos(3) = oldpos(3);
-            set(ax(2), 'Position', newpos);
-            linkaxes(ax, 'x');
+            ylim([-1 1] *max(slopext(:)));
+            hee = linex(runs.eddy.vor.ee(ii)/1000 - dx);
+            if ~nocolorbar
+                oldpos = get(handles.subax(1), 'Position');
+                newpos = get(handles.subax(2), 'Position');
+                newpos(3) = oldpos(3);
+                set(handles.subax(2), 'Position', newpos);
+            end
+            linkaxes(handles.subax, 'x');
             liney(0);
             xlabel('X (km)');
             title('\int v(x,z,t)dz (m^2/s)');
+            beautify; % - slows everything down for some reason
         end
     end
     if subplots_flag == 'y'
-        ax(2) = subplot(1,3,3);
+        handles.subax(2) = subplot(1,3,3);
 
         % AS fluxes
         if asfluxplot == 1
@@ -524,7 +566,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
             yl = size(matrix1,1);
             isb = runs.bathy.isb;
             hflux1 = plot(matrix1(:,ii), ...
-                          runs.rgrid.yr(1,isb:isb+yl-1)/1000);
+                          runs.rgrid.yr(1,isb:isb+yl-1)/1000 - dy);
             hleg = addlegend(hflux1, ...
                              ['x = ' ...
                               num2str(runs.asflux.x(asindex(1))/1000) ...
@@ -534,7 +576,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
                           + runs.asflux.ikefluxyt(:,:, asindex(2));
                 hold all
                 hflux2 = plot(matrix2(:,ii), ...
-                              runs.rgrid.yr(1,isb:isb+yl-1)/1000);
+                              runs.rgrid.yr(1,isb:isb+yl-1)/1000 - dy);
                 hleg = addlegend(hflux2, ...
                                  [' x = ' ...
                                   num2str(runs.asflux.x(asindex(2))/1000) ...
@@ -545,13 +587,13 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
 
             set(hleg, 'Location', 'NorthWest', 'Box' ,'off');
             xlim([-1 1]*max(abs([matrix1(:); matrix2(:)])));
-            liney([runs.bathy.xsb runs.bathy.xsl]/1000, [], 'k');
+            liney([runs.bathy.xsb runs.bathy.xsl]/1000 - dy, [], 'k');
             xlabel('Along-isobath depth-integrated energy flux');
             ylabel('Y(km)');
             linex(0); beautify;
 
             axes(ax)
-            linex(runs.asflux.x(asindex)/1000);
+            linex(runs.asflux.x(asindex)/1000 - dx);
 
             linkaxes(ax, 'y');
         end
@@ -591,13 +633,13 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
             end
 
             if pointplot
-                hpt.XData = px(ii);
-                hpt.YData = py(ii);
+                hpt.XData = px(ii) - dx;
+                hpt.YData = py(ii) - dy;
             end
 
             if drawcenter
-                handles.hcentrack.XData = runs.eddy.mx(ii)/1000;
-                handles.hcentrack.YData = runs.eddy.my(ii)/1000;
+                handles.hcen.XData = runs.eddy.mx(ii)/1000 - dx;
+                handles.hcen.YData = runs.eddy.my(ii)/1000 - dy;
             end
 
             % ssh contour
@@ -616,7 +658,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
 
             % slopewater flux plots
             if ~isempty(runs.csflux) && csfluxplot == 1
-                axis(ax(2));
+                axis(handles.subax(2));
                 if exist('htime', 'var')
                     set(htime, 'XData', [1 1]*runs.csflux.time(ii)/ ...
                                86400);
@@ -628,7 +670,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
 
             % AS eddy water flux plots
             if ~isempty(runs.asflux) && asfluxplot == 1
-                axis(ax(2));
+                axis(handles.subax(2));
                 if exist('htime', 'var')
                     set(htime, 'XData', [1 1]*runs.asflux.time(ii)/ ...
                                86400);
