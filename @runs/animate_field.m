@@ -314,7 +314,8 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
             handles.subax(1) = hax(1);
             handles.subax(2) = hax(2);
         else
-            handles.subax(1) = axes(hax);
+            handles.subax(1) = hax;
+            axes(hax);
         end
     end
 
