@@ -135,6 +135,9 @@ opt.addvelquiver = 0;
 opt.csdcontourplot = 0;
 opt.rhocontourplot = 0;
 [handles,xx,yy] = ew34.secondary_vortices(320, [xx yy], opt);
+hbathy = handles.hfield.hbathy;
+clabel(hbathy{4}, hbathy{1}, 'LabelSpacing', 108*12);
+
 % displace eddy water plots
 dx = 230;
 handles.hcsd(1).XData = handles.hcsd(1).XData + dx;

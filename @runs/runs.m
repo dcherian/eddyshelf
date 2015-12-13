@@ -3540,11 +3540,11 @@ methods
         hold on;
         if ~exist('color','var'), color = [1 1 1]*0.85; end
         if strcmpi(plottype,'contour')
-            [cc,hplot{1}] = contour(runs.rgrid.xr(ix,iy)/1000,...
+            [hplot{4},hplot{1}] = contour(runs.rgrid.xr(ix,iy)/1000,...
                                  runs.rgrid.yr(ix,iy)/1000, ...
                                  runs.rgrid.h(iy,ix)',[200 500 1000 1500 ...
                                 2000], 'Color', color);
-            clabel(cc, hplot{1}, 'LabelSpacing', 108*2.75, 'Color', color);
+            clabel(hplot{4}, hplot{1}, 'LabelSpacing', 108*2.75, 'Color', color);
             hax = gca;
             sbslcolor = color;
             if runs.bathy.axis == 'y'

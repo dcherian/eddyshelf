@@ -18,6 +18,8 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
     index = find(hfield.hcb.Ticks == 0);
     hfield.hcb.TickLabels{index} = '0 - Shelfbreak';
 
+    handles.hfield = hfield;
+
     if size(n,2) ~= 2
         [xx,yy] = ginput(n);
     else
