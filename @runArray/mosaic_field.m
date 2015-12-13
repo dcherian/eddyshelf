@@ -1,7 +1,7 @@
 % mosaic animate_field plots.
-%     [ax] = mosaic_field(runArray, varname, timesteps, clim)
+%     [ax] = mosaic_field(runArray, varname, timesteps, opt, clim)
 
-function [ax] = mosaic_field(runArray, varname, timesteps, clim)
+function [ax] = mosaic_field(runArray, varname, timesteps, opt, clim)
     if length(runArray.filter) > 4
         error('Too many runs selected for 2x2 mosaic!');
     end
@@ -29,7 +29,7 @@ function [ax] = mosaic_field(runArray, varname, timesteps, clim)
         end
 
         axes(ax(ii));
-        handles(ii) = runArray.array(filter(ii)).animate_field(varname, gca, tstep, 1);
+        handles(ii) = runArray.array(filter(ii)).animate_field(varname, gca, tstep, 1, opt);
         title('');
     end
 
