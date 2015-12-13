@@ -8,12 +8,12 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
     figure; insertAnnotation([runs.name '.secondary_vortices']);
     handles.hax(1) = subplot(3,2,[1 2]);
     hfield = runs.animate_field('csdye', handles.hax(1), tindex, 1, opt);
-    xlim([-1 1]*120 + runs.eddy.mx(tindex)/1000);
-    ylim([-1 1]*120 + runs.eddy.my(tindex)/1000);
+    xlim([-0.5 1]*220 + runs.eddy.mx(tindex)/1000);
+    ylim([runs.bathy.xsb/1000-30 120+runs.eddy.my(tindex)/1000]);
     hfield.hcb.LimitsMode = 'auto';
     hfield.hfield.CData = hfield.hfield.CData - runs.bathy.xsb/1000;
     caxis(hfield.hcb.Limits - runs.bathy.xsb/1000);
-    center_colorbar(hfield.hcb);
+    %center_colorbar(hfield.hcb);
     hfield.hcb.Position(1) = hfield.hcb.Position(1) + 0.02;
     index = find(hfield.hcb.Ticks == 0);
     hfield.hcb.TickLabels{index} = '0 - Shelfbreak';
@@ -26,7 +26,7 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
 
         n = size(n, 1);
     end
-    colors = cbrewer('qual', 'Dark2', n);
+    colors = cbrewer('qual', 'Paired', n);
 
     pvback = runs.params.phys.f0 * runs.params.phys.N2/ ...
              runs.params.phys.g;
@@ -61,44 +61,52 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
     set(groot, 'DefaultAxesColorOrder', colors);
 
     handles.hax(2) = subplot(323);
-    plot(csdye - runs.bathy.xsb/1000, zr);
+    handles.hcsd = plot(csdye - runs.bathy.xsb/1000, zr);
     linex(0);
-    common(runs, tindex);
+    [handles.hl(1,:), handles.htxt(1,:)] = common(runs, tindex);
     xlabel('Cross-shelf dye - X_{sb} (km)');
 
     handles.hax(3) = subplot(324);
-    plot(rho-rback, zr);
+    handles.hrho = plot(rho-rback, zr);
     linex(0);
-    common(runs, tindex);
+    [handles.hl(2,:), handles.htxt(2,:)] = common(runs, tindex);
     handles.hax(3).XTickLabelRotation = 45;
     xlabel('\Delta\rho (kg/m^3)')
     reduceSubplotHorizontalSpace(handles.hax(2:3));
 
     if ~nopv
         handles.hax(4) = subplot(325);
-        plot(pv-pvback, zpv);
+        handles.hpv = plot(pv-pvback, zpv);
         linex(0);
-        common(runs, tindex);
+        [handles.hl(3,:), handles.htxt(3,:)] = common(runs, tindex);
         xlabel('\Delta PV');
 
-        handles.hax(5) = subplot(326)
-        plot(rv/runs.params.phys.f0, zpv);
-        linex(0); common(runs, tindex);
+        handles.hax(5) = subplot(326);
+        handles.hrv = plot(rv/runs.params.phys.f0, zpv);
+        linex(0);
+        [handles.hl(4,:), handles.htxt(4,:)] = common(runs, tindex);
+        xlim([-1 1] * max(abs(xlim)));
         xlabel('rv/f_0');
 
         reduceSubplotHorizontalSpace(handles.hax(4:5));
     end
 
     linkaxes(handles.hax(2:end), 'y');
-    ylim([-2 0] * runs.eddy.Lgauss(tindex));
+
+    ylim([-1.3 0] * runs.eddy.Lgauss(tindex));
     set(groot, 'DefaultAxesColorOrder', backup);
+
+    for ii=1:length(handles.htxt(:))
+        handles.htxt(ii).Units = 'normalized';
+        handles.htxt(ii).Position(1) = 0.9;
+    end
 end
 
-function [] = common(obj, tindex)
+function [hl, ht] = common(obj, tindex)
 
     ylabel('Z (m)');
-    liney(-1 * obj.bathy.hsb, 'H_{sb}');
-    liney(-1 * obj.eddy.Lgauss(tindex), 'L_z^{eddy}');
+    [hl(1), ht(1)] = liney(-1 * obj.bathy.hsb, 'H_{sb}');
+    [hl(2), ht(2)] = liney(-1 * obj.eddy.Lgauss(tindex), 'L_z^{eddy}');
     pbaspect([1.65 1 1]); %axis tight; axis square;
     beautify;
 end
