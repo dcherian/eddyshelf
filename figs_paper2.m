@@ -4,7 +4,7 @@ if ~exist('ew34', 'var') | ~strcmpi(ew34.name, 'ew-34')
 end
 factor = 2;
 isobath = 4;
-timesteps = [1 150 200 250 300 320];
+timesteps = [1 150 200 250 300 380];
 
 %% field map
 opt.csdcontourplot = 1;
