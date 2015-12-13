@@ -134,15 +134,15 @@ end
 opt.addvelquiver = 0;
 opt.csdcontourplot = 0;
 opt.rhocontourplot = 0;
-[handles,xx,yy] = ew34.secondary_vortices(320, [xx yy], opt);
+handles = ew34.secondary_vortices(320, [xx yy], opt);
 hbathy = handles.hfield.hbathy;
 clabel(hbathy{4}, hbathy{1}, 'LabelSpacing', 108*12);
 
 % displace eddy water plots
 dx = 230;
-handles.hcsd(1).XData = handles.hcsd(1).XData + dx;
-handles.hcsd(3).XData = handles.hcsd(3).XData + dx;
-handles.hcsd(5).XData = handles.hcsd(5).XData + dx;
+for ii=[1 3 5 7]
+    handles.hcsd(ii).XData = handles.hcsd(ii).XData + dx;
+end
 
 axes(handles.hax(1));
 correct_ticks('y', [], '198');
@@ -154,6 +154,9 @@ xticks = sort(unique([0 max(handles.hcsd(1).XData) ...
 handles.hax(2).XTick = xticks;
 xlim([-10 2*dx]);
 handles.hax(2).XTickLabels = {'Sh', 'Edd', 'Sh', 'Edd'};
+
+axes(handles.hax(3));
+xlim([-0.07 0.05]);
 
 axes(handles.hax(5));
 xlim([-1 1]*0.25);

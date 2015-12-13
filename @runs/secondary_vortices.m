@@ -17,7 +17,6 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
     hfield.hcb.Position(1) = hfield.hcb.Position(1) + 0.02;
     index = find(hfield.hcb.Ticks == 0);
     hfield.hcb.TickLabels{index} = '0 - Shelfbreak';
-
     handles.hfield = hfield;
 
     if size(n,2) ~= 2
@@ -38,7 +37,7 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
     end
     n = n + 1;
 
-    colors = cbrewer('qual', 'Paired', n);
+    colors = brighten(cbrewer('qual', 'Paired', n), -0.5);
 
     pvback = runs.params.phys.f0 * runs.params.phys.N2/ ...
              runs.params.phys.g;
@@ -76,36 +75,38 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
 
     handles.hax(2) = subplot(323);
     handles.hcsd = plot(csdye - runs.bathy.xsb/1000, zr);
-    handles.hcsd(end).Color = 'k';
     uistack(handles.hcsd(end), 'bottom');
     [handles.hl(1,:), handles.htxt(1,:)] = common(runs, tindex);
     xlabel('Cross-shelf dye - X_{sb} (km)');
 
     handles.hax(3) = subplot(324);
     handles.hrho = plot(rho-rback, zr);
-    handles.hrho(end).Color = 'k';
     [handles.hl(2,:), handles.htxt(2,:)] = common(runs, tindex);
-    handles.hax(3).XTickLabelRotation = 45;
+    handles.hax(3).XTickLabelRotation = 0;
+    handles.hax(3).XTickMode = 'auto';
     xlabel('\Delta\rho (kg/m^3)')
     reduceSubplotHorizontalSpace(handles.hax(2:3));
 
+    CenterProfileHandles = [handles.hfield.hcen handles.hcsd(end) handles.hrho(end)];
     if ~nopv
         handles.hax(4) = subplot(325);
         handles.hpv = plot(pv-pvback, zpv);
-        handles.hpv(end).Color = 'k';
         [handles.hl(3,:), handles.htxt(3,:)] = common(runs, tindex);
         xlabel('\Delta PV');
+        CenterProfileHandles = [CenterProfileHandles handles.hpv(end)];
 
         handles.hax(5) = subplot(326);
         handles.hrv = plot(rv/runs.params.phys.f0, zpv);
-        handles.hrv(end).Color = 'k';
         [handles.hl(4,:), handles.htxt(4,:)] = common(runs, tindex);
         xlim([-1 1] * max(abs(xlim)));
         xlabel('rv/f_0');
 
         reduceSubplotHorizontalSpace(handles.hax(4:5));
+        CenterProfileHandles = [CenterProfileHandles handles.hrv(end)];
     end
 
+    linkprop(CenterProfileHandles, 'Color');
+    hfield.hcen.Color = [1 1 1] * 0.5;
     linkaxes(handles.hax(2:end), 'y');
 
     ylim([-1.3 0] * runs.eddy.Lgauss(tindex));
