@@ -28,6 +28,16 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
 
         n = size(n, 1);
     end
+
+    try
+        xx = [xx; runs.eddy.mx(tindex)/1000];
+        yy = [yy; runs.eddy.my(tindex)/1000];
+    catch ME
+        xx = [xx runs.eddy.mx(tindex)/1000];
+        yy = [yy runs.eddy.my(tindex)/1000];
+    end
+    n = n + 1;
+
     colors = cbrewer('qual', 'Paired', n);
 
     pvback = runs.params.phys.f0 * runs.params.phys.N2/ ...
@@ -37,7 +47,9 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
     disp('Reading data');
     for nn = 1:n
         x = xx(nn); y = yy(nn);
-        plot(x,y,'x','Color',colors(nn,:),'MarkerSize', 10);
+        if nn ~= n
+            plot(x,y,'x','Color',colors(nn,:),'MarkerSize', 10);
+        end
 
         x = x*1e3; y = y*1e3;
         ix = find_approx(runs.rgrid.x_rho(1,:), x, 1);
@@ -64,13 +76,14 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
 
     handles.hax(2) = subplot(323);
     handles.hcsd = plot(csdye - runs.bathy.xsb/1000, zr);
-    linex(0);
+    handles.hcsd(end).Color = 'k';
+    uistack(handles.hcsd(end), 'bottom');
     [handles.hl(1,:), handles.htxt(1,:)] = common(runs, tindex);
     xlabel('Cross-shelf dye - X_{sb} (km)');
 
     handles.hax(3) = subplot(324);
     handles.hrho = plot(rho-rback, zr);
-    linex(0);
+    handles.hrho(end).Color = 'k';
     [handles.hl(2,:), handles.htxt(2,:)] = common(runs, tindex);
     handles.hax(3).XTickLabelRotation = 45;
     xlabel('\Delta\rho (kg/m^3)')
@@ -79,13 +92,13 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
     if ~nopv
         handles.hax(4) = subplot(325);
         handles.hpv = plot(pv-pvback, zpv);
-        linex(0);
+        handles.hpv(end).Color = 'k';
         [handles.hl(3,:), handles.htxt(3,:)] = common(runs, tindex);
         xlabel('\Delta PV');
 
         handles.hax(5) = subplot(326);
         handles.hrv = plot(rv/runs.params.phys.f0, zpv);
-        linex(0);
+        handles.hrv(end).Color = 'k';
         [handles.hl(4,:), handles.htxt(4,:)] = common(runs, tindex);
         xlim([-1 1] * max(abs(xlim)));
         xlabel('rv/f_0');
@@ -102,6 +115,13 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
         handles.htxt(ii).Units = 'normalized';
         handles.htxt(ii).Position(1) = 0.9;
     end
+
+    % extend horizontal lines
+    for ii=1:4
+        axes(handles.hax(ii+1));
+        handles.hl(ii,1).XData = xlim;
+        handles.hl(ii,2).XData = xlim;
+    end
 end
 
 function [hl, ht] = common(obj, tindex)
@@ -109,6 +129,8 @@ function [hl, ht] = common(obj, tindex)
     ylabel('Z (m)');
     [hl(1), ht(1)] = liney(-1 * obj.bathy.hsb, 'H_{sb}');
     [hl(2), ht(2)] = liney(-1 * obj.eddy.Lgauss(tindex), 'L_z^{eddy}');
+    hl(3) = linex(0);
+    uistack(hl, 'bottom');
     pbaspect([1.65 1 1]); %axis tight; axis square;
     beautify;
 end
