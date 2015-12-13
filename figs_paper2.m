@@ -4,7 +4,7 @@ if ~exist('ew34', 'var') | ~strcmpi(ew34.name, 'ew-34')
 end
 factor = 2;
 isobath = 4;
-timesteps = [1 150 200 250 300 380];
+timesteps = [1 150 200 250 300 320];
 
 %% field map
 opt.csdcontourplot = 1;
@@ -144,3 +144,24 @@ handles(1).supax.Position(4) = 0.87;
 axes(handles(1).hax); correct_ticks('y', '', '0');
 axes(handles(3).hax); correct_ticks('y', '', '0');
 export_fig -a1 images/paper2/ew-34-mosaic-zslice.png
+
+%% ew-2360 z-slice mosaic
+handles = ew2360.mosaic_zslice('dye_03', 200, [63 70 77 95]);
+for ii=1:length(handles)
+    handles(ii).csdsurf.LevelList = [170] * 1e3;
+    handles(ii).eddsurf.Visible = 'off';
+    handles(1).htext(2).Visible = 'off';
+    handles(ii).rhocont.LineWidth = 2.5;
+    handles(ii).csdsurf.LineWidth = 2.5;
+end
+xlim([265 465]);
+ylim([130 250]);
+handles(3).hax.XTickLabel{end} = '';
+handles(1).htitle.String = 'Eddy dye at z = -200 m | H_{sb} = 100m | Ro = 0.25';
+handles(1).htitle.FontSize = 22;
+handles(1).htitle.FontWeight = 'normal';
+handles(1).supax.Position(4) = 0.87;
+axes(handles(1).hax); correct_ticks('y', '', {'150' '200'});
+axes(handles(3).hax); correct_ticks('y', '', {'150' '200'});
+
+export_fig -a1 images/paper2/ew-2360-mosaic-zslice.png
