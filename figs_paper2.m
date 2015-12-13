@@ -112,7 +112,7 @@ correct_ticks('y', [], 4, handles.hax([2]));
 drawnow;
 export_fig -a1 images/paper2/ew-34-xzsection.png
 
-%% secondary eddy
+%% secondary eddy - 2360
 if ~exist('ew2360', 'var') | ~strcmpi(ew2360.name, 'ew-2360_wider')
     ew2360 = runs('../topoeddy/runew-2360_wider/');
     xx = [343 346 349]';
@@ -124,6 +124,45 @@ handles = ew2360.secondary_vortices(95, [xx yy], opt);
 correct_ticks('y', [], '198', handles.hax(1));
 handles.hax(1).Title.String = 'Cross shelf dye - X_{sb} (km)';
 export_fig -a1 images/paper2/ew-2360-secondary-cyclone.png
+
+%% secondary eddy - ew-34
+if ~exist('ew34', 'var')
+    ew34 = runs('../topoeddy/runew-34/');
+    xx = [394 371 297 282 219 204]';
+    yy = [67.5 70.5 46.5 66 91 108]'
+end
+opt.addvelquiver = 0;
+opt.csdcontourplot = 0;
+opt.rhocontourplot = 0;
+[handles,xx,yy] = ew34.secondary_vortices(320, [xx yy], opt);
+% displace eddy water plots
+dx = 230;
+handles.hcsd(1).XData = handles.hcsd(1).XData + dx;
+handles.hcsd(3).XData = handles.hcsd(3).XData + dx;
+handles.hcsd(5).XData = handles.hcsd(5).XData + dx;
+
+axes(handles.hax(1));
+correct_ticks('y', [], '198');
+handles.hax(1).Title.String = 'Cross shelf dye - X_{sb} (km)';
+
+axes(handles.hax(2)); linex(dx);
+xticks = sort(unique([0 max(handles.hcsd(1).XData) ...
+                    dx max(handles.hcsd(4).XData)]));
+handles.hax(2).XTick = xticks;
+xlim([-10 2*dx]);
+handles.hax(2).XTickLabels = {'Sh', 'Edd', 'Sh', 'Edd'};
+
+axes(handles.hax(5));
+xlim([-1 1]*0.25);
+
+% extend horizontal lines
+for ii=1:4
+    axes(handles.hax(ii+1));
+    handles.hl(ii,1).XData = xlim;
+    handles.hl(ii,2).XData = xlim;
+end
+
+export_fig -a1 images/paper2/ew-34-secondary-cyclone.png
 
 %% z-slice
 opt.csdcontours = ew34.csflux.x(isobath);
