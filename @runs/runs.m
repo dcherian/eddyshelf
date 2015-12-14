@@ -125,6 +125,7 @@ methods
             runs.time = (ncread(runs.out_file,'ocean_time'));
         end
 
+        runs.rgrid.ocean_time = runs.time;
         runs.makeVideo = 0; % no videos by default.
 
         % make run-name
@@ -601,7 +602,7 @@ methods
             end
 
             % days
-            tindex = find_approx(runs.time, str2double(in)*86400);
+            tindex = find_approx(runs.time, str2double(in)*86400, 1);
         else
             if isinf(in)
                 tindex = length(runs.time);
@@ -615,7 +616,7 @@ methods
     function [varname] = process_varname(runs, in)
         varname = in;
 
-        if strcmpi(in, 'csdye')
+        if strcmpi(in, 'csdye') | strcmpi(in, 'csdsurf')
             varname = runs.csdname;
         end
 
