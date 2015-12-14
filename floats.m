@@ -49,7 +49,7 @@ classdef floats < handle
                 floats.z = dc_roms_read_data(file,'depth',[],{}, ...
                                              [],[],'flt',[])';
                 floats.time = dc_roms_read_data(file,'ocean_time',[],{}, ...
-                                                [],[],'flt',[])';
+                                                [],[],'flt',[]);
                 try
                     floats.temp = dc_roms_read_data(file,'temp',[],{}, ...
                                                  [],[],'flt',[])';
@@ -255,10 +255,10 @@ classdef floats < handle
             % calculate fac
             try
                 dtroms = rgrid.ocean_time(2)-rgrid.ocean_time(1);
-                dtltr  = floats.time(2,1)-floats.time(1,1);
+                dtltr  = floats.time(2)-floats.time(1);
                 floats.fac = dtroms/dtltr;
             catch ME
-                 warning('havent calculated fac');
+                warning('havent calculated fac');
             end
 
             % initial locations and seeding time
