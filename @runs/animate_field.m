@@ -398,7 +398,8 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
 
     % plot track
     if drawtrack
-        handles.htrack = plot(runs.eddy.mx/1000 - dx, runs.eddy.my/1000 - dy);
+        handles.htrack = plot(runs.eddy.mx/1000 - dx, runs.eddy.my/1000 - dy, ...
+                              'Color', [152 78 163]/255);
         if drawedgetrack
             if runs.bathy.axis == 'y'
                 handles.hedgetrack(1) = plot(runs.eddy.mx/1000 - dx, ...
