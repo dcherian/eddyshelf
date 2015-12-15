@@ -172,7 +172,7 @@ export_fig -a1 images/paper2/ew-34-secondary-cyclone.png
 
 %% z-slice
 opt.csdcontours = ew34.csflux.x(isobath);
-handles = ew34.mosaic_zslice('dye_03', 100, [225 235 245 255], opt);
+handles = ew34.mosaic_zslice('dye_03', 100, [225 230 235 240 245 260], opt);
 for ii=1:length(handles)
     handles(ii).eddsurf.Visible = 'off';
     handles(1).htext(2).Visible = 'off';
@@ -181,13 +181,12 @@ for ii=1:length(handles)
 end
 xlim([200 400]);
 ylim([0 150]);
-handles(3).hax.XTickLabel{end} = '';
 handles(1).htitle.String = 'Eddy dye at z = -200 m | H_{sb} = 50m | Ro = 0.10';
 handles(1).htitle.FontSize = 22;
 handles(1).htitle.FontWeight = 'normal';
 handles(1).supax.Position(4) = 0.87;
-axes(handles(1).hax); correct_ticks('y', '', '0');
-axes(handles(3).hax); correct_ticks('y', '', '0');
+axes(handles(4).hax); correct_ticks('x', '', '400');
+axes(handles(5).hax); correct_ticks('x', '', '400');
 export_fig -a1 images/paper2/ew-34-mosaic-zslice.png
 
 %% ew-2360 z-slice mosaic
