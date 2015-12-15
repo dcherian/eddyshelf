@@ -1,7 +1,8 @@
 classdef floats < handle
     properties
         x; y; z; time; age;
-        fac; type
+        fac; type;
+        filter; % indices to plot.
         xsb; % shelfbreak location
         winds; % indices floats that crossed shelfbreak WEST of
                % eddy.
@@ -284,9 +285,39 @@ classdef floats < handle
                                floats.z(initmask) tmat(initmask)];
             end
 
+            floats.filter = [1:size(floats.x,1)];
+
             disp(['Finished processing ' upper(type) ' floats.']);
             toc;
         end % read_floats
+
+        function [] = plot_3dtraj(floats)
+            filter = floats.filter;
+
+            figure;
+            insertAnnotation(['plot_3dtraj']);
+
+            plot3(floats.x(:,filter)/1000, floats.y(:,filter)/1000, floats.z(:,filter), '-');
+            hold on
+            plot3(floats.x(1,filter)/1000, floats.y(1,filter)/1000, floats.z(1,filter), ...
+                  'kx');
+
+            for ii=1:length(filter)
+                sbind(ii) = find_approx(floats.y(:,filter(ii)), floats.xsb);
+                plot3(floats.x(sbind(ii),filter(ii))/1000, ...
+                      floats.y(sbind(ii),filter(ii))/1000, ...
+                      floats.z(sbind(ii),filter(ii)), 'rx', 'MarkerSize', 14);
+            end
+
+            % draw plane
+            ax = gca;
+            [xmat, zmat] = meshgrid(ax.XLim, ax.ZLim);
+            hsurf = surf(xmat, ones(size(xmat))*floats.xsb/1000, zmat, ones(size(xmat)));
+            hsurf.FaceAlpha = 0.5;
+            hsurf.EdgeColor = 'none';
+
+            xlabel('X (km)'); ylabel('Y (km)'); zlabel('Z (m)');
+        end
 
         function [] = plot_xz(floats, rgrid)
             hmin = min(rgrid.h(:));
@@ -476,37 +507,58 @@ classdef floats < handle
         % animates with zeta plot
         function [] = animate(floats,rgrid,zeta,eddy)
 
-            cmap = flipud(cbrewer('div', 'BrBG', 32));
+            cmap = flipud(cbrewer('seq', 'Blues', 32));
+            filter = floats.filter;
 
-            figure;
+            zmin = min(min(floats.z(:,filter)));
+
+            w = diff(floats.z(:,filter),1,1);
+            for ii=1:length(filter)
+                w(:,ii) = smooth(w(:,ii), 4*5);
+            end
+            w(end+1,:) = w(end,:);
+
+            figure; maximize;
             tfilt = cut_nan(fillnan(floats.init(:,4),0));
             ind0 = find_approx(rgrid.ocean_time, tfilt(1),1);
 
+            subplot(3,1,[1 2]);
             i = ind0;
-            [~,hz] = contourf(rgrid.x_rho/1000,rgrid.y_rho/1000,zeta(:,:,i)',25);
+            [~,hz] = contour(rgrid.x_rho/1000,rgrid.y_rho/1000,zeta(:,:,i)',25, 'k');
             shading flat; axis image
-            colormap(cmap);
-            caxis([min(zeta(:)) max(zeta(:))]);
             hold on
             [C,hc] = contour(rgrid.x_rho./1000,rgrid.y_rho./1000, ...
                              rgrid.h,[114 500 750 1100],'k');
+            liney(floats.xsb/1000);
             clabel(C,hc);
             floats.fac = floor(floats.fac);
             nn = find_approx(floats.time,rgrid.ocean_time(i),1);
-            hplot = plot(floats.x(nn,:)/1000,floats.y(nn,:)/1000,'k.','MarkerSize',10);
+            colors = bsxfun(@times, 1 - floats.z(nn,filter)'./zmin, [0 0 1]);
+            hscat = scatter(floats.x(nn,filter)/1000, floats.y(nn,filter)/1000, ...
+                            22, w(nn,:), 'filled');
+            caxis([-1 1]/50 * max(abs(w(:)))); center_colorbar;
             if exist('eddy','var')
-               [~,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.vor.mask(:,:,i),1);
-               set(hh,'LineWidth',2);
+                [~,hh] = contour(eddy.xr/1000,eddy.yr/1000,eddy.vor.mask(:,:,i),1);
+                set(hh,'LineWidth',2);
             end
             ht = title(['t = ' num2str((rgrid.ocean_time(i)+1)/86400) ' days']);
 
+            %subplot(313);
+            %plot(floats.time/86400, floats.z(:, filter));
+            %hl = linex(floats.time(nn)/86400);
             for i=ind0+1:size(zeta,3)
-                set(hz,'ZData', double(zeta(:,:,i)')); shading flat
                 nn = find_approx(floats.time,rgrid.ocean_time(i),1);
-                set(hplot,'XData',floats.x(nn,:)/1000);
-                set(hplot,'YData',floats.y(nn,:)/1000);
+                colors = bsxfun(@times, 1 - floats.z(nn,filter)'./zmin, [0 0 1]);
+
+                set(hz,'ZData', double(zeta(:,:,i)')); shading flat
+                set(hscat,'XData',floats.x(nn,filter)/1000);
+                set(hscat,'YData',floats.y(nn,filter)/1000);
+                set(hscat,'CData', w(nn,:));
+                if exist('hl', 'var')
+                    hl.XData = [1 1] * floats.time(nn)/86400;
+                end
                 if exist('eddy','var')
-                   set(hh,'ZData',eddy.vor.mask(:,:,i));
+                    set(hh,'ZData',double(eddy.vor.mask(:,:,i)));
                 end
                 set(ht,'String',['t = ' num2str((rgrid.ocean_time(i)+1)/86400) ' days'])
                 pause(0.03)
