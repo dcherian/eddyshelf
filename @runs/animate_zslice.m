@@ -101,6 +101,11 @@ function [handles] = animate_zslice(runs,varname,depth,tind,hax,opt)
     end
     clear data u1 v1
 
+    % show up/downwelling of z-dye.
+    if strcmpi(varname, 'dye_02')
+        var = var - depth;
+    end
+
     if addvelquiver
         % get on interior RHO points
         u = avg1(u(:,2:end-1,:),1);
@@ -157,6 +162,9 @@ function [handles] = animate_zslice(runs,varname,depth,tind,hax,opt)
             caxis([min(min(var(:,:,1))) max(max(var(:,:,1)))]);
         else
             caxis([min(var(:)) max(var(:))]);
+             if strcmpi(varname, 'dye_02')
+                center_colorbar;
+            end
         end
     end
     xlabel('X (km)'); ylabel('Y (km)');
