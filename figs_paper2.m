@@ -128,9 +128,9 @@ export_fig -a1 images/paper2/ew-2360-secondary-cyclone.png
 %% secondary eddy - ew-34
 if ~exist('ew34', 'var')
     ew34 = runs('../topoeddy/runew-34/');
-    xx = [394 371 297 282 219 204]';
-    yy = [67.5 70.5 46.5 66 91 108]'
 end
+xx = [394 371 297 282 219 204]';
+yy = [70.5 70.5 46.5 66 91 108]';
 opt.addvelquiver = 0;
 opt.csdcontourplot = 0;
 opt.rhocontourplot = 0;
@@ -139,7 +139,7 @@ hbathy = handles.hfield.hbathy;
 clabel(hbathy{4}, hbathy{1}, 'LabelSpacing', 108*12);
 
 % displace eddy water plots
-dx = 230;
+dx = 230; dpv = 4e-11;
 for ii=[1 3 5 7]
     handles.hcsd(ii).XData = handles.hcsd(ii).XData + dx;
 end
@@ -157,6 +157,12 @@ handles.hax(2).XTickLabels = {'Sh', 'Edd', 'Sh', 'Edd'};
 
 axes(handles.hax(3));
 xlim([-0.07 0.05]);
+
+axes(handles.hax(4));
+for ii=[1 3 5 7]
+    handles.hpv(ii).XData = handles.hpv(ii).XData + dpv;
+end
+linex(dpv);
 
 axes(handles.hax(5));
 xlim([-1 1]*0.25);

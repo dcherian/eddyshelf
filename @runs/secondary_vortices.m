@@ -78,6 +78,7 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
     uistack(handles.hcsd(end), 'bottom');
     [handles.hl(1,:), handles.htxt(1,:)] = common(runs, tindex);
     xlabel('Cross-shelf dye - X_{sb} (km)');
+    ylabel('Z (m)');
 
     handles.hax(3) = subplot(324);
     handles.hrho = plot(rho-rback, zr);
@@ -92,7 +93,8 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
         handles.hax(4) = subplot(325);
         handles.hpv = plot(pv-pvback, zpv);
         [handles.hl(3,:), handles.htxt(3,:)] = common(runs, tindex);
-        xlabel('\Delta PV');
+        xlabel('PV - f_0N^2/g');
+        ylabel('Z (m)');
         CenterProfileHandles = [CenterProfileHandles handles.hpv(end)];
 
         handles.hax(5) = subplot(326);
@@ -126,8 +128,6 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
 end
 
 function [hl, ht] = common(obj, tindex)
-
-    ylabel('Z (m)');
     [hl(1), ht(1)] = liney(-1 * obj.bathy.hsb, 'H_{sb}');
     [hl(2), ht(2)] = liney(-1 * obj.eddy.Lgauss(tindex), 'L_z^{eddy}');
     hl(3) = linex(0);
