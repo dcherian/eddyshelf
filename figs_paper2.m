@@ -215,3 +215,16 @@ axes(handles(1).hax); correct_ticks('y', '', {'150' '200'});
 axes(handles(3).hax); correct_ticks('y', '', {'150' '200'});
 
 export_fig -a1 images/paper2/ew-2360-mosaic-zslice.png
+
+%% bottom rho PV
+
+hplt = ew2360.plotBottomRhoPV(70);
+title('Bottom PV with \rho contours');
+xlabel('X (km)');
+ylabel('Y (km)');
+text(330, 149, 'shelfbreak')
+ylim([140 180]);
+set(gca, 'YTickMode', 'auto');
+
+export_fig -a1 images/paper2/ew-2360-bottomrhopv.png
+%% secondary cyclone x-z section.
