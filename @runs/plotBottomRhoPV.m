@@ -2,7 +2,11 @@ function [hplt] = plotBottomRhoPV(runs, tindices)
 
     for tindex = flip(tindices)
         ind = find(tindex == tindices);
-        hax = subplot(2,ceil(length(tindices)/2),ind);
+        if length(tindices) > 1
+            hax = subplot(2,ceil(length(tindices)/2),ind);
+        else
+            hax = gca;
+        end
         hplt = runs.overlay_section('pv', 'rho', tindex, {}, 's', 1, [], hax);
 
         insertAnnotation([runs.name '.plotBottomRhoPV']);
