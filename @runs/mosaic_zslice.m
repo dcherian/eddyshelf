@@ -25,11 +25,17 @@ function [handles] = mosaic_zslice(runs, varname, depth, tind, opt)
     handles(1).supax.Position(4) = 0.85;
     handles(1).htitle.FontWeight = 'normal';
 
-    set(hax(2), 'YTickLabel', {}, 'XTickLabel', {});
-    xlabel(hax(1), ''); xlabel(hax(2), '');
-    ylabel(hax(2), ''); ylabel(hax(4), '');
-    set(hax(4), 'YTickLabel', {});
+    N = ceil(n/2);
+
     set(hax(1), 'XTickLabel', {});
+    xlabel(hax(1), '');
+    for ii=2:N
+        set(hax(ii), 'YTickLabel', {}, 'XTickLabel', {});
+        set(hax(ii+N), 'YTickLabel', {});
+
+        xlabel(hax(ii), '');
+        ylabel(hax(ii), ''); ylabel(hax(ii+N), '');
+    end
 
     handles(1).hcb = colorbar;
     moveColorbarOut2x2(handles(1).hcb);
