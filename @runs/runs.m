@@ -1201,6 +1201,25 @@ methods
                   * int(1 - erf(z/Lz), z, -Lz, 0));
     end
 
+    function [] = plot_vertProfile(runs, name, ix, iy, tinds, hax)
+
+        for ii=1:length(tinds)
+            [var(ii,:),~,~,zax] = dc_roms_read_data(runs.dir, name, tinds(ii), ...
+                                                    {'x' ix ix; 'y' iy iy}, [], runs.rgrid);
+        end
+
+        if ~exist('hax', 'var') | isempty(hax)
+            figure; hax = gca;
+        end
+        axes(hax);
+        insertAnnotation([runs.name '.plot_vertprofile']);
+        lightDarkLines(length(tinds));
+        plot(bsxfun(@minus, var, var(1,:)), zax);
+        ylabel('Z (m)');
+        xlabel('\rho - \rho_{t = 0}');
+        title(['(' num2str(ix) ',' num2str(iy) ') | tinds = ' num2str(tinds)]);
+    end
+
     function [] = checkStreamerVertProfile(runs, isobath)
     % check if streamer vertical profile changes much with
     % changing (x,t) limits
