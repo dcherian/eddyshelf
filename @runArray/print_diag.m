@@ -667,6 +667,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
                 t0 = 1;
                 tend = maxloc;
             else
+                %flux_tref = run.recalculateFlux(integrate_zlimit, 1,1);
                 [start,stop] = run.flux_tindices(fluxvec);
                 [flux, errflx] = run.calc_avgflux(fluxvec);
 
@@ -701,7 +702,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
                              flux/1000, fluxscl/1000, V0, L0/1000, Lz0));
             end
 
-            norm(ff) = eddyscl;
+            norm(ff) = 1000; eddyscl;
             plotnorm = 1000;
 
             diags(ff) = flux/plotnorm;
@@ -719,7 +720,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
 
             [clr, ptName] = colorize(run, ptName);
 
-            if norm(ff) == 1000
+            if plotnorm == 1000
                 normstr = '(mSv)';
             else
                 normstr = '/ Eddy volume flux';
@@ -1098,10 +1099,9 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
             E = cut_nan(plotx');
         end
 
+        err = mean(abs(err),1);
         if ~isempty(cut_nan(err)) & ~strcmpi(name, 'max flux')
             disp('Using weighted least squares');
-
-            err = mean(abs(err),1);
             disp(['% error: ' num2str(round(100*err./diags))]);
 
             [P,stderror] = lscov(E, cut_nan(diags'), 1./cut_nan(err));
