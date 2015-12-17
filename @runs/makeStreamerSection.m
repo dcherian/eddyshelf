@@ -1,8 +1,11 @@
 % makes streamer mask for numerical parameterization
-function [v, mask, xvec, zvec] = makeStreamerSection(runs, isobath, maxloc, V0, L0, Lz0)
+function [v, mask, rho, xvec, zvec] = ...
+        makeStreamerSection(runs, isobath, maxloc, V0, L0, Lz0)
 
     debug = 0;
     circle_kink = 0;
+
+    phys = runs.params.phys;
 
     if ~exist('maxloc', 'var') || isempty(maxloc)
         [~,maxloc] = runs.calc_maxflux(isobath);
@@ -10,7 +13,7 @@ function [v, mask, xvec, zvec] = makeStreamerSection(runs, isobath, maxloc, V0, 
 
     if ~exist('V0', 'var') || isempty(V0)
         %V0 = runs.eddy.rhovor.Vke(maxloc);
-        vel = smooth(hypot(runs.eddy.fitx.V0, runs.eddy.fity.V0), 20) / 2.3;
+        vel = smooth(hypot(runs.eddy.fitx.V0, runs.eddy.fity.V0), 20) / 2.3 / sqrt(2);
         V0 = vel(maxloc);
     end
 
@@ -31,14 +34,28 @@ function [v, mask, xvec, zvec] = makeStreamerSection(runs, isobath, maxloc, V0, 
     R = runs.csflux.R;
     yoR = runs.csflux.ndloc(isobath); % y/R - used in csflux
     y0oL =  R/L0 * (1 - yoR); % y0/L - used in derivation
-    xfrac = sqrt(1 - y0oL^2);
+                              %xfrac = sqrt(1 - y0oL^2);
     %y0oL = (runs.eddy.my(maxloc) - runs.csflux.x(isobath))/L0;
 
-    a = 2;
-    v = -2.3 * V0 * xmat.^(a-1) .* exp(-xmat.^a) .* (1-erf(-zmat));
+    % this works - compares ok with runs.eddy.fity.rho0(1)
+    RhoAmp = -1 * runs.sgntamp * V0 * phys.f0 * phys.R0/phys.g * L0/Lz0;
 
-    [width, zpeak] = runs.predict_zpeak(isobath, 'use', maxloc);
-    width = abs(width/Lz0); zpeak = abs(zpeak/Lz0);
+    % eddy fields
+    a = 2;
+    v = -2.3 * runs.sgntamp * V0 * xmat.^(a-1) .* exp(-xmat.^a) .* (1-erf(-zmat));
+    rho = RhoAmp .* exp(-xmat.^2 - y0oL^a) .* exp(-zmat.^2);
+
+    % calculate background density profiles
+    [rhoshelf, zshelf] = runs.getDensityProfile(runs.bathy.isb);
+    [rhoslope, zslope] = runs.getDensityProfile(runs.csflux.ix(isobath));
+
+    rhobot = rhoshelf(1);
+    rhoedge = RhoAmp * exp(-y0oL^a) * exp(-1/2) * exp(-(zslope/Lz0).^2);
+    zind = find_approx(rhoslope + rhoedge, rhobot, 1);
+    width = zvec(zind);
+
+    % [width, zpeak] = runs.predict_zpeak(isobath, 'use', maxloc);
+    width = abs(width/Lz0); % zpeak = abs(zpeak/Lz0);
 
     if circle_kink
         kzrad = width/2; % kink radius - z
@@ -84,7 +101,7 @@ function [v, mask, xvec, zvec] = makeStreamerSection(runs, isobath, maxloc, V0, 
         if circle_kink
             kinkmask = (((xmat-x0)/kxrad).^2 + ((zmat-z0)/kzrad).^2) <= 1;
         else
-            kinkmask = ((xmat.^a + zmat.^a) > (2/exp(1))^a) .* (zmat >= -width);
+            kinkmask = ((xmat.^a + zmat.^a) > (0.707)^a) .* (zmat >= -width);
         end
         mask = (xmat < xline) & (eddymask | kinkmask);
     end
