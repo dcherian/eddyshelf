@@ -778,20 +778,21 @@ methods
         subplot(211); hold on;
         plot(runs.eddy.vor.dia/2000);
         plot(runs.eddy.rhovor.dia/2000);
-        %plot(runs.eddy.fitx.Lrho/1000);
-        %plot(runs.eddy.fitx.L/1000);
-        plot(smooth(runs.eddy.fity.Lrho/1000, 30));
-        plot(smooth(runs.eddy.fity.L/1000, 30));
-        legend('L_{vor}','L_{rhovor}','L_{yrho}','L_{yv}','L_{xrho}', 'L_{xv}');
+        plot(smooth(hypot(runs.eddy.fitx.Lrho/1000, ...
+                          runs.eddy.fity.Lrho/1000)/sqrt(2), 30));
+        plot(smooth(hypot(runs.eddy.fitx.L/1000, ...
+                          runs.eddy.fity.L/1000)/sqrt(2), 30));
+        legend('L_{vor}','L_{rhovor}','L_{fitrho}','L_{fitv}');
+        ylim([0.5 2] * runs.params.eddy.dia/2000);
         linex([tind maxloc]);
         title(runs.name);
 
         subplot(212); hold on;
         plot(runs.eddy.vor.Vke);
         plot(runs.eddy.rhovor.Vke);
-        plot(runs.eddy.fity.V0);
-        %plot(runs.eddy.fitx.V0);
-        legend('V_{vor}','V_{rhovor}','V_y','V_x');
+        plot(hypot(runs.eddy.fitx.V0, runs.eddy.fity.V0)/sqrt(2));
+        ylim([0.5 2] * runs.eddy.vor.Vke(1));
+        legend('V_{vor}','V_{rhovor}','V_{fit}');
         linex([tind maxloc]);
     end
 
