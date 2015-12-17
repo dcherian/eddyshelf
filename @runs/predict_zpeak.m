@@ -4,6 +4,9 @@
 % By defualt, flag = use.
 function [width, zpeak] = predict_zpeak(runs, iso, flag, maxloc)
 
+    warning on;
+    warning('predict_zpeak is deprecated. Be careful!');
+
     if ~exist('flag', 'var'), flag = 'use'; end
     if ~exist('maxloc', 'var'), maxloc = []; end
 
@@ -31,6 +34,7 @@ function [width, zpeak] = predict_zpeak(runs, iso, flag, maxloc)
     eddy.temp = eddy.tamp .* exp(-xfrac^2 - y0oL^2) .* ...
         exp(-(zslope/eddy.depth).^2);
     eddy.rho = phys.R0*(- phys.TCOEF * eddy.temp);
+
     zind = find_approx(eddy.rho + rhoslope, rhobot, 1);
 
     if strcmpi(flag, 'use')
