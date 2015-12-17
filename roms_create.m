@@ -332,12 +332,12 @@ else
     end
 
     % Calculate Burger numbers
-    S_sh = bathy.sl_shelf * sqrt(phys.N2)./phys.f0; % shelf
-    S_sl = bathy.sl_slope * sqrt(phys.N2)./phys.f0; % slope
+    bathy.S_sh = bathy.sl_shelf * sqrt(phys.N2)./phys.f0; % shelf
+    bathy.S_sl = bathy.sl_slope * sqrt(phys.N2)./phys.f0; % slope
 
     % Calculate topographic beta
-    b_sh = phys.f0 * bathy.sl_shelf / bathy.H_shelf;
-    b_sl = phys.f0 * bathy.sl_slope / max(S.h(:));
+    bathy.b_sh = phys.f0 * bathy.sl_shelf / bathy.H_shelf;
+    bathy.b_sl = phys.f0 * bathy.sl_slope / max(S.h(:));
 
     % calculate for smoothed bathymetry
     % find shelfbreak
@@ -824,8 +824,8 @@ if flags.eddy
     limy = ylim;
     ylim([min(limy) 0]);
 
-    input(['beta/beta_t = ' ...
-         num2str(phys.beta * eddy.depth./bathy.sl_slope./phys.f0) ' | Continue?']);
+    %input(['beta/beta_t = ' ...
+    %     num2str(phys.beta * eddy.depth./bathy.sl_slope./phys.f0) ' | Continue?']);
 
     % check for consistency, just in case
     if ~flags.flat_bottom
@@ -2150,7 +2150,7 @@ fprintf(['\n\n Assuming dt = %.2f, ndtfast = %d, C_bt = %.3f | C_bc ' ...
 fprintf('\n Bathy Parameters');
 if ~flags.flat_bottom
     fprintf('\n\t\t S_shelf = %.2f | S_slope = %.2f | Beta_shelf = %1.2e | Beta_slope = %1.2e \n', ...
-    S_sh,S_sl,b_sh,b_sl);
+    bathy.S_sh,bathy.S_sl,bathy.b_sh,bathy.b_sl);
 end
 if flags.wind, cprintf('Red',sprintf('Wind tau0 = %.2e \n\n',wind.tau0)); end
 
