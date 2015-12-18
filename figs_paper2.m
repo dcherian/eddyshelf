@@ -240,4 +240,27 @@ ylim([140 180]);
 set(gca, 'YTickMode', 'auto');
 
 export_fig -a1 images/paper2/ew-2360-bottomrhopv.png
-%% secondary cyclone x-z section.
+
+%% secondary cyclone x-z section
+
+%% shelf + friction flux time series
+
+%% shfric
+folders = { ...
+    'runew-34', 'runew-5341', 'runew-8341', ...
+    'runew-583411', 'runew-583413', ...
+    'runew-583414', 'runew-583415', ...
+    };
+shfric = runArray(folders);
+
+%% avg streamer profiles - shelfbreak
+handles = ew34.plotAvgStreamer(1);
+correct_ticks('y', [], '-50');
+handles.ax(1).Title.String = 'Mean cross-isobath velocity (m/s)';
+export_fig -a1 images/paper2/ew34-avgstreamer-sb.png
+
+%% avg streamer profiles - offshore
+handles = ew34.plotAvgStreamer(4);
+handles.ax(1).Title.String = 'Mean cross-isobath velocity (m/s)';
+correct_ticks('y', [], {'-50'; '-400'}, handles.ax([1 3]));
+export_fig -a1 images/paper2/ew34-avgstreamer-sl.png
