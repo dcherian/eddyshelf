@@ -61,10 +61,30 @@ export_fig -a1 images/paper2/ew-34-surface-csdye.png
 
 %% flux diagnostics
 handles = ew34.plot_fluxts(factor, 3, 3);
-handles.htitle.String = ['Flux of water above ' num2str(factor) 'H_{sb}'];
-maximize; drawnow;
+handles.htitle.String = ['Flux of water for z > ' num2str(factor) ' H_{sb}'];
+color = handles.icons(1).Color;
+maximize; %drawnow;
 % mark timesteps
-export_fig -a1 images/paper2/flux-diags.png
+axes(handles.hax(1));
+hold on
+handles.htstep = ...
+    plot(handles.ts(1).XData(timesteps), handles.ts(1).YData(timesteps), ...
+         '.', 'MarkerSize', 28);
+linkprop([handles.ts(1) handles.htstep], 'Color');
+
+handles.leghandles = [handles.leghandles handles.htstep];
+legstr = handles.hleg.String;
+legstr{end+1} = 'Time instants shown in Figure 2';
+[handles.hleg, handles.icons] = legend(handles.leghandles, legstr, ...
+                                       'Location', 'NorthWest', 'Box', 'off');
+for ii=[1 2 3 6 8]
+    handles.icons(ii).Color = color;
+end
+handles.icons(10).FaceColor = color;
+handles.icons(10).FaceAlpha = 0.2;
+
+axes(handles.hax(2)); % make visible
+export_fig -a3 images/paper2/flux-diags.png
 
 %% surface map and instantaneous flux
 folders = {'ew-4341', 'ew-34', 'ew-2341_wider'};
