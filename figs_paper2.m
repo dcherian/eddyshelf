@@ -266,12 +266,65 @@ export_fig -a1 images/paper2/ew-2360-bottomrhopv.png
 %% shelf + friction flux time series
 
 %% shfric
-folders = { ...
-    'runew-34', 'runew-5341', 'runew-8341', ...
-    'runew-583411', 'runew-583413', ...
-    'runew-583414', 'runew-583415', ...
-    };
-shfric = runArray(folders);
+if ~exist('shfric', 'var')
+    folders = { ...
+        'runew-34', 'runew-5341', 'runew-8341', ...
+        'runew-583411', 'runew-583413', ...
+        ... %'runew-583414', 'runew-583415', ...
+              };
+    names = { ...
+        'S_{sh} = 0 | r = 0'; ...
+        'S_{sh} = 0 | r = 5e-3'; ...
+        'S_{sh} = 0.05 | r = 0'; ...
+        'S_{sh} = 0.05 | r = 5e-3'; ...
+        'S_{sh} = 0.05 | r = 5e-4'; ...
+            };
+    shfric = runArray(folders, names);
+end
+
+handles = shfric.plot_avgProfile('zeta', 'y', 'sb', 1);
+uistack(handles.hl, 'bottom');
+
+ax = gca;
+dy = ax.YTick(2);
+for ii= [1 2]
+    handles.hpltsh(ii).YData = handles.hpltsh(ii).YData + dy;
+    handles.hplted(ii).YData = handles.hplted(ii).YData + dy;
+end
+
+dy = dy*0;
+for ii= 5
+    handles.hpltsh(ii).YData = handles.hpltsh(ii).YData + dy;
+    handles.hplted(ii).YData = handles.hplted(ii).YData + dy;
+end
+
+colors = cbrewer('qual', 'Dark2', shfric.len);
+for ii=1:length(handles.hpltsh)
+    handles.hpltsh(ii).Color = colors(ii,:);
+    handles.hplted(ii).Color = colors(ii,:);
+    handles.hpltsh(ii).LineStyle = '-';
+    handles.hplted(ii).LineStyle = '-';
+    hplted = handles.hplted(ii);
+    name = {['S_{sh} = ' num2str(shfric.array(ii).bathy.S_sh)];
+            ['r = ' num2str(shfric.array(ii).params.misc.rdrg, '%1.0e')]};
+    htxt(ii) = text(hplted.XData(end) + 5, hplted.YData(end), ...
+                    name, 'HorizontalAlignment', 'left', ...
+                    'Color', colors(ii,:));
+end
+htxt(end-1).VerticalAlignment = 'top';
+htxt(end).VerticalAlignment = 'bottom';
+
+handles.hl.YData = ylim;
+legend('off')
+title('Mean SSH at shelfbreak');
+ylabel('SSH (m)');
+text(-150, 0.55e-3, 'Flat shelf', 'Units', 'data', ...
+     'HorizontalAlignment', 'center');
+text(-150, 0.60e-4, 'Sloping shelf', 'Units', 'data', ...
+     'HorizontalAlignment', 'center');
+pbaspect([1.618 1 1]);
+
+export_fig -a3 images/paper2/mean-ssh-sb.png
 
 %% avg streamer profiles - shelfbreak
 handles = ew34.plotAvgStreamer(1);

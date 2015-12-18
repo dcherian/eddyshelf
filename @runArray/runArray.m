@@ -734,7 +734,7 @@ classdef runArray < handle
             end
         end
 
-        function [] = plot_avgProfile(runArray, varname, axname, ix, mask)
+        function [handles] = plot_avgProfile(runArray, varname, axname, ix, mask)
             if ~exist('axname', 'var'), axname = 'y'; end
             if ~exist('ix', 'var'), ix = 'sb'; end
             if ~exist('mask', 'var'), mask = 1; end
@@ -751,9 +751,11 @@ classdef runArray < handle
                 ind = find(mm == 1, 1, 'first');
 
                 if axname == 'y'
-                    hplt(ii) = plot(xi/1000, vm);
-                    plot(xi(ind)/1000, vm(ind), 'x', ...
-                         'Color', hplt(ii).Color, 'MarkerSize', 18);
+                    %hplt(ii) = plot(xi/1000, vm);
+                    %plot(xi(ind)/1000, vm(ind), 'x', ...
+                    hpltsh(ii) = plot(xi(1:ind)/1000, vm(1:ind), 'LineWidth', 4);
+                    hplted(ii) = plot(xi(ind:end)/1000, vm(ind:end), 'Tag', 'dcline');
+                    linkprop([hpltsh(ii) hplted(ii)], 'Color');
                 else
                     hplt(ii) = plot(vm, xi/1000);
                     plot(vm(ind), xi(ind)/1000, 'x', ...
@@ -775,16 +777,25 @@ classdef runArray < handle
                 ylabel('Y - Y_{sb} (km)');
                 xlabel(varname);
             end
-            title(['mean ' varname ' | ' axname ' = ' ix]);
-            if mask == 1
-                hax = gca;
-                hax.Title.String = [hax.Title.String ...
-                                    ' | cross = eddy water boundary'];
-            end
-            legend(hplt, names);
+            title(['Mean ' varname ' | ' axname ' = ' ix]);
+            %if mask == 1
+            %    hax = gca;
+                %hax.Title.String = [hax.Title.String ...
+                %                    ' | cross = eddy water boundary'];
+                %end
+            handles.hleg = legend(hplted, names, 'Location', 'NorthWest');
             beautify;
-            linex(0);
-            if ~strcmpi(varname, 'zeta'), liney(0); end
+
+            for ii=1:length(handles.hpltsh)
+                handles.hpltsh(ii).LineWidth = 4;
+            end
+
+            hl = linex(0);
+            if ~strcmpi(varname, 'zeta'), hl{2} = liney(0); end
+
+            handles.hpltsh = hpltsh;
+            handles.hplted = hplted;
+            handles.hl = hl;
         end
 
         function [] = plot_maxflux(runArray)
