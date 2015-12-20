@@ -1,0 +1,86 @@
+function [handles] = PlotFluxSummary(runArray, isobath, source, factor)
+
+    if ~exist('isobath', 'var'), isobath = 2; end
+    if ~exist('source', 'var'), source = isobath; end
+    if ~exist('factor', 'var'), factor = 2; end
+
+    if isempty(runArray.filter)
+        runArray.filter = 1:runArray.len;
+    end
+
+    corder_backup = runArray.sorted_colors;
+
+    handles.hfig = figure; maximize;
+
+    handles.hax(1) = subplot(3,3,[1 2]); hold all;
+    handles.hax(2) = subplot(3,3,[4 5]); hold all;
+    handles.hax(3) = subplot(3,3,[7 8]); hold all;
+    handles.hax(4) = subplot(3,3,[6 9]); hold all;
+
+    for ff=1:length(runArray.filter)
+        ii = runArray.filter(ff);
+
+        run = runArray.array(ii);
+        names{ii} = runArray.getname(ii);
+
+        tvec = run.csflux.time/86400;
+        fluxvec = run.recalculateFlux(-factor*run.bathy.hsb, isobath);
+        ifluxvec = cumtrapz(tvec*86400, fluxvec);
+        zvec = run.csflux.vertbins(:,isobath);
+
+        axes(handles.hax(1))
+        handles.hflux(ff) = plot(tvec, fluxvec/1e3);
+
+        axes(handles.hax(2))
+        handles.hiflux(ff) = plot(tvec, ifluxvec);
+
+        axes(handles.hax(3))
+        handles.henv(ff) = ...
+            plot(tvec, (run.csflux.off.slopewater.envelope(:,isobath,source) ...
+                        - run.bathy.xsb)/1000);
+
+        axes(handles.hax(4))
+        handles.hprofile(ff) = plot( ...
+            run.csflux.off.slopewater.vertitrans(:,isobath,source), ...
+            zvec./abs(min(zvec)));
+    end
+
+    fs = [16 18 20];
+
+    axes(handles.hax(1))
+    handles.htxt(1) = text(0.05,0.85, 'Flux (mSv)', ...
+                           'Units', 'Normalized');
+    ylim([0 max(ylim)]);
+    handles.hax(1).XTickLabel = {};
+    [handles.hleg, handles.legobj] = columnlegend(2, names, 'FontSize', fs(1));
+    handles.hleg.Position(1) = 0.62;
+    beautify(fs);
+
+    axes(handles.hax(2))
+    handles.htxt(2) = text(0.05,0.85, 'Volume transported (m^3)', ...
+                           'Units', 'Normalized');
+    handles.hax(2).XTickLabel = {};
+    beautify(fs);
+
+    axes(handles.hax(4));
+    ylabel('Z/H_{sb}');
+    xlabel('\int Flux dx dt (m^2)');
+    handles.hax(4).XAxisLocation = 'top';
+    LowerLines;
+    beautify(fs);
+    xlim([0 max(xlim)]);
+
+    linkaxes(handles.hax(1:3), 'x');
+
+    axes(handles.hax(3))
+    handles.htxt(3) = text(0.05,0.1, 'Most onshore water parcel (km)', ...
+                           'Units', 'Normalized');
+    xlabel('Time (day)');
+    beautify(fs);
+    [handles.hl, handles.hltxt] = liney(0,'shelfbreak');
+    LowerLines;
+
+    for ii=1:length(handles.htxt)
+        handles.htxt(ii).FontSize = fs(2);
+    end
+end

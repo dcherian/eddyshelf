@@ -269,19 +269,42 @@ export_fig -a1 images/paper2/ew-2360-bottomrhopv.png
 if ~exist('shfric', 'var')
     folders = { ...
         'runew-34', 'runew-5341', 'runew-8341', ...
-        'runew-583411', 'runew-583413', ...
+        'runew-583413', 'runew-583411', ...
         ... %'runew-583414', 'runew-583415', ...
               };
     names = { ...
         'S_{sh} = 0 | r = 0'; ...
         'S_{sh} = 0 | r = 5e-3'; ...
         'S_{sh} = 0.05 | r = 0'; ...
-        'S_{sh} = 0.05 | r = 5e-3'; ...
         'S_{sh} = 0.05 | r = 5e-4'; ...
+        'S_{sh} = 0.05 | r = 5e-3'; ...
             };
     shfric = runArray(folders, names);
 end
 
+%% flux summary
+handles = shfric.PlotFluxSummary(1);
+
+axes(handles.hax(1))
+ylim([0 15]);
+
+axes(handles.hax(2))
+ylim([0 2.5]*1e11);
+
+colors = flip(cbrewer('seq', 'Reds', 4));
+colors(2,:) = colors(3,:);
+colors(3:7,:) = flip(cbrewer('seq', 'Blues', 5));
+
+for ii=1:length(handles.hflux)
+    handles.hflux(ii).Color = colors(ii,:);
+    handles.hiflux(ii).Color = colors(ii,:);
+    handles.henv(ii).Color = colors(ii,:);
+    handles.hprofile(ii).Color = colors(ii,:);
+end
+
+export_fig -a1 images/paper2/sb-flux-summary.png
+
+%% avg ssh
 handles = shfric.plot_avgProfile('zeta', 'y', 'sb', 1);
 uistack(handles.hl, 'bottom');
 
