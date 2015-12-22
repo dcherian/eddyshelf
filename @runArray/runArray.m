@@ -734,12 +734,18 @@ classdef runArray < handle
             end
         end
 
-        function [handles] = plot_avgProfile(runArray, varname, axname, ix, mask)
+        function [handles] = plot_avgProfile(runArray, varname, axname, ix, mask, hax)
             if ~exist('axname', 'var'), axname = 'y'; end
             if ~exist('ix', 'var'), ix = 'sb'; end
             if ~exist('mask', 'var'), mask = 1; end
 
-            figure; hold all
+            if ~exist('hax', 'var') | isempty(hax)
+                figure; hax = gca;
+            else
+                axes(hax);
+            end
+            handles.hax = hax;
+            hold all
             insertAnnotation('runArray.plot_avgProfile');
             for ii=1:length(runArray.filter)
                 ff = runArray.filter(ii);
@@ -786,8 +792,8 @@ classdef runArray < handle
             handles.hleg = legend(hplted, names, 'Location', 'NorthWest');
             beautify;
 
-            for ii=1:length(handles.hpltsh)
-                handles.hpltsh(ii).LineWidth = 4;
+            for ii=1:length(hpltsh)
+                hpltsh(ii).LineWidth = 3;
             end
 
             hl = linex(0);
@@ -796,6 +802,7 @@ classdef runArray < handle
             handles.hpltsh = hpltsh;
             handles.hplted = hplted;
             handles.hl = hl;
+            LowerLines;
         end
 
         function [] = plot_maxflux(runArray)

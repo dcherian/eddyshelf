@@ -284,70 +284,66 @@ end
 
 %% flux summary
 handles = shfric.PlotFluxSummary(1);
-
 axes(handles.hax(1))
 ylim([0 15]);
+delete(handles.hleg);
+handles.hleg(1) = legend(handles.hflux(1:2), shfric.name{1:2});
+handles.hleg(2) = legend(handles.henv(3:5), shfric.name{3:5});
+handles.hleg(1).Box = 'off';
+handles.hleg(2).Box = 'off';
+handles.hleg(1).Position(1) = 0.62;
+pos1 = handles.hleg(1).Position;
+handles.hleg(2).Position(1) = 0.62 + pos1(3);
+handles.hleg(2).Position(2) = pos1(2) + pos1(4) - handles.hleg(2).Position(4);
+% avg ssh
+linkaxes(handles.hax, 'off');
+linkaxes(handles.hax(1:2), 'x');
+axes(handles.hax(3));
+cla(handles.hax(3), 'reset');
+handles2 = shfric.plot_avgProfile('zeta', 'y', 'sb', 1, handles.hax(3));
+xlim([-200 200]);
+ax = handles.hax(3);
+dy = ax.YTick(2);
+for ii= [1 2]
+    handles2.hpltsh(ii).YData = handles2.hpltsh(ii).YData + dy;
+    handles2.hplted(ii).YData = handles2.hplted(ii).YData + dy;
+end
 
-axes(handles.hax(2))
-ylim([0 2.5]*1e11);
+dy = dy*0;
+for ii= 5
+    handles2.hpltsh(ii).YData = handles2.hpltsh(ii).YData + dy;
+    handles2.hplted(ii).YData = handles2.hplted(ii).YData + dy;
+end
 
+handles2.hl.YData = ylim;
+legend('off');
+title(''); ylabel('');
+handles2.htxt(1) = text(0.05,0.85, 'Mean SSH at shelfbreak (m)', ...
+                     'Units', 'Normalized', 'FontSize', handles.htxt(1).FontSize);
+handles2.htxt(2) = text(-150, 7e-4, 'Flat shelf', 'Units', 'data', ...
+                        'HorizontalAlignment', 'center');
+handles2.htxt(3) = text(-150, 2e-4, 'Sloping shelf', 'Units', 'data', ...
+                        'HorizontalAlignment', 'center');
+
+% colors
 colors = flip(cbrewer('seq', 'Reds', 4));
 colors(2,:) = colors(3,:);
 colors(3:7,:) = flip(cbrewer('seq', 'Blues', 5));
 
 for ii=1:length(handles.hflux)
     handles.hflux(ii).Color = colors(ii,:);
-    handles.hiflux(ii).Color = colors(ii,:);
     handles.henv(ii).Color = colors(ii,:);
     handles.hprofile(ii).Color = colors(ii,:);
+    handles2.hpltsh(ii).Color = colors(ii,:);
+    handles2.hplted(ii).Color = colors(ii,:);
+    handles2.hpltsh(ii).LineStyle = '-';
+    handles2.hplted(ii).LineStyle = '-';
 end
+handles2.htxt(2).Color = colors(2,:);
+handles2.htxt(3).Color = colors(5,:);
+uistack(handles2.hplted(3), 'top');
 
-export_fig -a1 images/paper2/sb-flux-summary.png
-
-%% avg ssh
-handles = shfric.plot_avgProfile('zeta', 'y', 'sb', 1);
-uistack(handles.hl, 'bottom');
-
-ax = gca;
-dy = ax.YTick(2);
-for ii= [1 2]
-    handles.hpltsh(ii).YData = handles.hpltsh(ii).YData + dy;
-    handles.hplted(ii).YData = handles.hplted(ii).YData + dy;
-end
-
-dy = dy*0;
-for ii= 5
-    handles.hpltsh(ii).YData = handles.hpltsh(ii).YData + dy;
-    handles.hplted(ii).YData = handles.hplted(ii).YData + dy;
-end
-
-colors = cbrewer('qual', 'Dark2', shfric.len);
-for ii=1:length(handles.hpltsh)
-    handles.hpltsh(ii).Color = colors(ii,:);
-    handles.hplted(ii).Color = colors(ii,:);
-    handles.hpltsh(ii).LineStyle = '-';
-    handles.hplted(ii).LineStyle = '-';
-    hplted = handles.hplted(ii);
-    name = {['S_{sh} = ' num2str(shfric.array(ii).bathy.S_sh)];
-            ['r = ' num2str(shfric.array(ii).params.misc.rdrg, '%1.0e')]};
-    htxt(ii) = text(hplted.XData(end) + 5, hplted.YData(end), ...
-                    name, 'HorizontalAlignment', 'left', ...
-                    'Color', colors(ii,:));
-end
-htxt(end-1).VerticalAlignment = 'top';
-htxt(end).VerticalAlignment = 'bottom';
-
-handles.hl.YData = ylim;
-legend('off')
-title('Mean SSH at shelfbreak');
-ylabel('SSH (m)');
-text(-150, 0.55e-3, 'Flat shelf', 'Units', 'data', ...
-     'HorizontalAlignment', 'center');
-text(-150, 0.60e-4, 'Sloping shelf', 'Units', 'data', ...
-     'HorizontalAlignment', 'center');
-pbaspect([1.618 1 1]);
-
-export_fig -a3 images/paper2/mean-ssh-sb.png
+export_fig -a3 images/paper2/sb-flux-summary.png
 
 %% avg streamer profiles - shelfbreak
 handles = ew34.plotAvgStreamer(1);

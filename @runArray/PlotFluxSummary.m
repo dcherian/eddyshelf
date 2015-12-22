@@ -32,17 +32,20 @@ function [handles] = PlotFluxSummary(runArray, isobath, source, factor)
         handles.hflux(ff) = plot(tvec, fluxvec/1e3);
 
         axes(handles.hax(2))
-        handles.hiflux(ff) = plot(tvec, ifluxvec);
-
-        axes(handles.hax(3))
         handles.henv(ff) = ...
             plot(tvec, (run.csflux.off.slopewater.envelope(:,isobath,source) ...
                         - run.bathy.xsb)/1000);
+
+        axes(handles.hax(3))
+        handles.hiflux(ff) = plot(tvec, ifluxvec);
 
         axes(handles.hax(4))
         handles.hprofile(ff) = plot( ...
             run.csflux.off.slopewater.vertitrans(:,isobath,source), ...
             zvec./abs(min(zvec)));
+
+        linkprop([handles.hflux(ff) handles.hiflux(ff) ...
+                  handles.hprofile(ff) handles.henv(ff)], 'Color');
     end
 
     fs = [16 18 20];
@@ -57,10 +60,15 @@ function [handles] = PlotFluxSummary(runArray, isobath, source, factor)
     beautify(fs);
 
     axes(handles.hax(2))
-    handles.htxt(2) = text(0.05,0.85, 'Volume transported (m^3)', ...
+    handles.htxt(2) = text(0.05,0.1, {'Distance from shelfbreak of'; ...
+                        'most onshore water parcel (km)'}, ...
                            'Units', 'Normalized');
-    handles.hax(2).XTickLabel = {};
+    %handles.hax(2).XTickLabel = {};
+    handles.hax(2).XAxisLocation = 'top';
+    handles.hax(2).XTickLabel{1} = 't = 0 day';
     beautify(fs);
+    %[handles.hl, handles.hltxt] = liney(0,'shelfbreak');
+    %LowerLines;
 
     axes(handles.hax(4));
     ylabel('Z/H_{sb}');
@@ -73,14 +81,11 @@ function [handles] = PlotFluxSummary(runArray, isobath, source, factor)
     linkaxes(handles.hax(1:3), 'x');
 
     axes(handles.hax(3))
-    handles.htxt(3) = text(0.05,0.1, 'Most onshore water parcel (km)', ...
+    handles.htxt(3) = text(0.05,0.85, 'Volume transported (m^3)', ...
                            'Units', 'Normalized');
     xlabel('Time (day)');
     beautify(fs);
-    [handles.hl, handles.hltxt] = liney(0,'shelfbreak');
-    LowerLines;
 
-    for ii=1:length(handles.htxt)
-        handles.htxt(ii).FontSize = fs(2);
-    end
+    linkprop(handles.htxt, 'FontSize');
+    handles.htxt(1).FontSize = fs(1);
 end
