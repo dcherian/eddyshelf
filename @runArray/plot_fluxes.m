@@ -1,8 +1,9 @@
-function [] = plot_fluxes(runArray, isobath, source, factor)
+function [] = plot_fluxes(runArray, isobath, source, factor, figs)
 
-    if ~exist('isobath', 'var'), isobath = 2; end
-    if ~exist('source', 'var'), source = isobath; end
-    if ~exist('factor', 'var'), factor = 2; end
+    if ~exist('isobath', 'var') | isempty(isobath), isobath = 2; end
+    if ~exist('source', 'var') | isempty(source), source = isobath; end
+    if ~exist('factor', 'var') | isempty(factor), factor = 2; end
+    if ~exist('figs', 'var'), figs = zeros([10 1]); figs(1) = 1; end
 
     if isempty(runArray.filter)
         runArray.filter = 1:runArray.len;
@@ -10,28 +11,51 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
 
     corder_backup = runArray.sorted_colors;
 
-    hfig1 = figure; ax1(1) = subplot(2,1,1); hold all; % shelf water flux time series
-    ax1(2) = subplot(2,1,2); hold all;
+    figs(length(figs):10) = 0;
 
-    hfig2 = []; %figure; hold all % integrated vertical structure / baroclinicity
+    if figs(1)
+        hfig1 = figure; % shelf water flux time series
+        ax1 = packrows(2,1);
+        axes(ax1(1)); hold all; axes(ax1(2)); hold all;
+    end
 
-    hfig3 = []; %figure; hold all; % envelope
+    if figs(2)
+        hfig2 = figure; hold all % integrated vertical structure / baroclinicity
+    end
 
-    hfig4 = []; % figure; subplot(2,1,1); hold all; % eddy water flux
-            % subplot(2,1,2); hold all
+    if figs(3)
+        hfig3 = figure; hold all; % envelope
+    end
 
-    hfig5 = []; %figure; hold on;% along shelf structure
+    if figs(4)
+        figure; subplot(2,1,1); hold all; % eddy water flux
+        subplot(2,1,2); hold all;
+    end
 
-    hfig6 = []; %figure; hold on; % streamer velocity
+    if figs(5)
+        hfig5 = figure; hold on;% along shelf structure
+    end
 
-    hfig7 = []; %figure; hold on; % cross-shore bins
+    if figs(6)
+        hfig6 = figure; hold on; % streamer velocity
+    end
 
-    hfig8 = []; %figure; hold on; % streamer max. vel.
+    if figs(7)
+        hfig7 = figure; hold on; % cross-shore bins
+    end
 
-    hfig9 = []; %figure; hold all;% instantaneous streamer vertical structure
+    if figs(8)
+        hfig8 = figure; hold on; % streamer max. vel.
+    end
 
-    hfig10 = []; %figure; subplot(211); hold all; % horizontal velocity profile at surface
-                 % subplot(212); hold all;
+    if figs(9)
+        hfig9 = figure; hold all;% instantaneous streamer vertical structure
+    end
+
+    if figs(10)
+        hfig10 = figure; subplot(211); hold all; % horizontal velocity profile at surface
+        subplot(212); hold all;
+    end
 
     nsmooth = 1;
 
@@ -61,8 +85,8 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         He = hsb;
         Le = run.eddy.vor.dia(1)/2;
 
-        fluxscl = 1; %run.eddyfluxscale;
-        transscl = 1000; He * Le^2;
+        fluxscl = 1000; %run.eddyfluxscale;
+        transscl = 1; He * Le^2;
 
         %fluxvec = run.csflux.off.slope(:,isobath, source);
         fluxvec = run.recalculateFlux(-factor*hsb,isobath);
@@ -80,7 +104,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         [~,~,restind] = run.locate_resistance;
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SHELF WATER
-        if ~isempty(hfig1)
+        if figs(1)
             figure(hfig1)
             axes(ax1(1));
             hgplt1(ff) = plot(ndtime, smooth(fluxvec/fluxscl, nsmooth));
@@ -95,7 +119,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         end
 
         %%%%%% BAROCLINICITY
-        if ~isempty(hfig2)
+        if figs(2)
             figure(hfig2)
             profile = ...
                 run.csflux.off.slopewater.vertitrans(:,isobath,source);
@@ -116,7 +140,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         end
 
         %%%%%%%%%%%%% ENVELOPE
-        if ~isempty(hfig3)
+        if figs(3)
             figure(hfig3)
             % change from envelope to depth
             env = run.csflux.off.slopewater.envelope(:,isobath,1);
@@ -130,7 +154,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EDDY WATER
-        if ~isempty(hfig4)
+        if figs(4)
             figure(hfig4)
             subplot(2,1,1)
             hgplt4(ff) = plot(ndtime, ...
@@ -144,7 +168,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         end
 
         %%%%%%%%%%%%%%%%%%%%% ALONG SHELF STRUCTURE
-        if ~isempty(hfig5)
+        if figs(5)
             figure(hfig5)
             vmean = run.streamer.off.vmean(:,:,isobath);
             xivec = run.streamer.xivec * 1000;
@@ -157,7 +181,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%% STREAMER VELOCITY
-        if ~isempty(hfig6)
+        if figs(6)
             figure(hfig6);
 
             yoR = run.csflux.ndloc; % y/R - used in csflux
@@ -180,7 +204,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%% CROSS-SHORE BINS
-        if ~isempty(hfig7)
+        if figs(7)
             figure(hfig7)
             xsb = run.bathy.xsb;
 
@@ -190,7 +214,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%%% STREAMER MAX VEL
-        if ~isempty(hfig8)
+        if figs(8)
             figure(hfig8)
             [start,~] = run.flux_tindices(run.csflux.off.slope(:,isobath,isobath));
             hgplt8(ff) = plot(ndtime, ...
@@ -202,7 +226,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%%% INSTANTANEOUS VERTICAL STRUCTURE
-        if ~isempty(hfig9)
+        if figs(9)
             figure(hfig9)
 
             [~,tind] = run.calc_maxflux(run.csflux.off.slope(:,isobath,source));
@@ -215,7 +239,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%% velocity at shelfbreak
-        if ~isempty(hfig10)
+        if figs(10)
             tindex = 'max flux';
             figure(hfig10)
             ax10(1) = subplot(211);
@@ -226,24 +250,35 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         end
     end
 
-    if ~isempty(hfig1)
+    if figs(1)
+        pba = [1.9 1 1];
+
         figure(hfig1)
         insertAnnotation('runArray.plot_fluxes');
-        subplot(2,1,1)
+        axes(ax1(1));
         title(['Slope water | ND isobath = ', locstr]);
         ylabel('Flux (mSv)');
+        ylim([0 max(ylim)]);
         liney(0, [], [1 1 1]*0.75);
         legend(hgplt1, names);
+        pbaspect(pba);
         beautify;
 
-        subplot(2,1,2)
+        axes(ax1(2));
         ylabel('Volume transported (m^3)');
         xlabel('Time (days)');
+        ylim([0 max(ylim)]);
+        pbaspect(pba);
         beautify;
-        pause(0.1);
+
+        % positioning
+        ax1(1).Position(2) = ax1(1).Position(2) + 0.01;
+        ax1(1).Position(4) = ax1(1).Position(4) - 0.01;
+        ax1(2).Position(2) = ax1(2).Position(2) - 0.01;
+        ax1(2).Position(4) = ax1(2).Position(4) - 0.01;
     end
 
-    if ~isempty(hfig2)
+    if figs(2)
         figure(hfig2)
         insertAnnotation('runArray.plot_fluxes');
         %ylim([-1 0]);
@@ -256,7 +291,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         beautify;
     end
 
-    if ~isempty(hfig3)
+    if figs(3)
         figure(hfig3)
         insertAnnotation('runArray.plot_fluxes');
         xlabel('Non-dimensional time');
@@ -265,7 +300,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         beautify;
     end
 
-    if ~isempty(hfig4)
+    if figs(4)
         figure(hfig4)
         insertAnnotation('runArray.plot_fluxes');
         subplot(2,1,1);
@@ -282,7 +317,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         beautify;
     end
 
-    if ~isempty(hfig5)
+    if figs(5)
         figure(hfig5)
         insertAnnotation('runArray.plot_fluxes');
         xlabel('(X - X_e)/L_x');
@@ -294,7 +329,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         beautify;
     end
 
-    if ~isempty(hfig6)
+    if figs(6)
         figure(hfig6)
         insertAnnotation('runArray.plot_fluxes');
         ylabel('Max shelf water velocity / Eddy velocity (vor=0)');
@@ -313,7 +348,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         beautify;
     end
 
-    if ~isempty(hfig7)
+    if figs(7)
         figure(hfig7)
         insertAnnotation('runArray.plot_fluxes');
         linex(0, 'shelfbreak');
@@ -324,7 +359,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         beautify;
     end
 
-    if ~isempty(hfig8)
+    if figs(8)
         figure(hfig8)
         legend(hgplt8, names, 'Location', 'NorthWest');
         xlabel('Time (days)');
@@ -332,7 +367,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         beautify;
     end
 
-    if ~isempty(hfig9)
+    if figs(9)
         figure(hfig9)
         legend(hgplt9, names, 'Location', 'SouthEast');
         xlabel('Instantaneous Flux (m^3/s)');
@@ -343,7 +378,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor)
         beautify;
     end
 
-    if ~isempty(hfig10)
+    if figs(10)
         figure(hfig10)
         subplot(211);
         legend(hgplt10, names, 'Location', 'NorthEast');
