@@ -356,3 +356,61 @@ handles = ew34.plotAvgStreamer(4);
 handles.ax(1).Title.String = 'Mean cross-isobath velocity (m/s)';
 correct_ticks('y', [], {'-50'; '-400'}, handles.ax([1 3]));
 export_fig -a1 images/paper2/ew34-avgstreamer-sl.png
+
+%% flux vertical profiles
+clear handles;
+if ~exist('fluxvert', 'var')
+    fluxvert = runArray({'runew-2360_wider', 'runew-34-cyc'});
+end
+
+day = {'119'; []; '75'};
+names = {'Anticyclone'; 'Cyclone'}; %; 'Anticyclone - flat bottom'};
+figs(2) = 1;
+fluxvert.plot_fluxes(4, [],[],figs);
+title('');
+legend(names, 'Location', 'SouthEast')
+set(gcf, 'Position', [1 1 800 821]);
+beautify;
+hax(4) = gca;
+subplot(2,2,[2 4],hax(4));
+axes(hax(4));
+pbaspect([1 1 1]);
+hax(4).Position(1) = 0.65;
+hax(4).Position(3) = 0.28;
+
+for ii=1:2
+    hax(ii) = subplot(2,2,1 + 2*(ii-1));
+    handles(ii) = ...
+        fluxvert.array(ii).PlotSingleXZSection('v', 4, day{ii}, hax(ii));
+    title(names{ii});
+    if ii ~= fluxvert.len
+        hax(ii).XTickLabel = {};
+        xlabel('');
+    end
+    handles(ii).htime.Position(2) = 0.11;
+end
+hax(2).Title.Color = hax(4).Children(1).Color;
+hax(1).Title.Color = hax(4).Children(2).Color;
+
+linkaxes(hax(1:fluxvert.len), 'xy')
+ylim([-400 0]);
+xlim([-100 100]);
+
+axes(hax(1));
+correct_ticks('y', [], '-100');
+axes(hax(2));
+correct_ticks('y', [], {'-100'; '-300'});
+
+handles(1).hcb.Position(1) = 0.5;
+handles(2).hcb.Position(1) = 0.5;
+handles(2).hcb.Label.String = {'Cross-shelf'; 'velocity (m/s)'};
+handles(2).hcb.Label.Position = [1.0 0.135 0];
+handles(2).hcb.Label.Rotation = 0;
+
+for ii=1:2
+    handles(ii).htext{1}.Units = 'Normalized';
+    handles(ii).htext{2}.Units = 'Normalized';
+    handles(ii).htext{1}.Position(1) = 0.5;
+    handles(ii).htext{2}.Position(1) = 0.5;
+end
+export_fig -a3 images/paper2/fluxvertprofile.png
