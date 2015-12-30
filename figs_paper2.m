@@ -6,7 +6,7 @@ factor = 2;
 isobath = 4;
 timesteps = [1 150 200 250 300 380];
 
-%% field map
+% field map
 opt.csdcontourplot = 1;
 opt.csdcontours = ew34.csflux.x([1 4 8]);
 opt.addvelquiver = 0;
@@ -21,14 +21,19 @@ correct_ticks('y', [], {'50', '100'}, handles.hax([1 4]));
 handles.supax.Position(4) = 0.70;
 handles.htitle.String = 'Surface cross-shelf dye (km)';
 
-hleg = legend(handles.hax(1), [handles.hfield{1}.hcen, ...
+axes(handles.hax(1));
+[hleg,icons] = legend([handles.hfield{1}.hcen, ...
                     handles.hfield{1}.htrack, ...
-                    handles.hfield{1}.hzeta, ...
-                    handles.hfield{1}.hrho], ...
-              {'Eddy center', 'Track of eddy center', 'SSH', 'Eddy core'}, ...
-              'Location', 'NorthWest', 'FontSize', 14);
+                    handles.hfield{1}.hrho, ...
+                    handles.hfield{1}.hzeta], ...
+                      {'Eddy center', 'Track of eddy center', 'Eddy core', 'SSH'}, ...
+                      'Location', 'NorthWest'); %, 'FontSize', 14);
 hleg.Box = 'off';
 hleg.Position(2) = hleg.Position(2) - 0.03;
+icons(end).Children.Children(1).LineWidth = 1;
+icons(end).Children.Children(2).LineWidth = 1;
+icons(end).Children.Children(3).LineWidth = 1;
+
 export_fig -a1 images/paper2/ew-34-surface-csdye.png
 
 %% center tracks
