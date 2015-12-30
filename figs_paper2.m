@@ -95,7 +95,8 @@ export_fig -a3 images/paper2/flux-diags.png
 folders = {'ew-4341', 'ew-34', 'ew-2341_wider'};
 if ~exist('ewflux', 'var'), ewflux = runArray(folders); end
 N = length(folders);
-times = [180 200 250];
+times = [180 300 275];
+opt.rhocontourplot = 0;
 opt.csfluxplot = 1;
 opt.nocolorbar = 1;
 opt.csdcontourplot = 0;
@@ -121,10 +122,13 @@ for ii=1:3
     axes(hax(ii)); caxis([-30 200]);
     handles(ii).htitle.String = ['\lambda = H_{sb}/L_z = ', ...
                         num2str(run.bathy.hsb/run.eddy.Lgauss(tres), '%.2f')];
+    handles(ii).hbathy{1}.ShowText = 'off';
     axes(hax(ii));
-    xlabel(''); set(gca, 'XTickLabel', []); colorbar('off');
+    hcen2(ii) = linex(handles(ii).hcen.XData);
+    hcen2(ii).YData(2) = hcen2(ii).YData(2) * 3/4;
+    xlabel(''); hax(ii).XTickLabel = []; colorbar('off');
     axes(hax(N+ii));
-    title('');
+    title(''); pbaspect([1 0.5 0.5]); hax(N+ii).Position(2) = 0.18;
 
     if ii ~= 1
         axes(hax(ii)); ylabel('');
@@ -132,14 +136,23 @@ for ii=1:3
     end
 end
 
+hax(5).YLim = [-1 1]*0.4;
+hax(6).YLim = [-1 1]*5;
+correct_ticks('y', [], '100', hax(1));
+correct_ticks('y', [], {'50'; '100'}, hax(2));
+correct_ticks('y', [], {'150'; '200'}, hax(3));
+correct_ticks('x', [], '400', hax(4));
+correct_ticks('x', [], '200', hax(5));
+correct_ticks('x', [], {'300'; '400'}, hax(6));
+
 axes(hax(4));
-ylabel('\int v(x,z) dz');
+ylabel('\int v(x,z) dz (m^2/s)');
 axes(hax(N));
 hcb = colorbar('southoutside');
 pos = hcb.Position;
 hcb.Position(1) = 0.5 - pos(3)/2;
 hcb.Position(2) = 0.5 + pos(4)/2;
-hcb.Label.String = 'Cross shelf dye - X_{sb} (km)';
+hcb.Label.String = 'Cross shelf dye - Y_{sb} (km)';
 
 export_fig -a1 images/paper2/inst-flux.png
 
