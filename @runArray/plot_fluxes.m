@@ -11,7 +11,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
 
     corder_backup = runArray.sorted_colors;
 
-    figs(length(figs):10) = 0;
+    figs(length(figs)+1:10) = 0;
 
     if figs(1)
         hfig1 = figure; % shelf water flux time series
@@ -64,10 +64,6 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
         ii = runArray.filter(ff);
 
         run = runArray.array(ii);
-
-        if run.params.flags.flat_bottom
-            continue;
-        end
 
         if isempty(run.csflux) | (isobath > length(run.csflux.x))
             disp(['Skipping ' run.name]);
@@ -127,15 +123,15 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
             zvec = vertbins ./ hsb; %max(abs(vertbins));
             zind = find_approx(vertbins, -1*hsb);
 
-            [~,~,zwidth,~] = run.streamer_peak(isobath);
-            if ~isnan(zwidth)
-                zind = [zind find_approx(vertbins, zwidth)];
-            end
+            %[~,~,zwidth,~] = run.streamer_peak(isobath);
+            %if ~isnan(zwidth)
+            %    zind = [zind find_approx(vertbins, zwidth)];
+            %end
 
             bc = baroclinicity(zvec, profile);
             profile = profile ./ max(profile);
             hgplt2(ff) = plot(profile, zvec, 'Color',hgplt1(ff).Color);
-            plot(profile(zind), zvec(zind), 'x', 'Color', hgplt1(ff).Color);
+            %plot(profile(zind), zvec(zind), 'x', 'Color', hgplt1(ff).Color);
             names2{ff} =  [names{ff} ' | bc = ' num2str(bc, '%.3f')];
         end
 
@@ -280,12 +276,13 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
 
     if figs(2)
         figure(hfig2)
+        set(gca, 'XAxisLocation', 'Top');
         insertAnnotation('runArray.plot_fluxes');
-        %ylim([-1 0]);
+        liney(-1);%ylim([-1 0]);
         limx = xlim;
         xlim([0 limx(2)]);
-        xlabel('Normalized volume transported');
-        ylabel('Vertical bin / H_{sb}');
+        xlabel('Normalized area transported');
+        ylabel('Z / H_{sb}');
         title(['ND isobath = ', locstr]);
         legend(hgplt2, names2, 'Location', 'SouthEast');
         beautify;
