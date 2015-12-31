@@ -270,10 +270,13 @@ export_fig -a1 images/paper2/ew-2360-mosaic-zslice.png
 %% bottom rho PV
 
 hplt = ew2360.plotBottomRhoPV(70);
+hplt.h_bathy{1}.LineStyle = '--';
+hplt.h_bathy{1}.LineWidth = 1;
+hplt.h_bathy{2}.LineStyle = '--';
 title('Bottom PV with \rho contours');
 xlabel('X (km)');
 ylabel('Y (km)');
-text(330, 149, 'shelfbreak')
+hplt.htext = text(330, 149, 'shelfbreak', 'Color', hplt.h_bathy{2}.Color)
 ylim([140 180]);
 set(gca, 'YTickMode', 'auto');
 
