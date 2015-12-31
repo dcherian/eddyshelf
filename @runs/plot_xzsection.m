@@ -147,7 +147,7 @@ function [handles] = plot_xzsection(runs, loc, day, debug_flux)
         contour(xvec/1000, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
     handles.htitle(1) = title('Cross-shelf velocity (m/s)');
     %linex(xfrac);
-    common(runs, tindex);
+    handles.hline(1) = common(runs, tindex);
     caxis([-1 1] * max(abs(csvel(:))));
     handles.hcb(1) = center_colorbar;
     handles.htime = runs.add_timelabel(tindex);
@@ -172,7 +172,7 @@ function [handles] = plot_xzsection(runs, loc, day, debug_flux)
     handles.hcb(4) = colorbar;
     title('Cross-shelf dye  - Y_{sb} (km)');
     linkaxes(handles.hax, 'xy');
-    common(runs, tindex);
+    handles.hline(4) = common(runs, tindex);
 
     % muck with colorbar
     cmin = round(min(runs.sgntamp*(csdye(:) - xsb)/1000));
@@ -203,7 +203,7 @@ function [handles] = plot_xzsection(runs, loc, day, debug_flux)
     %                       asvel(1:dxi:end, 1:dzi:end)'/1000, ...
     %                       w(1:dxi:end, 1:dzi:end)');
     caxis(clim); center_colorbar;
-    common(runs, tindex);
+    handles.hline(3) = common(runs, tindex);
     title('\rho (kg/m^3)');
     linkaxes(handles.hax, 'xy');
     beautify;
@@ -219,15 +219,16 @@ function [handles] = plot_xzsection(runs, loc, day, debug_flux)
         colorbar;
         title(['Eddy dye | ' runs.name]);
         linkaxes(handles.hax, 'xy');
-        common(runs, tindex);
+        handles.hline(2) = common(runs, tindex);
         caxis([0 1]);
         beautify;
     else
         handles.hax(2) = subplot(222);
         plot(abs(trapz(xvec, repnan(csvel.*mask,0), 1)), zvec);
-        title(runs.name);
-        common(runs, tindex);
-        xlabel('|Transport| (m^2/s)');
+        handles.hrunname = text(0.8, 0.15, runs.name, 'Units', 'Normalized');
+        handles.hline(2) = common(runs, tindex);
+        xlabel('\int v(x,z) dx (m^2/s)');
+        handles.hax(2).XAxisLocation = 'top';
         ylim(handles.hax(1).YLim);
         pbaspect([1.3 1 1]);
     end
@@ -243,7 +244,7 @@ function [handles] = plot_xzsection(runs, loc, day, debug_flux)
         contour(xvec/1000, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
         runs.add_timelabel(tindex);
         common(runs, tindex);
-        title(['Cross-shelf velocity (m/s) | ' runs.name]);
+        title(['Cross-shelf velocity, v (m/s) | ' runs.name]);
         % linex(xfrac*L/1000, 'xfrac');
         caxis([-1 1] * max(abs(csvel(:)))); center_colorbar;
         beautify;
@@ -272,9 +273,9 @@ function [handles] = plot_xzsection(runs, loc, day, debug_flux)
     handles.hrho = hrho;
 end
 
-function [] = common(obj, tindex)
+function [handle] = common(obj, tindex)
     xlabel('X - X_{eddy} (km)'); ylabel('Z (m)');
-    liney(-1 * [obj.eddy.Lgauss(tindex) obj.bathy.hsb], ...
-          {'vertical scale'; 'h_{sb}'});
+    [handle.hl,handle.htxt] = liney(-1 * [obj.eddy.Lgauss(tindex) obj.bathy.hsb], ...
+                                     {'vertical scale'; 'h_{sb}'});
     beautify;
 end

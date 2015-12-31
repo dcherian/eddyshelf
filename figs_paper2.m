@@ -169,9 +169,21 @@ export_fig -a1 images/paper2/inst-flux.png
 %% x-z sections
 
 handles = ew34.plot_xzsection(isobath, 225);
-correct_ticks('y', [], 3, handles.hax([1 3 4]));
-correct_ticks('y', [], 4, handles.hax([2]));
+correct_ticks('y', [], '-300', handles.hax);
+delete(handles.hrunname);
+for ii=3:4
+    for jj=1:2
+        delete(handles.hline(ii).hl{jj});
+        delete(handles.hline(ii).htxt{jj});
+    end
+end
+
+for ii=1:2
+    handles.hline(2).htxt{ii}.Units = 'normalized';
+    handles.hline(2).htxt{ii}.Position(1) = 0.3;
+end
 drawnow;
+
 export_fig -a1 images/paper2/ew-34-xzsection.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
