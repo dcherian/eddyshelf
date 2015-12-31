@@ -432,3 +432,31 @@ for ii=1:2
     handles(ii).htext{2}.Position(1) = 0.5;
 end
 export_fig -a3 images/paper2/fluxvertprofile.png
+
+%% shelfbreak flow surface snapshot
+if ~exist('ew04', 'var')
+    ew04 = runArray({'runew-04', 'runew-8041'});
+end
+
+opt.addvelquiver = 1;
+opt.rhocontourplot = 1;
+opt.csdcontourplot = 0;
+
+handles = ew04.mosaic_field('csdye', {'169'; '169'}, opt);
+xlim([200 450]);
+ylim([0 150]);
+for ii=1:2
+    delete(handles(ii).hrunname)
+    handles(ii).hbathy{1}.ShowText = 'off';
+    handles(ii).hquiv.Color = [1 1 1]*0.65;
+    handles(ii).hquiv.LineWidth = 2;
+end
+correct_ticks('x', [], '450', handles(1).hax);
+handles(1).hax.Title.String = 'Flat shelf | S_{sh} = 0';
+handles(2).hax.Title.String = 'Flat shelf | S_{sh} = 0.05';
+
+handles(1).supax.Position(4) = 0.76;
+handles(1).supax.Title.String = 'Surface cross-shelf dye (km)';
+handles(1).supax.Title.FontSize = 20;
+
+export_fig -a1 images/paper2/sbsnapshot.png
