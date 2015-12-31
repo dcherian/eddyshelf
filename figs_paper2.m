@@ -1,4 +1,6 @@
-% describe fluxes
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% field map
+
 if ~exist('ew34', 'var') | ~strcmpi(ew34.name, 'ew-34')
     ew34 = runs('../topoeddy/runew-34/');
 end
@@ -6,7 +8,6 @@ factor = 2;
 isobath = 4;
 timesteps = [1 150 200 250 300 380];
 
-% field map
 opt.csdcontourplot = 1;
 opt.csdcontours = ew34.csflux.x([1 4 8]);
 opt.addvelquiver = 0;
@@ -36,7 +37,9 @@ icons(end).Children.Children(3).LineWidth = 1;
 
 export_fig -a1 images/paper2/ew-34-surface-csdye.png
 
-%% center tracks
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% center tracks
+
 set(groot,'DefaultAxesColorOrder', cbrewer('qual', 'Paired', 8));
 if ~exist('ew', 'var')
     folders = {'runew-34', 'runew-8341', 'runew-5343', 'runew-5341', ...
@@ -51,7 +54,9 @@ set(gcf, 'Position', [675 175 1080 924]);
 columnlegend(3, names, 'Location', 'NorthWest');
 export_fig -a1 -png -pdf images/paper2/centracks
 
-%% field map
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% field map
+
 opt.csdcontourplot = 1;
 opt.csdcontours = ew34.csflux.x([1 4 8]);
 opt.addvelquiver = 0;
@@ -64,7 +69,9 @@ handles.hcb.delete;
 correct_ticks('y', [], {'50', '100'}, handles.hax([1 4]));
 export_fig -a1 images/paper2/ew-34-surface-csdye.png
 
-%% flux diagnostics
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% flux diagnostics
+
 handles = ew34.plot_fluxts(factor, 3, 3);
 handles.htitle.String = ['Flux of water for z > ' num2str(factor) ' H_{sb}'];
 color = handles.icons(1).Color;
@@ -91,7 +98,8 @@ handles.icons(10).FaceAlpha = 0.2;
 axes(handles.hax(2)); % make visible
 export_fig -a3 images/paper2/flux-diags.png
 
-%% surface map and instantaneous flux
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% surface map and instantaneous flux
+
 folders = {'ew-4341', 'ew-34', 'ew-2341_wider'};
 if ~exist('ewflux', 'var'), ewflux = runArray(folders); end
 N = length(folders);
@@ -156,14 +164,18 @@ hcb.Label.String = 'Cross shelf dye - Y_{sb} (km)';
 
 export_fig -a1 images/paper2/inst-flux.png
 
-%% x-z sections
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% x-z sections
+
 handles = ew34.plot_xzsection(isobath, 225);
 correct_ticks('y', [], 3, handles.hax([1 3 4]));
 correct_ticks('y', [], 4, handles.hax([2]));
 drawnow;
 export_fig -a1 images/paper2/ew-34-xzsection.png
 
-%% secondary eddy - 2360
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% secondary eddy - 2360
+
 if ~exist('ew2360', 'var') | ~strcmpi(ew2360.name, 'ew-2360_wider')
     ew2360 = runs('../topoeddy/runew-2360_wider/');
     xx = [343 346 349]';
@@ -176,7 +188,9 @@ correct_ticks('y', [], '198', handles.hax(1));
 handles.hax(1).Title.String = 'Cross shelf dye - X_{sb} (km)';
 export_fig -a1 images/paper2/ew-2360-secondary-cyclone.png
 
-%% secondary eddy - ew-34
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% secondary eddy - ew-34
+
 if ~exist('ew34', 'var')
     ew34 = runs('../topoeddy/runew-34/');
 end
@@ -246,7 +260,9 @@ axes(handles(4).hax); correct_ticks('x', '', '400');
 axes(handles(5).hax); correct_ticks('x', '', '400');
 export_fig -a1 images/paper2/ew-34-mosaic-zslice.png
 
-%% ew-2360 z-slice mosaic
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ew-2360 z-slice mosaic
+
 handles = ew2360.mosaic_zslice('dye_03', 200, [63 70 77 95]);
 for ii=1:length(handles)
     handles(ii).csdsurf.LevelList = [170] * 1e3;
@@ -267,7 +283,8 @@ axes(handles(3).hax); correct_ticks('y', '', {'150' '200'});
 
 export_fig -a1 images/paper2/ew-2360-mosaic-zslice.png
 
-%% bottom rho PV
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% bottom rho PV
 
 hplt = ew2360.plotBottomRhoPV(70);
 hplt.h_bathy{1}.LineStyle = '--';
@@ -282,9 +299,11 @@ set(gca, 'YTickMode', 'auto');
 
 export_fig -a1 images/paper2/ew-2360-bottomrhopv.png
 
-%% secondary cyclone x-z section
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% secondary cyclone x-z section
 
-%% shelf + friction flux time series
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% shelf + friction flux time series
 
 %% shfric
 if ~exist('shfric', 'var')
@@ -366,7 +385,9 @@ uistack(handles2.hplted(3), 'top');
 
 export_fig -a3 images/paper2/sb-flux-summary.png
 
-%% avg streamer profiles - shelfbreak
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% avg streamer profiles - shelfbreak
+
 handles = ew34.plotAvgStreamer(1);
 correct_ticks('y', [], '-50');
 handles.ax(1).Title.String = 'Mean cross-isobath velocity (m/s)';
@@ -436,7 +457,9 @@ for ii=1:2
 end
 export_fig -a3 images/paper2/fluxvertprofile.png
 
-%% shelfbreak flow surface snapshot
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% shelfbreak flow surface snapshot
+
 if ~exist('ew04', 'var')
     ew04 = runArray({'runew-04', 'runew-8041'});
 end
