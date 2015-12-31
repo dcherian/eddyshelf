@@ -361,7 +361,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         handles.hquiv = quiver(runs.eddy.xr(rangex, rangey)/1000 - dx, ...
                                runs.eddy.yr(rangex, rangey)/1000 - dy, ...
                                u(rangex, rangey, ii)./uref, v(rangex, rangey, ii)./vref, scale, ...
-                               'Color', 'k', 'LineWidth', 2);
+                               'Color', 'k', 'LineWidth', 1);
     end
 
     if csdcontourplot
@@ -543,7 +543,6 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
             hflux = plot(runs.rgrid.xr(ix,1)/1000 - dx, ...
                          slopext(:, ii));
             ylim([-1 1] *max(slopext(:)));
-            hee = linex(runs.eddy.vor.ee(ii)/1000 - dx);
             if ~nocolorbar
                 oldpos = get(handles.subax(1), 'Position');
                 newpos = get(handles.subax(2), 'Position');
@@ -551,6 +550,8 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
                 set(handles.subax(2), 'Position', newpos);
             end
             linkaxes(handles.subax, 'x');
+            linkprop(handles.subax, 'XTick');
+            hee = linex(runs.eddy.mx(ii)/1000 - dx);
             liney(0);
             xlabel('X (km)');
             title('\int v(x,z,t)dz (m^2/s)');

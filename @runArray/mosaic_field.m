@@ -1,7 +1,7 @@
 % mosaic animate_field plots.
-%     [ax] = mosaic_field(runArray, varname, timesteps, opt, clim)
+%     [handles] = mosaic_field(runArray, varname, timesteps, opt, clim)
 
-function [ax] = mosaic_field(runArray, varname, timesteps, opt, clim)
+function [handles] = mosaic_field(runArray, varname, timesteps, opt, clim)
     if length(runArray.filter) > 4
         error('Too many runs selected for 2x2 mosaic!');
     end
@@ -38,6 +38,7 @@ function [ax] = mosaic_field(runArray, varname, timesteps, opt, clim)
         handles(ii).hrunname = text(0.80, handles(ii).htlabel.Position(2), ...
                                     runArray.getname(runArray.filter(ii)), ...
                                     'Units', 'normalized');
+        handles(ii).hax = ax(ii);
     end
 
     linkaxes(ax, 'xy'); axis tight;
@@ -48,11 +49,18 @@ function [ax] = mosaic_field(runArray, varname, timesteps, opt, clim)
     handles(1).htitle.FontWeight = 'normal';
 
     axes(ax(1));
-    colorbar('off'); xlabel(''); caxis(clim);
-    ax(1).XTickLabel = {};
+    colorbar('off'); caxis(clim);
+
     axes(ax(2));
-    caxis(clim); ylabel(''); xlabel(''); colorbar('off');
-    ax(2).XTickLabel = {}; ax(2).YTickLabel = {};
+    caxis(clim); ylabel(''); colorbar('off');
+    ax(2).YTickLabel = {};
+
+    if length(ax) ~= 2
+        ax(1).XTickLabel = {};
+        ax(1).XLabel.String = '';
+        ax(2).XLabel.String = '';
+        ax(2).XTickLabel = {};
+    end
     try
         axes(ax(3));
         caxis(clim); colorbar('off'); ax(3).XTickLabel{end} = '';
@@ -62,4 +70,6 @@ function [ax] = mosaic_field(runArray, varname, timesteps, opt, clim)
     catch ME
         hcb = colorbar; moveColorbarOut1x2(hcb);
     end
+
+    handles(1).hcb = hcb;
 end
