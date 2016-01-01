@@ -500,3 +500,24 @@ handles(1).supax.Title.String = 'Surface cross-shelf dye (km)';
 handles(1).supax.Title.FontSize = 20;
 
 export_fig -a1 images/paper2/sbsnapshot.png
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% avg flux
+
+hax = csf.plot_fluxparam('avg flux');
+axes(hax(3));
+hleg = legend;
+hleg.Position(1) = 0.82;
+
+export_fig -a2 images/paper2/avgflux.png
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% max flux
+
+hax = csf.plot_fluxparam('max flux');
+axes(hax(3));
+hleg = legend;
+hleg.Position(1) = 0.82;
+ylim([-1 1]*55);
+
+export_fig -a2 images/paper2/maxflux.png
