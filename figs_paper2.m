@@ -156,6 +156,10 @@ correct_ticks('x', [], {'300'; '400'}, hax(6));
 
 axes(hax(4));
 ylabel('\int v(x,z) dz (m^2/s)');
+htxt(1) = text(0.70, 0.15, ' Onshore', 'Color', [1 1 1]*0.55, ...
+               'Units', 'Normalized');
+htxt(2) = text(0.70, 0.85, 'Offshore', 'Units', 'Normalized');
+linkprop(htxt, 'Color');
 axes(hax(N));
 hcb = colorbar('southoutside');
 pos = hcb.Position;
