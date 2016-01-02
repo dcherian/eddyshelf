@@ -261,18 +261,22 @@ end
 
 export_fig -a1 images/paper2/ew-34-secondary-cyclone.png
 
-%% z-slice
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% ew-34 z-slice
+
 opt.csdcontours = ew34.csflux.x(isobath);
-handles = ew34.mosaic_zslice('dye_03', 100, [225 230 235 240 245 260], opt);
+handles = ew34.mosaic_zslice('dye_03', 75, [225 230 235 240 245 260], opt);
 for ii=1:length(handles)
-    handles(ii).eddsurf.Visible = 'off';
-    handles(1).htext(2).Visible = 'off';
+    handles(ii).eddsurf.delete;
+    handles(1).htext(2).delete;
     handles(ii).rhocont.LineWidth = 2.5;
     handles(ii).csdsurf.LineWidth = 2.5;
 end
+handles(1).htext(1).Position(2) = 0.18;
+handles(1).htext(3).Position(2) = 0.11;
 xlim([200 400]);
 ylim([0 150]);
-handles(1).htitle.String = 'Eddy dye at z = -200 m | H_{sb} = 50m | Ro = 0.10';
+handles(1).htitle.String = 'Eddy dye at z = -75 m | H_{sb} = 50m | Ro = 0.10';
 handles(1).htitle.FontSize = 22;
 handles(1).htitle.FontWeight = 'normal';
 handles(1).supax.Position(4) = 0.87;
