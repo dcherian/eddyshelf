@@ -604,7 +604,7 @@ classdef runArray < handle
             runArray.reset_colors(corder_backup);
         end
 
-        function [] = plot_fluxparam(runArray, str)
+        function [hax] = plot_fluxparam(runArray, str)
 
             if strcmpi(str, 'max flux') | strcmpi(str, 'avg flux')
                 factor = 2; % to 2xH_{sb}
@@ -650,8 +650,6 @@ classdef runArray < handle
                 cerr(ii) = Perr(2);
             end
 
-            %linkaxes(hax, 'xy');
-            %ylim([0 0.25]);
             hax(1).YTick = hax(1).YTick(2:end);
             hax(4).YTick = hax(4).YTick(2:end);
             %hax(7).YTick = hax(7).YTick(2:end);
@@ -666,6 +664,12 @@ classdef runArray < handle
 
             hax(8).XLabel.String = labx;
             hax(4).YLabel.String = laby;
+
+            % link axes properly
+            linkaxes(hax([1 2 4:9]), 'x');
+            linkaxes(hax([2 1]), 'y');
+            linkaxes(hax([6 5 4]), 'y');
+            linkaxes(hax([9 8 7]), 'y');
 
             axes(hax(2));
             if ~isempty(factor)
@@ -695,12 +699,23 @@ classdef runArray < handle
                      mplt./mmagn, merr./mmagn, 'k.-', 'LineWidth', 2, 'MarkerSize', 20);
             hold on;
             errorbar(runArray.array(1).csflux.ndloc(isobath), ...
-                     cplt/cmagn, cerr/cmagn, 'b.-', 'LineWidth', 2, 'MarkerSize', 20);
-            legend([num2str(1/mmagn) ' x Slope of fit'], [num2str(1/cmagn) ' x Intercept'], ...
-                   'Location', 'NorthEast', 'FontSize', 16);
+                     cplt/cmagn, cerr/cmagn, '.-', ...
+                     'Color', [1 1 1]*0.55, 'LineWidth', 2, 'MarkerSize', 20);
+            if mmagn == 1
+                mlegstr = 'm';
+            else
+                mlegstr = [num2str(1/mmagn) ' x m'];
+            end
+            if cmagn == 1
+                clegstr = 'c';
+            else
+                clegstr = [num2str(1/cmagn) 'x c'];
+            end
+            legend(mlegstr, clegstr, 'Location', 'NorthEast', 'FontSize', 16);
             xlabel('Location (y/R)');
             xlim([-0.05 2]);
-            hax(slopeplot).YTick = sort([hax(slopeplot).YTick min(mplt) max(mplt)]);
+            hax(slopeplot).YTick = sort([hax(slopeplot).YTick ...
+                                min(mplt)*mmagn max(mplt)*mmagn]);
             correct_ticks('y', '%.2f', []);
             beautify([14 16 18]); pbaspect([1.732 1 1]);
             liney(0);
