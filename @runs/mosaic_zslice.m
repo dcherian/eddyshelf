@@ -4,6 +4,7 @@ function [handles] = mosaic_zslice(runs, varname, depth, tind, opt)
     if ~exist('opt', 'var'), opt = []; end
 
     n = length(tind);
+    letters = 'abcdefghijkl';
 
     figure;
     insertAnnotation([runs.name '.mosaic_zslice(' varname ',' ...
@@ -14,6 +15,8 @@ function [handles] = mosaic_zslice(runs, varname, depth, tind, opt)
         handles(ii) = runs.animate_zslice(varname, depth, tind(ii), hax(ii), opt);
         title('');
         colorbar('off');
+        handles(ii).htime.String = [letters(ii) ') ' ...
+                            handles(ii).htime.String];
 
         uistack([handles(ii).csdsurf handles(ii).rhocont], 'top');
     end

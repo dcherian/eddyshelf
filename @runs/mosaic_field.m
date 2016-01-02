@@ -6,6 +6,7 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt)
     if ~exist('opt', 'var'), opt = []; end
 
     N = ceil(length(timesteps)/2);
+    letters = 'abcdefghijkl';
 
     figure; maximize;
     handles.hax = packboth(2, N);
@@ -18,6 +19,8 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt)
             opt.addzeta = 0;
         end
         handles.hfield{ii} = runs.animate_field(varname, handles.hax(ii), tstep, 1, opt);
+        handles.hfield{ii}.htlabel.String = [letters(ii) ') ' ...
+                            handles.hfield{ii}.htlabel.String];
         title('');
 
         if ii == 1 % save first colorbar limit
