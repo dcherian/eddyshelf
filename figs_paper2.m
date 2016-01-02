@@ -167,6 +167,9 @@ hcb.Position(1) = 0.5 - pos(3)/2;
 hcb.Position(2) = 0.5 + pos(4)/2;
 hcb.Label.String = 'Cross shelf dye - Y_{sb} (km)';
 
+supax = suplabel('Along-shelf profile of cross-isobath velocity at shelfbreak', 't');
+supax.Position(end) = 0.79;
+
 export_fig -a1 images/paper2/inst-flux.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
