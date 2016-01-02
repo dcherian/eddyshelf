@@ -3576,8 +3576,8 @@ methods
                 hplot{3} = linex(runs.bathy.xsl/1000,[], sbslcolor);
             end
 
-            hplot{2}.LineWidth = 2;
-            hplot{3}.LineWidth = 2;
+            hplot{2}.LineStyle = '--';
+            hplot{3}.LineStyle = '--';
         end
     end
 
