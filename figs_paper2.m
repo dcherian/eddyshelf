@@ -532,3 +532,33 @@ hleg.Position(1) = 0.82;
 ylim([-1 1]*55);
 
 export_fig -a2 images/paper2/maxflux.png
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 3d schematics
+day = [210 220 240 260];
+
+figure; maximize;
+for ii=1:length(day)
+    hax(ii) = subplot(2,2,ii);
+    handles(ii) = ew34.animate_3d(num2str(day(ii)), hax(ii));
+    handles(ii).hcsd.FaceAlpha = 1;
+    title('');
+    hax(ii).XAxis.Visible = 'off';
+    hax(ii).YAxis.Visible = 'off';
+    hax(ii).ZAxis.Visible = 'off';
+
+    hax(ii).Box = 'on';
+    bathy = handles(ii).hbathy.ZData;
+    handles(ii).hbathy.ZData(bathy < -700) = -700;
+end
+
+linkprop(hax, 'ZLim');
+zlim([-706 0]);
+
+% change views and lighting as needed
+axes(hax(1));
+axes(hax(2));
+axes(hax(3));
+
+axes(hax(4));
+view(-115, 28);
