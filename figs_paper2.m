@@ -535,30 +535,56 @@ export_fig -a2 images/paper2/maxflux.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 3d schematics
+if ~exist('ew34', 'var') | ~strcmpi(ew34.name, 'ew-34')
+    ew34 = runs('../topoeddy/runew-34/');
+end
+
 day = [210 220 240 260];
 
+opt.eddreducepatch = 0.3;
+opt.csdreducepatch = 0.3;
+opt.finalize = 1;
+opt.linefilter = 1;
+
+clear handles
 figure; maximize;
 for ii=1:length(day)
+    opt.x = [200, 410] * 1000;
+    opt.y = [300, 0] * 1000;
+
     hax(ii) = subplot(2,2,ii);
-    handles(ii) = ew34.animate_3d(num2str(day(ii)), hax(ii));
+    handles(ii) = ew34.animate_3d(num2str(day(ii)), opt, hax(ii));
     handles(ii).hcsd.FaceAlpha = 1;
     title('');
     hax(ii).XAxis.Visible = 'off';
     hax(ii).YAxis.Visible = 'off';
     hax(ii).ZAxis.Visible = 'off';
 
-    hax(ii).Box = 'on';
+    hax(ii).Box = 'off';
     bathy = handles(ii).hbathy.ZData;
     handles(ii).hbathy.ZData(bathy < -700) = -700;
+    handles(ii).hcsd.FaceColor = [107 174 214]/255;
+    handles(ii).hedd.FaceColor = brighten([215 48 31]/255, 0.1);
 end
 
-linkprop(hax, 'ZLim');
+linkprop([handles.hbathy], {'FaceColor', 'FaceAlpha'});
+linkprop([handles.hedd], 'FaceColor');
+%linkprop([handles.heddcap], 'FaceAlpha');
+linkprop([handles.hcsd], 'FaceColor');
+
+axes(hax(1));
 zlim([-706 0]);
+linkprop(hax, 'ZLim');
 
 % change views and lighting as needed
-axes(hax(1));
+%axes(hax(1));
 axes(hax(2));
+view(-110,30);
+
 axes(hax(3));
+view(-130, 30);
 
 axes(hax(4));
-view(-115, 28);
+view(-120, 28);
+
+tic; export_fig images/paper2/3d-schem.png; toc;
