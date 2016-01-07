@@ -544,6 +544,12 @@ day = [210 220 240 260];
 depth = 75;
 MoveToZLevel = -1100;
 
+annocolor = 'k'; %[1 1 1]*0.5;
+annofs = 18;
+annolw = 0.5;
+annoheadstyle = 'cback3';
+annofontname = 'Futura Bk BT';
+
 opt.eddthresh = 0.8;
 opt.csdcontours = ew34.bathy.xsb+5000;
 opt.eddreducepatch = 0.3;
@@ -610,7 +616,6 @@ linkprop([handles.hbathy], {'FaceColor', 'FaceAlpha'});
 linkprop([handles.hedd], 'FaceColor');
 linkprop([handles.hcsd], 'FaceColor');
 
-axes(hax(1));
 zlim([-1250 0]);
 linkprop(hax, 'ZLim');
 
@@ -620,12 +625,34 @@ view(-125, 28);
 
 axes(hax(2));
 view(-110,28);
+hanno(2) = annotation('textarrow', [0.7 0.61], [1 1]*0.68, ...
+                      'String', {'The kink is a'; 'wrinkle in 3-D'}, ...
+                      'LineWidth', annolw, 'Color', annocolor, ...
+                      'HeadStyle', annoheadstyle, 'FontSize', annofs);
 
 axes(hax(3));
 view(-130, 28);
+hanno(3) = annotation('textarrow', [0.34 0.49], [0.91 0.82], ...
+                      'String', {'The wrinkle rolls up'; 'into a cyclone'; ...
+                    'trappping the shelf/slope water'; 'above it.'}, ...
+                      'LineWidth', annolw, 'Color', annocolor, ...
+                      'HeadStyle', annoheadstyle, 'FontSize', annofs);
 
 axes(hax(4));
 view(-130, 28);
+hanno(4) = annotation('textarrow', [0.4 0.47], [0.91 0.85], ...
+                      'String', {'Cyclone propagates away'; ...
+                    'with trapped shelf/slope water'}, ...
+                      'LineWidth', annolw, 'Color', annocolor, ...
+                      'HeadStyle', annoheadstyle, 'FontSize', annofs);
+
+for ii=1:4
+    try
+        hanno(ii).HorizontalAlignment = 'center';
+        hanno(ii).Text.FontName = annofontname;
+    catch ME
+    end
+end
 
 tic;
 if multifig
