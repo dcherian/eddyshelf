@@ -540,36 +540,62 @@ if ~exist('ew34', 'var') | ~strcmpi(ew34.name, 'ew-34')
 end
 
 day = [210 220 240 260];
+depth = 75;
+MoveToZLevel = -650;
 
-opt.eddreducepatch = 0.3;
-opt.csdreducepatch = 0.3;
+opt.csdcontours = ew34.bathy.xsb+5000;
+opt.eddreducepatch = 0.05;
+opt.csdreducepatch = 0.05;
 opt.finalize = 1;
 opt.linefilter = 1;
 
-clear handles
+clear handles hslice hplane
 figure; maximize;
 for ii=1:length(day)
     opt.x = [200, 410] * 1000;
     opt.y = [300, 0] * 1000;
 
     hax(ii) = subplot(2,2,ii);
+    hslice(ii) = ew34.animate_zslice('dye_03', depth, day(ii), hax(ii), opt);
+    hslice(ii).bathy{1}.delete;
+    hslice(ii).bathy{2}.delete;
+    hslice(ii).bathy{3}.delete;
+    hslice(ii).eddsurf.delete;
+    hslice(ii).htime.delete;
+    colorbar('delete');
+    linkprop([hslice(ii).hvar hslice(ii).csdsurf hslice(ii).rhocont], 'ContourZLevel');
+    hslice(ii).hvar.ContourZLevel = MoveToZLevel;
+
     handles(ii) = ew34.animate_3d(num2str(day(ii)), opt, hax(ii));
     handles(ii).hcsd.FaceAlpha = 1;
-    title('');
+
+    [xmat, ymat] = meshgrid(xlim, ylim);
+    hplane(ii) = surf(xmat, ymat, -1*abs(depth) * ones(size(xmat)), ...
+                      'FaceColor', 'k', 'FaceAlpha', 0.05, 'EdgeColor', [1 1 1]*0.3);
+
+    houtline(ii) = plot3([xmat(:); xmat(1)], [ymat(:,1)' flip(ymat(:,2)') ymat(1)], ...
+                         MoveToZLevel * ones([1 5]), ...
+                         '-', 'LineWidth', 1, 'Color', [1 1 1]*0.3);
+
+    hax(ii).Title.String = '';
     hax(ii).XAxis.Visible = 'off';
     hax(ii).YAxis.Visible = 'off';
     hax(ii).ZAxis.Visible = 'off';
-
     hax(ii).Box = 'off';
+    hax(ii).DataAspectRatio = [1 2 4];
+
     bathy = handles(ii).hbathy.ZData;
     handles(ii).hbathy.ZData(bathy < -700) = -700;
     handles(ii).hcsd.FaceColor = [107 174 214]/255;
     handles(ii).hedd.FaceColor = brighten([215 48 31]/255, 0.1);
 end
 
+linkprop(houtline, {'LineWidth', 'Color'});
+linkprop(hplane, {'FaceAlpha', 'EdgeColor'});
+
+linkprop(hax, 'DataAspectRatio');
 linkprop([handles.hbathy], {'FaceColor', 'FaceAlpha'});
 linkprop([handles.hedd], 'FaceColor');
-%linkprop([handles.heddcap], 'FaceAlpha');
 linkprop([handles.hcsd], 'FaceColor');
 
 axes(hax(1));
