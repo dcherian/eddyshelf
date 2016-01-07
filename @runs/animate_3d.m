@@ -76,7 +76,7 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     hbathy = surf(runs.rgrid.xr/1000,runs.rgrid.yr/1000,-runs.bathy.h);
     set(hbathy,'FaceColor','Flat','EdgeColor','None');
     hbathy.FaceColor = [1 1 1];
-    hbathy.FaceAlpha = 0.12;
+    hbathy.FaceAlpha = 0.3;
 
     % add eddy
     eddColorMap = runs.eddyeColormap;
@@ -89,7 +89,7 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     end
     hedd.FaceColor = eddColorMap(end,:);
     hedd.FaceAlpha = 1;
-    axis tight;
+    %axis tight;
 
     heddcap = patch(isocaps(xrmat/1000,yrmat/1000,zrmat, eddVolume, opt.eddthresh), ...
                     'EdgeColor', 'none');
@@ -130,7 +130,7 @@ function [handles] = animate_3d(runs, tind, opt, hax)
 
     handles.hyplane = patch(xvec([1 sz(2) sz(2) 1 1])/1000, ones([1 5])*yvec(imy)/1000, ...
                             zvec([1 1 sz(3) sz(3) 1]), 'k', 'EdgeColor', [1 1 1]*0.3, ...
-                            'FaceAlpha', 0.1);
+                            'FaceAlpha', 0.08);
 
     for kk=1:length(cslevel)
         hcsd(kk) = patch(isosurface(xrmat/1000,yrmat/1000,zrmat, ...

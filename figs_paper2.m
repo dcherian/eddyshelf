@@ -595,6 +595,7 @@ for ii=1:length(day)
                          MoveToZLevel * ones([1 5]), ...
                          '-', 'LineWidth', 1, 'Color', [1 1 1]*0.3, 'Tag', 'dcline');
 
+    linkprop([hplane(ii) handles(ii).hyplane], 'FaceAlpha');
     hax(ii).Title.String = '';
     hax(ii).XAxis.Visible = 'off';
     hax(ii).YAxis.Visible = 'off';
@@ -606,6 +607,7 @@ for ii=1:length(day)
     %handles(ii).hbathy.ZData(bathy < -700) = -700;
     handles(ii).hcsd.FaceColor = [107 174 214]/255;
     handles(ii).hedd.FaceColor = brighten([215 48 31]/255, 0.1);
+    hplane(ii).FaceAlpha = 0.13;
 end
 
 linkprop(houtline, {'LineWidth', 'Color'});
