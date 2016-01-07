@@ -543,7 +543,7 @@ mergename = 'images/paper2/3dmerged.png';
 multifig = 1; % multiple figure windows and stitch later?
 day = [210 220 240 260];
 depth = 75;
-MoveToZLevel = -1100;
+MoveToZLevel = -990;
 
 annocolor = 'k'; %[1 1 1]*0.5;
 annofs = 25;
@@ -602,24 +602,28 @@ for ii=1:length(day)
     hax(ii).YAxis.Visible = 'off';
     hax(ii).ZAxis.Visible = 'off';
     hax(ii).Box = 'off';
-    hax(ii).DataAspectRatio = [1 2.5 8];
+    hax(ii).DataAspectRatio = [1 2.5 6];
 
-    %bathy = handles(ii).hbathy.ZData;
-    %handles(ii).hbathy.ZData(bathy < -700) = -700;
+    bathy = handles(ii).hbathy.ZData;
+    handles(ii).hbathy.ZData(bathy <= -1000) = -1010;
     handles(ii).hcsd.FaceColor = [107 174 214]/255;
     handles(ii).hedd.FaceColor = brighten([215 48 31]/255, 0.1);
-    hplane(ii).FaceAlpha = 0.13;
+end
+
+for ii=1:4
+    hplane(ii).FaceAlpha = 0.05;
+    handles(ii).hyplane.FaceAlpha = 0.05;
 end
 
 linkprop(houtline, {'LineWidth', 'Color'});
-linkprop(hplane, {'FaceAlpha', 'EdgeColor'});
+linkprop(hplane, 'EdgeColor');
 
 linkprop(hax, 'DataAspectRatio');
 linkprop([handles.hbathy], {'FaceColor', 'FaceAlpha'});
-linkprop([handles.hedd], 'FaceColor');
-linkprop([handles.hcsd], 'FaceColor');
+linkprop([handles.hedd], {'FaceColor', 'AmbientStrength'});
+linkprop([handles.hcsd], {'FaceColor', 'AmbientStrength'});
 
-zlim([-1250 0]);
+zlim([-1010 0]);
 linkprop(hax, 'ZLim');
 
 % change views and lighting as needed
@@ -628,7 +632,7 @@ view(-125, 28);
 
 axes(hax(2));
 view(-110,28);
-hanno(2) = annotation('textarrow', [0.7 0.61], [1 1]*0.68, ...
+hanno(2) = annotation('textarrow', [0.7 0.61], [1 1]*0.72, ...
                       'String', {'The kink is a'; 'wrinkle in 3-D'}, ...
                       'LineWidth', annolw, 'Color', annocolor, ...
                       'HeadStyle', annoheadstyle, 'FontSize', annofs);
@@ -644,12 +648,12 @@ hanno(3) = annotation('textarrow', [0.34 0.49], [0.91 0.82], ...
 
 axes(hax(4));
 view(-130, 28);
-hanno(4) = annotation('textarrow', [0.4 0.47], [0.91 0.85], ...
+hanno(4) = annotation('textarrow', [0.39 0.47], [0.91 0.87], ...
                       'String', {'Cyclone propagates away'; ...
                     'with trapped shelf/slope water'}, ...
                       'LineWidth', annolw, 'Color', annocolor, ...
                       'HeadStyle', annoheadstyle, 'FontSize', annofs);
-hanno(5) = annotation('textarrow', [0.7 0.61], [1 1]*0.73, ...
+hanno(5) = annotation('textarrow', [0.7 0.61], [1 1]*0.75, ...
                       'String', {'The process repeats'}, ...
                       'LineWidth', annolw, 'Color', annocolor, ...
                       'HeadStyle', annoheadstyle, 'FontSize', annofs);
@@ -667,12 +671,12 @@ tic;
 if multifig
     for ii=1:4
         axes(hax(ii));
-        export_fig('-r96', '-a4', '-p0.02', '-opengl', ...
+        export_fig('-r96', '-a4', '-p0.01', '-opengl', ...
                    ['images/paper2/3d-schem-' num2str(ii) '.png']);
     end
     hash = githash;
     system(['montage images/paper2/3d-schem-[1-4].png ' ...
-            '-geometry +10+10 ' mergename]);
+            '-geometry +1+1 ' mergename]);
     system(['exiftool -overwrite_original -Producer=' hash ' ' mergename]);
 else
     export_fig('-opengl', '-r96', '-a4', '-p0.02', mergename);
