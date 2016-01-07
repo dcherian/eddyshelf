@@ -539,6 +539,7 @@ if ~exist('ew34', 'var') | ~strcmpi(ew34.name, 'ew-34')
     ew34 = runs('../topoeddy/runew-34/');
 end
 
+multifig = 1; % multiple figure windows and stitch later?
 day = [210 220 240 260];
 depth = 75;
 MoveToZLevel = -1100;
@@ -551,12 +552,21 @@ opt.finalize = 1;
 opt.linefilter = 1;
 
 clear handles hslice hplane
-figure; maximize;
+if ~multifig
+    figure; maximize; set(gcf, 'Renderer', 'opengl');
+end
+
 for ii=1:length(day)
     opt.x = [200, 410] * 1000;
     opt.y = [300, 0] * 1000;
 
-    hax(ii) = subplot(2,2,ii);
+    if multifig
+        figure; maximize; hax(ii) = gca;
+        set(gcf, 'Renderer', 'opengl');
+    else
+        hax(ii) = subplot(2,2,ii);
+    end
+
     hslice(ii) = ew34.animate_zslice('dye_03', depth, day(ii), hax(ii), opt);
     hslice(ii).bathy{1}.delete;
     hslice(ii).bathy{2}.delete;
@@ -617,4 +627,17 @@ view(-130, 28);
 axes(hax(4));
 view(-130, 28);
 
-tic; export_fig images/paper2/3d-schem.png; toc;
+tic;
+if multifig
+    for ii=1:4
+        axes(hax(ii));
+        export_fig('-r96', '-a4', '-p0.02', '-opengl', ...
+                   ['images/paper2/3d-schem-' num2str(ii) '.png']);
+    end
+    system(['montage images/paper2/3d-schem-[1-4].png ' ...
+            '-geometry +10+10 ' ...
+            'images/paper2/3dmerged.png']);
+else
+    export_fig -opengl -r96 -a4 -p0.02 images/paper2/3d-schem.png;
+end
+toc;
