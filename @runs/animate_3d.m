@@ -16,6 +16,9 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     if ~isfield(opt, 'csdcontours')
         opt.csdcontours = [rusn.bathy.xsb+5]*1000;
     end
+    if ~isfield(opt, 'eddthresh')
+        opt.eddthresh = 0.8;
+    end
 
     tind = runs.process_time(tind);
     imx = runs.eddy.imx;
@@ -55,8 +58,7 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     end
 
     %% make isosurface plot
-    eddlevel = zrmat; %0.8;
-    thresh = 0.8;
+    eddlevel = zrmat; %opt.eddthresh;
     xsb = runs.bathy.xsb/1000;
     cslevel = opt.csdcontours;
     sbcolors = cbrewer('seq', 'Blues',8);
@@ -79,7 +81,7 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     % add eddy
     eddColorMap = runs.eddyeColormap;
     eddVolume = smooth3(bsxfun(@times,eddye(:,:,:,1),mask(:,:,1)));
-    hedd = patch(isosurface(xrmat/1000,yrmat/1000,zrmat, eddVolume, 0.8), ...
+    hedd = patch(isosurface(xrmat/1000,yrmat/1000,zrmat, eddVolume, opt.eddthresh), ...
                  'EdgeColor', 'none', 'AmbientStrength', 0.5, 'DiffuseStrength', 0.6);
     reducepatch(hedd, opt.eddreducepatch, 'verbose');
     if opt.finalize
@@ -89,7 +91,7 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     hedd.FaceAlpha = 1;
     axis tight;
 
-    heddcap = patch(isocaps(xrmat/1000,yrmat/1000,zrmat, eddVolume, 0.8), ...
+    heddcap = patch(isocaps(xrmat/1000,yrmat/1000,zrmat, eddVolume, opt.eddthresh), ...
                     'EdgeColor', 'none');
     linkprop([hedd heddcap], {'FaceColor', 'FaceAlpha'});
 
@@ -105,6 +107,31 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     hlight.Position(2) = 1400;
     hlight.Position(1) = -738;
 
+    imy = runs.eddy.imy(tind) - 5;
+    handles.hysect = ...
+        surface(squeeze(xrmat(imy,:,:)/1000), ...
+                squeeze(max(ylim) * ones(size(yrmat(imy,:,:)))), ...
+                squeeze(zrmat(imy,:,:)), ...
+                squeeze(fillnan(smooth3((eddVolume(imy,:,:) >= opt.eddthresh) + ...
+                                        -1 * (csdye(imy,:,:) <= cslevel(1))),0)), ...
+                'EdgeColor', 'none', 'FaceColor', 'interp', ...
+                'AmbientStrength', 0.8);
+    colormap(flip(cbrewer('div', 'RdBu', 10)));
+    caxis([-1 1.5]);
+
+    sz = size(xrmat);
+    xvec = xrmat(imy,:,1);
+    yvec = yrmat(imy,:,1);
+    zvec = squeeze(zrmat(imy,1,:));
+
+    handles.hysectoutline = plot3(xvec([1 sz(2) sz(2) 1 1])/1000, ones([1 5])*max(ylim), ...
+                                  zvec([1 1 sz(3) sz(3) 1]), 'Color', [1 1 1]*0.3, ...
+                                  'LineWidth', 1, 'Tag', 'dcline');
+
+    handles.hyplane = patch(xvec([1 sz(2) sz(2) 1 1])/1000, ones([1 5])*yvec(imy)/1000, ...
+                            zvec([1 1 sz(3) sz(3) 1]), 'k', 'EdgeColor', [1 1 1]*0.3, ...
+                            'FaceAlpha', 0.1);
+
     for kk=1:length(cslevel)
         hcsd(kk) = patch(isosurface(xrmat/1000,yrmat/1000,zrmat, ...
                                     smooth3(csdye(:,:,:,1)),cslevel(kk)));
@@ -119,7 +146,7 @@ function [handles] = animate_3d(runs, tind, opt, hax)
 
     %runs.read_zeta(tind);
     %keyboard;
-    %ssh = fillnan(runs.zeta(xrange,yrange,tind(1))' .* (eddVolume(:,:,end) > 0.8)*1e4, 0);
+    %ssh = fillnan(runs.zeta(xrange,yrange,tind(1))' .* (eddVolume(:,:,end) > opt.eddthresh)*1e4, 0);
     %ssh = ssh - min(ssh(:)) + max(zrmat(:));
     %hzeta = surf(xrmat(:,:,1)/1000, yrmat(:,:,1)/1000, ssh, 'EdgeColor', 'none');
     titlestr = 'dyes';

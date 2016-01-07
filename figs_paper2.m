@@ -541,11 +541,12 @@ end
 
 day = [210 220 240 260];
 depth = 75;
-MoveToZLevel = -650;
+MoveToZLevel = -1100;
 
+opt.eddthresh = 0.8;
 opt.csdcontours = ew34.bathy.xsb+5000;
-opt.eddreducepatch = 0.05;
-opt.csdreducepatch = 0.05;
+opt.eddreducepatch = 0.3;
+opt.csdreducepatch = 0.3;
 opt.finalize = 1;
 opt.linefilter = 1;
 
@@ -565,6 +566,7 @@ for ii=1:length(day)
     colorbar('delete');
     linkprop([hslice(ii).hvar hslice(ii).csdsurf hslice(ii).rhocont], 'ContourZLevel');
     hslice(ii).hvar.ContourZLevel = MoveToZLevel;
+    hslice(ii).hvar.ZData = fillnan(double(hslice(ii).hvar.ZData > 0.4), 0);
 
     handles(ii) = ew34.animate_3d(num2str(day(ii)), opt, hax(ii));
     handles(ii).hcsd.FaceAlpha = 1;
@@ -575,17 +577,17 @@ for ii=1:length(day)
 
     houtline(ii) = plot3([xmat(:); xmat(1)], [ymat(:,1)' flip(ymat(:,2)') ymat(1)], ...
                          MoveToZLevel * ones([1 5]), ...
-                         '-', 'LineWidth', 1, 'Color', [1 1 1]*0.3);
+                         '-', 'LineWidth', 1, 'Color', [1 1 1]*0.3, 'Tag', 'dcline');
 
     hax(ii).Title.String = '';
     hax(ii).XAxis.Visible = 'off';
     hax(ii).YAxis.Visible = 'off';
     hax(ii).ZAxis.Visible = 'off';
     hax(ii).Box = 'off';
-    hax(ii).DataAspectRatio = [1 2 4];
+    hax(ii).DataAspectRatio = [1 2.5 8];
 
-    bathy = handles(ii).hbathy.ZData;
-    handles(ii).hbathy.ZData(bathy < -700) = -700;
+    %bathy = handles(ii).hbathy.ZData;
+    %handles(ii).hbathy.ZData(bathy < -700) = -700;
     handles(ii).hcsd.FaceColor = [107 174 214]/255;
     handles(ii).hedd.FaceColor = brighten([215 48 31]/255, 0.1);
 end
@@ -599,18 +601,20 @@ linkprop([handles.hedd], 'FaceColor');
 linkprop([handles.hcsd], 'FaceColor');
 
 axes(hax(1));
-zlim([-706 0]);
+zlim([-1250 0]);
 linkprop(hax, 'ZLim');
 
 % change views and lighting as needed
-%axes(hax(1));
+axes(hax(1));
+view(-125, 28);
+
 axes(hax(2));
-view(-110,30);
+view(-110,28);
 
 axes(hax(3));
-view(-130, 30);
+view(-130, 28);
 
 axes(hax(4));
-view(-120, 28);
+view(-130, 28);
 
 tic; export_fig images/paper2/3d-schem.png; toc;
