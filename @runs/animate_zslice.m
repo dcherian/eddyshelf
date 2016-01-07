@@ -1,6 +1,8 @@
 function [handles] = animate_zslice(runs,varname,depth,tind,hax,opt)
 
-    if ~exist('hax', 'var'), figure; hax = gca; end
+    if ~exist('hax', 'var') | isempty(hax)
+        figure; hax = gca;  maximize;
+    end
     if ~exist('tind','var'), tind = []; end
     if ~exist('opt', 'var'), opt = []; end
 
@@ -129,7 +131,7 @@ function [handles] = animate_zslice(runs,varname,depth,tind,hax,opt)
     titlestr = [runs.name ' | ' varname ' | z = ' num2str(depth) ' m '];
 
     % animate
-    axes(gca); maximize;
+    axes(hax);
     insertAnnotation([runs.name '.animate_zslice']);
     xax = grd.xax(:,:,1)/1000; yax = grd.yax(:,:,1)/1000; clear grd;
     tt = 1;
@@ -148,9 +150,10 @@ function [handles] = animate_zslice(runs,varname,depth,tind,hax,opt)
     [~,hedd] = contour(runs.rgrid.x_rho'/1e3, runs.rgrid.y_rho'/1e3, ...
                        runs.eddsurf(:,:,tind(1)), [0.9 0.9], ...
                        'Color', 'k', 'LineWidth', 2);
-    shading flat;
     ht = runs.set_title(titlestr, tind(1));
+    shading flat;
     axis image;
+
     %xlim([min(xax(:)) max(xax(:))]); - why?
     %ylim([min(yax(:)) max(yax(:))]); - why?
     colorbar;
