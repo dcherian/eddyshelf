@@ -539,13 +539,14 @@ if ~exist('ew34', 'var') | ~strcmpi(ew34.name, 'ew-34')
     ew34 = runs('../topoeddy/runew-34/');
 end
 
+mergename = 'images/paper2/3dmerged.png';
 multifig = 1; % multiple figure windows and stitch later?
 day = [210 220 240 260];
 depth = 75;
 MoveToZLevel = -1100;
 
 annocolor = 'k'; %[1 1 1]*0.5;
-annofs = 18;
+annofs = 25;
 annolw = 0.5;
 annoheadstyle = 'cback3';
 annofontname = 'Futura Bk BT';
@@ -635,8 +636,9 @@ hanno(2) = annotation('textarrow', [0.7 0.61], [1 1]*0.68, ...
 axes(hax(3));
 view(-130, 28);
 hanno(3) = annotation('textarrow', [0.34 0.49], [0.91 0.82], ...
-                      'String', {'The wrinkle rolls up'; 'into a cyclone'; ...
-                    'trappping the shelf/slope water'; 'above it.'}, ...
+                      'String', {'The wrinkle rolls up'; ...
+                    'into a cyclone trapping'; ...
+                    'the shelf/slope water'; 'above it.'}, ...
                       'LineWidth', annolw, 'Color', annocolor, ...
                       'HeadStyle', annoheadstyle, 'FontSize', annofs);
 
@@ -647,11 +649,16 @@ hanno(4) = annotation('textarrow', [0.4 0.47], [0.91 0.85], ...
                     'with trapped shelf/slope water'}, ...
                       'LineWidth', annolw, 'Color', annocolor, ...
                       'HeadStyle', annoheadstyle, 'FontSize', annofs);
+hanno(5) = annotation('textarrow', [0.7 0.61], [1 1]*0.73, ...
+                      'String', {'The process repeats'}, ...
+                      'LineWidth', annolw, 'Color', annocolor, ...
+                      'HeadStyle', annoheadstyle, 'FontSize', annofs);
 
-for ii=1:4
+for ii=1:length(hanno)
     try
         hanno(ii).HorizontalAlignment = 'center';
         hanno(ii).Text.FontName = annofontname;
+        hanno(ii).FontSize = annofs;
     catch ME
     end
 end
@@ -663,10 +670,11 @@ if multifig
         export_fig('-r96', '-a4', '-p0.02', '-opengl', ...
                    ['images/paper2/3d-schem-' num2str(ii) '.png']);
     end
+    hash = githash;
     system(['montage images/paper2/3d-schem-[1-4].png ' ...
-            '-geometry +10+10 ' ...
-            'images/paper2/3dmerged.png']);
+            '-geometry +10+10 ' mergename]);
+    system(['exiftool -overwrite_original -Producer=' hash ' ' mergename]);
 else
-    export_fig -opengl -r96 -a4 -p0.02 images/paper2/3d-schem.png;
+    export_fig('-opengl', '-r96', '-a4', '-p0.02', mergename);
 end
 toc;

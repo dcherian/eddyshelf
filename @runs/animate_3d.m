@@ -82,7 +82,7 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     eddColorMap = runs.eddyeColormap;
     eddVolume = smooth3(bsxfun(@times,eddye(:,:,:,1),mask(:,:,1)));
     hedd = patch(isosurface(xrmat/1000,yrmat/1000,zrmat, eddVolume, opt.eddthresh), ...
-                 'EdgeColor', 'none', 'AmbientStrength', 0.5, 'DiffuseStrength', 0.6);
+                 'EdgeColor', 'none', 'AmbientStrength', 0.65, 'DiffuseStrength', 0.6);
     reducepatch(hedd, opt.eddreducepatch, 'verbose');
     if opt.finalize
         isonormals(eddVolume, hedd);
@@ -141,6 +141,7 @@ function [handles] = animate_3d(runs, tind, opt, hax)
         hcsd(kk).FaceColor = sbcolors(kk,:);
         hcsd(kk).EdgeColor = 'none';
         hcsd(kk).FaceAlpha = 0.5;
+        hcsd(kk).AmbientStrength = 0.65;
         reducepatch(hcsd(kk), opt.csdreducepatch, 'verbose');
     end
 
