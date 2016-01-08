@@ -19,7 +19,7 @@ handles.hcb.delete;
 ylim([0 250]);
 correct_ticks('y', [], {'50', '100'}, handles.hax([1 4]));
 
-handles.supax.Position(4) = 0.70;
+handles.supax.Position(4) = 0.71;
 handles.htitle.String = 'Surface cross-shelf dye (km)';
 
 axes(handles.hax(1));

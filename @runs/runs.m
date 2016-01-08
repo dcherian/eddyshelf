@@ -3559,7 +3559,7 @@ methods
         iy = runs.spng.sy1:runs.spng.sy2;
 
         hold on;
-        if ~exist('color','var'), color = [1 1 1]*0.65; end
+        if ~exist('color','var'), color = [1 1 1]*0.45; end
         if strcmpi(plottype,'contour')
             [hplot{4},hplot{1}] = contour(runs.rgrid.xr(ix,iy)/1000,...
                                  runs.rgrid.yr(ix,iy)/1000, ...
@@ -3577,6 +3577,10 @@ methods
             end
 
             hplot{2}.LineStyle = '--';
+            hplot{2}.LineWidth = 2;
+            hplot{3}.LineWidth = 2;
+            hplot{2}.Tag = '';
+            hplot{3}.Tag = '';
             hplot{3}.LineStyle = '--';
         end
     end

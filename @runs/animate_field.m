@@ -379,7 +379,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     end
 
     % bathy
-    handles.hbathy = runs.plot_bathy('contour', [1 1 1]*0.7);
+    handles.hbathy = runs.plot_bathy('contour', [1 1 1]*0.45);
     for bb=1:3
         handles.hbathy{bb}.XData = handles.hbathy{bb}.XData - dx;
         handles.hbathy{bb}.YData = handles.hbathy{bb}.YData - dy;
