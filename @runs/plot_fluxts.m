@@ -1,7 +1,7 @@
 %        [handles] = plot_fluxts(runs, factor, isobath, source)
 function [handles] = plot_fluxts(runs, factor, isobath, source)
 
-    fluxin = runs.recalculateFlux(factor*runs.bathy.hsb, isobath, source);
+    fluxin = double(runs.recalculateFlux(factor*runs.bathy.hsb, isobath, source));
     [start, stop] = runs.flux_tindices(fluxin);
     [avgflux, err] = runs.calc_avgflux(fluxin);
     [maxflux,maxloc] = runs.calc_maxflux(fluxin);
