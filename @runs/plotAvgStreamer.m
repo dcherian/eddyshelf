@@ -5,6 +5,7 @@ function [handles] = plotAvgStreamer(runs, isobath)
     vmean = runs.streamer.vmean(:,:,isobath);
     xivec = runs.streamer.xivec;
     zvec = runs.streamer.zvec(:,isobath);
+    xprof = squeeze(trapz(zvec, vmean, 2)); % full vel : x-profile
 
     hf = figure; maximize();
     insertAnnotation([runs.name '.plotAvgStreamer']);
@@ -22,19 +23,24 @@ function [handles] = plotAvgStreamer(runs, isobath)
     hcb.Position(1) = 0.58;
 
     ax(2) = subplot(3,3,[1 2]);
-    hx = plot(xivec, runs.streamer.xprof(:,isobath));
+    hx = plot(xivec, xprof);
     title('\int dz');
     hold on;
     hl2(1) = linex(0); hl2(2) = liney(0);
     uistack(hl2, 'bottom');
     beautify;
     ylabel('Flux (m^2/s)');
+    htxt(1) = text(0.1, 0.85, 'Offshore', 'Units', 'Normalized');
+    htxt(2) = text(0.8, 0.15, 'Onshore', 'Units', 'Normalized');
+    linkprop([handles.isolabel htxt], {'FontSize', 'Color'});
+    htxt(1).Color = [1 1 1]*0.45;
 
     ax(3) = subplot(3,3,[6 9]);
     hz = plot(runs.streamer.off.zprof(:,isobath), zvec);
-    title('Offshore transport (\int dx)');
-    xlabel('Flux (m^2/s)');
+    hl3 = liney([-runs.bathy.hsb -runs.eddy.Lgauss(1)]);
+    title('Offshore transport (\int dx, m^2/s)');
     beautify;
+    ax(3).XAxisLocation = 'top';
     if isobath == 1, xlim([0 max(xlim)*1.15]); end
 
     if debug
@@ -74,6 +80,7 @@ function [handles] = plotAvgStreamer(runs, isobath)
     handles.hx = hx;
     handles.hz = hz;
     handles.hcb = hcb;
+    handles.htxt = htxt;
 
     handles.ax(2).XTickLabel = {};
     handles.ax(3).YTickLabel = {};
