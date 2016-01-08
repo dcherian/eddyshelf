@@ -23,5 +23,7 @@ function [hplt] = plotBottomRhoPV(runs, tindices)
         ylim([runs.bathy.xsb/1000-10 runs.eddy.my(tindex)/1000]);
 
         hplt.h_rho.LineWidth = 2;
+
+        beautify;
     end
 end

@@ -174,9 +174,11 @@ for ii=1:2
     handles.hline(2).htxt{ii}.Units = 'normalized';
     handles.hline(2).htxt{ii}.Position(1) = 0.3;
 end
-drawnow;
 
-export_fig -r96 -a2 images/paper2/ew-34-xzsection.png
+handles.hax(1).XLim = [-170 150];
+handles.hcb(1).Ticks = sort(unique([handles.hcb(1).Ticks -0.09 0.09]));
+
+export_fig -r120 -opengl -a2 images/paper2/ew-34-xzsection.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% secondary eddy - 2360

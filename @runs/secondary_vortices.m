@@ -14,7 +14,7 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
     hfield.hfield.CData = hfield.hfield.CData - runs.bathy.xsb/1000;
     caxis(hfield.hcb.Limits - runs.bathy.xsb/1000);
     %center_colorbar(hfield.hcb);
-    hfield.hcb.Position(1) = hfield.hcb.Position(1) + 0.02;
+    hfield.hcb.Position(1) = hfield.hcb.Position(1) + 0.04;
     index = find(hfield.hcb.Ticks == 0);
     hfield.hcb.TickLabels{index} = '0 - Shelfbreak';
     handles.hfield = hfield;
