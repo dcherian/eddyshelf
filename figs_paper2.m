@@ -35,7 +35,7 @@ icons(end).Children.Children(1).LineWidth = 1;
 icons(end).Children.Children(2).LineWidth = 1;
 icons(end).Children.Children(3).LineWidth = 1;
 
-export_fig -a1 images/paper2/ew-34-surface-csdye.png
+export_fig -r96 -a2 images/paper2/ew-34-surface-csdye.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% center tracks
@@ -52,22 +52,7 @@ ew.plot_penetration;
 title('');
 set(gcf, 'Position', [675 175 1080 924]);
 columnlegend(3, names, 'Location', 'NorthWest');
-export_fig -a1 -png -pdf images/paper2/centracks
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% field map
-
-opt.csdcontourplot = 1;
-opt.csdcontours = ew34.csflux.x([1 4 8]);
-opt.addvelquiver = 0;
-opt.zetaOnFirstPlot = 1;
-handles = ew34.mosaic_field('csdye', [1 150 200 250 300 380], opt);
-ylim([0 250]);
-handles.supax.Position(4) = 0.70;
-handles.htitle.String = 'Surface cross-shelf dye (km)';
-handles.hcb.delete;
-correct_ticks('y', [], {'50', '100'}, handles.hax([1 4]));
-export_fig -a1 images/paper2/ew-34-surface-csdye.png
+export_fig -r96 -a2 -png -pdf images/paper2/centracks
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% flux diagnostics
@@ -96,7 +81,7 @@ handles.icons(10).FaceColor = color;
 handles.icons(10).FaceAlpha = 0.2;
 
 axes(handles.hax(2)); % make visible
-export_fig -a3 images/paper2/flux-diags.png
+export_fig -r96 -a3 images/paper2/flux-diags.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% surface map and instantaneous flux
@@ -170,7 +155,7 @@ hcb.Label.String = 'Cross shelf dye - Y_{sb} (km)';
 supax = suplabel('Along-shelf profile of cross-isobath velocity at shelfbreak', 't');
 supax.Position(end) = 0.79;
 
-export_fig -a1 images/paper2/inst-flux.png
+export_fig -r96 -a2 images/paper2/inst-flux.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% x-z sections
@@ -191,7 +176,7 @@ for ii=1:2
 end
 drawnow;
 
-export_fig -a1 images/paper2/ew-34-xzsection.png
+export_fig -r96 -a2 images/paper2/ew-34-xzsection.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% secondary eddy - 2360
@@ -206,7 +191,7 @@ opt.csdcontours = ew2360.csflux.x(isobath);
 handles = ew2360.secondary_vortices(95, [xx yy], opt);
 correct_ticks('y', [], '198', handles.hax(1));
 handles.hax(1).Title.String = 'Cross shelf dye - X_{sb} (km)';
-export_fig -a1 images/paper2/ew-2360-secondary-cyclone.png
+export_fig -r96 -a2 images/paper2/ew-2360-secondary-cyclone.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% secondary eddy - ew-34
@@ -259,7 +244,7 @@ for ii=1:4
     handles.hl(ii,2).XData = xlim;
 end
 
-export_fig -a1 images/paper2/ew-34-secondary-cyclone.png
+export_fig -r96 -a2 images/paper2/ew-34-secondary-cyclone.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% ew-34 z-slice
@@ -282,7 +267,7 @@ handles(1).htitle.FontWeight = 'normal';
 handles(1).supax.Position(4) = 0.87;
 axes(handles(4).hax); correct_ticks('x', '', '400');
 axes(handles(5).hax); correct_ticks('x', '', '400');
-export_fig -a1 images/paper2/ew-34-mosaic-zslice.png
+export_fig -r96 -a2 images/paper2/ew-34-mosaic-zslice.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% ew-2360 z-slice mosaic
@@ -305,7 +290,7 @@ handles(1).supax.Position(4) = 0.87;
 axes(handles(1).hax); correct_ticks('y', '', {'150' '200'});
 axes(handles(3).hax); correct_ticks('y', '', {'150' '200'});
 
-export_fig -a1 images/paper2/ew-2360-mosaic-zslice.png
+export_fig -r96 -a2 images/paper2/ew-2360-mosaic-zslice.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% bottom rho PV
@@ -321,7 +306,7 @@ hplt.htext = text(330, 149, 'shelfbreak', 'Color', hplt.h_bathy{2}.Color)
 ylim([140 180]);
 set(gca, 'YTickMode', 'auto');
 
-export_fig -a1 images/paper2/ew-2360-bottomrhopv.png
+export_fig -r96 -a2 images/paper2/ew-2360-bottomrhopv.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% secondary cyclone x-z section
@@ -404,7 +389,7 @@ handles2.htxt(2).Color = colors(2,:);
 handles2.htxt(3).Color = colors(5,:);
 uistack(handles2.hplted(3), 'top');
 
-export_fig -a3 images/paper2/sb-flux-summary.png
+export_fig -r96 -a3 images/paper2/sb-flux-summary.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% avg streamer profiles - shelfbreak
@@ -412,7 +397,7 @@ export_fig -a3 images/paper2/sb-flux-summary.png
 handles = ew34.plotAvgStreamer(1);
 correct_ticks('y', [], '-50');
 handles.ax(1).Title.String = 'Mean cross-isobath velocity (m/s)';
-export_fig -a1 images/paper2/ew34-avgstreamer-sb.png
+export_fig -r96 -a2 images/paper2/ew34-avgstreamer-sb.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% avg streamer profiles - offshore
@@ -420,7 +405,7 @@ export_fig -a1 images/paper2/ew34-avgstreamer-sb.png
 handles = ew34.plotAvgStreamer(4);
 handles.ax(1).Title.String = 'Mean cross-isobath velocity (m/s)';
 correct_ticks('y', [], {'-50'; '-400'}, handles.ax([1 3]));
-export_fig -a1 images/paper2/ew34-avgstreamer-sl.png
+export_fig -r96 -a2 images/paper2/ew34-avgstreamer-sl.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% flux vertical profiles
@@ -480,7 +465,7 @@ for ii=1:2
     handles(ii).htext{1}.Position(1) = 0.5;
     handles(ii).htext{2}.Position(1) = 0.5;
 end
-export_fig -a3 images/paper2/fluxvertprofile.png
+export_fig -r96 -a3 images/paper2/fluxvertprofile.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% shelfbreak flow surface snapshot
@@ -510,7 +495,7 @@ handles(1).supax.Position(4) = 0.76;
 handles(1).supax.Title.String = 'Surface cross-shelf dye (km)';
 handles(1).supax.Title.FontSize = 20;
 
-export_fig -a1 images/paper2/sbsnapshot.png
+export_fig -r96 -a2 images/paper2/sbsnapshot.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% avg flux
@@ -520,7 +505,7 @@ axes(hax(3));
 hleg = legend;
 hleg.Position(1) = 0.82;
 
-export_fig -a2 images/paper2/avgflux.png
+export_fig -r96 -a2 images/paper2/avgflux.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% max flux
@@ -531,7 +516,7 @@ hleg = legend;
 hleg.Position(1) = 0.82;
 ylim([-1 1]*55);
 
-export_fig -a2 images/paper2/maxflux.png
+export_fig -r96 -a2 images/paper2/maxflux.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 3d schematics
