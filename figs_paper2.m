@@ -297,6 +297,7 @@ export_fig -r96 -a2 images/paper2/ew-2360-mosaic-zslice.png
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% bottom rho PV
 
+figure;
 hplt = ew2360.plotBottomRhoPV(70);
 hplt.h_bathy{1}.LineStyle = '--';
 hplt.h_bathy{1}.LineWidth = 1;
@@ -407,15 +408,16 @@ export_fig -r96 -a3 images/paper2/sb-flux-summary.png
 handles = ew34.plotAvgStreamer(1);
 correct_ticks('y', [], '-50');
 handles.ax(1).Title.String = 'Mean cross-isobath velocity (m/s)';
-export_fig -r96 -a2 images/paper2/ew34-avgstreamer-sb.png
+export_fig -r120 -a2 images/paper2/ew34-avgstreamer-sb.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% avg streamer profiles - offshore
 
 handles = ew34.plotAvgStreamer(4);
 handles.ax(1).Title.String = 'Mean cross-isobath velocity (m/s)';
-correct_ticks('y', [], {'-50'; '-400'}, handles.ax([1 3]));
-export_fig -r96 -a2 images/paper2/ew34-avgstreamer-sl.png
+correct_ticks('y', [], {'-50'; '-400'}, handles.ax(1));
+handles.ax(3).XLim = [0 0.6];
+export_fig -r120 -a2 images/paper2/ew34-avgstreamer-sl.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% flux vertical profiles
@@ -427,6 +429,7 @@ end
 
 day = {'119'; []; '75'};
 names = {'Anticyclone'; 'Cyclone'}; %; 'Anticyclone - flat bottom'};
+opt.rhocontours = 1;
 figs(2) = 1;
 fluxvert.plot_fluxes(4, [],[],figs);
 title('');
@@ -443,7 +446,7 @@ hax(4).Position(3) = 0.28;
 for ii=1:2
     hax(ii) = subplot(2,2,1 + 2*(ii-1));
     handles(ii) = ...
-        fluxvert.array(ii).PlotSingleXZSection('v', 4, day{ii}, hax(ii));
+        fluxvert.array(ii).PlotSingleXZSection('v', 4, day{ii}, opt, hax(ii));
     title(names{ii});
     if ii ~= fluxvert.len
         hax(ii).XTickLabel = {};
