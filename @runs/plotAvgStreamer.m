@@ -2,7 +2,7 @@ function [handles] = plotAvgStreamer(runs, isobath)
 
     debug = 0;
     %pint = runs.csflux.off.slopewater.vertitrans(:,isobath,source);
-    vmean = runs.streamer.off.vmean(:,:,isobath);
+    vmean = runs.streamer.vmean(:,:,isobath);
     xivec = runs.streamer.xivec;
     zvec = runs.streamer.zvec(:,isobath);
 
@@ -22,7 +22,7 @@ function [handles] = plotAvgStreamer(runs, isobath)
     hcb.Position(1) = 0.58;
 
     ax(2) = subplot(3,3,[1 2]);
-    hx = plot(xivec, runs.streamer.off.xprof(:,isobath));
+    hx = plot(xivec, runs.streamer.xprof(:,isobath));
     title('\int dz');
     hold on;
     hl2(1) = linex(0); hl2(2) = liney(0);
