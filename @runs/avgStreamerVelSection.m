@@ -82,7 +82,7 @@ function [] = avgStreamerVelSection(runs)
     runs.streamer.on.zprof = squeeze(trapz(xivec, repnan(onvmean,0), 1)); % onshore mean profile
     runs.streamer.off.xprof = squeeze(trapz(zvec, offvmean, 2));% offshore vel : x-profile
     runs.streamer.on.xprof = squeeze(trapz(zvec, onvmean, 2));% onshore vel : x-profile
-    runs.streamer.xprof = squeeze(trapz(zvec, offvmean, 2)); % full vel : x-profile
+    runs.streamer.xprof = squeeze(trapz(zvec, vmean, 2)); % full vel : x-profile
 
     % diagnostics
     [xmax,xind] = nanmax(runs.streamer.off.xprof, [], 1);
