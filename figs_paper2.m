@@ -541,7 +541,7 @@ end
 
 mergename = 'images/paper2/3dmerged.png';
 multifig = 1; % multiple figure windows and stitch later?
-day = [210 220 240 260];
+day = [220 230 240 260];
 depth = 75;
 MoveToZLevel = -990;
 
@@ -558,7 +558,7 @@ opt.csdreducepatch = 0.3;
 opt.finalize = 1;
 opt.linefilter = 1;
 
-clear handles hslice hplane
+clear handles hslice hplane hax
 if ~multifig
     figure; maximize; set(gcf, 'Renderer', 'opengl');
 end
@@ -566,7 +566,6 @@ end
 for ii=1:length(day)
     opt.x = [200, 410] * 1000;
     opt.y = [300, 0] * 1000;
-
     if multifig
         figure; maximize; hax(ii) = gca;
         set(gcf, 'Renderer', 'opengl');
@@ -574,86 +573,91 @@ for ii=1:length(day)
         hax(ii) = subplot(2,2,ii);
     end
 
-    hslice(ii) = ew34.animate_zslice('dye_03', depth, day(ii), hax(ii), opt);
-    hslice(ii).bathy{1}.delete;
-    hslice(ii).bathy{2}.delete;
-    hslice(ii).bathy{3}.delete;
-    hslice(ii).eddsurf.delete;
-    hslice(ii).htime.delete;
-    colorbar('delete');
-    linkprop([hslice(ii).hvar hslice(ii).csdsurf hslice(ii).rhocont], 'ContourZLevel');
-    hslice(ii).hvar.ContourZLevel = MoveToZLevel;
-    hslice(ii).hvar.ZData = fillnan(double(hslice(ii).hvar.ZData > 0.4), 0);
+    % hslice(ii) = ew34.animate_zslice('dye_03', depth, day(ii), hax(ii), opt);
+    % hslice(ii).bathy{1}.delete;
+    % hslice(ii).bathy{2}.delete;
+    % hslice(ii).bathy{3}.delete;
+    % hslice(ii).eddsurf.delete;
+    % hslice(ii).htime.delete;
+    % colorbar('delete');
+    % linkprop([hslice(ii).hvar hslice(ii).csdsurf hslice(ii).rhocont], 'ContourZLevel');
+    % hslice(ii).hvar.ContourZLevel = MoveToZLevel;
+    % hslice(ii).hvar.ZData = fillnan(double(hslice(ii).hvar.ZData > 0.4), 0);
 
     handles(ii) = ew34.animate_3d(num2str(day(ii)), opt, hax(ii));
     handles(ii).hcsd.FaceAlpha = 1;
 
-    [xmat, ymat] = meshgrid(xlim, ylim);
-    hplane(ii) = surf(xmat, ymat, -1*abs(depth) * ones(size(xmat)), ...
-                      'FaceColor', 'k', 'FaceAlpha', 0.05, 'EdgeColor', [1 1 1]*0.3);
+    % [xmat, ymat] = meshgrid(xlim, ylim);
+    % hplane(ii) = surf(xmat, ymat, -1*abs(depth) * ones(size(xmat)), ...
+    %                   'FaceColor', 'k', 'FaceAlpha', 0.05, 'EdgeColor', [1 1 1]*0.3);
 
-    houtline(ii) = plot3([xmat(:); xmat(1)], [ymat(:,1)' flip(ymat(:,2)') ymat(1)], ...
-                         MoveToZLevel * ones([1 5]), ...
-                         '-', 'LineWidth', 1, 'Color', [1 1 1]*0.3, 'Tag', 'dcline');
+    % houtline(ii) = plot3([xmat(:); xmat(1)], [ymat(:,1)' flip(ymat(:,2)') ymat(1)], ...
+    %                      MoveToZLevel * ones([1 5]), ...
+    %                      '-', 'LineWidth', 1, 'Color', [1 1 1]*0.3, 'Tag', 'dcline');
 
-    linkprop([hplane(ii) handles(ii).hyplane], 'FaceAlpha');
+    % linkprop([hplane(ii) handles(ii).hyplane], 'FaceAlpha');
     hax(ii).Title.String = '';
     hax(ii).XAxis.Visible = 'off';
     hax(ii).YAxis.Visible = 'off';
     hax(ii).ZAxis.Visible = 'off';
     hax(ii).Box = 'off';
-    hax(ii).DataAspectRatio = [1 2.5 6];
+    hax(ii).DataAspectRatio = [1 2.5 4];
 
     bathy = handles(ii).hbathy.ZData;
-    handles(ii).hbathy.ZData(bathy <= -1000) = -1010;
+    handles(ii).hbathy.ZData(bathy <= -850) = -850;
     handles(ii).hcsd.FaceColor = [107 174 214]/255;
     handles(ii).hedd.FaceColor = brighten([215 48 31]/255, 0.1);
 end
 
-for ii=1:4
-    hplane(ii).FaceAlpha = 0.05;
-    handles(ii).hyplane.FaceAlpha = 0.05;
-end
-
-linkprop(houtline, {'LineWidth', 'Color'});
-linkprop(hplane, 'EdgeColor');
+%linkprop(houtline, {'LineWidth', 'Color'});
+%linkprop(hplane, 'EdgeColor');
 
 linkprop(hax, 'DataAspectRatio');
 linkprop([handles.hbathy], {'FaceColor', 'FaceAlpha'});
 linkprop([handles.hedd], {'FaceColor', 'AmbientStrength'});
 linkprop([handles.hcsd], {'FaceColor', 'AmbientStrength'});
 
-zlim([-1010 0]);
+zlim([-850 0]);
 linkprop(hax, 'ZLim');
 
 % change views and lighting as needed
-axes(hax(1));
-view(-125, 28);
+%axes(hax(1));
+%view(-125, 28);
 
-axes(hax(2));
+axes(hax(1));
 view(-110,28);
-hanno(2) = annotation('textarrow', [0.7 0.61], [1 1]*0.72, ...
-                      'String', {'The kink is a'; 'wrinkle in 3-D'}, ...
+hanno(1) = annotation('textarrow', [0.67 0.6], [0.73 0.73], ...
+                      'String', {'The cyclonic wave is'; 'a wrinkle in 3-D'}, ...
                       'LineWidth', annolw, 'Color', annocolor, ...
                       'HeadStyle', annoheadstyle, 'FontSize', annofs);
 
+axes(hax(2));
+view(-122, 42);
+handles(2).hlight.Position = [-1400 1400 500];
+hanno(2) = annotation('textarrow', [0.65 0.58], [0.58 0.69], ...
+                      'String', {'The wave propagates'; ...
+                    'around the eddy'; 'with the shelf/slope';'water'}, ...
+                      'LineWidth', annolw, 'Color', annocolor, ...
+                      'HeadStyle', annoheadstyle, 'FontSize', annofs);
+
+
 axes(hax(3));
 view(-130, 28);
-hanno(3) = annotation('textarrow', [0.34 0.49], [0.91 0.82], ...
-                      'String', {'The wrinkle rolls up'; ...
+hanno(3) = annotation('textarrow', [0.38 0.52], [0.91 0.82], ...
+                      'String', {'The wave rolls up'; ...
                     'into a cyclone trapping'; ...
                     'the shelf/slope water'; 'above it.'}, ...
                       'LineWidth', annolw, 'Color', annocolor, ...
                       'HeadStyle', annoheadstyle, 'FontSize', annofs);
 
 axes(hax(4));
-view(-130, 28);
-hanno(4) = annotation('textarrow', [0.39 0.47], [0.91 0.87], ...
+view(-128, 40);
+hanno(4) = annotation('textarrow', [0.39 0.49], [0.85 0.85], ...
                       'String', {'Cyclone propagates away'; ...
                     'with trapped shelf/slope water'}, ...
                       'LineWidth', annolw, 'Color', annocolor, ...
                       'HeadStyle', annoheadstyle, 'FontSize', annofs);
-hanno(5) = annotation('textarrow', [0.7 0.61], [1 1]*0.75, ...
+hanno(5) = annotation('textarrow', [0.68 0.6], [0.75 0.71], ...
                       'String', {'The process repeats'}, ...
                       'LineWidth', annolw, 'Color', annocolor, ...
                       'HeadStyle', annoheadstyle, 'FontSize', annofs);
@@ -676,7 +680,7 @@ if multifig
     end
     hash = githash;
     system(['montage images/paper2/3d-schem-[1-4].png ' ...
-            '-geometry +1+1 ' mergename]);
+            '-geometry +0.1+0.1 ' mergename]);
     system(['exiftool -overwrite_original -Producer=' hash ' ' mergename]);
 else
     export_fig('-opengl', '-r96', '-a4', '-p0.02', mergename);

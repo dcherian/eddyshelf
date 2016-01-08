@@ -160,7 +160,7 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     xlabel('X (km)'); ylabel('Y (km)'); zlabel('Z (m)');
     beautify;
 
-    view(-120,30); zoom(1.2);
+    view(-120,30);
 
     for ii=2:4:size(eddye,4)
         pause();
