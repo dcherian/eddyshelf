@@ -84,6 +84,7 @@ function [] = csfluxes(runs, ftype)
         asvelid = 'v';
         bathyax = 1;
         xvec = runs.rgrid.yr(1,:);
+        hvec = runs.bathy.h(:,1);
         indices = vecfind(runs.rgrid.x_rho(1,:),loc);
 
         % append sponge edge to existing values
@@ -94,6 +95,7 @@ function [] = csfluxes(runs, ftype)
         bathyax = 2;
         indices = vecfind(runs.rgrid.y_rho(:,1),loc);
         xvec = runs.rgrid.xr(:,1);
+        hvec = runs.bathy.h(1,:);
 
         % append sponge edge to existing values
         sy2 = runs.spng.sy2;
@@ -107,7 +109,7 @@ function [] = csfluxes(runs, ftype)
         % save indices for locations - w.r.t INTERIOR RHO POINTS
         runs.csflux.ix = indices;
         % save isobath values
-        runs.csflux.h = ceil(runs.bathy.h(1,runs.csflux.ix));
+        runs.csflux.h = ceil(hvec(runs.csflux.ix));
 
         runs.csflux.comment = ['shelf / slope / eddy= which water mass am I ', ...
                             ' targeting? |\n (x,ix,h) = (location, index, depth) ' ...
