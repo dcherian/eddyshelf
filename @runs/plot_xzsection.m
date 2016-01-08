@@ -202,7 +202,7 @@ function [handles] = plot_xzsection(runs, loc, day, debug_flux)
     %handles.hquiv = quiver(xvec(1:dxi:end)/1000, zvec(1:dzi:end), ...
     %                       asvel(1:dxi:end, 1:dzi:end)'/1000, ...
     %                       w(1:dxi:end, 1:dzi:end)');
-    caxis(clim); center_colorbar;
+    caxis(clim); handles.hcb(3) = center_colorbar;
     handles.hline(3) = common(runs, tindex);
     title('\rho (kg/m^3)');
     linkaxes(handles.hax, 'xy');
