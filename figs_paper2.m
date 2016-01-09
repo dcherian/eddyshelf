@@ -340,6 +340,7 @@ end
 
 handles = shfric.PlotFluxSummary(1);
 axes(handles.hax(1))
+handles.hax(1).Position(2) = 0.69;
 ylim([0 15]);
 delete(handles.hleg);
 handles.hleg(1) = legend(handles.hflux(1:2), shfric.name{1:2});
@@ -347,16 +348,22 @@ handles.hleg(2) = legend(handles.henv(3:5), shfric.name{3:5});
 handles.hleg(1).Box = 'off';
 handles.hleg(2).Box = 'off';
 handles.hleg(1).Position(1) = 0.69;
-handles.hleg(1).Position(2) = 0.80;
+handles.hleg(1).Position(2) = 0.79;
 pos1 = handles.hleg(1).Position;
 handles.hleg(2).Position(1) = handles.hleg(1).Position(1) + pos1(3) + 0.02;
 handles.hleg(2).Position(2) = pos1(2) + pos1(4) - handles.hleg(2).Position(4);
 
-htable(1) = text(1.2, pos1(2)-0.02, 'S_{sh}   r', 'Units', 'normalized');
-htable(2) = text(1.43, pos1(2)-0.02, 'S_{sh}     r', 'Units', 'normalized');
-htable(3) = annotation('line', [0.685 0.905], [1 1]*0.858, 'LineWidth', 1);
-htable(4) = annotation('line', [0.685 0.905], [1 1]*0.895, 'LineWidth', 1);
-htable(5) = annotation('line', [0.685 0.905], [1 1]*0.775, 'LineWidth', 1);
+delete(htable);
+tblx = [0.685 0.905] + 0.006;
+htable(1) = text(1.21, pos1(2)+0.08, 'S_{sh}   r', 'Units', 'normalized');
+htable(2) = text(1.45, pos1(2)+0.08, 'S_{sh}     r', 'Units', 'normalized');
+htable(3) = annotation('line', tblx, [1 1]*0.90, 'LineWidth', 1);
+htable(4) = annotation('line', tblx, [1 1]*0.855, 'LineWidth', 1);
+htable(5) = annotation('line', tblx, [1 1]*0.755, 'LineWidth', 1);
+linkprop(htable, 'Color');
+htable(1).Color = handles.hax(1).XAxis.Color;
+linkprop(handles.hleg, 'TextColor');
+handles.hleg(1).TextColor = htable(1).Color;
 
 % avg ssh
 linkaxes(handles.hax, 'off');
@@ -406,7 +413,7 @@ handles2.htxt(2).Color = colors(2,:);
 handles2.htxt(3).Color = colors(5,:);
 uistack(handles2.hplted(3), 'top');
 
-export_fig -r96 -a3 images/paper2/sb-flux-summary.png
+export_fig -r120 -a2 images/paper2/sb-flux-summary.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% avg streamer profiles - shelfbreak
