@@ -368,7 +368,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         handles.hcsd = runs.plot_surf('csdsurf', 'contour', ii);
         handles.hcsd.LevelList = csdcontours;
         handles.hcsd.Color = runs.shelfSlopeColor();
-        handles.hcsd.LineWidth = 2;
+        handles.hcsd.LineWidth = 1;
         handles.hcsd.XData = handles.hcsd.XData - dx;
         handles.hcsd.YData = handles.hcsd.YData - dy;
     end
@@ -422,26 +422,30 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     % zeta too?
     if addzeta
         handles.hzeta = runs.plot_surf('zeta','contour', ii);
+        handles.hzeta.LineWidth = 1;
         handles.hzeta.XData = handles.hzeta.XData - dx;
         handles.hzeta.YData = handles.hzeta.YData - dy;
-        set(handles.hzeta, 'Color', 'k', 'LineWidth', 2);
+        set(handles.hzeta, 'Color', 'k', 'LineWidth', 1);
     end
 
     % plot eddy contours
     if vorcontourplot
-        he = runs.plot_eddy_contour('contour',ii);
+        handles.he = runs.plot_eddy_contour('contour',ii);
         handles.he.XData = handles.he.XData - dx;
         handles.he.YData = handles.he.YData - dy;
+        handles.he.LineWidth = 1;
     end
     if sshplot
         handles.hssh = runs.plot_eddy_sshcontour('contour',ii);
         handles.hssh.XData = handles.hssh.XData - dx;
         handles.hssh.YData = handles.hssh.YData - dy;
+        handles.hssh.LineWidth = 1;
     end
     if rhocontourplot
         handles.hrho = runs.plot_rho_contour('contour', ii);
         handles.hrho.XData = handles.hrho.XData - dx;
         handles.hrho.YData = handles.hrho.YData - dy;
+        handles.hrho.LineWidth = 1;
     end
 
     % telescoping lines
