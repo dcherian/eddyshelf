@@ -5,6 +5,10 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt)
 
     if ~exist('opt', 'var'), opt = []; end
 
+    if ~isfield(opt, 'zetaOnFirstPlot')
+        opt.zetaOnFirstPlot = 0;
+    end
+
     N = ceil(length(timesteps)/2);
     letters = 'abcdefghijkl';
 
@@ -15,9 +19,12 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt)
         tstep = runs.process_time(timesteps(ii));
         if opt.zetaOnFirstPlot && ii == 1
             opt.addzeta = 1;
-        else
+        end
+
+        if opt.zetaOnFirstPlot && ii ~=1
             opt.addzeta = 0;
         end
+
         handles.hfield{ii} = runs.animate_field(varname, handles.hax(ii), tstep, 1, opt);
         handles.hfield{ii}.htlabel.String = [letters(ii) ') ' ...
                             handles.hfield{ii}.htlabel.String];
@@ -50,7 +57,9 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt)
         moveColorbarOut2x2(handles.hcb);
     end
 
-    moveSubplotsCloserInY(2, N, handles.hax);
+    if runs.bathy.axis == 'y'
+        moveSubplotsCloserInY(2, N, handles.hax);
+    end
 
     linkaxes(handles.hax, 'xy'); axis tight;
 
