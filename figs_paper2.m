@@ -8,6 +8,7 @@ factor = 2;
 isobath = 4;
 timesteps = [1 150 200 250 300 380];
 
+opt.rhocontourplot = 1;
 opt.csdcontourplot = 1;
 opt.csdcontours = ew34.csflux.x([1 4 8]);
 opt.addvelquiver = 0;
@@ -35,7 +36,7 @@ icons(end).Children.Children(1).LineWidth = 1;
 icons(end).Children.Children(2).LineWidth = 1;
 icons(end).Children.Children(3).LineWidth = 1;
 
-export_fig -r96 -a2 images/paper2/ew-34-surface-csdye.png
+export_fig -r120 -a2 -painters images/paper2/ew-34-surface-csdye.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% center tracks
@@ -145,6 +146,7 @@ htxt(1) = text(0.70, 0.15, ' Onshore', 'Color', [1 1 1]*0.55, ...
                'Units', 'Normalized');
 htxt(2) = text(0.70, 0.85, 'Offshore', 'Units', 'Normalized');
 linkprop(htxt, 'Color');
+
 axes(hax(N));
 hcb = colorbar('southoutside');
 pos = hcb.Position;
@@ -152,10 +154,14 @@ hcb.Position(1) = 0.5 - pos(3)/2;
 hcb.Position(2) = 0.5 + pos(4)/2;
 hcb.Label.String = 'Cross shelf dye - Y_{sb} (km)';
 
+axes(hax(2))
+htxt(3) = text(0.7, 0.7, '(Figure 1e)', 'Units', 'normalized', ...
+               'Color', 'k', 'FontSize', 16);
+
 supax = suplabel('Along-shelf profile of cross-isobath velocity at shelfbreak', 't');
 supax.Position(end) = 0.79;
 
-export_fig -r96 -a2 images/paper2/inst-flux.png
+export_fig -painters -r120 -a2 images/paper2/inst-flux.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% x-z sections
