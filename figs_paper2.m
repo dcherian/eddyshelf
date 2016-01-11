@@ -339,8 +339,9 @@ if ~exist('shfric', 'var')
 end
 
 handles = shfric.PlotFluxSummary(1);
+
 axes(handles.hax(1))
-handles.hax(1).Position(2) = 0.69;
+handles.hax(1).Position(2) = 0.68;
 ylim([0 15]);
 delete(handles.hleg);
 handles.hleg(1) = legend(handles.hflux(1:2), shfric.name{1:2});
@@ -353,13 +354,12 @@ pos1 = handles.hleg(1).Position;
 handles.hleg(2).Position(1) = handles.hleg(1).Position(1) + pos1(3) + 0.02;
 handles.hleg(2).Position(2) = pos1(2) + pos1(4) - handles.hleg(2).Position(4);
 
-delete(htable);
 tblx = [0.685 0.905] + 0.006;
 htable(1) = text(1.21, pos1(2)+0.08, 'S_{sh}   r', 'Units', 'normalized');
 htable(2) = text(1.45, pos1(2)+0.08, 'S_{sh}     r', 'Units', 'normalized');
-htable(3) = annotation('line', tblx, [1 1]*0.90, 'LineWidth', 1);
-htable(4) = annotation('line', tblx, [1 1]*0.855, 'LineWidth', 1);
-htable(5) = annotation('line', tblx, [1 1]*0.755, 'LineWidth', 1);
+htable(3) = annotation('line', tblx, [1 1]*0.890, 'LineWidth', 1);
+htable(4) = annotation('line', tblx, [1 1]*0.848, 'LineWidth', 1);
+htable(5) = annotation('line', tblx, [1 1]*0.760, 'LineWidth', 1);
 linkprop(htable, 'Color');
 htable(1).Color = handles.hax(1).XAxis.Color;
 linkprop(handles.hleg, 'TextColor');
@@ -379,12 +379,6 @@ for ii= [1 2]
     handles2.hplted(ii).YData = handles2.hplted(ii).YData + dy;
 end
 
-dy = dy*0;
-for ii= 5
-    handles2.hpltsh(ii).YData = handles2.hpltsh(ii).YData + dy;
-    handles2.hplted(ii).YData = handles2.hplted(ii).YData + dy;
-end
-
 handles2.hl.YData = ylim;
 legend('off');
 title(''); ylabel('');
@@ -394,6 +388,12 @@ handles2.htxt(2) = text(-150, 7e-4, 'Flat shelf', 'Units', 'data', ...
                         'HorizontalAlignment', 'center');
 handles2.htxt(3) = text(-150, 2e-4, 'Sloping shelf', 'Units', 'data', ...
                         'HorizontalAlignment', 'center');
+handles2.htxt(4) = text(-50, 1e-3, 'Shelf water', 'Units', 'data', ...
+                        'HorizontalAlignment', 'center', 'FontWeight', 'bold');
+handles2.htxt(5) = text(150, 1e-3, 'Eddy water', 'Units', 'data', ...
+                        'HorizontalAlignment', 'center');
+linkprop(handles2.htxt(4:5), 'Color');
+handles2.htxt(4).Color = [1 1 1]*0.7;
 
 % colors
 colors = flip(cbrewer('seq', 'Reds', 4));
@@ -412,6 +412,22 @@ end
 handles2.htxt(2).Color = colors(2,:);
 handles2.htxt(3).Color = colors(5,:);
 uistack(handles2.hplted(3), 'top');
+
+%L_β annotation
+axes(handles.hax(2))
+run = shfric.array(3);
+[start,stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
+[V0,L0,Lz0] = run.EddyScalesForFlux(start,stop);
+betash = run.params.phys.f0 / run.bathy.hsb * run.params.bathy.sl_shelf;
+Lbeta = sqrt(V0/betash);
+hlbeta = liney(-Lbeta/1000); uistack(hlbeta, 'bottom');
+correct_ticks('y', [], '-10');
+hanno = annotation('doublearrow', [1 1]*.55, [0 0.075]+0.545);
+hanno.LineWidth = 1; hanno.Color = hlbeta.Color;
+hanno.HeadSize = 8; hanno.HeadStyle = 'vback3';
+htext = text(430, -Lbeta/2000, 'L_\beta', 'Color', hlbeta.Color);
+linkprop([htext hanno hlbeta], 'Color');
+htext.Color = handles2.htxt(3).Color;
 
 export_fig -r120 -a2 images/paper2/sb-flux-summary.png
 
