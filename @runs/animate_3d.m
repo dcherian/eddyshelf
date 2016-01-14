@@ -19,17 +19,22 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     if ~isfield(opt, 'eddthresh')
         opt.eddthresh = 0.8;
     end
+    if ~isfield(opt, 'sect')
+        opt.sect = 'y';
+    end
 
     tind = runs.process_time(tind);
     imx = runs.eddy.imx;
+    imy = runs.eddy.imy;
 
     if length(tind) == 1
         xrange = imx(tind)-100:stride(1):imx(tind)+100;
-        yrange = 1:stride(2):size(runs.rgrid.xr,2);
+        yrange = 1:stride(2):imy(tind)+100;
     else
         xrange = 1:stride(1):size(runs.rgrid.xr,1);
         yrange = 1:stride(2):size(runs.rgrid.xr,2);
     end
+    clear imx imy
     volume = {'x' xrange(1) xrange(end);
               'y' yrange(1) yrange(end)};
 
@@ -82,7 +87,7 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     eddColorMap = runs.eddyeColormap;
     eddVolume = smooth3(bsxfun(@times,eddye(:,:,:,1),mask(:,:,1)));
     hedd = patch(isosurface(xrmat/1000,yrmat/1000,zrmat, eddVolume, opt.eddthresh), ...
-                 'EdgeColor', 'none', 'AmbientStrength', 0.65, 'DiffuseStrength', 0.6);
+                 'EdgeColor', 'none', 'AmbientStrength', 0.5, 'DiffuseStrength', 0.6);
     reducepatch(hedd, opt.eddreducepatch, 'verbose');
     if opt.finalize
         isonormals(eddVolume, hedd);
@@ -107,30 +112,58 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     hlight.Position(2) = 1400;
     hlight.Position(1) = -738;
 
-    imy = runs.eddy.imy(tind) - 5;
-    handles.hysect = ...
-        surface(squeeze(xrmat(imy,:,:)/1000), ...
-                squeeze(max(ylim) * ones(size(yrmat(imy,:,:)))), ...
-                squeeze(zrmat(imy,:,:)), ...
-                squeeze(fillnan(smooth3((eddVolume(imy,:,:) >= opt.eddthresh) + ...
-                                        -1 * (csdye(imy,:,:) <= cslevel(1))),0)), ...
-                'EdgeColor', 'none', 'FaceColor', 'interp', ...
-                'AmbientStrength', 0.8);
+    sz = size(xrmat);
+
+    if opt.sect == 'y'
+        imy = runs.eddy.imy(tind) - 5;
+        handles.hsect = ...
+            surface(squeeze(xrmat(imy,:,:)/1000), ...
+                    squeeze(max(yrmat(:)/1000) * ones(size(yrmat(imy,:,:)))), ...
+                    squeeze(zrmat(imy,:,:)), ...
+                    squeeze(fillnan(smooth3((eddVolume(imy,:,:) >= opt.eddthresh) + ...
+                                            -1 * (csdye(imy,:,:) <= cslevel(1)), ...
+                                            'gaussian', 3),0)), ...
+                    'EdgeColor', 'none', 'FaceColor', 'interp', ...
+                    'AmbientStrength', 0.8);
+
+        xvec = xrmat(imy,:,1);
+        yvec = yrmat(imy,:,1);
+        zvec = squeeze(zrmat(imy,1,:));
+
+        handles.hsectoutline = plot3(xvec([1 sz(2) sz(2) 1 1])/1000, ones([1 5])*max(yrmat(:)/1000), ...
+                                     zvec([1 1 sz(3) sz(3) 1]), 'Color', [1 1 1]*0.3, ...
+                                     'LineWidth', 1, 'Tag', 'dcline');
+
+        handles.hplane = patch(xvec([1 sz(2) sz(2) 1 1])/1000, ones([1 5])*yvec(imy)/1000, ...
+                               [zvec([1 1])' 1 1 zvec(1)], 'k', 'EdgeColor', [1 1 1]*0.3, ...
+                               'FaceAlpha', 0.08);
+    else
+        imx = runs.eddy.imx(tind) - xrange(1) + 1;
+        handles.hsect = ...
+            surface(squeeze(max(xrmat(:)/1000) * ones(size(xrmat(:,imx,:)))), ...
+                    squeeze(yrmat(:,imx,:)/1000), ...
+                    squeeze(zrmat(:,imx,:)), ...
+                    squeeze(fillnan(smooth3((eddVolume(:,imx,:) >= opt.eddthresh) + ...
+                                            -1 * (csdye(:,imx,:) <= cslevel(1)), ...
+                                            'gaussian', 3),0)), ...
+                    'EdgeColor', 'none', 'FaceColor', 'interp', ...
+                    'AmbientStrength', 0.8);
+
+        xvec = xrmat(:,imx,1);
+        yvec = yrmat(:,imx,1);
+        zvec = squeeze(zrmat(end,imx,:));
+
+        handles.hsectoutline = plot3(max(xrmat(:)/1000)*ones([1 5]), yvec([1 sz(1) sz(1) 1 1])/1000, ...
+                                     zvec([1 1 sz(3) sz(3) 1]), 'Color', [1 1 1]*0.3, ...
+                                     'LineWidth', 1, 'Tag', 'dcline');
+
+        handles.hplane = patch(ones([1 5]) * xvec(imx)/1000, yvec([1 sz(1) sz(1) 1 1])/1000, ...
+                               [zvec([1 1])' 1 1 zvec(1)], 'k', 'EdgeColor', [1 1 1]*0.3, ...
+                               'FaceAlpha', 0.08);
+    end
+
     colormap(flip(cbrewer('div', 'RdBu', 10)));
     caxis([-1 1.5]);
-
-    sz = size(xrmat);
-    xvec = xrmat(imy,:,1);
-    yvec = yrmat(imy,:,1);
-    zvec = squeeze(zrmat(imy,1,:));
-
-    handles.hysectoutline = plot3(xvec([1 sz(2) sz(2) 1 1])/1000, ones([1 5])*max(ylim), ...
-                                  zvec([1 1 sz(3) sz(3) 1]), 'Color', [1 1 1]*0.3, ...
-                                  'LineWidth', 1, 'Tag', 'dcline');
-
-    handles.hyplane = patch(xvec([1 sz(2) sz(2) 1 1])/1000, ones([1 5])*yvec(imy)/1000, ...
-                            zvec([1 1 sz(3) sz(3) 1]), 'k', 'EdgeColor', [1 1 1]*0.3, ...
-                            'FaceAlpha', 0.08);
 
     for kk=1:length(cslevel)
         hcsd(kk) = patch(isosurface(xrmat/1000,yrmat/1000,zrmat, ...
@@ -152,11 +185,8 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     %hzeta = surf(xrmat(:,:,1)/1000, yrmat(:,:,1)/1000, ssh, 'EdgeColor', 'none');
     titlestr = 'dyes';
     ht = runs.set_title(titlestr,tind(1));
-    %view(-104,30);
-    %view(-150,66);
-    %view(2)
-    %view(-50,50); zoom(1.2);
     xlim([min(xrmat(:)) max(xrmat(:))]/1000)
+    ylim([min(yrmat(:)) max(yrmat(:))]/1000)
     xlabel('X (km)'); ylabel('Y (km)'); zlabel('Z (m)');
     beautify;
 

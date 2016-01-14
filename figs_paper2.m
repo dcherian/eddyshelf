@@ -573,7 +573,7 @@ depth = 75;
 MoveToZLevel = -990;
 
 annocolor = 'k'; %[1 1 1]*0.5;
-annofs = 25;
+annofs = 23;
 annolw = 0.5;
 annoheadstyle = 'cback3';
 annofontname = 'Futura Bk BT';
@@ -600,6 +600,29 @@ for ii=1:length(day)
         hax(ii) = subplot(2,2,ii);
     end
 
+    if ii == 2
+        opt.sect = 'x';
+    else
+        opt.sect = 'y';
+    end
+
+    handles(ii) = ew34.animate_3d(num2str(day(ii)), opt, hax(ii));
+    handles(ii).hcsd.FaceAlpha = 0.8;
+
+    hax(ii).Title.String = '';
+    hax(ii).XAxis.Visible = 'off';
+    hax(ii).YAxis.Visible = 'off';
+    hax(ii).ZAxis.Visible = 'off';
+    hax(ii).Box = 'off';
+    hax(ii).DataAspectRatio = [1 1 5];
+
+    bathy = handles(ii).hbathy.ZData;
+    handles(ii).hbathy.ZData(bathy <= -850) = -850;
+    handles(ii).hsectoutline.ZData(handles(ii).hsectoutline.ZData <= -850) = -850;
+    handles(ii).hplane.ZData(handles(ii).hplane.ZData <= -850) = -850;
+    handles(ii).hcsd.FaceColor = [107 174 214]/255;
+    handles(ii).hedd.FaceColor = brighten([215 48 31]/255, 0.1);
+
     % hslice(ii) = ew34.animate_zslice('dye_03', depth, day(ii), hax(ii), opt);
     % hslice(ii).bathy{1}.delete;
     % hslice(ii).bathy{2}.delete;
@@ -611,9 +634,6 @@ for ii=1:length(day)
     % hslice(ii).hvar.ContourZLevel = MoveToZLevel;
     % hslice(ii).hvar.ZData = fillnan(double(hslice(ii).hvar.ZData > 0.4), 0);
 
-    handles(ii) = ew34.animate_3d(num2str(day(ii)), opt, hax(ii));
-    handles(ii).hcsd.FaceAlpha = 1;
-
     % [xmat, ymat] = meshgrid(xlim, ylim);
     % hplane(ii) = surf(xmat, ymat, -1*abs(depth) * ones(size(xmat)), ...
     %                   'FaceColor', 'k', 'FaceAlpha', 0.05, 'EdgeColor', [1 1 1]*0.3);
@@ -623,17 +643,7 @@ for ii=1:length(day)
     %                      '-', 'LineWidth', 1, 'Color', [1 1 1]*0.3, 'Tag', 'dcline');
 
     % linkprop([hplane(ii) handles(ii).hyplane], 'FaceAlpha');
-    hax(ii).Title.String = '';
-    hax(ii).XAxis.Visible = 'off';
-    hax(ii).YAxis.Visible = 'off';
-    hax(ii).ZAxis.Visible = 'off';
-    hax(ii).Box = 'off';
-    hax(ii).DataAspectRatio = [1 2.5 4];
 
-    bathy = handles(ii).hbathy.ZData;
-    handles(ii).hbathy.ZData(bathy <= -850) = -850;
-    handles(ii).hcsd.FaceColor = [107 174 214]/255;
-    handles(ii).hedd.FaceColor = brighten([215 48 31]/255, 0.1);
 end
 
 %linkprop(houtline, {'LineWidth', 'Color'});
@@ -644,7 +654,7 @@ linkprop([handles.hbathy], {'FaceColor', 'FaceAlpha'});
 linkprop([handles.hedd], {'FaceColor', 'AmbientStrength'});
 linkprop([handles.hcsd], {'FaceColor', 'AmbientStrength'});
 
-zlim([-850 0]);
+zlim([-850 1.1]);
 linkprop(hax, 'ZLim');
 
 % change views and lighting as needed
@@ -653,47 +663,68 @@ linkprop(hax, 'ZLim');
 
 axes(hax(1));
 view(-110,28);
-hanno(1) = annotation('textarrow', [0.67 0.6], [0.73 0.73], ...
-                      'String', {'The cyclonic wave is'; 'a wrinkle in 3-D'}, ...
+hanno(1) = annotation('textarrow', [0.64 0.56], [0.52 0.62], ...
+                      'String', {'The cyclonic';  'wave is'; 'a wrinkle'; 'in 3-D.'}, ...
                       'LineWidth', annolw, 'Color', annocolor, ...
-                      'HeadStyle', annoheadstyle, 'FontSize', annofs);
+                      'HeadStyle', annoheadstyle, 'FontSize', annofs, ...
+                      'VerticalAlignment', 'top');
+hlabel(1) = annotation('textbox', [0.4 0.18 0.05 0.05], ...
+                       'String', '(a)', 'EdgeColor', 'none');
 
 axes(hax(2));
 view(-122, 42);
 handles(2).hlight.Position = [-1400 1400 500];
-hanno(2) = annotation('textarrow', [0.65 0.58], [0.58 0.69], ...
-                      'String', {'The wave propagates'; ...
-                    'around the eddy'; 'with the shelf/slope';'water'}, ...
+hanno(2) = annotation('textarrow', [0.645 0.53], [0.49 0.59], ...
+                      'String', {'The wave';  'propagates'; ...
+                    'around the eddy'; 'with the streamer.'}, ...
                       'LineWidth', annolw, 'Color', annocolor, ...
-                      'HeadStyle', annoheadstyle, 'FontSize', annofs);
-
+                      'HeadStyle', annoheadstyle, 'FontSize', annofs, ...
+                      'VerticalAlignment', 'middle');
+hlabel(2) = annotation('textbox', [0.4 0.18 0.05 0.05], ...
+                       'String', '(b)', 'EdgeColor', 'none');
 
 axes(hax(3));
 view(-130, 28);
-hanno(3) = annotation('textarrow', [0.38 0.52], [0.91 0.82], ...
-                      'String', {'The wave rolls up'; ...
-                    'into a cyclone trapping'; ...
-                    'the shelf/slope water'; 'above it.'}, ...
+hanno(3) = annotation('textarrow', [0.40 0.47], [0.78 0.7], ...
+                      'String', {'The wave rolls up into'; ...
+                    'a cyclone trapping'; ...
+                    'the streamer water'; 'above it.'}, ...
                       'LineWidth', annolw, 'Color', annocolor, ...
-                      'HeadStyle', annoheadstyle, 'FontSize', annofs);
+                      'HeadStyle', annoheadstyle, 'FontSize', annofs, ...
+                      'VerticalAlignment', 'middle');
+hanno(4) = annotation('textarrow', [0.66 0.57], [0.53 0.61], ...
+                      'String', {'There is a';  'persistent bulge'; ...
+                    'in the eddy'; ...
+                    'below'; 'shelfbreak depth'}, ...
+                      'LineWidth', annolw, 'Color', annocolor, ...
+                      'HeadStyle', annoheadstyle, 'FontSize', annofs, ...
+                      'VerticalAlignment', 'middle');
+hlabel(3) = annotation('textbox', [0.4 0.18 0.05 0.05], ...
+                       'String', '(c)', 'EdgeColor', 'none');
 
 axes(hax(4));
 view(-128, 40);
-hanno(4) = annotation('textarrow', [0.39 0.49], [0.85 0.85], ...
-                      'String', {'Cyclone propagates away'; ...
-                    'with trapped shelf/slope water'}, ...
+hanno(5) = annotation('textarrow', [0.42 0.46], [1 1]*0.75, ...
+                      'String', {'Cyclone propagates'; ...
+                    'away with trapped';  'streamer water.'}, ...
+                      'LineWidth', annolw, 'Color', annocolor, ...
+                      'HeadStyle', annoheadstyle, 'FontSize', annofs, ...
+                      'VerticalAlignment', 'middle');
+hanno(6) = annotation('textarrow', [0.65 0.57], [0.53 0.61], ...
+                      'String', {'The process'; 'repeats.'}, ...
                       'LineWidth', annolw, 'Color', annocolor, ...
                       'HeadStyle', annoheadstyle, 'FontSize', annofs);
-hanno(5) = annotation('textarrow', [0.68 0.6], [0.75 0.71], ...
-                      'String', {'The process repeats'}, ...
-                      'LineWidth', annolw, 'Color', annocolor, ...
-                      'HeadStyle', annoheadstyle, 'FontSize', annofs);
+hlabel(4) = annotation('textbox', [0.4 0.18 0.05 0.05], ...
+                       'String', '(d)', 'EdgeColor', 'none');
 
 for ii=1:length(hanno)
     try
         hanno(ii).HorizontalAlignment = 'center';
+        hanno(ii).TextMargin = 0.05;
         hanno(ii).Text.FontName = annofontname;
         hanno(ii).FontSize = annofs;
+        hlabel(ii).Text.FontName = annofontname;
+        hlabel(ii).FontSize = annofs;
     catch ME
     end
 end
@@ -702,14 +733,14 @@ tic;
 if multifig
     for ii=1:4
         axes(hax(ii));
-        export_fig('-r96', '-a4', '-p0.01', '-opengl', ...
+        export_fig('-r120', '-a4', '-p0.01', '-opengl', ...
                    ['images/paper2/3d-schem-' num2str(ii) '.png']);
     end
     hash = githash;
     system(['montage images/paper2/3d-schem-[1-4].png ' ...
-            '-geometry +0.1+0.1 ' mergename]);
+            '-geometry +0.05+0.05 ' mergename]);
     system(['exiftool -overwrite_original -Producer=' hash ' ' mergename]);
 else
-    export_fig('-opengl', '-r96', '-a4', '-p0.02', mergename);
+    export_fig('-opengl', '-r120', '-a4', '-p0.02', mergename);
 end
 toc;
