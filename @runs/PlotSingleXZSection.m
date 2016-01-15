@@ -108,8 +108,13 @@ function [handles] = PlotSingleXZSection(runs, varname, loc, day, opt, hax)
     if isobath == 1
         mask = ones(size(csvel));
     else
-        mask = fillnan(bsxfun(@times, csdye < runs.csflux.x(isobath), ...
-                              runs.csflux.offmask(sx1:sx2,tindex,isobath)),0);
+        if runs.sgntamp > 0
+            mask = fillnan(bsxfun(@times, csdye < runs.csflux.x(isobath), ...
+                                  runs.csflux.offmask(sx1:sx2,tindex,isobath)),0);
+        else
+            mask = fillnan(bsxfun(@times, csdye > runs.csflux.x(isobath), ...
+                                  runs.csflux.offmask(sx1:sx2,tindex,isobath)),0);
+        end
     end
 
     if ~exist('hax', 'var')
