@@ -517,27 +517,44 @@ if ~exist('ew04', 'var')
 end
 
 opt.addvelquiver = 1;
-opt.rhocontourplot = 1;
+opt.rhocontourplot = 0;
 opt.csdcontourplot = 0;
+opt.dxi = 8; opt.dyi = 5;
 
 handles = ew04.mosaic_field('csdye', {'169'; '169'}, opt);
-xlim([200 450]);
-ylim([0 150]);
+xlim([170 400]);
+ylim([0 120]);
 for ii=1:2
     delete(handles(ii).hrunname)
     handles(ii).hbathy{1}.ShowText = 'off';
-    handles(ii).hquiv.Color = [1 1 1]*0.65;
-    handles(ii).hquiv.LineWidth = 2;
+    handles(ii).hquiv.Color = [1 1 1]*0;
+    handles(ii).hquiv.LineWidth = 1.5;
+    handles(ii).hquiv.AutoScaleFactor = 4.5;
+    handles(ii).htlabel.Position(2) = 0.1;
+    handles(ii).htrack.delete;
+    handles(ii).hbathy{2}.Color = [1 1 1]*0.9;
 end
 correct_ticks('x', [], '450', handles(1).hax);
 handles(1).hax.Title.String = 'Flat shelf | S_{sh} = 0';
-handles(2).hax.Title.String = 'Flat shelf | S_{sh} = 0.05';
+handles(2).hax.Title.String = 'Sloping shelf | S_{sh} = 0.05';
 
-handles(1).supax.Position(4) = 0.76;
+handles(1).supax.Position(4) = 0.73;
 handles(1).supax.Title.String = 'Surface cross-shelf dye (km)';
 handles(1).supax.Title.FontSize = 20;
 
-export_fig -r96 -a2 images/paper2/sbsnapshot.png
+axes(handles.hax(2))
+hl = liney(37.5-12);
+hl.Color = [1 1 1]*0.9;
+hanno = annotation('doublearrow', [0.6 0.6], [0.405 0.445]);
+hanno.Head1Style = 'cback3';
+hanno.Head2Style = 'cback3';
+hanno.Head1Length = 7;
+hanno.Head2Length = 7;
+hanno.Head1Width = 7;
+hanno.Head2Width = 7;
+htxt = text(202, 33, 'L_\beta', 'Color', [1 1 1]*0.9, 'FontSize', 20);
+
+export_fig -opengl -r120 -a2 images/paper2/sbsnapshot.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% avg flux
