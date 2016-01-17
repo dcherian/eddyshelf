@@ -287,7 +287,8 @@ export_fig -r96 -a2 images/paper2/ew-34-mosaic-zslice.png
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% ew-2360 z-slice mosaic
 
-handles = ew2360.mosaic_zslice('dye_03', 200, [63 70 77 95]);
+tinds = [63 70 77 95];
+handles = ew2360.mosaic_zslice('dye_03', 200, tinds);
 for ii=1:length(handles)
     handles(ii).csdsurf.LevelList = [170] * 1e3;
     handles(ii).eddsurf.Visible = 'off';
@@ -301,11 +302,24 @@ handles(3).hax.XTickLabel{end} = '';
 handles(1).htitle.String = 'Eddy dye at z = -200 m | H_{sb} = 100m | Ro = 0.25';
 handles(1).htitle.FontSize = 22;
 handles(1).htitle.FontWeight = 'normal';
-handles(1).supax.Position(4) = 0.87;
+handles(1).supax.Position(4) = 0.88;
 axes(handles(1).hax); correct_ticks('y', '', {'150' '200'});
 axes(handles(3).hax); correct_ticks('y', '', {'150' '200'});
 
-export_fig -r96 -a2 images/paper2/ew-2360-mosaic-zslice.png
+xx = [343 346 349]';
+yy = [231 237 231]';
+
+
+colors = brighten(cbrewer('qual', 'Paired', length(xx)), -0.5);
+axes(handles(4).hax);
+for ii=1:length(xx)
+    hpnt(ii) = plot(xx(ii), yy(ii), 'x', 'Color', colors(ii,:), ...
+                    'MarkerSize', 16);
+end
+hpnt(end+1) = plot(ew2360.eddy.mx(tinds(end))/1000, ew2360.eddy.my(tinds(end))/1000, ...
+                   'x', 'Color', [1 1 1]*0.45, 'MarkerSize', 16);
+
+export_fig -r120 -a2 images/paper2/ew-2360-mosaic-zslice.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% bottom rho PV
