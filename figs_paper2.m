@@ -195,11 +195,18 @@ if ~exist('ew2360', 'var') | ~strcmpi(ew2360.name, 'ew-2360_wider')
     yy = [231 237 231]';
 end
 opt.addvelquiver = 0;
-opt.csdcontours = ew2360.csflux.x(isobath);
+opt.csdcontourplot = 0;
+opt.rhocontourplot = 0;
 handles = ew2360.secondary_vortices(95, [xx yy], opt);
+handles.hfield.htrack.delete;
 correct_ticks('y', [], '198', handles.hax(1));
 handles.hax(1).Title.String = 'Cross shelf dye - X_{sb} (km)';
-export_fig -r96 -a2 images/paper2/ew-2360-secondary-cyclone.png
+
+export_fig('-r120', '-opengl', '-a2', ...
+           'images/paper2/ew-2360-secondary-cyclone.png');
+
+export_fig(handles.hax(3), '-painters', '-a2', ...
+           'images/paper2/ew-2360-secondary-cyclone-rho.pdf');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% secondary eddy - ew-34
