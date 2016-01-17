@@ -205,6 +205,7 @@ handles.hax(1).Title.String = 'Cross shelf dye - X_{sb} (km)';
 export_fig('-r120', '-opengl', '-a2', ...
            'images/paper2/ew-2360-secondary-cyclone.png');
 
+handles.hax(3).YLabel.String = 'Z (m)';
 export_fig(handles.hax(3), '-painters', '-a2', ...
            'images/paper2/ew-2360-secondary-cyclone-rho.pdf');
 
