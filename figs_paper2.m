@@ -20,8 +20,8 @@ handles.hcb.delete;
 ylim([0 250]);
 correct_ticks('y', [], {'50', '100'}, handles.hax([1 4]));
 
-handles.supax.Position(4) = 0.71;
-handles.htitle.String = 'Surface cross-shelf dye (km)';
+handles.supax.Position(4) = 0.715;
+handles.htitle.String = 'Surface cross-shelf dye (km) | Ro = 0.1 | L = 25 km | L^z = 400m';
 
 axes(handles.hax(1));
 [hleg,icons] = legend([handles.hfield{1}.hcen, ...
