@@ -21,12 +21,12 @@ function [] = plot_yzsection(runs, days, loc)
 
     nt = length(tindices);
 
-    % hf1 = figure; maximize();% - eddye
-    hf2 = figure; maximize();% - rho
+    hf1 = figure; maximize();% - eddye
+                             %hf2 = figure; maximize();% - rho
     % hf3 = figure; maximize();% - zdye
     %hf4 = figure; maximize();% - u
     %hf5 = figure; maximize();% - v
-    %hf6 = figure; maximize();% - csdye
+    hf6 = figure; maximize();% - csdye
     %zdback = double(squeeze(ncread(runs.out_file, runs.zdname, ...
     %                               [1 1 1 1], [1 Inf Inf
     %                               1])));
@@ -86,7 +86,7 @@ function [] = plot_yzsection(runs, days, loc)
             ax2(ii) = subplot(1, nt, ii);
             axall = [axall ax2(ii)];
             drho = bsxfun(@minus, temp, tback);
-            [cc,hh] = contourf(yz, zmat, temp, 40, 'EdgeColor', 'none');
+            [cc,hh] = contourf(yz, zmat, drho, 40, 'EdgeColor', 'none');
             % colormap(flipud(cbrewer('seq','Blues',12)));
             %           hh.EdgeColor = 'none';
 
@@ -120,7 +120,7 @@ function [] = plot_yzsection(runs, days, loc)
             ax3(ii) = subplot(1, nt, ii);
             axall = [axall ax3(ii)];
             contourf(yz, zmat, zd-zback);
-            shading flat; hold on
+             shading flat; hold on
             caxis( [-1 1] * max(abs(zd(:)-zback(:))) );
             center_colorbar;
 
@@ -190,9 +190,8 @@ function [] = plot_yzsection(runs, days, loc)
             figure(hf6);
             ax6(ii) = subplot(1, nt, ii);
             axall = [axall ax6(ii)];
-            contourf(yax/1000, zax, csdye/1000, 40, 'EdgeColor', 'none');
+            contourf(yz, zmat, csdye/1000, 40, 'EdgeColor', 'none');
             liney(-1 * runs.eddy.Lgauss(tindices(ii)));
-
             common(runs, hf6, yz, zmat, drho, ed, ii, days, locstr, tindices);
         end
 
@@ -284,6 +283,9 @@ function common(obj, hf, yz, zmat, drho, ed, ii, days, loc, tindices)
             textx = 0.85;
         else
             % western coast
+            patch(([obj.rgrid.x_rho(1,:)'; min(obj.rgrid.x_rho(1,:))])./1000, ...
+                  -1*[min(obj.rgrid.h(:)); obj.rgrid.h(1,:)'], 'k');
+            textx = 0.85;
         end
     end
 
