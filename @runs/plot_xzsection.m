@@ -7,12 +7,7 @@ function [handles] = plot_xzsection(runs, loc, day, debug_flux)
     end
 
     if ~exist('day', 'var'), day = []; end
-    if ischar(day)
-        day = str2double(day);
-        tindex = vecfind(runs.time, day*86400);
-    else
-        tindex = day;
-    end
+    tindex = runs.process_time(day);
 
     if ~exist('loc', 'var')
         loc = runs.eddy.my(tindex);
@@ -103,25 +98,26 @@ function [handles] = plot_xzsection(runs, loc, day, debug_flux)
                               runs.csflux.offmask(sx1:sx2,tindex,isobath)),0);
     end
 
-    % profile I am assuming
-    [videal, idmask, xmask, zmask] = runs.makeStreamerSection(isobath);
-    videal = videal(sx1:sx2,:);
-    idmask = idmask(sx1:sx2,:);
-    xmask = xmask(sx1:sx2);
-
-    % tind = tindex; % FOR PARAMETERISATION
-    %                % syms x z;
-    % a = 2; % 2 for gaussian
-    %        % V0 = runs.eddy.V(tind) * 2.33;
-    % R = runs.csflux.R;
-    % L = median(runs.eddy.rhovor.dia(1:tind))/2;
-    % % Lz = runs.eddy.Lgauss(tindex);
-    % % H = runs.csflux.h(isobath);
-    % yoR = runs.csflux.ndloc(isobath); % y/R - used in csflux
-    % y0oL =  R/L * (1 - yoR); % y0/L - used in derivation
-    % xfrac = -sqrt(1 - y0oL^a);
-
     if debug_flux
+
+        % tind = tindex; % FOR PARAMETERISATION
+        %                % syms x z;
+        % a = 2; % 2 for gaussian
+        %        % V0 = runs.eddy.V(tind) * 2.33;
+        % R = runs.csflux.R;
+        % L = median(runs.eddy.rhovor.dia(1:tind))/2;
+        % % Lz = runs.eddy.Lgauss(tindex);
+        % % H = runs.csflux.h(isobath);
+        % yoR = runs.csflux.ndloc(isobath); % y/R - used in csflux
+        % y0oL =  R/L * (1 - yoR); % y0/L - used in derivation
+        % xfrac = -sqrt(1 - y0oL^a);
+
+        % profile I am assuming
+        [videal, idmask, xmask, zmask] = runs.makeStreamerSection(isobath);
+        videal = videal(sx1:sx2,:);
+        idmask = idmask(sx1:sx2,:);
+        xmask = xmask(sx1:sx2);
+
         % diagnosed flux
         flux = runs.csflux.off.slope(tindex,isobath,isobath)
         % should agree with above
