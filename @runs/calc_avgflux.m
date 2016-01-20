@@ -18,7 +18,8 @@ function [avgflux, err] = calc_avgflux(runs, fluxvec, debug)
     fluxvec = fluxvec(uind);
 
     avgflux = mean(fluxvec);
-    dof = calcdof(fluxvec);
+
+    [dof,IT] = calcdof(fluxvec);
     err = abs(conft(0.05, dof-1) * std(fluxvec) / sqrt(dof));
 
     % check error bounds
