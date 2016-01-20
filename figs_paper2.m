@@ -53,7 +53,7 @@ ew.plot_penetration;
 title('');
 set(gcf, 'Position', [675 175 1080 924]);
 columnlegend(3, names, 'Location', 'NorthWest');
-export_fig -r96 -a2 -png -pdf images/paper2/centracks
+export_fig -r120 -painters -a2 -png -pdf images/paper2/centracks
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% flux diagnostics
@@ -78,11 +78,19 @@ legstr{end+1} = 'Time instants shown in Figure 2';
 for ii=[1 2 3 6 8]
     handles.icons(ii).Color = color;
 end
-handles.icons(10).FaceColor = color;
-handles.icons(10).FaceAlpha = 0.2;
+hpt = findobj(handles.icons, 'Type', 'patch');
+hpt.FaceColor = color;
+hpt.FaceAlpha = 0.2;
 
 axes(handles.hax(2)); % make visible
-export_fig -r96 -a3 images/paper2/flux-diags.png
+export_fig -r150 -a2 -pdf -png images/paper2/flux-diags
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% surface map of eddye for sampling schematic
+
+if ~exist('ew34', 'var') | ~strcmpi(ew34.name, 'ew-34')
+    ew34 = runs('../topoeddy/runew-34/');
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% surface map and instantaneous flux
