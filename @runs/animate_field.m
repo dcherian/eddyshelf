@@ -53,7 +53,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     modify_bathy = 1; % modify bathymetric contours to show
                       % isobaths corresponding to csdcontours?
 
-    addvelquiver = 1; % velocity vectors?
+    addvelquiver = 0; % velocity vectors?
     dxi = 5; dyi = 5; % decimate vectors
     uref = 1; vref = uref; % scale vectors
     scale = 3;
@@ -422,10 +422,20 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     % zeta too?
     if addzeta
         handles.hzeta = runs.plot_surf('zeta','contour', ii);
+        handles.hzeta.LevelList(handles.hzeta.LevelList < 0) = [];
         handles.hzeta.LineWidth = 1;
         handles.hzeta.XData = handles.hzeta.XData - dx;
         handles.hzeta.YData = handles.hzeta.YData - dy;
         set(handles.hzeta, 'Color', 'k', 'LineWidth', 1);
+
+        handles.hzetaneg = runs.plot_surf('zeta','contour', ii);
+        handles.hzetaneg.LevelList(handles.hzetaneg.LevelList > 0) = [];
+        handles.hzetaneg.LineWidth = 1;
+        handles.hzetaneg.XData = handles.hzeta.XData - dx;
+        handles.hzetaneg.YData = handles.hzeta.YData - dy;
+        handles.hzetaneg.Color = 'k';
+        handles.hzetaneg.LineWidth = 1;
+        handles.hzetaneg.LineStyle = '--';
     end
 
     % plot eddy contours
@@ -543,7 +553,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         end
 
         if csfluxplot == 1
-            slopext = runs.csflux.slopext(ix-1, :, csfluxIsobath);
+            slopext = runs.csflux.slopext(ix-1, :, csfluxIsobath, csfluxIsobath);
             hflux = plot(runs.rgrid.xr(ix,1)/1000 - dx, ...
                          slopext(:, ii));
             ylim([-1 1] *max(slopext(:)));
