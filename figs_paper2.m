@@ -809,6 +809,8 @@ handles = ns.mosaic_field('csdye', timesteps, opt);
 for ii=1:6
     handles.hfield{ii}.hzeta.LevelList = linspace(0, 0.025, 6);
     handles.hfield{ii}.hzetaneg.LevelList = linspace(-0.01,0,6);
+    handles.hfield{ii}.htlabel.Position(1) = 0.55;
+    handles.hfield{ii}.htlabel.Position(2) = 0.06;
 end
 handles.hcb.delete;
 
@@ -825,7 +827,7 @@ axes(handles.hax(1));
                       'Location', 'NorthWest'); %, 'FontSize', 14);
 hleg.Box = 'off';
 hleg.Position(1) = 0.26;
-hleg.Position(2) = 0.54;
+hleg.Position(2) = 0.56;
 icons(end).Children.Children(1).LineWidth = 1;
 icons(end).Children.Children(2).LineWidth = 1;
 icons(end).Children.Children(3).LineWidth = 1;
