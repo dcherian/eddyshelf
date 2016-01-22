@@ -791,3 +791,45 @@ else
     export_fig('-opengl', '-r120', '-a4', '-p0.02', mergename);
 end
 toc;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% western coast
+
+if ~exist('ns', 'var')
+    ns = runs('../topoeddy/runns-35/');
+end
+
+timesteps = [1 75 150 200 280 400];
+
+opt.csdcontourplot = 0;
+opt.csdcontours = ns.csflux.x([1 4 8]);
+opt.addvelquiver = 0;
+opt.addzeta = 1;
+handles = ns.mosaic_field('csdye', timesteps, opt);
+for ii=1:6
+    handles.hfield{ii}.hzeta.LevelList = linspace(0, 0.025, 6);
+    handles.hfield{ii}.hzetaneg.LevelList = linspace(-0.01,0,6);
+end
+handles.hcb.delete;
+
+ylim([min(ylim) 300]);
+handles.supax.Position(4) = 0.88;
+handles.htitle.String = 'Surface cross-shelf dye (km)';
+
+axes(handles.hax(1));
+[hleg,icons] = legend([handles.hfield{1}.hcen, ...
+                    handles.hfield{1}.htrack, ...
+                    handles.hfield{1}.hrho, ...
+                    handles.hfield{1}.hzeta], ...
+                      {'Eddy center', 'Center track', 'Eddy core', 'SSH'}, ...
+                      'Location', 'NorthWest'); %, 'FontSize', 14);
+hleg.Box = 'off';
+hleg.Position(1) = 0.26;
+hleg.Position(2) = 0.54;
+icons(end).Children.Children(1).LineWidth = 1;
+icons(end).Children.Children(2).LineWidth = 1;
+icons(end).Children.Children(3).LineWidth = 1;
+
+correct_ticks('x', [], {'50'; '100'}, handles.hax(4:6));
+
+export_fig -painters -a2 images/paper2/ns-35-csdsurf.png
