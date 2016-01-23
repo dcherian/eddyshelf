@@ -101,7 +101,7 @@ function [v, mask, rho, xvec, zvec] = ...
         if circle_kink
             kinkmask = (((xmat-x0)/kxrad).^2 + ((zmat-z0)/kzrad).^2) <= 1;
         else
-            kinkmask = ((xmat.^a + zmat.^a) > (0.707)^a) .* (zmat >= -width);
+            kinkmask = ((xmat.^a + zmat.^a) > (1)^a) .* (zmat >= -width);
         end
         mask = (xmat < xline) & (eddymask | kinkmask);
     end

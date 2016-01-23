@@ -604,10 +604,11 @@ classdef runArray < handle
             runArray.reset_colors(corder_backup);
         end
 
-        function [hax] = plot_fluxparam(runArray, str)
+        function [hax] = plot_fluxparam(runArray, str, factor)
 
-            if strcmpi(str, 'max flux') | strcmpi(str, 'avg flux')
-                factor = 2; % to 2xH_{sb}
+            if strcmpi(str, 'max flux') | strcmpi(str, 'avg flux') ...
+                    & (~isempty(factor) | ~exist('factor', 'var'))
+                factor = 1; % to 2xH_{sb}
             else
                 factor = [];
             end
@@ -650,9 +651,20 @@ classdef runArray < handle
                 cerr(ii) = Perr(2);
             end
 
+            % link axes properly
+            linkaxes(hax([1 2 4:9]), 'x');
+            linkaxes(hax([2 1]), 'y');
+            linkaxes(hax([6 5 4]), 'y');
+            linkaxes(hax([9 8 7]), 'y');
+
+            linkprop(hax([1 2 4:9]), 'xtick');
+            linkprop(hax([2 1]), 'ytick');
+            linkprop(hax([6 5 4]), 'ytick');
+            linkprop(hax([9 8 7]), 'ytick');
+
             hax(1).YTick = hax(1).YTick(2:end);
             hax(4).YTick = hax(4).YTick(2:end);
-            %hax(7).YTick = hax(7).YTick(2:end);
+            hax(7).YTick = hax(7).YTick(2:end);
 
             hax(1).YColor = [1 1 1]*0.3;
             hax(4).YColor = [1 1 1]*0.3;
@@ -664,12 +676,6 @@ classdef runArray < handle
 
             hax(8).XLabel.String = labx;
             hax(4).YLabel.String = laby;
-
-            % link axes properly
-            linkaxes(hax([1 2 4:9]), 'x');
-            linkaxes(hax([2 1]), 'y');
-            linkaxes(hax([6 5 4]), 'y');
-            linkaxes(hax([9 8 7]), 'y');
 
             axes(hax(2));
             if ~isempty(factor)

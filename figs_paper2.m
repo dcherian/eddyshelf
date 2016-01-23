@@ -589,12 +589,29 @@ export_fig -opengl -r120 -a2 images/paper2/sbsnapshot.png
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% avg flux
 
-hax = csf.plot_fluxparam('avg flux');
+hax = csf.plot_fluxparam('avg flux', 1);
+hax(2).Title.String = 'Integrated to shelfbreak depth';
+hax(2).XTick = [0:100:300];
+for ii=[2 4:9]
+    hax(ii).XLim = [0 300];
+    hax(ii).XTick = [0:100:300];
+end
+hax(1).XColor = [0 0 0];
+hax(1).XTickLabelMode = 'auto';
+hax(1).XAxisLocation = 'top';
+hax(1).YLim = [0 120];
+hax(1).YTick = [0:20:100];
+hax(2).YTick = [0:20:100];
+
 axes(hax(3));
 hleg = legend;
 hleg.Position(1) = 0.82;
+ylim([-10 50]);
+hax(3).YTick = [-10 0 20 40];
+correct_ticks('y', '%2d', []);
+hax(3).Position(1) = 0.67;
 
-export_fig -r96 -a2 images/paper2/avgflux.png
+export_fig -r150 -a2 -painters images/paper2/avgflux.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% max flux

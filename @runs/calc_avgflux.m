@@ -17,6 +17,16 @@ function [avgflux, err] = calc_avgflux(runs, fluxvec, debug)
     [tvec, uind] = unique(tvec);
     fluxvec = fluxvec(uind);
 
+    if mean(diff(tvec)) ~= diff(tvec(1:2))
+        % interpolate to constant grid
+        warning('flux time series Δt is not constant');
+        tvecnew = tvec(1):diff(tvec(1:2)):tvec(end);
+        fluxvecnew = interp1(tvec, fluxvec, tvecnew);
+
+        tvec = tvecnew;
+        fluxvec = fluxvecnew;
+    end
+
     avgflux = mean(fluxvec);
 
     [dof,IT] = calcdof(fluxvec);
