@@ -852,3 +852,32 @@ icons(end).Children.Children(3).LineWidth = 1;
 correct_ticks('x', [], {'50'; '100'}, handles.hax(4:6));
 
 export_fig -painters -a2 images/paper2/ns-35-csdsurf.png
+
+%% churchill figure
+if ~exist('ew36', 'var')
+    ew36 = runs('../topoeddy/runew-36/');
+end
+im = imread('images/churchill-1986-intrusion.png');
+
+figure; maximize;
+hax(1) = subplot(121);
+image(im);
+axis image
+hax(1).XColor = [1 1 1];
+hax(1).YColor = [1 1 1];
+hax(1).Title.String = '(a) From Churchill et al. (1986)';
+beautify;
+
+hax(2) = subplot(122); cla
+ew36.PlotSingleYZSection('eddye', '158.5', [], hax(2));
+hax(2).DataAspectRatio = [1 3 1];
+ylim([-400 0]);
+xlim([0 150]);
+colorbar('delete');
+hcb = colorbar('SouthOutside');
+title('Eddy dye');
+hax(2).YTick = sort(unique([hax(2).YTick -1*(0:50:400)]));
+correct_ticks('y', [], '-200');
+beautify;
+
+export_fig -r150 -a2 -painters images/paper2/eddy-intrusion.png
