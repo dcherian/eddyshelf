@@ -12,16 +12,23 @@ opt.rhocontourplot = 1;
 opt.csdcontourplot = 1;
 opt.csdcontours = ew34.csflux.x([1 4 8]);
 opt.addvelquiver = 0;
-opt.zetaOnFirstPlot = 1;
+opt.addzeta = 1;
 handles = ew34.mosaic_field('csdye', timesteps, opt);
-handles.hfield{1}.hzeta.LevelList = handles.hfield{1}.hzeta.LevelList(1:2:end);
 handles.hcb.delete;
-
+for ii=1:3
+    handles.hfield{ii}.hzeta.LevelList = linspace(0,0.013, 4);
+    handles.hfield{ii}.hzetaneg.LevelList = [-1.6e-3 -1.25e-3 -1.1e-3];
+end
+for ii=4:6
+    handles.hfield{ii}.hzeta.delete;
+    handles.hfield{ii}.hzetaneg.delete;
+end
 ylim([0 250]);
 correct_ticks('y', [], {'50', '100'}, handles.hax([1 4]));
 
 handles.supax.Position(4) = 0.715;
-handles.htitle.String = 'Surface cross-shelf dye (km) | Ro = 0.1 | L = 25 km | L^z = 400m';
+handles.htitle.String = ...
+    'Surface cross-shelf dye (km) | Ro = 0.1 | Eddy scales = (25 km, 400m)';
 
 axes(handles.hax(1));
 [hleg,icons] = legend([handles.hfield{1}.hcen, ...
@@ -36,7 +43,7 @@ icons(end).Children.Children(1).LineWidth = 1;
 icons(end).Children.Children(2).LineWidth = 1;
 icons(end).Children.Children(3).LineWidth = 1;
 
-export_fig -r120 -a2 -painters images/paper2/ew-34-surface-csdye.png
+export_fig -r150 -a2 -painters images/paper2/ew-34-surface-csdye.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% center tracks
