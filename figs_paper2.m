@@ -60,7 +60,7 @@ ew.plot_penetration;
 title('');
 set(gcf, 'Position', [675 175 1080 924]);
 columnlegend(3, names, 'Location', 'NorthWest');
-export_fig -r120 -painters -a2 -png -pdf images/paper2/centracks
+export_fig -r150 -painters -a2 -png -pdf images/paper2/centracks
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% flux diagnostics
@@ -176,7 +176,7 @@ htxt(3) = text(0.7, 0.7, '(Figure 1e)', 'Units', 'normalized', ...
 supax = suplabel('Along-shelf profile of cross-isobath velocity at shelfbreak', 't');
 supax.Position(end) = 0.79;
 
-export_fig -painters -r120 -a2 images/paper2/inst-flux.png
+export_fig -painters -r150 -a2 images/paper2/inst-flux.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% x-z sections
@@ -199,7 +199,7 @@ end
 handles.hax(1).XLim = [-170 150];
 handles.hcb(1).Ticks = sort(unique([handles.hcb(1).Ticks -0.09 0.09]));
 
-export_fig -r120 -opengl -a2 images/paper2/ew-34-xzsection.png
+export_fig -r150 -painters -a2 images/paper2/ew-34-xzsection.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% secondary eddy - 2360
@@ -217,7 +217,7 @@ handles.hfield.htrack.delete;
 correct_ticks('y', [], '198', handles.hax(1));
 handles.hax(1).Title.String = 'Cross shelf dye - X_{sb} (km)';
 
-export_fig('-r120', '-opengl', '-a2', ...
+export_fig('-r150', '-opengl', '-a2', ...
            'images/paper2/ew-2360-secondary-cyclone.png');
 
 handles.hax(3).YLabel.String = 'Z (m)';
@@ -275,7 +275,7 @@ for ii=1:4
     handles.hl(ii,2).XData = xlim;
 end
 
-export_fig -r96 -a2 images/paper2/ew-34-secondary-cyclone.png
+export_fig -r150 -a2 -painters images/paper2/ew-34-secondary-cyclone.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% ew-34 z-slice
@@ -335,7 +335,7 @@ end
 hpnt(end+1) = plot(ew2360.eddy.mx(tinds(end))/1000, ew2360.eddy.my(tinds(end))/1000, ...
                    'x', 'Color', [1 1 1]*0.45, 'MarkerSize', 16);
 
-export_fig -r120 -a2 images/paper2/ew-2360-mosaic-zslice.png
+export_fig -r150 -a2 images/paper2/ew-2360-mosaic-zslice.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% bottom rho PV
@@ -352,7 +352,7 @@ hplt.htext = text(330, 149, 'shelfbreak', 'Color', hplt.h_bathy{2}.Color)
 ylim([140 180]);
 set(gca, 'YTickMode', 'auto');
 
-export_fig -r96 -a2 images/paper2/ew-2360-bottomrhopv.png
+export_fig -r150 -a2 images/paper2/ew-2360-bottomrhopv.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% secondary cyclone x-z section
@@ -466,15 +466,14 @@ htext = text(430, -Lbeta/2000, 'L_\beta', 'Color', hlbeta.Color);
 linkprop([htext hanno hlbeta], 'Color');
 htext.Color = handles2.htxt(3).Color;
 
-export_fig -r120 -a2 images/paper2/sb-flux-summary.png
-
+%export_fig -r150 -a2 -painters -pdf -png images/paper2/sb-flux-summary
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% avg streamer profiles - shelfbreak
 
 handles = ew34.plotAvgStreamer(1);
 correct_ticks('y', [], '-50');
 handles.ax(1).Title.String = 'Mean cross-isobath velocity (m/s)';
-export_fig -r120 -a2 images/paper2/ew34-avgstreamer-sb.png
+export_fig -r150 -a2 images/paper2/ew34-avgstreamer-sb.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% avg streamer profiles - offshore
@@ -483,7 +482,7 @@ handles = ew34.plotAvgStreamer(4);
 handles.ax(1).Title.String = 'Mean cross-isobath velocity (m/s)';
 correct_ticks('y', [], {'-50'; '-400'}, handles.ax(1));
 handles.ax(3).XLim = [0 0.6];
-export_fig -r120 -a2 images/paper2/ew34-avgstreamer-sl.png
+export_fig -r150 -a2 images/paper2/ew34-avgstreamer-sl.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% flux vertical profiles
@@ -544,7 +543,7 @@ for ii=1:2
     handles(ii).htext{1}.Position(1) = 0.5;
     handles(ii).htext{2}.Position(1) = 0.5;
 end
-export_fig -r96 -a3 images/paper2/fluxvertprofile.png
+export_fig -r150 -a2 images/paper2/fluxvertprofile.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% shelfbreak flow surface snapshot
@@ -591,7 +590,7 @@ hanno.Head1Width = 7;
 hanno.Head2Width = 7;
 htxt = text(202, 33, 'L_\beta', 'Color', [1 1 1]*0.9, 'FontSize', 20);
 
-export_fig -opengl -r120 -a2 images/paper2/sbsnapshot.png
+export_fig -opengl -r150 -a2 images/paper2/sbsnapshot.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% avg flux
@@ -603,7 +602,7 @@ for ii=[2 4:9]
     hax(ii).XLim = [0 300];
     hax(ii).XTick = [0:100:300];
 end
-hax(1).XColor = [0 0 0];
+hax(1).XColor = hax(1).YColor;
 hax(1).XTickLabelMode = 'auto';
 hax(1).XAxisLocation = 'top';
 hax(1).YLim = [0 120];
@@ -618,18 +617,24 @@ hax(3).YTick = [-10 0 20 40];
 correct_ticks('y', '%2d', []);
 hax(3).Position(1) = 0.67;
 
-export_fig -r150 -a2 -painters images/paper2/avgflux.png
+export_fig -r150 -a2 -png -opengl images/paper2/avgflux
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% max flux
 
 hax = csf.plot_fluxparam('max flux');
+hax(2).Title.String = 'Integrated to shelfbreak depth';
+for ii=[2 4:9]
+    hax(ii).XLim = [0 300];
+    hax(ii).XTick = [0:100:300];
+end
+
 axes(hax(3));
 hleg = legend;
 hleg.Position(1) = 0.82;
 ylim([-1 1]*55);
 
-export_fig -r96 -a2 images/paper2/maxflux.png
+export_fig -r150 -a2 images/paper2/maxflux.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 3d schematics
@@ -804,7 +809,7 @@ tic;
 if multifig
     for ii=1:4
         axes(hax(ii));
-        export_fig('-r120', '-a4', '-p0.01', '-opengl', ...
+        export_fig('-r150', '-a4', '-p0.01', '-opengl', ...
                    ['images/paper2/3d-schem-' num2str(ii) '.png']);
     end
     hash = githash;
@@ -812,7 +817,7 @@ if multifig
             '-geometry +0.05+0.05 ' mergename]);
     system(['exiftool -overwrite_original -Producer=' hash ' ' mergename]);
 else
-    export_fig('-opengl', '-r120', '-a4', '-p0.02', mergename);
+    export_fig('-opengl', '-r150', '-a4', '-p0.02', mergename);
 end
 toc;
 
