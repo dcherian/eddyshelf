@@ -11,8 +11,9 @@ function [] = plotParameterization(name)
         if ii >= slopeplot, hh = ii+1; else hh = ii; end
         axes(hax(hh));
 
-        norm(ii,:) = 1; %norm(ii,:) / 1000;
+        norm(ii,:) = norm(ii,:) / 1000;
         for rr=1:length(norm(ii,:))
+            if rr == 16, continue; end % ew-4343
             paramvalue = slope(ii) * plotx(ii,rr) + intercept(ii);
             herrhi = (slope(ii)+merr(ii)) * plotx(ii,rr) + (intercept(ii) + cerr(ii)) - ...
                      paramvalue;
@@ -44,7 +45,6 @@ function [] = plotParameterization(name)
         line45;
     end
 
-
     hax(1).YColor = [1 1 1]*0.3;
     hax(4).YColor = [1 1 1]*0.3;
     hax(7).YColor = [1 1 1]*0.3;
@@ -52,7 +52,6 @@ function [] = plotParameterization(name)
     hax(7).XColor = [1 1 1]*0.3;
     hax(8).XColor = [1 1 1]*0.3;
     hax(9).XColor = [1 1 1]*0.3;
-
 
     ylabel(['Diagnosed ' name '/ Eddy volume flux']);
     xlabel(['Prediction / Eddy volume flux']);

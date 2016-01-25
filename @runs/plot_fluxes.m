@@ -17,7 +17,7 @@ function [] = plot_fluxes(runs, isobath, source)
 
     [~,~,restind] = runs.locate_resistance;
 
-    hfig1 = []; %figure; % streamer vertical structure
+    hfig1 = figure; % streamer vertical structure
     hfig2 = []; %figure; % hovmoeller plots (x,t)
     hfig3 = []; %figure; % hovmoeller plots (z,t)
     hfig4 = []; %figure; % flux time-series for given source
@@ -31,13 +31,13 @@ function [] = plot_fluxes(runs, isobath, source)
 
     if ~isempty(hfig1)
         if length(source) > 1
-            error('Specify 1 source isobath only!');
+            %            error('Specify 1 source isobath only!');
         end
         figure(hfig1); % streamer vertical structure
         insertAnnotation([runs.name '.plot_fluxes']);
         subplot(121)
         lightDarkLines(n);
-        plot(runs.csflux.off.slopewater.vertitrans(:,isobath,source), ...
+        plot(squeeze(runs.csflux.off.slopewater.vertitrans(:,isobath,source)), ...
              runs.csflux.vertbins(:,isobath));
         liney(-1 * runs.bathy.hsb);
         legend(cellstr(num2str(runs.csflux.h(isobath)', '%.2f')), ...

@@ -678,6 +678,5 @@ function [] = csfluxes(runs, ftype)
 
     disp('Saving data...');
     save([runs.dir '/fluxes.mat'], 'csflux', 'asflux', '-v7.3');
-    keyboard;
     toc(ticstart);
 end

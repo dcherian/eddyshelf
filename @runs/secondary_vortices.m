@@ -121,9 +121,12 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
 
     % extend horizontal lines
     for ii=1:4
-        axes(handles.hax(ii+1));
-        handles.hl(ii,1).XData = xlim;
-        handles.hl(ii,2).XData = xlim;
+        try
+            axes(handles.hax(ii+1));
+            handles.hl(ii,1).XData = xlim;
+            handles.hl(ii,2).XData = xlim;
+        catch ME
+        end
     end
 end
 

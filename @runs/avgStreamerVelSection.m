@@ -56,7 +56,11 @@ function [] = avgStreamerVelSection(runs)
 
         % offshore transport mask
         if isobath ~= 1
-            offmask = xivec' < 0;
+            if runs.bathy.axis == 'y'
+                offmask = xivec' < 0;
+            else
+                offmask = xivec' > 0;
+            end
         else
             offmask = xivec' < runs.eddy.rhovor.dia(1)/2;
         end

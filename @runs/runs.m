@@ -588,11 +588,49 @@ methods
         roms_info(runs.dir);
     end
 
+    function [iloc, xloc] = process_loc(runs, ax, loc)
+
+        if strcmpi(loc, 'sb') & (ax == runs.bathy.axis)
+            iloc = runs.bathy.isb;
+            xloc = runs.bathy.xsb;
+        end
+
+        if ischar(loc)
+            xloc = str2double(loc);
+            iloc = find_approx(1);
+        end
+    end
+
+    function [] = FluxIntegralTimeScale(runs, isobath, factor)
+        if ~exist('factor', 'var')
+            factor = 2;
+        end
+
+        if ~exist('isobath', 'var')
+            isobath = 2:4;
+        end
+
+        for iso=isobath
+            fluxvec = runs.recalculateFlux(factor*runs.bathy.hsb, iso, iso);
+            [start,stop] = runs.flux_tindices(fluxvec);
+            tvec = double(runs.csflux.time(start:stop));
+            tvec = (tvec - tvec(1));
+            [tvec, uind] = unique(tvec);
+            fluxvec = fluxvec(uind);
+
+            [dof,IT(iso)] = calcdof(fluxvec);
+        end
+
+        IT = mean(IT(isobath) * (tvec(2)-tvec(1))/86400)
+        turnover = runs.eddy.turnover/86400*2*pi
+        IT/turnover
+    end
+
     function [tindex] = process_time(runs, in)
 
         if ischar(in)
             if strcmpi(in, 'max flux')
-                [~,tindex] = runs.calc_maxflux(1);
+                [~,tindex] = runs.calc_maxflux(5);
                 return
             end
 
@@ -2832,6 +2870,12 @@ methods
 %                 pause
 %             end
 
+    end
+
+    function [htext] = add_isobathlabel(runs, isobath)
+        htext = text(0.68,0.10, ...
+                     ['y/R = ' num2str(runs.csflux.ndloc(isobath), '%.2f')], ...
+                     'Units', 'normalized');
     end
 
     function [] = plot_shelfvelprofiles(runs, tt)
