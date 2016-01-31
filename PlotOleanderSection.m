@@ -1,4 +1,9 @@
-function [] = PlotOleanderSection(tind, xind)
+function [] = PlotOleanderSection(tind, xind, hfig)
+    if ~exist('hfig', 'var')
+        hfig = figure;
+        maximize;
+    end
+
     fname = '../data/All_Oleander_3D.mat';
     ole = load(fname);
     zint = [-800:1:0];
@@ -12,9 +17,8 @@ function [] = PlotOleanderSection(tind, xind)
                              zint);
     end
 
-    figure; maximize;
     insertAnnotation(['PlotOleanderSection.m(' num2str(tind) ',[' num2str(xind) '])']);
-    ax(1) = subplot(1,3,[1 2]);
+    ax(1) = subplot(1,3,[1 2]); cla;
     contourf(ole.Dist(tind,1:size(Tint,1))/1000, zint, Tint', 40);
     lon = cut_nan(ole.Lon(tind,:));
     if lon(end) < lon(1)
@@ -30,7 +34,7 @@ function [] = PlotOleanderSection(tind, xind)
            ' ' num2str(ole.Year(tind,1))]);
     beautify;
 
-    ax(2) = subplot(1,3,3);
+    ax(2) = subplot(1,3,3); cla;
     hold on;
     for kk=1:length(xind)
         if ole.Year(tind,1) < 2008
