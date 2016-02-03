@@ -9,7 +9,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     limx = [165 410]; limy = [0 120];
     limx = []; limy = [];
 
-    dt = 2; dx = 0; dy = 0;
+    dt = 1; dx = 0; dy = 0;
     factor = 1; % scale variable (1 by default)
 
     csfluxplot = 0; % 0 = no flux plot
@@ -287,7 +287,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     if strcmpi(name, 'eddye') && addcsdye
         tind = t0:t0+ntimes-1;
         runs.edcsdyesurf(:,:,tind) = (runs.csdsurf(:,:,tind) < ...
-                                      (runs.bathy.xsb+10e3))*-1;
+                                      (runs.csflux.x(opt.csfluxIsobath)))*-1;
         runs.edcsdyesurf(:,:,tind) = runs.edcsdyesurf(:,:,tind) + ...
             runs.eddsurf(:,:,tind) .* (runs.edcsdyesurf(:,:,tind) == 0);
     end
@@ -340,6 +340,9 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     if strcmpi(varname, 'eddsurf')
         colormap(runs.eddyeColormap);
         caxis([0 1]);
+    end
+    if strcmpi(varname, 'rhosurf')
+        colormap(flip(colormap));
     end
     clim = caxis;
 
@@ -472,6 +475,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     % misc stuff
     handles.htitle = runs.set_title(titlestr,ii);
     xlabel('X (km)');ylabel('Y (km)');
+
     axis image;
 
     if strcmpi(name, 'zeta')
@@ -499,7 +503,6 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     if addcsdye
         caxis([-1 1]*1.5);
         colorbar('hide');
-        correct_ticks('y',[],[2 6]);
     end
 
     if nocolorbar
@@ -558,18 +561,20 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
                          slopext(:, ii));
             ylim([-1 1] *max(slopext(:)));
             if ~nocolorbar
-                oldpos = get(handles.subax(1), 'Position');
-                newpos = get(handles.subax(2), 'Position');
+                oldpos = handles.subax(1).Position;
+                newpos = handles.subax(2).Position;
                 newpos(3) = oldpos(3);
-                set(handles.subax(2), 'Position', newpos);
+                handles.subax(2).Position = newpos;
             end
             linkaxes(handles.subax, 'x');
             linkprop(handles.subax, 'XTick');
             hee = linex(runs.eddy.mx(ii)/1000 - dx);
             liney(0);
             xlabel('X (km)');
-            title('\int v(x,z,t)dz (m^2/s)');
+            text(0.05, 0.15, 'Depth Integrated Transport (m^2/s)', ...
+                 'Units', 'normalized');
             beautify; % - slows everything down for some reason
+            axes(handles.subax(1)); % bring xlabel up
         end
     end
     if subplots_flag == 'y'
