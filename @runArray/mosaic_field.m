@@ -15,7 +15,7 @@ function [handles] = mosaic_field(runArray, varname, timesteps, opt, clim)
     filter = runArray.filter;
 
     figure; maximize;
-    ax = packboth(ceil(length(runArray.filter)/2), 2);
+    ax = packfig(ceil(length(runArray.filter)/2), 2);
     insertAnnotation('runArray.mosaic_field');
     for ii=1:length(runArray.filter)
         if iscell(timesteps)

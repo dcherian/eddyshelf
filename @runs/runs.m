@@ -2229,7 +2229,7 @@ methods
             ylabel('Z-scale (m)');
             linex(tind);
             suplabel(runs.dir,'t');
-            packrows(2,1);
+            packfig(2,1,'rows');
             legend('z-centroid','zdye-centroid', ...
                 'H_{center}/2','f*dia/N','vertical (Gaussian) scale');
             %end

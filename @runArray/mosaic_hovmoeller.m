@@ -6,7 +6,7 @@ function [ax] = mosaic_hovmoeller(runArray, varname, axname, loc, iz)
 
     N = length(runArray.filter);
     figure; maximize; insertAnnotation('runArray.mosaic_hovmoeller');
-    ax = packboth(2,N/2);
+    ax = packfig(2,N/2);
 
     clim = [];
     for ii=1:N

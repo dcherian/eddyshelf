@@ -9,7 +9,7 @@ function [handles] = mosaic_zslice(runs, varname, depth, tind, opt)
     figure;
     insertAnnotation([runs.name '.mosaic_zslice(' varname ',' ...
                       num2str(depth) ')']);
-    hax = packboth(2,ceil(n/2));
+    hax = packfig(2,ceil(n/2));
     for ii=1:n
         axes(hax(ii));
         handles(ii) = runs.animate_zslice(varname, depth, tind(ii), hax(ii), opt);

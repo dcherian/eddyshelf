@@ -15,7 +15,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
 
     if figs(1)
         hfig1 = figure; % shelf water flux time series
-        ax1 = packrows(2,1);
+        ax1 = packfig(2,1, 'rows');
         axes(ax1(1)); hold all; axes(ax1(2)); hold all;
     end
 

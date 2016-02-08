@@ -622,7 +622,7 @@ classdef runArray < handle
             figure;
             insertAnnotation(['runArray.plot_fluxparam(' str ')']);
             slopeplot = 3;
-            hax = packboth(3,3);
+            hax = packfig(3,3);
             for ii=1:length(isobath)
                 iso = isobath(ii);
                 if ii >= slopeplot, hh = ii+1; else hh = ii; end

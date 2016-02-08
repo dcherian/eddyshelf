@@ -13,7 +13,7 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt)
     letters = 'abcdefghijkl';
 
     figure; maximize;
-    handles.hax = packboth(2, N);
+    handles.hax = packfig(2, N);
     insertAnnotation([runs.name '.mosaic_field']);
     for ii=1:length(timesteps)
         tstep = runs.process_time(timesteps(ii));
