@@ -154,6 +154,8 @@ methods
         [runs.bathy.xsl,runs.bathy.isl,runs.bathy.hsl] = ...
                         find_shelfbreak(runs.out_file,'slope');
         runs.bathy.h = runs.rgrid.h';
+        runs.bathy.betash = runs.params.phys.f0/runs.bathy.hsb * runs.bathy.sl_shelf;
+        runs.bathy.betasl = runs.params.phys.f0/runs.bathy.hsb * runs.bathy.sl_slope;
 
         % remove background zeta
         if read_zeta
@@ -581,6 +583,11 @@ methods
             runs.tscale = runs.eddy.tscale;
             runs.tscaleind = runs.eddy.tscaleind;
         end
+
+        % calculate Rhines scale
+        runs.bathy.Lbetash = sqrt(runs.eddy.fitx.V0(1) / 2.3 / sqrt(2) / ...
+                                  runs.bathy.betash);
+
         toc(ticstart);
     end
 
@@ -1310,8 +1317,9 @@ methods
         end
     end
 
-    function [cvy] = smoothCenterVelocity(runs, nsmooth)
+    function [cvy] = smoothCenterVelocity(runs, nsmooth, type)
         if ~exist('nsmooth', 'var') | isempty(nsmooth), nsmooth = 10; end
+        if ~exist('type', 'var'), type = 'cen'; end
 
         % number of points to smooth over.
         npts = (nsmooth*runs.eddy.turnover/86400);
