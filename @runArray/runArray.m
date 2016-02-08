@@ -784,9 +784,9 @@ classdef runArray < handle
                     hplted(ii) = plot(xi(ind:end)/1000, vm(ind:end), 'Tag', 'dcline');
                     linkprop([hpltsh(ii) hplted(ii)], 'Color');
                 else
-                    hplt(ii) = plot(vm, xi/1000);
-                    plot(vm(ind), xi(ind)/1000, 'x', ...
-                         'Color', hplt(ii).Color, 'MarkerSize', 18);
+                    hpltsh(ii) = plot(vm(1:ind), xi(1:ind)/1000, 'LineWidth', 4);
+                    hplted(ii) = plot(vm(ind:end), xi(ind:end)/1000, 'Tag', 'dcline');
+                    linkprop([hpltsh(ii) hplted(ii)], 'Color');
                 end
 
                 phys = run.params.phys;
@@ -818,7 +818,7 @@ classdef runArray < handle
             end
 
             hl = linex(0);
-            if ~strcmpi(varname, 'zeta'), hl{2} = liney(0); end
+            if ~strcmpi(varname, 'zeta'), hl[2] = liney(0); end
 
             handles.hpltsh = hpltsh;
             handles.hplted = hplted;
