@@ -90,3 +90,12 @@ end
 disp('failed = ');
 disp(failed);
 toc(ticstart);
+
+%% save bathy
+fname = '../data/All_Oleander_3D.mat';
+
+ole = load(fname);
+load('../data/etopo2_extract.mat');
+[xmat,ymat] = meshgrid(topo.x, topo.y);
+ole.WaterDepth = interp2(360+xmat, ymat, topo.z', ole.Lon, ole.Lat);
+save(fname, '-struct', 'ole');
