@@ -6,8 +6,9 @@ function [] = PlotOleanderSection(tind, xind, hfig)
 
     fname = '../data/All_Oleander_3D.mat';
     ole = load(fname);
-    zint = [-800:1:0];
+    zint = [-500:1:0];
 
+    % do linear vertical interpolation
     for aa=1:size(ole.Temp_Fix, 2) % along-shelf direction
         if isempty(cut_nan(squeeze(ole.Depth(tind,aa,:))))
             break;
@@ -17,24 +18,50 @@ function [] = PlotOleanderSection(tind, xind, hfig)
                              zint);
     end
 
+    xactual = ole.Dist(tind,1:size(Tint,1))/1000;
+    xinterp = [min(xactual):2:max(xactual)];
+    Tinterp = nan([length(xinterp) size(Tint,2)]);
+    for zz=1:size(Tint,2)
+        if ~all(isnan(Tint(:,zz)))
+            [Tinterp(:,zz),~] = OA1(xinterp, 16, 300, 1, 0.05, xactual, Tint(:,zz), 30);
+        end
+    end
+
     insertAnnotation(['PlotOleanderSection.m(' num2str(tind) ',[' num2str(xind) '])']);
     ax(1) = subplot(1,3,[1 2]); cla;
-    contourf(ole.Dist(tind,1:size(Tint,1))/1000, zint, Tint', 40);
+    contourf(xinterp, zint, Tinterp', 20);
+    %contourf(xactual, zint, Tint', 20);
+    hold on;
+    hline = plot(ole.Dist(tind,:)/1000, ole.WaterDepth(tind,:), 'k');
     lon = cut_nan(ole.Lon(tind,:));
     if lon(end) < lon(1)
         set(gca, 'xdir', 'reverse');
     end
     linex(ole.Dist(tind,xind)/1000);
-    colorbar;
+    colorbar; caxis([8 20]);
     ylabel('Z (m)'); xlabel('Along-track Distance (km)');
-    title(['XBT Data | Oleander | ' ...
+    beautify; hline.LineWidth = 4;
+
+    ax(2) = axes('position', ax(1).Position);
+    ax(2).XAxisLocation = 'top';
+    ax(2).XDir = ax(1).XDir;
+    ax(2).Box = 'off'; ax(1).Box = 'off';
+    ax(2).YTick = [];
+    linkaxes(ax(1:2), 'x');
+    ax(2).XTick = xactual;
+    ax(2).XTickLabel = {'\nabla'};
+    ax(2).XAxis.TickLabelGapMultiplier = 0;
+    ax(2).XAxis.TickLabelGapOffset = -2;
+    title(['XBT Data | Oleander | tind = ' num2str(tind) ' | ' ...
            num2str(nanmin(ole.Day(tind,:))) '-' ...
            num2str(nanmax(ole.Day(tind,:))) ' ' ...
            datestr([num2str(ole.Month(tind,1)) '/' num2str(ole.Month(tind,1))], 'mmm') ...
            ' ' num2str(ole.Year(tind,1))]);
     beautify;
+    ax(2).XAxis.TickDirection = 'in';
+    axes(ax(1));
 
-    ax(2) = subplot(1,3,3); cla;
+    ax(3) = subplot(1,3,3); cla;
     hold on;
     for kk=1:length(xind)
         if ole.Year(tind,1) < 2008
@@ -48,11 +75,11 @@ function [] = PlotOleanderSection(tind, xind, hfig)
                           'LineWidth', 2);
         end
     end
-    ax(2).XAxisLocation = 'top';
+    ax(3).XAxisLocation = 'top';
     xlabel('Temp (C)');
     legend(hh, cellstr(num2str(xind')), 'Location', 'SouthEast');
     beautify;
 
     linkaxes(ax, 'y');
-    ylim([-800 0]);
+    ylim([-500 0]);
 end
