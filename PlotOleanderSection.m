@@ -9,21 +9,30 @@ function [] = PlotOleanderSection(tind, xind, hfig)
     zint = [-500:1:0];
 
     % do linear vertical interpolation
+    Tint = nan([size(ole.Temp_Fix, 2) length(zint)]);
     for aa=1:size(ole.Temp_Fix, 2) % along-shelf direction
         if isempty(cut_nan(squeeze(ole.Depth(tind,aa,:))))
             break;
         end
-        Tint(aa,:) = interp1(-1*cut_nan(squeeze(ole.Depth(tind,aa,:))), ...
-                             cut_nan(squeeze(ole.Temp_Fix(tind,aa,:))), ...
-                             zint);
+        [zvec,uind] = unique(cut_nan(squeeze(ole.Depth(tind,aa,:))));
+        Tvec = cut_nan(squeeze(ole.Temp_Fix(tind,aa,uind)));
+        if length(zvec) > 2 & ~isempty(Tvec)
+            Tint(aa,:) = interp1(-1*abs(zvec), Tvec, zint);
+        end
     end
 
     xactual = ole.Dist(tind,1:size(Tint,1))/1000;
-    xinterp = [min(xactual):2:max(xactual)];
+    xinterp = [nanmin(xactual):2:nanmax(xactual)];
     Tinterp = nan([length(xinterp) size(Tint,2)]);
+    if ole.Year(tind,1) > 2007
+        Lgauss = nanmedian(diff(xactual));
+    else
+        Lgauss = 16;
+    end
+
     for zz=1:size(Tint,2)
         if ~all(isnan(Tint(:,zz)))
-            [Tinterp(:,zz),~] = OA1(xinterp, 16, 300, 1, 0.05, xactual, Tint(:,zz), 30);
+            [Tinterp(:,zz),~] = OA1(xinterp, Lgauss, 300, 1, 0.05, xactual, Tint(:,zz), 30);
         end
     end
 
@@ -48,7 +57,7 @@ function [] = PlotOleanderSection(tind, xind, hfig)
     ax(2).Box = 'off'; ax(1).Box = 'off';
     ax(2).YTick = [];
     linkaxes(ax(1:2), 'x');
-    ax(2).XTick = xactual;
+    ax(2).XTick = unique(cut_nan(xactual));
     ax(2).XTickLabel = {'\nabla'};
     ax(2).XAxis.TickLabelGapMultiplier = 0;
     ax(2).XAxis.TickLabelGapOffset = -2;

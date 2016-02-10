@@ -82,10 +82,10 @@ for tt=unique(IndFiltered(:,1))'
         PlotOleanderSection(tt, IndFiltered(inds,2)', hfig);
     catch ME
         failed = [failed tt];
-        disp(ME.message);
+        disp([num2str(tt) ' | ' ME.message]);
         continue;
     end
-    export_fig('-r150','-a2', ['images/oleander/filtered/' num2str(tt) '-'...
+    export_fig('-r150','-a2', ['images/oleander/filtered/' num2str(tt, '%03d') '-'...
                         datestr([ole.Year(tt,1) ole.Month(tt,1) nanmin(ole.Day(tt,:)) 0 0 0], ...
                                 'yyyy-mm-dd') '.png']);
 end
