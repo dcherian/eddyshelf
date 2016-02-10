@@ -93,6 +93,9 @@ disp('failed = ');
 disp(failed);
 toc(ticstart);
 
+%%
+ole.WcrPresent = sort([114 85 200 279 319 35 390 394 398 400 401 407 461 463 464 465 481 484 489 ...
+                    490 49 501 506 515]);
 %% save bathy
 fname = '../data/All_Oleander_3D.mat';
 

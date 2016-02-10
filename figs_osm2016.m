@@ -105,3 +105,16 @@ hax.Box = 'off';
 hax.DataAspectRatio = [1 1 5];
 zlim([-850 1.1]);
 view(-130,28)
+
+
+%% churchill (1986) section
+% Oct 19-20, 1983
+handles = PlotOleanderSection(114, [11 17]);
+handles.hax(2).Title.String = 'Temperature (C) | Oleander XBT | 19-20 Oct 1983';
+handles.hax(2).Title.FontSize = 26;
+axes(handles.hax(1));
+beautify([22 24 30]);
+correct_ticks('x', [], {'650'; '750'; '700'}, handles.hax(1));
+axes(handles.hax(3));
+beautify([22 24 30]);
+export_fig -r150 -a2 images/osm2016/oleander-oct1983.png

@@ -1,4 +1,4 @@
- function [] = PlotOleanderSection(tind, xind, hfig)
+ function [handles] = PlotOleanderSection(tind, xind, hfig)
     if ~exist('hfig', 'var')
         hfig = figure;
         maximize;
@@ -49,10 +49,10 @@
 
     insertAnnotation(['PlotOleanderSection.m(' num2str(tind) ',[' num2str(xind) '])']);
     ax(1) = subplot(1,3,[1 2]); cla;
-    contourf(xinterp, zint, Tinterp', 20);
+    handles.htemp = contourf(xinterp, zint, Tinterp', 20);
     %contourf(xactual(~isnan(xactual)), zint, Tint(~isnan(xactual),:)', 20);
     hold on;
-    hline = plot(ole.Dist(tind,:)/1000, ole.WaterDepth(tind,:), 'k');
+    handles.hbathy = plot(ole.Dist(tind,:)/1000, ole.WaterDepth(tind,:), 'k');
     if lon(end) < lon(1)
         set(gca, 'xdir', 'reverse');
     end
@@ -60,7 +60,8 @@
     xlim([min(xactual) max(xactual(lon < 290))]);
     colorbar; caxis([8 20]);
     ylabel('Z (m)'); xlabel('Along-track Distance (km)');
-    beautify; hline.LineWidth = 4;
+    beautify;
+    handles.hbathy.LineWidth = 4;
 
     ax(2) = axes('position', ax(1).Position);
     ax(2).XAxisLocation = 'top';
@@ -69,7 +70,7 @@
     ax(2).YTick = [];
     linkaxes(ax(1:2), 'x');
     ax(2).XTick = unique(cut_nan(xactual));
-    ax(2).XTickLabel = {'\nabla'};
+    ax(2).XTickLabel = {'+'};
     ax(2).XAxis.TickLabelGapMultiplier = 0;
     ax(2).XAxis.TickLabelGapOffset = -2;
     title(['XBT Data | Oleander | tind = ' num2str(tind) ' | ' ...
@@ -77,29 +78,32 @@
            num2str(nanmax(ole.Day(tind,:))) ' ' ...
            datestr([num2str(ole.Month(tind,1)) '/' num2str(ole.Month(tind,1))], 'mmm') ...
            ' ' num2str(ole.Year(tind,1))]);
-    beautify;
-    ax(2).XAxis.TickDirection = 'in';
+    beautify([16 18 28]);
+    ax(2).XAxis.TickLength = [0 0];
     axes(ax(1));
 
     ax(3) = subplot(1,3,3); cla;
     hold on;
     for kk=1:length(xind)
         if ole.Year(tind,1) < 2008
-            hh(kk) = plot(squeeze(ole.Temp_Fix(tind,xind(kk),:)), ...
+            hprofile(kk) = plot(squeeze(ole.Temp_Fix(tind,xind(kk),:)), ...
                           -1*squeeze(ole.Depth(tind,xind(kk),:)), 'o', ...
                           'LineWidth', 2);
-            plot(Tint(xind(kk),:), zint, 'Color', hh(kk).Color);
+            plot(Tint(xind(kk),:), zint, 'Color', hprofile(kk).Color);
         else
-            hh(kk) = plot(squeeze(ole.Temp_Fix(tind,xind(kk),:)), ...
+            hprofile(kk) = plot(squeeze(ole.Temp_Fix(tind,xind(kk),:)), ...
                           -1*squeeze(ole.Depth(tind,xind(kk),:)), '-', ...
                           'LineWidth', 2);
         end
     end
     ax(3).XAxisLocation = 'top';
     xlabel('Temp (C)');
-    legend(hh, cellstr(num2str(xind')), 'Location', 'SouthEast');
+    handles.hleg = legend(hprofile, cellstr(num2str(xind')), 'Location', 'SouthEast');
     beautify;
 
     linkaxes(ax, 'y');
     ylim([-500 0]);
+
+    handles.hax = ax;
+    handles.hprofile = hprofile;
 end
