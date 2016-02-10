@@ -22,6 +22,9 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     if ~isfield(opt, 'sect')
         opt.sect = 'y';
     end
+    if ~isfield(opt, 'MoveToZLevel')
+        opt.MoveToZLevel = 0;
+    end
 
     tind = runs.process_time(tind);
     imx = runs.eddy.imx;
@@ -87,7 +90,8 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     eddColorMap = runs.eddyeColormap;
     eddVolume = smooth3(bsxfun(@times,eddye(:,:,:,1),mask(:,:,1)));
     hedd = patch(isosurface(xrmat/1000,yrmat/1000,zrmat, eddVolume, opt.eddthresh), ...
-                 'EdgeColor', 'none', 'AmbientStrength', 0.5, 'DiffuseStrength', 0.6);
+                 'EdgeColor', 'none', 'AmbientStrength', 0.5, 'DiffuseStrength', 0.6, ...
+                 'FaceColor', brighten([215 48 31]/255, 0.1));
     reducepatch(hedd, opt.eddreducepatch, 'verbose');
     if opt.finalize
         isonormals(eddVolume, hedd);
@@ -114,10 +118,10 @@ function [handles] = animate_3d(runs, tind, opt, hax)
 
     sz = size(xrmat);
 
+    % cross-sectional planes
     mergedye = eddVolume;
     mergedye(eddVolume < 0.6) = 0;
     mergedye = fillnan(smooth3(mergedye + -1 * (csdye <= cslevel(1)), 'gaussian', 5),0);
-
     if opt.sect == 'y'
         imy = runs.eddy.imy(tind) - 5;
         handles.hsect = ...
@@ -166,9 +170,24 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     colormap(flip(cbrewer('div', 'RdBu', 50)));
     caxis([-1.5 1.5]);
 
+    % shelf-slope water
     for kk=1:length(cslevel)
         hcsd(kk) = patch(isosurface(xrmat/1000,yrmat/1000,zrmat, ...
-                                    smooth3(csdye(:,:,:,1)),cslevel(kk)));
+                                    smooth3(csdye),cslevel(kk)), ...
+                         'FaceAlpha', 0.8, 'FaceColor', [107 174 214]/255);
+
+        % Only does the first contour at the surface
+        cm = contourc(xrmat(1,:,end)/1000, yrmat(:,1,end)/1000, csdye(:,:,end), ...
+                      [1 1] * cslevel(kk));
+        NumPoints = cm(2,1);
+        xind = vecfind(xrmat(1,:,1)/1000, cm(1,2:NumPoints+1));
+        yind = vecfind(yrmat(:,1,1)/1000, cm(2,2:NumPoints+1));
+        for xx=1:length(xind)
+            zvec(xx) = zrmat(yind(xx), xind(xx), end);
+        end
+        hcsdsurf{kk} = plot3(cm(1,2:NumPoints+1), cm(2,2:NumPoints+1), zvec, ...
+                             'Color', runs.shelfSlopeColor, 'LineWidth', 1, 'Tag', 'dcline');
+
         if opt.finalize
             isonormals(smooth3(csdye(:,:,:,1)), hcsd(kk));
         end
@@ -211,6 +230,17 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     handles.heddcap = heddcap;
     handles.hedd = hedd;
     handles.hcsd = hcsd;
+    handles.hcsdsurf = hcsdsurf;
     handles.hbathy = hbathy;
     handles.hlight = hlight;
+
+    % bring bottom up to have less empty space.
+    if opt.MoveToZLevel ~= 0
+        opt.MoveToZLevel = abs(opt.MoveToZLevel);
+        bathy = hbathy.ZData;
+        handles.hbathy.ZData(bathy <= -opt.MoveToZLevel) = -opt.MoveToZLevel;
+        handles.hsectoutline.ZData(handles.hsectoutline.ZData <= -opt.MoveToZLevel) = -opt.MoveToZLevel;
+        handles.hplane.ZData(handles.hplane.ZData <= -opt.MoveToZLevel) = -opt.MoveToZLevel;
+        zlim([-abs(opt.MoveToZLevel) 1.1]);
+    end
 end
