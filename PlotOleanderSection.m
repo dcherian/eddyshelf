@@ -1,4 +1,4 @@
-function [] = PlotOleanderSection(tind, xind, hfig)
+ function [] = PlotOleanderSection(tind, xind, hfig)
     if ~exist('hfig', 'var')
         hfig = figure;
         maximize;
@@ -30,6 +30,17 @@ function [] = PlotOleanderSection(tind, xind, hfig)
         Lgauss = 16;
     end
 
+    % sometimes there is a cast for the reverse cruise
+    lon = cut_nan(ole.Lon(tind,:));
+    if lon(end) < lon(1)
+        crap = find(diff(lon) > 0) + 1;
+    else
+        crap = find(diff(lon) < 0) + 1;
+    end
+    lon(crap) = [];
+    xactual(crap) = [];
+    Tint(crap,:) = [];
+
     for zz=1:size(Tint,2)
         if ~all(isnan(Tint(:,zz)))
             [Tinterp(:,zz),~] = OA1(xinterp, Lgauss, 300, 1, 0.05, xactual, Tint(:,zz), 30);
@@ -39,14 +50,14 @@ function [] = PlotOleanderSection(tind, xind, hfig)
     insertAnnotation(['PlotOleanderSection.m(' num2str(tind) ',[' num2str(xind) '])']);
     ax(1) = subplot(1,3,[1 2]); cla;
     contourf(xinterp, zint, Tinterp', 20);
-    %contourf(xactual, zint, Tint', 20);
+    %contourf(xactual(~isnan(xactual)), zint, Tint(~isnan(xactual),:)', 20);
     hold on;
     hline = plot(ole.Dist(tind,:)/1000, ole.WaterDepth(tind,:), 'k');
-    lon = cut_nan(ole.Lon(tind,:));
     if lon(end) < lon(1)
         set(gca, 'xdir', 'reverse');
     end
     linex(ole.Dist(tind,xind)/1000);
+    xlim([min(xactual) max(xactual(lon < 290))]);
     colorbar; caxis([8 20]);
     ylabel('Z (m)'); xlabel('Along-track Distance (km)');
     beautify; hline.LineWidth = 4;
