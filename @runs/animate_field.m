@@ -142,7 +142,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     if ~exist('t0', 'var'), t0 = 1; end
     if isempty(t0), [~,~,t0] = runs.locate_resistance; end
     t0 = runs.process_time(t0);
-    if ~exist('ntimes', 'var')
+    if ~exist('ntimes', 'var') | isempty(ntimes)
         ntimes = length(runs.time) - t0 + 1;
     end
 
@@ -426,6 +426,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     if addzeta
         handles.hzeta = runs.plot_surf('zeta','contour', ii);
         handles.hzeta.LevelList(handles.hzeta.LevelList < 0) = [];
+        handles.hzeta.LevelList = handles.hzeta.LevelList([1:2:end]);
         handles.hzeta.LineWidth = 1;
         handles.hzeta.XData = handles.hzeta.XData - dx;
         handles.hzeta.YData = handles.hzeta.YData - dy;
@@ -498,6 +499,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     caxis(clim); % restore colorbar limits
     maximize(gcf); % pause(0.2);
     beautify([16 16 18]);
+    set(gcf, 'renderer', 'painters');
     handles.htlabel = runs.add_timelabel(ii);
 
     if addcsdye
