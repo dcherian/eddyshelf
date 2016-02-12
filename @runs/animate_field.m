@@ -38,6 +38,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     % extra contours
     addcsdye = 0; % add csdye to eddye plot?
     addzeta = 0; % overlay zeta contours
+    stopzeta = 0; % stop display zeta
 
     csdcontourplot = 1; % contour csd contours
     try
@@ -448,7 +449,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     end
 
     % zeta too?
-    if addzeta
+    if addzeta & (ii ~= stopzeta);
         handles.hzeta = runs.plot_surf('zeta','contour', ii);
         handles.hzeta.LevelList(handles.hzeta.LevelList < 0) = [];
         handles.hzeta.LevelList = handles.hzeta.LevelList([1:2:end]);
@@ -683,6 +684,11 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
             if addvelquiver
                 set(handles.hquiv,'UData',u(rangex, rangey, ii)/uref);
                 set(handles.hquiv,'VData',v(rangex, rangey, ii)/vref);
+            end
+
+            if addzeta & (ii >= stopzeta)
+                handles.hzeta.delete;
+                addzeta = 0;
             end
 
             if addzeta
