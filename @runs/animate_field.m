@@ -90,6 +90,13 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         vecplot = 1;
         tvec = runs.csflux.time/86400;
         for kkk=1:length(csfluxIsobath)
+            if csfluxIsobath(kkk) == 1
+                isobathNames{kkk} = [runs.bathy.axis ' = shelfbreak'];
+            else
+                isobathNames{kkk} = [runs.bathy.axis ' = ' ...
+                                    num2str(round(runs.csflux.x(csfluxIsobath(kkk))/1000)) ...
+                    ' km'];
+            end
             vec(:,kkk) = runs.csflux.off.slope(:,csfluxIsobath(kkk), ...
                                                csfluxIsobath(kkk));
         end
@@ -565,7 +572,13 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
                 liney(0);
             end
 
-            ylabel(laby);
+            handles.hsubaxlabel = ...
+                text(0.02, 0.9, laby, 'Units', 'normalized', 'FontSize', 18);
+            if csfluxplot == 2
+                handles.hleg2 = legend(hvec, isobathNames, 'Location', 'NorthWest');
+                handles.hleg2.Position(1) = 0.15;
+                handles.hleg2.Position(2) = 0.29;
+            end
             xlabel('Time (days)');
         end
 
