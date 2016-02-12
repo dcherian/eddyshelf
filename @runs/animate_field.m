@@ -58,7 +58,15 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     uref = 1; vref = uref; % scale vectors
     scale = 3;
 
+    % graphics
     nocolorbar = 0;
+    AnimateZoom = 0;
+    ZoomStart = 1;
+    ZoomEnd = 1;
+    ZoomXLimStart = [];
+    ZoomXLimEnd = [];
+    ZoomYLimStart = [];
+    ZoomYLimEnd = [];
 
     % eddy diagnostics
     drawtrack = 1; % plot eddy track?
@@ -329,6 +337,20 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     handles.hfield.CData = handles.hfield.CData / factor;
     hold on;
     handles.hcb = colorbar;
+    if AnimateZoom
+        if isempty(ZoomXLimStart)
+            ZoomXLimStart = xlim;
+        end
+        if isempty(ZoomXLimEnd)
+            ZoomXLimEnd = xlim;
+        end
+        if isempty(ZoomYLimStart)
+            ZoomYLimStart = ylim;
+        end
+        if isempty(ZoomYLimEnd)
+            ZoomYLimEnd = ylim;
+        end
+    end
     if ~strcmpi(name, 'csdye') && ~strcmpi(name, 'rho') ...
             && ~strcmpi(name, 'dye_01')
         center_colorbar;
@@ -511,8 +533,19 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         colorbar('hide');
     end
 
-    if ~isempty(limx), xlim(limx); end
-    if ~isempty(limy), ylim(limy); end
+    if AnimateZoom & ii >= ZoomStart
+        xlim(ZoomXLimStart);
+        ylim(ZoomYLimStart);
+
+        ZoomDeltaT = ceil((ZoomEnd - ZoomStart + 1)/dt);
+        ZoomDeltaXmin = (ZoomXLimEnd(1) - ZoomXLimStart(1));
+        ZoomDeltaYmin = (ZoomYLimEnd(1) - ZoomYLimStart(1));
+        ZoomDeltaXmax = (ZoomXLimEnd(2) - ZoomXLimStart(2));
+        ZoomDeltaYmax = (ZoomYLimEnd(2) - ZoomYLimStart(2));
+    else
+        if ~isempty(limx), xlim(limx); end
+        if ~isempty(limy), ylim(limy); end
+    end
 
     % second plot
     if subplots_flag == 'x'
@@ -664,6 +697,18 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
             if drawcenter
                 handles.hcen.XData = runs.eddy.mx(ii)/1000 - dx;
                 handles.hcen.YData = runs.eddy.my(ii)/1000 - dy;
+            end
+
+            if AnimateZoom & ii>=ZoomStart & ii<=ZoomEnd
+                olimx = handles.subax(1).XLim;
+                olimy = handles.subax(1).YLim;
+                zlimx(1) = olimx(1) + ZoomDeltaXmin/ZoomDeltaT;
+                zlimx(2) = olimx(2) + ZoomDeltaXmax/ZoomDeltaT;
+                zlimy(1) = olimy(1) + ZoomDeltaYmin/ZoomDeltaT;
+                zlimy(2) = olimy(2) + ZoomDeltaYmax/ZoomDeltaT;
+
+                handles.subax(1).XLim = zlimx;
+                handles.subax(1).YLim = zlimy;
             end
 
             % ssh contour
