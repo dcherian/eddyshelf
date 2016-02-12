@@ -3466,11 +3466,6 @@ methods
             eval(['hplot = pcolor(runs.rgrid.xr(' axrange ')/1000,' ...
                   'runs.rgrid.yr(' axrange ')/1000,' ...
                   'double(runs.' varname '(' range ',tt)));']);
-            if runs.makeVideo
-                shading interp;
-            else
-                shading flat
-            end
         else
             if strcmpi(plottype,'contourf') || strcmpi(plottype,'contour')
                 eval(['[cc,hplot] = ' plottype ...
@@ -3478,9 +3473,10 @@ methods
                       'runs.rgrid.yr(' range ')/1000,'...
                       'double(runs.' varname '(' range ',tt)));']);
                 hplot.LevelList = linspace(crange(1),crange(2), 10);
-                shading flat
             end
         end
+
+        shading interp;
 
         if strcmpi(varname, 'eddye')
             center_colorbar;
