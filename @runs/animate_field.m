@@ -537,15 +537,17 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         colorbar('hide');
     end
 
-    if AnimateZoom & ii >= ZoomStart
-        xlim(ZoomXLimStart);
-        ylim(ZoomYLimStart);
-
+    if AnimateZoom
         ZoomDeltaT = ceil((ZoomEnd - ZoomStart + 1)/dt);
         ZoomDeltaXmin = (ZoomXLimEnd(1) - ZoomXLimStart(1));
         ZoomDeltaYmin = (ZoomYLimEnd(1) - ZoomYLimStart(1));
         ZoomDeltaXmax = (ZoomXLimEnd(2) - ZoomXLimStart(2));
         ZoomDeltaYmax = (ZoomYLimEnd(2) - ZoomYLimStart(2));
+
+        if ii >= ZoomStart
+            xlim(ZoomXLimStart);
+            ylim(ZoomYLimStart);
+        end
     else
         if ~isempty(limx), xlim(limx); end
         if ~isempty(limy), ylim(limy); end
