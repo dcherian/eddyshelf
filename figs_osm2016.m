@@ -50,9 +50,21 @@ xlim([-1 1]*80);
 opt.dt = 2;
 opt.nocolorbar = 1;
 opt.addzeta = 1;
+opt.stopzeta = 100;
 opt.csdcontours = ew34.csflux.x([1 3 5]);
+opt.vecplot = 1;
+opt.csfluxplot = 2;
+opt.csfluxIsobath = [1 3];
+opt.AnimateZoom = 1;
+opt.ZoomStart = 80;
+opt.ZoomEnd = 240;
+opt.ZoomXLimStart = [];
+opt.ZoomXLimEnd = [100 450];
+opt.ZoomYLimStart = [];
+opt.ZoomYLimEnd = [0 200];
+
 ew34.makeVideo = 1;
-ew34.animate_field('csdye', [], 1, [], opt);
+ew34.animate_field('csdye', [], 1, 170, opt);
 
 %% ew2360 xz
 isobath = 3;
