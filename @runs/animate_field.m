@@ -14,6 +14,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
 
     csfluxplot = 0; % 0 = no flux plot
                     % 1 = instantaneous x-profile;
+                    % 2 = time series plot
     csfluxIsobath = 4; % for profile
 
     asfluxplot = 0; % 0 = no flux plot
@@ -83,6 +84,17 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
             eval([fields{ff} ' = opt.' fields{ff} ';']);
         end
     end
+
+    if csfluxplot == 2
+        vecplot = 1;
+        tvec = runs.csflux.time/86400;
+        for kkk=1:length(csfluxIsobath)
+            vec(:,kkk) = runs.csflux.off.slope(:,csfluxIsobath(kkk), ...
+                                               csfluxIsobath(kkk));
+        end
+        laby = 'Shelf/Slope water flux (m^3/s)';
+        locy = runs.bathy.xsb/1000; locx = [];
+    end
     %%%%%%%%%%%%%%%%%%% options processing ends
 
     if pointplot
@@ -90,7 +102,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         py = runs.eddy.my/1000;
     end
 
-    if vecplot
+    if vecplot & (csfluxplot ~= 2)
         try
             %%% integrated energy asflux
             %tvec = runs.eddy.t;
@@ -115,15 +127,6 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
             %tvec = runs.asflux.time/runs.tscale;
             %vec = runs.asflux.ikeflux(:,2);
             %locx = runs.asflux.x(2); locy = [];
-
-            %%% cross-sb shelf water flux
-            %tvec = runs.csflux.time/86400;
-            %for kkk=1:length(isobath)
-            %    vec(:,kkk) = runs.csflux.off.slope(:,isobath(kkk), ...
-            %                                        isobath(kkk));
-            %end
-            %laby = 'Slope water flux (m^3/s)';
-            %locy = runs.bathy.xsb/1000; locx = [];
 
             %%% area plot
             %vec = runs.eddy.vor.lmin .* runs.eddy.vor.lmaj;
@@ -271,7 +274,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     end
 
     % which subplot do I need?
-    if (~isempty(runs.csflux) && csfluxplot == 1) || ...
+    if (~isempty(runs.csflux) && csfluxplot ~= 0) || ...
             enfluxplot || vecplot
         subplots_flag = 'x';
     else
@@ -608,9 +611,10 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
             xlabel('X (km)');
             text(0.05, 0.15, 'Depth Integrated Transport (m^2/s)', ...
                  'Units', 'normalized');
-            beautify; % - slows everything down for some reason
-            axes(handles.subax(1)); % bring xlabel up
         end
+
+        beautify; % - slows everything down for some reason
+        axes(handles.subax(1)); % bring xlabel up
     end
     if subplots_flag == 'y'
         handles.subax(2) = subplot(1,3,3);
