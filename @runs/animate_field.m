@@ -667,7 +667,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
 
     if ntimes > 1
         runs.video_update();
-        for ii = t0+1:dt:t0+ntimes-1
+        for ii = t0+1:dt:t0+ntimes*dt-1
             %L = createLine(runs.eddy.vor.cx(ii)/1000, runs.eddy.vor.cy(ii)/1000, ...
             %           1, -1*runs.eddy.vor.angle(ii)*pi/180);
             %delete(hline);
