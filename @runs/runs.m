@@ -3397,7 +3397,8 @@ methods
     end
     function [color] = shelfSlopeColor(runs)
     % color = [1 1 1]*0.55;
-        color = [49,130,189]/256;
+    %color = [49,130,189]/256;
+        color = [8 48 107]/255;
     end
     function [color] = rhoContColor(runs)
     % color = 'k';
@@ -3593,13 +3594,11 @@ methods
 
     function [ht] = set_title(runs,titlestr,tt)
         ht = title([titlestr ' | ' runs.name ' | ' ...
-                    num2str(runs.time(tt)/86400)  ' days | t_{nd} = ' ...
-                   num2str(runs.time(tt)/runs.eddy.turnover, '%.2f')]);
+                    num2str(runs.time(tt)/86400)  ' days']);
     end
     function update_title(runs,ht,titlestr,tt)
         set(ht,'String',[titlestr ' | ' runs.name ' | ' ...
-                         num2str(runs.time(tt)/86400)  ' days | t_{nd} = ' ...
-                          num2str(runs.time(tt)/runs.tscale, '%.2f')]);
+                         num2str(runs.time(tt)/86400)  ' days']);
     end
 
     function [hplot] = plot_bathy(runs,plottype,color)
