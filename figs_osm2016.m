@@ -91,6 +91,13 @@ linkprop([hanno htxt], 'Color');
 hanno.Color = [1 133 113]/255;
 
 %% 3d schematic
+
+annocolor = 'k'; %[1 1 1]*0.5;
+annofs = 23;
+annolw = 0.5;
+annoheadstyle = 'cback3';
+annofontname = 'Futura Bk BT';
+
 opt.MoveToZLevel = -850;
 opt.eddthresh = 0.8;
 opt.csdcontours = ew34.bathy.xsb+5000;
@@ -99,14 +106,11 @@ opt.csdreducepatch = 0.3;
 opt.finalize = 1;
 opt.linefilter = 1;
 opt.sect = 'y';
-opt.x = [200, 410] * 1000;
-opt.y = [300, 0] * 1000;
 
-handles = ew34.animate_3d('220', opt);
-handles.hcsd.FaceAlpha = 0.8;
-handles.hcsd.Visible = 'off';
-handles.hcsd.FaceColor = [107 174 214]/255;
-handles.hedd.FaceColor = brighten([215 48 31]/255, 0.1);
+% t= 200
+opt.x = [300, 410] * 1000;
+opt.y = [300, 0] * 1000;
+handles = ew34.animate_3d('200', opt);
 
 hax = gca;
 hax.Title.String = '';
@@ -114,10 +118,67 @@ hax.XAxis.Visible = 'off';
 hax.YAxis.Visible = 'off';
 hax.ZAxis.Visible = 'off';
 hax.Box = 'off';
-hax.DataAspectRatio = [1 1 5];
-zlim([-850 1.1]);
+hax.DataAspectRatio = [1 1 7];
 view(-130,28)
 
+hanno = annotation(hax.Parent, 'textarrow', [0.7 0.59], [0.5 0.58], ...
+                   'String', {'There is a';  'persistent bulge'; ...
+                    'in the eddy'; 'below'; 'shelfbreak depth'}, ...
+                   'LineWidth', annolw, 'Color', annocolor, ...
+                   'HeadStyle', annoheadstyle, 'TextMargin', 0.05, ...
+                   'FontName', annofontname, 'FontSize', annofs, ...
+                   'VerticalAlignment', 'middle', 'HorizontalAlignment', 'center');
+
+handles.hcsd.Visible = 'off';
+handles.hcsdsurf{1}.Visible = 'off';
+handles.hsect.delete;
+handles.hsectoutline.delete;
+handles.hplane.delete;
+export_fig -nocrop -r120 -a4 images/osm2016/ew-34-3d-200-nocsd.png
+
+% t= 220
+opt.x = [240, 410] * 1000;
+opt.y = [300, 0] * 1000;
+handles = ew34.animate_3d('220', opt);
+
+hax = gca;
+hax.Title.String = '';
+hax.XAxis.Visible = 'off';
+hax.YAxis.Visible = 'off';
+hax.ZAxis.Visible = 'off';
+hax.Box = 'off';
+hax.DataAspectRatio = [1 1 7];
+view(-130,28)
+
+hanno = annotation(hax.Parent, 'textarrow', [0.7 0.59], [0.5 0.58], ...
+                   'String', {'There is a';  'persistent bulge'; ...
+                    'in the eddy'; 'below'; 'shelfbreak depth'}, ...
+                   'LineWidth', annolw, 'Color', annocolor, ...
+                   'HeadStyle', annoheadstyle, 'TextMargin', 0.05, ...
+                   'FontName', annofontname, 'FontSize', annofs, ...
+                   'VerticalAlignment', 'middle', 'HorizontalAlignment', 'center');
+
+hanno = annotation(hax.Parent, 'textarrow', [0.7 0.58], [0.8 0.66], ...
+                   'String', {'The cyclonic wave'; 'moves around'; 'the eddy.'}, ...
+                   'LineWidth', annolw, 'Color', annocolor, ...
+                   'HeadStyle', annoheadstyle, 'TextMargin', 0.05, ...
+                   'FontName', annofontname, 'FontSize', annofs, ...
+                   'VerticalAlignment', 'middle', 'HorizontalAlignment', 'center');
+
+handles.hcsd.Visible = 'off';
+handles.hcsdsurf{1}.Visible = 'off';
+handles.hsect.Visible = 'off';
+handles.hsectoutline.Visible = 'off';
+handles.hplane.Visible = 'off';
+export_fig -nocrop -r120 -a4 images/osm2016/ew-34-3d-220-nocsd.png
+
+hanno.String = {'Shelf water is advected'; 'over the bulge'; 'and the cyclonic wave'};
+handles.hcsd.Visible = 'on';
+handles.hcsdsurf{1}.Visible = 'on';
+handles.hsect.Visible = 'on';
+handles.hsectoutline.Visible = 'on';
+handles.hplane.Visible = 'on';
+export_fig -nocrop -r120 -a4 images/osm2016/ew-34-3d-220-csd.png
 
 %% churchill (1986) section
 % Oct 19-20, 1983
