@@ -61,7 +61,7 @@ function [handles] = animate_3d(runs, tind, opt, hax)
         y = opt.y;
         m = diff(y)./diff(x);
         c = y(2) - m * x(2);
-        assert(c == (y(1) - m*x(1)));
+        %assert(c == (y(1) - m*x(1)));
         mask(yrmat(:,:,1) - m*xrmat(:,:,1) - c > 0) = 0;
     end
 
@@ -90,8 +90,7 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     eddColorMap = runs.eddyeColormap;
     eddVolume = smooth3(bsxfun(@times,eddye(:,:,:,1),mask(:,:,1)));
     hedd = patch(isosurface(xrmat/1000,yrmat/1000,zrmat, eddVolume, opt.eddthresh), ...
-                 'EdgeColor', 'none', 'AmbientStrength', 0.5, 'DiffuseStrength', 0.6, ...
-                 'FaceColor', brighten([215 48 31]/255, 0.1));
+                 'EdgeColor', 'none', 'AmbientStrength', 0.5, 'DiffuseStrength', 0.6);
     reducepatch(hedd, opt.eddreducepatch, 'verbose');
     if opt.finalize
         isonormals(eddVolume, hedd);
@@ -103,6 +102,7 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     heddcap = patch(isocaps(xrmat/1000,yrmat/1000,zrmat, eddVolume, opt.eddthresh), ...
                     'EdgeColor', 'none');
     linkprop([hedd heddcap], {'FaceColor', 'FaceAlpha'});
+    hedd.FaceColor = brighten([215 48 31]/255, 0.1);
 
     % heddfull = patch(isosurface(xrmat/1000,yrmat/1000,zrmat, ...
     %                             smooth3(bsxfun(@times,eddye(:,:,:,1),1 - mask(:,:,1)))), ...
@@ -174,7 +174,8 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     for kk=1:length(cslevel)
         hcsd(kk) = patch(isosurface(xrmat/1000,yrmat/1000,zrmat, ...
                                     smooth3(csdye),cslevel(kk)), ...
-                         'FaceAlpha', 0.8, 'FaceColor', [107 174 214]/255);
+                         'FaceAlpha', 0.8, 'FaceColor', [107 174 214]/255, ...
+                         'EdgeColor', 'none', 'AmbientStrength', 0.65);
 
         % Only does the first contour at the surface
         cm = contourc(xrmat(1,:,end)/1000, yrmat(:,1,end)/1000, csdye(:,:,end), ...
@@ -191,10 +192,7 @@ function [handles] = animate_3d(runs, tind, opt, hax)
         if opt.finalize
             isonormals(smooth3(csdye(:,:,:,1)), hcsd(kk));
         end
-        hcsd(kk).FaceColor = sbcolors(kk,:);
-        hcsd(kk).EdgeColor = 'none';
-        hcsd(kk).FaceAlpha = 0.5;
-        hcsd(kk).AmbientStrength = 0.65;
+        %hcsd(kk).FaceColor = sbcolors(kk,:);
         reducepatch(hcsd(kk), opt.csdreducepatch, 'verbose');
     end
 
