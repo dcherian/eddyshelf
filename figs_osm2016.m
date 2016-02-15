@@ -100,24 +100,22 @@ annofontname = 'Futura Bk BT';
 
 opt.MoveToZLevel = -850;
 opt.eddthresh = 0.8;
-opt.csdcontours = ew34.bathy.xsb+5000;
+opt.csdcontours = [];
 opt.eddreducepatch = 0.3;
 opt.csdreducepatch = 0.3;
 opt.finalize = 1;
 opt.linefilter = 1;
 opt.sect = 'y';
+opt.nolabels = 1;
 
 % t= 200
-opt.x = [300, 410] * 1000;
+ticstart = tic;
+opt.x = [260, 420] * 1000;
 opt.y = [300, 0] * 1000;
+opt.csdcontours = ew34.bathy.xsb + 5000;
 handles = ew34.animate_3d('200', opt);
 
 hax = gca;
-hax.Title.String = '';
-hax.XAxis.Visible = 'off';
-hax.YAxis.Visible = 'off';
-hax.ZAxis.Visible = 'off';
-hax.Box = 'off';
 hax.DataAspectRatio = [1 1 7];
 view(-130,28)
 
@@ -128,25 +126,45 @@ hanno = annotation(hax.Parent, 'textarrow', [0.7 0.59], [0.5 0.58], ...
                    'HeadStyle', annoheadstyle, 'TextMargin', 0.05, ...
                    'FontName', annofontname, 'FontSize', annofs, ...
                    'VerticalAlignment', 'middle', 'HorizontalAlignment', 'center');
-
-handles.hcsd.Visible = 'off';
-handles.hcsdsurf{1}.Visible = 'off';
-handles.hsect.delete;
-handles.hsectoutline.delete;
-handles.hplane.delete;
+drawnow;
+toc(ticstart);
 export_fig -nocrop -r120 -a4 images/osm2016/ew-34-3d-200-nocsd.png
+
+% t= 210
+opt.x = [260, 420] * 1000;
+opt.y = [300, 0] * 1000;
+opt.csdcontours = [];
+handles = ew34.animate_3d('215', opt);
+
+handles.hlight.Position(2) = 700;
+hax = gca;
+hax.DataAspectRatio = [1 1 7];
+view(-130,28)
+
+hanno = annotation(hax.Parent, 'textarrow', [0.72 0.62], [0.81 0.65], ...
+                   'String', {'There is a';  'persistent bulge'; ...
+                    'in the eddy'; 'below'; 'shelfbreak depth'}, ...
+                   'LineWidth', annolw, 'Color', annocolor, ...
+                   'HeadStyle', annoheadstyle, 'TextMargin', 0.05, ...
+                   'FontName', annofontname, 'FontSize', annofs, ...
+                   'VerticalAlignment', 'middle', 'HorizontalAlignment', 'center');
+
+hanno = annotation(hax.Parent, 'textarrow', [0.74 0.59], [0.55 0.63], ...
+                   'String', {'Cyclonic';  'unstable wave'}, ...
+                   'LineWidth', annolw, 'Color', annocolor, ...
+                   'HeadStyle', annoheadstyle, 'TextMargin', 0.05, ...
+                   'FontName', annofontname, 'FontSize', annofs, ...
+                   'VerticalAlignment', 'middle', 'HorizontalAlignment', 'center');
+
+export_fig -nocrop -r120 -a4 images/osm2016/ew-34-3d-215-nocsd.png
 
 % t= 220
 opt.x = [240, 410] * 1000;
 opt.y = [300, 0] * 1000;
+opt.csdcontours = ew34.bathy.xsb+5000;
 handles = ew34.animate_3d('220', opt);
 
 hax = gca;
-hax.Title.String = '';
-hax.XAxis.Visible = 'off';
-hax.YAxis.Visible = 'off';
-hax.ZAxis.Visible = 'off';
-hax.Box = 'off';
 hax.DataAspectRatio = [1 1 7];
 view(-130,28)
 
