@@ -4,6 +4,28 @@ if ~exist('ew34', 'var') | ~strcmpi(ew34.name, 'ew-34')
     ew34 = runs('../topoeddy/runew-34/');
 end
 
+%% model schematic
+opt.addzeta =1;
+opt.csdcontourplot = 0;
+hbathy = ew34.plot_bathy('pcolor');
+hax = gca;
+handles = ew34.animate_field('csdye', hax, 1, 1, opt);
+handles.hfield.delete;
+handles.hbathy{1}.delete;
+handles.hbathy{2}.delete;
+handles.hbathy{3}.delete;
+handles.subax.Visible = 'off';
+colormap(cbrewer('seq','Blues', 20));
+caxis([-100 1800]);
+hcb = colorbar;
+hcb.Limits = [50 1200];
+handles.htlabel.delete;
+hcb.Label.String = 'Water Depth (m)';
+hcb.Label.FontSize = 25;
+hcb.FontSize = 18;
+handles.htrack.Color = [227 54 71]/255;
+export_fig -r150 -a2 -painters images/osm2016/model-setup.png
+
 %% ew-34-surface csdye
 opt.csdcontours = ew34.csflux.x([1 3 5]);
 ew34.animate_field('csdye', [], '314', 1, opt);
