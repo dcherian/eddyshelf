@@ -25,6 +25,9 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     if ~isfield(opt, 'MoveToZLevel')
         opt.MoveToZLevel = 0;
     end
+    if ~isfield(opt, 'nolabels')
+        opt.nolabels = 0;
+    end
 
     tind = runs.process_time(tind);
     imx = runs.eddy.imx;
