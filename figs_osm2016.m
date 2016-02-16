@@ -135,7 +135,7 @@ hanno.Color = [1 133 113]/255;
 annocolor = 'k'; %[1 1 1]*0.5;
 annofs = 23;
 annolw = 0.5;
-annoheadstyle = 'cback3';
+annoheadstyle = 'none'; 'cback3';
 annofontname = 'Futura Bk BT';
 
 opt.MoveToZLevel = -850;
@@ -152,7 +152,7 @@ opt.nolabels = 1;
 ticstart = tic;
 opt.x = [260, 420] * 1000;
 opt.y = [300, 0] * 1000;
-opt.csdcontours = ew34.bathy.xsb + 5000;
+opt.csdcontours = []; ew34.bathy.xsb + 5000;
 handles = ew34.animate_3d('200', opt);
 
 hax = gca;
@@ -170,7 +170,7 @@ drawnow;
 toc(ticstart);
 export_fig -nocrop -r120 -a4 images/osm2016/ew-34-3d-200-nocsd.png
 
-% t= 210
+% t= 215
 opt.x = [260, 420] * 1000;
 opt.y = [300, 0] * 1000;
 opt.csdcontours = [];
