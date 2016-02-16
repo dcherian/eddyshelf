@@ -183,17 +183,29 @@ function [handles] = animate_3d(runs, tind, opt, hax)
                          'FaceAlpha', 0.8, 'FaceColor', [107 174 214]/255, ...
                          'EdgeColor', 'none', 'AmbientStrength', 0.65);
 
-        % Only does the first contour at the surface
+        % draw contours at surface
         cm = contourc(xrmat(1,:,end)/1000, yrmat(:,1,end)/1000, csdye(:,:,end), ...
                       [1 1] * cslevel(kk));
-        NumPoints = cm(2,1);
-        xind = vecfind(xrmat(1,:,1)/1000, cm(1,2:NumPoints+1));
-        yind = vecfind(yrmat(:,1,1)/1000, cm(2,2:NumPoints+1));
-        for xx=1:length(xind)
-            zvec(xx) = zrmat(yind(xx), xind(xx), end);
+        ind = 1;
+        indstart = 1;
+        indend = 1;
+        while indend < size(cm,2)
+            NumPoints = cm(2,indend);
+            indstart = indend+1;
+            indend = indend + NumPoints+1;
+            range = indstart:indend-1;
+
+            xind = vecfind(xrmat(1,:,1)/1000, cm(1,range));
+            yind = vecfind(yrmat(:,1,1)/1000, cm(2,range));
+            clear zvec;
+            for xx=1:length(xind)
+                zvec(xx) = zrmat(yind(xx), xind(xx), end);
+            end
+            hcsdsurf{kk}(ind) = plot3(cm(1,range), cm(2,range), ...
+                                      zvec, 'Color', runs.shelfSlopeColor, ...
+                                      'LineWidth', 1, 'Tag', 'dcline');
+            ind = ind+1;
         end
-        hcsdsurf{kk} = plot3(cm(1,2:NumPoints+1), cm(2,2:NumPoints+1), zvec, ...
-                             'Color', runs.shelfSlopeColor, 'LineWidth', 1, 'Tag', 'dcline');
 
         if opt.finalize
             isonormals(smooth3(csdye(:,:,:,1)), hcsd(kk));
