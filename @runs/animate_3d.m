@@ -234,21 +234,6 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     beautify;
     view(-120,30);
 
-    for ii=2:4:size(eddye,4)
-        pause();
-        heddye = isosurface(xrmat/1000,yrmat/1000,zrmat, ...
-                            bsxfun(@times,eddye(:,:,:,ii) > thresh,mask(:,:,ii)'),eddlevel);
-        set(hedd,'Vertices',heddye.vertices,'Faces',heddye.faces, ...
-                 'FaceVertexCData',heddye.facevertexcdata);
-        set(hedd,'ZData',runs.zeta(:,:,ii));
-        for kk=1:length(cslevel)
-            hcsdye = isosurface(xrmat/1000,yrmat/1000,zrmat, ...
-                                csdye(:,:,:,ii),cslevel(kk));
-            set(hcsd(kk),'Vertices',hcsdye.vertices,'Faces',hcsdye.faces);
-        end
-        runs.update_title(ht,titlestr,ii);
-    end
-
     handles.heddcap = heddcap;
     handles.hedd = hedd;
     handles.hbathy = hbathy;
@@ -270,5 +255,20 @@ function [handles] = animate_3d(runs, tind, opt, hax)
                 -opt.MoveToZLevel;
         end
         zlim([-abs(opt.MoveToZLevel) 1.1]);
+    end
+
+    for ii=2:4:size(eddye,4)
+        pause();
+        heddye = isosurface(xrmat/1000,yrmat/1000,zrmat, ...
+                            bsxfun(@times,eddye(:,:,:,ii) > thresh,mask(:,:,ii)'),eddlevel);
+        set(hedd,'Vertices',heddye.vertices,'Faces',heddye.faces, ...
+                 'FaceVertexCData',heddye.facevertexcdata);
+        set(hedd,'ZData',runs.zeta(:,:,ii));
+        for kk=1:length(cslevel)
+            hcsdye = isosurface(xrmat/1000,yrmat/1000,zrmat, ...
+                                csdye(:,:,:,ii),cslevel(kk));
+            set(hcsd(kk),'Vertices',hcsdye.vertices,'Faces',hcsdye.faces);
+        end
+        runs.update_title(ht,titlestr,ii);
     end
 end
