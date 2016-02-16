@@ -56,10 +56,10 @@
     if lon(end) < lon(1)
         set(gca, 'xdir', 'reverse');
     end
-    linex(ole.Dist(tind,xind)/1000);
+    linex(ole.Dist(tind,xind)/1000, [], 'k');
     xlim([min(xactual) max(xactual(lon < 290))]);
     colorbar; caxis([8 20]);
-    ylabel('Z (m)'); xlabel('Along-track Distance (km)');
+    ylabel('Z (m)'); xlabel('Cross-shelf (km, along-track)');
     beautify;
     handles.hbathy.LineWidth = 4;
 
