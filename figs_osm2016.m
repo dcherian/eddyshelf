@@ -240,17 +240,20 @@ export_fig -nocrop -r120 -a4 images/osm2016/ew-34-3d-220-csd.png
 
 %% churchill (1986) section
 % Oct 19-20, 1983
-handles = PlotOleanderSection(114, [11 17]);
+handles = PlotOleanderSection(114, [17 11]);
 handles.hax(2).Title.String = 'Temperature (C) | Oleander XBT | 19-20 Oct 1983';
-axes(handles.hax(2));
-beautify([22 24 28]);
 axes(handles.hax(1));
-beautify([22 24 28]);
 handles.hax(1).YLabel.String = 'Depth (m)';
 correct_ticks('x', [], {'650'; '750'; '700'}, handles.hax(1));
 axes(handles.hax(3));
 handles.hax(3).YTickLabels = {};
 handles.hax(3).XAxis.TickLabelGapMultiplier = 0;
 handles.hax(3).XAxis.TickLabelGapOffset = 0;    
-beautify([22 24 28]);
+handles.hleg.delete;
+colors = get(groot, 'DefaultAxesColorOrder');
+handles.hprofile(2).Color = colors(6,:);
+for ii=1:2
+    handles.xlines{ii}.Color = handles.hprofile(ii).Color;
+    handles.xlines{ii}.LineWidth = 2;
+end
 export_fig -r150 -a2 images/osm2016/oleander-oct1983.png

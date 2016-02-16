@@ -7,6 +7,7 @@
     fname = '../data/All_Oleander_3D.mat';
     ole = load(fname);
     zint = [-500:1:0];
+    fontsize = [22 24 26];
 
     % do linear vertical interpolation
     Tint = nan([size(ole.Temp_Fix, 2) length(zint)]);
@@ -56,11 +57,11 @@
     if lon(end) < lon(1)
         set(gca, 'xdir', 'reverse');
     end
-    linex(ole.Dist(tind,xind)/1000, [], 'k');
+    handles.xlines = linex(ole.Dist(tind,xind)/1000, [], 'k');
     xlim([min(xactual) max(xactual(lon < 290))]);
     colorbar; caxis([8 20]);
     ylabel('Z (m)'); xlabel('Cross-shelf (km, along-track)');
-    beautify;
+    beautify(fontsize);
     handles.hbathy.LineWidth = 4;
 
     ax(2) = axes('position', ax(1).Position);
@@ -78,7 +79,7 @@
            num2str(nanmax(ole.Day(tind,:))) ' ' ...
            datestr([num2str(ole.Month(tind,1)) '/' num2str(ole.Month(tind,1))], 'mmm') ...
            ' ' num2str(ole.Year(tind,1))]);
-    beautify([16 18 28]);
+    beautify(fontsize);
     ax(2).XAxis.TickLength = [0 0];
     axes(ax(1));
 
@@ -87,9 +88,9 @@
     for kk=1:length(xind)
         if ole.Year(tind,1) < 2008
             hprofile(kk) = plot(squeeze(ole.Temp_Fix(tind,xind(kk),:)), ...
-                          -1*squeeze(ole.Depth(tind,xind(kk),:)), 'o', ...
+                          -1*squeeze(ole.Depth(tind,xind(kk),:)), 'o-', ...
                           'LineWidth', 2);
-            plot(Tint(xind(kk),:), zint, 'Color', hprofile(kk).Color);
+            %plot(Tint(xind(kk),:), zint, 'Color', hprofile(kk).Color);
         else
             hprofile(kk) = plot(squeeze(ole.Temp_Fix(tind,xind(kk),:)), ...
                           -1*squeeze(ole.Depth(tind,xind(kk),:)), '-', ...
@@ -99,7 +100,7 @@
     ax(3).XAxisLocation = 'top';
     xlabel('Temp (C)');
     handles.hleg = legend(hprofile, cellstr(num2str(xind')), 'Location', 'SouthEast');
-    beautify;
+    beautify(fontsize);
 
     linkaxes(ax, 'y');
     ylim([-500 0]);
