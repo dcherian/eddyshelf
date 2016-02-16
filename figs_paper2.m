@@ -800,6 +800,9 @@ if zoomin
     hanno(7).Y = [1 1]*0.90;
     hline.X = [1 1]*hanno(7).X(2);
     hline.Y = [hanno(7).Y(2) 0.73];
+    handles(3).hsect.delete
+    handles(3).hsectoutline.delete;
+    handles(3).hplane.delete;
     export_fig('-r150', '-a4', '-p0.01', '-opengl', ...
                ['images/paper2/3d-schem-' num2str(3) '-zoom.png']);
 
