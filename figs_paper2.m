@@ -653,6 +653,7 @@ annolw = 0.5;
 annoheadstyle = 'none'; 'cback3';
 annofontname = 'Futura Bk BT';
 
+zoomin = 1; % for presentation
 opt.MoveToZLevel = -850;
 opt.eddthresh = 0.8;
 opt.csdcontours = ew34.bathy.xsb+5000;
@@ -785,6 +786,23 @@ if multifig
     system(['exiftool -overwrite_original -Producer=' hash ' ' mergename]);
 else
     export_fig('-opengl', '-r150', '-a4', '-p0.02', mergename);
+end
+
+if zoomin
+    axes(hax(3));
+    hax(3).XLim = [200 350];
+    hax(3).YLim = [0 150];
+    hax(3).ZLim = [-300 1.1];
+    hanno(3).X = [0.3210 0.3784];
+    hanno(3).Y = [0.7302 0.6604];
+    hanno(4).delete;
+    hanno(7).X = [0.60 0.4];
+    hanno(7).Y = [1 1]*0.90;
+    hline.X = [1 1]*hanno(7).X(2);
+    hline.Y = [hanno(7).Y(2) 0.73];
+    export_fig('-r150', '-a4', '-p0.01', '-opengl', ...
+               ['images/paper2/3d-schem-' num2str(3) '-zoom.png']);
+
 end
 toc;
 
