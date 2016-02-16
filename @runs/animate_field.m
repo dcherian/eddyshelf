@@ -5,6 +5,8 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     runs.video_init(name);
     titlestr = [];
 
+    fontsize = [16 16 18];
+
     % zoom in axis?
     limx = [165 410]; limy = [0 120];
     limx = []; limy = [];
@@ -16,6 +18,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
                     % 1 = instantaneous x-profile;
                     % 2 = time series plot
     csfluxIsobath = 4; % for profile
+    csfluxFinalize = 0; % for csfluxplot = 2
 
     asfluxplot = 0; % 0 = no flux plot
                     % 1 = instantaneous y-profile;
@@ -100,7 +103,11 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
             vec(:,kkk) = runs.csflux.off.slope(:,csfluxIsobath(kkk), ...
                                                csfluxIsobath(kkk));
         end
-        laby = 'Shelf/Slope water flux (m^3/s)';
+        if kkk == 1 & csfluxIsobath == 1
+            laby = {'Shelf water flux'; '(m^3/s)'};
+        else
+            laby = {'Shelf-slope water'; 'flux (m^3/s)'};
+        end
         locy = runs.bathy.xsb/1000; locx = [];
     end
     %%%%%%%%%%%%%%%%%%% options processing ends
@@ -531,7 +538,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     end
     caxis(clim); % restore colorbar limits
     maximize(gcf); % pause(0.2);
-    beautify([16 16 18]);
+    beautify(fontsize);
     set(gcf, 'renderer', 'painters');
     handles.htlabel = runs.add_timelabel(ii);
 
@@ -571,15 +578,20 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
             if min(vec(:)) .* max(vec(:)) < 0
                 liney(0);
             end
-
-            handles.hsubaxlabel = ...
-                text(0.02, 0.9, laby, 'Units', 'normalized', 'FontSize', 18);
             if csfluxplot == 2
                 handles.hleg2 = legend(hvec, isobathNames, 'Location', 'NorthWest');
                 handles.hleg2.Position(1) = 0.15;
                 handles.hleg2.Position(2) = 0.29;
+                if csfluxFinalize
+                    handles.hleg2.delete;
+                end
             end
+            ylabel(laby);
             xlabel('Time (days)');
+            if csfluxplot == 2 & csfluxFinalize
+                handles.subax(2).YAxis.Exponent = 3;
+                ylim([0 max(ylim)]);
+            end
         end
 
         if asfluxplot == 2
@@ -603,7 +615,6 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
             set(hleg, 'box', 'off');
             liney(0);
             htime = linex(tvec(ii));
-            beautify;
 
             axes(ax);
             linex(runs.asflux.x(asindex)/1000 - dx);
@@ -629,7 +640,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
                  'Units', 'normalized');
         end
 
-        beautify; % - slows everything down for some reason
+        beautify(fontsize); % - slows everything down for some reason
         axes(handles.subax(1)); % bring xlabel up
     end
     if subplots_flag == 'y'
@@ -667,7 +678,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
             liney([runs.bathy.xsb runs.bathy.xsl]/1000 - dy, [], 'k');
             xlabel('Along-isobath depth-integrated energy flux');
             ylabel('Y(km)');
-            linex(0); beautify;
+            linex(0); beautify(fontsize);
 
             axes(ax)
             linex(runs.asflux.x(asindex)/1000 - dx);
@@ -675,7 +686,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
             linkaxes(ax, 'y');
         end
 
-        beautify;
+        beautify(fontsize);
     end
 
     if ntimes > 1
