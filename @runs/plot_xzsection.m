@@ -1,9 +1,22 @@
-function [handles] = plot_xzsection(runs, loc, day, debug_flux)
+function [handles] = plot_xzsection(runs, loc, day, opt)
 
     dxi = 5; dzi = 3;
 
-    if ~exist('debug_flux', 'var')
-        debug_flux = 0; % debug flux parameterization
+    if ~exist('opt', 'var'), opt = []; end
+
+    if ~isfield(opt, 'debug_flux')
+        opt.debug_flux = 0; % debug flux parameterization
+    end
+
+    if ~isfield(opt, 'onlyvel')
+        opt.onlyvel = 0; % debug flux parameterization
+    end
+
+    % how many subplot rows?
+    if opt.onlyvel
+        m = 1;
+    else
+        m = 2;
     end
 
     if ~exist('day', 'var'), day = []; end
@@ -64,32 +77,36 @@ function [handles] = plot_xzsection(runs, loc, day, debug_flux)
     %                      'his', 'single'), asax));
     %asvel = asvel(sx1:sx2,:);
 
-    w = squeeze(avg1( ...
-        dc_roms_read_data(runs.dir, 'w', tindex, ...
-                          {runs.bathy.axis ix ix}, [], runs.rgrid, ...
-                          'his', 'single'), 2));
-    w = w(sx1:sx2,:);
-
     % process cross-shelf dye
     csdye = dc_roms_read_data(runs.dir, runs.csdname, ...
                               tindex, {runs.bathy.axis ix+1 ix+1}, ...
                               [], runs.rgrid, 'his', 'single');
     csdye = csdye(sx1:sx2,:);
 
-    eddye = dc_roms_read_data(runs.dir, runs.eddname, ...
-                              tindex, {runs.bathy.axis ix+1 ix+1}, ...
-                              [], runs.rgrid, 'his', 'single');
-    eddye = eddye(sx1:sx2,:);
+    if ~opt.onlyvel
+        if ~exist('isobath', 'var')
+            eddye = dc_roms_read_data(runs.dir, runs.eddname, ...
+                                      tindex, {runs.bathy.axis ix+1 ix+1}, ...
+                                      [], runs.rgrid, 'his', 'single');
+            eddye = eddye(sx1:sx2,:);
+        end
 
-    rho = dc_roms_read_data(runs.dir, 'rho', ...
-                            tindex, {runs.bathy.axis ix+1 ix+1}, ...
-                            [], runs.rgrid, 'his', 'single');
-    rho = rho(sx1:sx2,:);
+        rho = dc_roms_read_data(runs.dir, 'rho', ...
+                                tindex, {runs.bathy.axis ix+1 ix+1}, ...
+                                [], runs.rgrid, 'his', 'single');
+        rho = rho(sx1:sx2,:);
 
-    rback = dc_roms_read_data(runs.dir, 'rho', ...
-                              1, {runs.bathy.axis ix+1 ix+1}, ...
-                              [], runs.rgrid, 'his', 'single');
-    % rho = rho - rback(sx1:sx2,:);
+        rback = dc_roms_read_data(runs.dir, 'rho', ...
+                                  1, {runs.bathy.axis ix+1 ix+1}, ...
+                                  [], runs.rgrid, 'his', 'single');
+        % rho = rho - rback(sx1:sx2,:);
+
+        w = squeeze(avg1( ...
+            dc_roms_read_data(runs.dir, 'w', tindex, ...
+                              {runs.bathy.axis ix ix}, [], runs.rgrid, ...
+                              'his', 'single'), 2));
+        w = w(sx1:sx2,:);
+    end
 
     if isobath == 1
         mask = ones(size(csvel));
@@ -98,7 +115,7 @@ function [handles] = plot_xzsection(runs, loc, day, debug_flux)
                               runs.csflux.offmask(sx1:sx2,tindex,isobath)),0);
     end
 
-    if debug_flux
+    if opt.debug_flux
 
         % tind = tindex; % FOR PARAMETERISATION
         %                % syms x z;
@@ -135,7 +152,7 @@ function [handles] = plot_xzsection(runs, loc, day, debug_flux)
     maximize;
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    handles.hax(1) = subplot(221);
+    handles.hax(1) = subplot(m,2,1);
     [~,handles.hcsvel] = contourf(xvec/1000, zvec, csvel', 20);
     handles.hcsvel.EdgeColor = 'none';
     hold on
@@ -158,57 +175,58 @@ function [handles] = plot_xzsection(runs, loc, day, debug_flux)
         ylim([min(zvec(:)) 0]);
     end
 
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    handles.hax(4) = subplot(224);
-    handles.hcsdye = pcolorcen(xvec/1000, zvec, runs.sgntamp*(csdye'-xsb)/1000); % .* mask
-    hold on; shading interp
-    [~,handles.hmask(4)] = ...
-        contour(xvec/1000, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
-    [~,hrho(1)] = contour(xvec/1000, zvec, rho', 30, 'k'); % .* mask
-    handles.hcb(4) = colorbar;
-    title('Cross-shelf dye  - Y_{sb} (km)');
-    linkaxes(handles.hax, 'xy');
-    handles.hline(4) = common(runs, tindex);
+    if ~opt.onlyvel
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        handles.hax(4) = subplot(m,2,4);
+        handles.hcsdye = pcolorcen(xvec/1000, zvec, runs.sgntamp*(csdye'-xsb)/1000); % .* mask
+        hold on; shading interp
+        [~,handles.hmask(4)] = ...
+            contour(xvec/1000, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
+        [~,hrho(1)] = contour(xvec/1000, zvec, rho', 30, 'k'); % .* mask
+        handles.hcb(4) = colorbar;
+        title('Cross-shelf dye  - Y_{sb} (km)');
+        linkaxes(handles.hax, 'xy');
+        handles.hline(4) = common(runs, tindex);
 
-    % muck with colorbar
-    cmin = round(min(runs.sgntamp*(csdye(:) - xsb)/1000));
-    cmax = round(max(runs.sgntamp*(csdye(:) - xsb)/1000));
-    handles.hcb(4).TickLabelsMode = 'auto';
-    handles.hcb(4).TickDirection = 'out';
-    handles.hcb(4).Limits = [cmin cmax];
-    handles.hcb(4).Ticks = sort([cmin ...
-                        round((runs.bathy.xsl + xsb)/2000 - xsb/1000) ...
-                        round(runs.params.eddy.cy/1000 - xsb/1000)]);
-    % handles.hcb(4).TickLabels{1} = ['Shelfbreak - ' num2str(-1*handles.hcb(4).Ticks(1)) ' km'];
-    handles.hcb(4).TickLabels{1} = 'Shelf Water';
-    % handles.hcb(4).TickLabels{3} = 'Shelfbreak';
-    handles.hcb(4).TickLabels{2} = 'Slope Water';
-    handles.hcb(4).TickLabels{end} = 'Eddy Water';
-    beautify;
+        % muck with colorbar
+        cmin = round(min(runs.sgntamp*(csdye(:) - xsb)/1000));
+        cmax = round(max(runs.sgntamp*(csdye(:) - xsb)/1000));
+        handles.hcb(4).TickLabelsMode = 'auto';
+        handles.hcb(4).TickDirection = 'out';
+        handles.hcb(4).Limits = [cmin cmax];
+        handles.hcb(4).Ticks = sort([cmin ...
+                            round((runs.bathy.xsl + xsb)/2000 - xsb/1000) ...
+                            round(runs.params.eddy.cy/1000 - xsb/1000)]);
+        % handles.hcb(4).TickLabels{1} = ['Shelfbreak - ' num2str(-1*handles.hcb(4).Ticks(1)) ' km'];
+        handles.hcb(4).TickLabels{1} = 'Shelf Water';
+        % handles.hcb(4).TickLabels{3} = 'Shelfbreak';
+        handles.hcb(4).TickLabels{2} = 'Slope Water';
+        handles.hcb(4).TickLabels{end} = 'Eddy Water';
+        beautify;
 
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    handles.hax(3) = subplot(223);
-    [~,hw] = contourf(xvec/1000, zvec, w', 6);
-    hw.EdgeColor = 'none';
-    clim = caxis;
-    hold on;
-    [~,hrho(2)] = contour(xvec/1000, zvec, rho', 30, 'k'); % .* mask
-    [~,handles.hmask(3)] = ...
-        contour(xvec/1000, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
-    %handles.hquiv = quiver(xvec(1:dxi:end)/1000, zvec(1:dzi:end), ...
-    %                       asvel(1:dxi:end, 1:dzi:end)'/1000, ...
-    %                       w(1:dxi:end, 1:dzi:end)');
-    caxis(clim); handles.hcb(3) = center_colorbar;
-    handles.hline(3) = common(runs, tindex);
-    title('\rho (kg/m^3)');
-    linkaxes(handles.hax, 'xy');
-    beautify;
-
-    hrho(2).LevelList = hrho(1).LevelList;
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        handles.hax(3) = subplot(m,2,3);
+        [~,hw] = contourf(xvec/1000, zvec, w', 6);
+        hw.EdgeColor = 'none';
+        clim = caxis;
+        hold on;
+        [~,hrho(2)] = contour(xvec/1000, zvec, rho', 30, 'k'); % .* mask
+        [~,handles.hmask(3)] = ...
+            contour(xvec/1000, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
+        %handles.hquiv = quiver(xvec(1:dxi:end)/1000, zvec(1:dzi:end), ...
+        %                       asvel(1:dxi:end, 1:dzi:end)'/1000, ...
+        %                       w(1:dxi:end, 1:dzi:end)');
+        caxis(clim); handles.hcb(3) = center_colorbar;
+        handles.hline(3) = common(runs, tindex);
+        title('\rho (kg/m^3)');
+        linkaxes(handles.hax, 'xy');
+        beautify;
+        hrho(2).LevelList = hrho(1).LevelList;
+    end
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    if ~exist('isobath', 'var')
-        handles.hax(4) = subplot(224);
+    if ~exist('isobath', 'var') & ~opt.onlyvel
+        handles.hax(4) = subplot(m,2,2);
         pcolorcen(xvec/1000, zvec, eddye'); % .* mask
         hold on; shading interp;
         contour(xvec/1000, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
@@ -219,17 +237,22 @@ function [handles] = plot_xzsection(runs, loc, day, debug_flux)
         caxis([0 1]);
         beautify;
     else
-        handles.hax(2) = subplot(222);
+        handles.hax(2) = subplot(m,2,2);
         plot(abs(trapz(xvec, repnan(csvel.*mask,0), 1)), zvec);
         handles.hrunname = text(0.8, 0.15, runs.name, 'Units', 'Normalized');
         handles.hline(2) = common(runs, tindex);
-        xlabel('\int v(x,z) dx (m^2/s)');
+        xlabel('Vertical profile of offshore transport (m^2/s)');
         handles.hax(2).XAxisLocation = 'top';
+        handles.hax(2).YLabel.String = '';
+        handles.hax(2).YTickLabel = {};
         ylim(handles.hax(1).YLim);
-        pbaspect([1.3 1 1]);
+        if ~opt.onlyvel
+            pbaspect([1.3 1 1]);
+        end
+        beautify;
     end
 
-    if debug_flux
+    if opt.debug_flux
         figure;
         insertAnnotation([runs.name '.plot_xzsection']);
         maximize;
@@ -266,11 +289,13 @@ function [handles] = plot_xzsection(runs, loc, day, debug_flux)
         linkaxes(ax, 'xy');
     end
 
-    handles.hrho = hrho;
+    if ~opt.onlyvel
+        handles.hrho = hrho;
+    end
 end
 
 function [handle] = common(obj, tindex)
-    xlabel('X - X_{eddy} (km)'); ylabel('Z (m)');
+    xlabel('X - X_{eddy} (km)'); ylabel('Depth (m)');
     [handle.hl,handle.htxt] = liney(-1 * [obj.eddy.Lgauss(tindex) obj.bathy.hsb], ...
                                      {'vertical scale'; 'h_{sb}'});
     beautify;
