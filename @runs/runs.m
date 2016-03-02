@@ -5,7 +5,7 @@ properties
         fpos_file;
     % data
     zeta; temp; usurf; vsurf; vorsurf; csdsurf; ubot; vbot; eddsurf; ...
-        rhosurf; edcsdyesurf; pvsurf;
+        rhosurf; edcsdyesurf; pvsurf; zdyesurf;
     rbacksurf; % background density at surface
     sgntamp; % sign(runs.eddy.tamp) = -1 if cyclone; 1 otherwise
     % dimensional and non-dimensional time
@@ -418,14 +418,16 @@ methods
         end
 
         % Process floats
-        %try
-        %    runs.roms = floats('roms', runs.dir, runs.rgrid, ...
-        %                       runs.bathy.xsb, runs.fpos_file);
-        %    runs.filter_cross_sb('roms');
-        %catch ME
-        %    disp('Reading ROMS floats failed.');
-        %    disp(ME);
-        %end
+        if strcmpi(runs.name, 'ew-34')
+            try
+                runs.roms = floats('roms', runs.dir, runs.rgrid, ...
+                                   runs.bathy.xsb, runs.fpos_file);
+                runs.filter_cross_sb('roms');
+            catch ME
+                disp('Reading ROMS floats failed.');
+                disp(ME);
+            end
+        end
         %try
         %    runs.tracpy = floats('tracpy',runs.tracpy_file,runs.rgrid, ...
         %                         runs.bathy.xsb);
@@ -2935,6 +2937,7 @@ methods
 
     end
 
+
     function [] = slope_parameter(runs)
         u = dc_roms_read_data(runs.dir, 'u', [], {'z' 1 2}, [], ...
                               runs.rgrid, 'his', 'single');
@@ -3629,6 +3632,11 @@ methods
             hplot{2}.Tag = '';
             hplot{3}.Tag = '';
             hplot{3}.LineStyle = '--';
+        end
+        if strcmpi(plottype,'pcolor')
+            hplot{1} = pcolorcen(runs.rgrid.xr(ix,iy)/1000,...
+                                 runs.rgrid.yr(ix,iy)/1000, ...
+                                 runs.rgrid.h(iy,ix)');
         end
     end
 

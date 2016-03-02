@@ -818,7 +818,7 @@ classdef runArray < handle
             end
 
             hl = linex(0);
-            if ~strcmpi(varname, 'zeta'), hl[2] = liney(0); end
+            if ~strcmpi(varname, 'zeta'), hl(2) = liney(0); end
 
             handles.hpltsh = hpltsh;
             handles.hplted = hplted;
