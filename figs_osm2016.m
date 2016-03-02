@@ -101,7 +101,9 @@ opt.ZoomEnd = 240;
 opt.ZoomXLimStart = [];
 opt.ZoomXLimEnd = [100 450];
 opt.ZoomYLimStart = [];
-opt.ZoomYLimEnd = [0 200];
+opt.ZoomYLimEnd = [0 180];
+opt.fontsize = [22 24 26];
+opt.csfluxFinalize = 1;
 
 ew34.makeVideo = 1;
 ew34.animate_field('csdye', [], 1, 170, opt);
