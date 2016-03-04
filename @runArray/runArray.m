@@ -989,7 +989,7 @@ classdef runArray < handle
             runArray.filter = fold;
         end
 
-        function [] = plot_ts(runArray, tsname)
+        function [] = plot_ts(runArray, tsname, ax)
         % plot time series
             corder_backup = runArray.sorted_colors;
 
@@ -997,7 +997,11 @@ classdef runArray < handle
                 runArray.filter = 1:runArray.len;
             end
 
-            hf = figure; hold all
+            if ~exist('ax', 'var') | isempty(ax)
+                hf = figure; hold all;
+            else
+                axes(ax); hold all;
+            end
             insertAnnotation([runArray.name '.plot_ts(' tsname ')']);
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
