@@ -11,14 +11,29 @@ hend = -80;
 latdeep =  39;
 latshelf = 41;
 
-londeep = -71;
-lonshelf = -71;
+londeep = -70;
+lonshelf = -70;
+
+
+% south of NY
+%londeep = -71.9;
+%lonshelf = -73.9;
+
+%latdeep  = 37.5;
+%latshelf = 39;
 
 % george's bank
 %latdeep = 40;
 %londeep = -62.5;
 %latshelf = 41.5;
 %lonshelf = -67.5;
+
+% george's bank 2
+latdeep = 38.85;
+latshelf = 40.7;
+
+londeep = -68.13;
+lonshelf = -69.14;
 
 f0 = 2 * (2*pi/86400) * sind(latdeep);
 
