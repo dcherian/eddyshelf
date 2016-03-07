@@ -1,6 +1,8 @@
 %%
-ewshdp = runArray({'ew-64461-9-shallow', 'ew-64461-9-deep', ...
-                   'ew-64361-shallow', 'ew-64361-deep'});
+if ~exist('ewshdp', 'var')
+    ewshdp = runArray({'ew-64461-9-shallow', 'ew-64461-9-deep', ...
+                       'ew-64361-shallow', 'ew-64361-deep'});
+end
 
 figure; maximize;
 ax(1) = subplot(121);
