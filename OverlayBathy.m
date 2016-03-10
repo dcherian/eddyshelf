@@ -10,19 +10,22 @@ hf = figure; hax = gca; maximize;
 insertAnnotation('OverlayBathy.m');
 %m_proj('mercator','lon', [min(topo.x(ix)) max(topo.x(ix))], ...
 %       'lat',[min(topo.y(iy)) max(topo.y(iy))]);
-contour(topo.x(ix), topo.y(iy), topo.z(ix,iy)',[0 -100], 'k', 'LineWidth', 1);
+contour(topo.x(ix), topo.y(iy), topo.z(ix,iy)',[0 -100], 'k', 'LineWidth', 1.5);
 hold on
 [~,hc] = contour(topo.x(ix), topo.y(iy), topo.z(ix,iy)',-[50 80 2000 4000 5000], ...
-                 'Color', [1 1 1]*0.35 , 'LineWidth', 1);
+                 'Color', [1 1 1]*0.6 , 'LineWidth', 1.5);
 %clabel(cc,hh);
 hax.Units = 'pixels';
-hax.Position = [50 50 747 792]-4;
+hax.Position = [50 50 747 792] - [0 0 6 5];
 hax.XTickLabels = {};
 hax.YTickLabels = {};
 
 %export_fig -painters images/overlay-bathy-non-transparent.png
 hax.Visible = 'off';
-export_fig -painters -transparent images/overlay-bathy.png
+export_fig -a4 -opengl -transparent images/overlay-bathy.png
+
+% png't work as well
+%system('convert images/overlay-bathy.png -transparent white images/overlay-bathy.png');
 
 % off left = (80,30)
 % bottom right = (825, 820);
