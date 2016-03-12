@@ -433,10 +433,12 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
             Tamp = run.params.eddy.tamp;
             TCOEF = run.params.phys.TCOEF;
 
-            avgresflag = 0;
+            if run.params.nondim.eddy.Rh(1) > 40, continue; end
+
+            avgresflag = 0; % this is crap. keep it 0
             if avgresflag %|| run.params.eddy.tamp < 0
-                nsmooth = 20;
-                [~,~,tind,H,err] = run.averageResistance(nsmooth);
+                nsmooth = 10;
+                [~,~,tind,H,erres] = run.averageResistance(nsmooth);
                 titlestr = ['Using average resistance'];
                 errorbarflag = 1;
 
@@ -445,33 +447,49 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
                 %Y = run.eddy.my(tind) - run.bathy.xsb; ...
                 %    run.eddy.my(tind);
             else
-                tind = run.fitCenterVelocity;
+                [tind,~,~,BadFitFlag] = run.fitCenterVelocity;
+                if BadFitFlag
+                    warning(['Bad Fit: Skipping ' run.name '.'])
+                    continue;
+                end
+
                 H = run.eddy.hcen(tind);
                 titlestr = ['Using fits to translation velocity'];
                 errorbarflag = 0;
             end
 
-            if isempty(tind)
+            if isempty(tind) | isnan(tind)
                 warning(['Skipping  ' run.name '. locate_resistance did not work.']);
                 continue;
             end
 
-            t0 = 1;run.eddy.tscaleind;
+            [itsl,itse,tsl,tse] = run.getEddyCenterTimeScales;
+            t0 = tind; run.eddy.tscaleind;
             titlestr = [titlestr ' | t0 = ' num2str(t0)];
 
-            Lz0 = Lz(t0); %*run.eddy.grfactor(1);
+            Lz0 = nanmean(Lz(1:ceil(mean([itsl tind])))); %*run.eddy.grfactor(1);
             beta_t = (alpha*abs(f0)/Lz0);
 
             [clr, ptName] = colorize(run, ptName);
 
             zz = H./Lz0;
-            diags(ff) = (1-erf(zz)); %./((zz*(1-erf(zz)) + 1/sqrt(pi) * ...
+            diags(ff) = (1 - erf(zz)); %./((zz*(1-erf(zz)) + 1/sqrt(pi) * ...
                                      %(1 - exp(-zz^2))));
-            plotx(ff) = beta/beta_t./(1-beta/beta_t);
+            plotx(ff) = beta/beta_t;
+            %plotx(ff) = run.params.nondim.eddy.Rh;
+
+            if isnan(diags(ff)), plotx(ff) = NaN; end
 
             if avgresflag
-                error(1,ff) = (1 - erf((H - err(4))./Lz0)) - diags(ff);
-                error(2,ff) = (1 - erf((H + err(4))./Lz0)) - diags(ff);
+                % these are not justifiable error bounds
+                zzlo = (-erres(4))./Lz0;
+                zzhi = (+erres(4))./Lz0;
+
+                err(1,ff) = (1 - erf(H./Lz0+zzlo)) - diags(ff);
+                err(2,ff) = (1 - erf(H./Lz0+zzhi)) - diags(ff);
+
+                err(1,ff) = exp(-(H./Lz0+zzlo)) - diags(ff);
+                err(2,ff) = exp(-(H./Lz0+zzhi)) - diags(ff);
             end
 
             kozak = 0;
@@ -787,16 +805,19 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
                 [P,Pint,R,Rint,stats] = regress(zmax', E, 0.05);
 
                 errorbarflag = 0;
-                error(1,ff) = Pint(2) - P(2);
+                err(1,ff) = Pint(2) - P(2);
             else
                 P(2) = zmax;
             end
 
+            [~,maxloc] = run.calc_maxflux(args(1));
             fvec = run.rgrid.f(:,1);
             fratio = fvec(run.csflux.ix(iso))./fvec(run.bathy.isb);
 
+            [~,zpeak] = run.predict_zpeak(iso, []);
             diags(ff) = abs(P(2));
-            plotx(ff) = (1+Ro(1)) * run.csflux.ndloc(iso) * fratio;
+            plotx(ff) = abs(zpeak);
+            % plotx(ff) = (Ro(1)) * Lz(maxloc)/hsb * run.csflux.ndloc(iso);
 
             name_points = 1;
             labx = 'Ro H_{sb}';
