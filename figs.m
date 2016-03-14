@@ -4,28 +4,34 @@ if ~exist('ewshdp', 'var')
                        'ew-64361-shallow', 'ew-64361-deep'});
 end
 
+fontsize = [22 24 28];
 figure; maximize;
 ax(1) = subplot(121);
 ewshdp.filter = [1 2];
 ewshdp.plot_ts('eddy.hcen', ax(1))
 pbaspect([1.618 1 1]);
-title('Rh = 20')
+title('$$\frac{U}{\beta L^2} \sim 20 $$');
+ax(1).Title.Interpreter = 'latex';
 legend('off');
+beautify(fontsize);
 
 ax(2) = subplot(122);
 ewshdp.filter = [3 4];
 ewshdp.plot_ts('eddy.hcen', ax(2));
 pbaspect([1.618 1 1]);
-title('Rh = 60');
+title('$$\frac{U}{\beta L^2} \sim 60 $$');
+ax(2).Title.Interpreter = 'latex';
 legend('off');
+beautify(fontsize);
 
 linkaxes(ax, 'y');
 packfig(1,2, 'columns');
 ax(2).XTick(1) = [];
 
 [ax(3), htitle] = suplabel('Water depth at eddy center', 't');
-ax(3).Position(4) = 0.72;
-beautify;
+ax(3).Position(4) = 0.82;
+ax(3).FontSize = fontsize(end);
+beautify(fontsize);
 
 export_fig -r150 -transparent images/shallow-deep-hcen.png
 
