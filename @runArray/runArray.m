@@ -1002,7 +1002,7 @@ classdef runArray < handle
             else
                 axes(ax); hold all;
             end
-            insertAnnotation([runArray.name '.plot_ts(' tsname ')']);
+            insertAnnotation(['runArray.plot_ts(' tsname ')']);
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
