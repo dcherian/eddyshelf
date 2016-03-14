@@ -289,34 +289,39 @@ methods
             runs.ndtime = runs.time ./ runs.eddy.turnover;
 
             % save memory by converting masks to logical
-            if ~islogical(runs.eddy.mask)
-                runs.eddy.mask = logical(repnan(runs.eddy.mask, 0));
-                try
+            try
+                if ~islogical(runs.eddy.mask)
+                    runs.eddy.mask = logical(repnan(runs.eddy.mask, 0));
                     runs.eddy.vor.mask = logical(repnan(runs.eddy.vor.mask, 0));
                     runs.eddy.rhovor.mask = logical(repnan(runs.eddy.rhovor.mask, 0));
                     runs.eddy.rhossh.mask = logical(repnan(runs.eddy.rhossh.mask, 0));
-                catch ME
                 end
+            catch ME
             end
 
             runs.eddy.xr = single(runs.eddy.xr);
             runs.eddy.yr = single(runs.eddy.yr);
 
-            % drhothresh based on ssh mask if it doesn't exist
-            if ~isfield(runs.eddy, 'drhothreshssh')
-                rs = ncread(runs.out_file, 'rho', [1 1 runs.rgrid.N ...
-                                    1], [Inf Inf 1 1]);
-                rs = rs(2:end-1,2:end-1) - rs(1,1);
-                runs.eddy.drhothreshssh = squeeze(nanmax(nanmax(rs .* ...
-                                         fillnan(runs.eddy.mask(:,:,1),0), [], 1), [], 2));
-            end
-            % drhothresh based on ssh mask if it doesn't exist
-            if ~isfield(runs.eddy, 'drhothresh')
-                rs = ncread(runs.out_file, 'rho', [1 1 runs.rgrid.N ...
-                                    1], [Inf Inf 1 1]);
-                rs = rs(2:end-1,2:end-1) - rs(1,1);
-                runs.eddy.drhothresh = squeeze(nanmax(nanmax(rs .* ...
-                                         fillnan(runs.eddy.vor.mask(:,:,1),0), [], 1), [], 2));
+            try
+                % drhothresh based on ssh mask if it doesn't exist
+                if ~isfield(runs.eddy, 'drhothreshssh')
+                    rs = ncread(runs.out_file, 'rho', [1 1 runs.rgrid.N ...
+                                        1], [Inf Inf 1 1]);
+                    rs = rs(2:end-1,2:end-1) - rs(1,1);
+                    runs.eddy.drhothreshssh = ...
+                        squeeze(nanmax(nanmax(rs .* ...
+                                              fillnan(runs.eddy.mask(:,:,1),0), [], 1), [], 2));
+                end
+                % drhothresh based on ssh mask if it doesn't exist
+                if ~isfield(runs.eddy, 'drhothresh')
+                    rs = ncread(runs.out_file, 'rho', [1 1 runs.rgrid.N ...
+                                        1], [Inf Inf 1 1]);
+                    rs = rs(2:end-1,2:end-1) - rs(1,1);
+                    runs.eddy.drhothresh = ...
+                        squeeze(nanmax(nanmax(rs .* ...
+                                              fillnan(runs.eddy.vor.mask(:,:,1),0), [], 1), [], 2));
+                end
+            catch ME
             end
             if isfield(runs.eddy,'cvx')
                 if runs.eddy.cvx(1) == 0 || runs.eddy.cvy(1) == 0
