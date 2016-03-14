@@ -609,7 +609,7 @@ function [eddy] = eddy_diag(zeta, vor, rho, ...
             grd.indy = grd.iy(imax);
 
             % I have an eddy!!!
-            imagesc(zreg');
+            %imagesc(zreg');
 
             xmax = fillnan(maskreg(:).*grd.ix(:),0);
             ymax = fillnan(maskreg(:).*grd.iy(:),0);

@@ -75,7 +75,11 @@ function [] = plot_penetration(runArray, ax, choices)
         if mark_timestamp
             % tinds = vecfind(run.eddy.t, [dt:dt:max(run.eddy.t)]);
             %tinds = cut_nan(vecfind(run.ndtime, 85));
-            [~,tinds] = run.calc_maxflux(2);
+            try
+                [~,tinds] = run.calc_maxflux(2);
+            catch ME
+                tinds = [];
+            end
         else
             tinds = [];
         end
