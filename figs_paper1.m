@@ -19,7 +19,7 @@ ewall.name = {'R/L_{sl} > 1', 'R/L_{sl} ~ 1', ...
               'R/L_{sl} < 1'};
 
 ew = runArray({ ...
-    'runew-64361', ...
+    'runew-64361-shallow', ...
     'runew-6341', ...
     'runew-6362-2', ...
     'runew-6441' });
@@ -226,9 +226,11 @@ figure; maximize();
 ax1 = subplot(121);
 ew.plot_penetration(ax1, 'all');
 beautify(fontSize)
+legend('off');
 subplot(122);
 ns.plot_penetration(gca, 'all'); drawnow;
 beautify(fontSize)
+legend('off');
 ax1 = gca; ax1.XTick = unique([ax1.XTick 1])
 export_fig('images/paper1/sl-centrack.pdf');
 
