@@ -313,7 +313,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     if strcmpi(name, 'eddye') && addcsdye
         tind = t0:t0+ntimes-1;
         runs.edcsdyesurf(:,:,tind) = (runs.csdsurf(:,:,tind) < ...
-                                      (runs.csflux.x(opt.csfluxIsobath)))*-1;
+                                      (runs.csflux.x(csfluxIsobath)))*-1;
         runs.edcsdyesurf(:,:,tind) = runs.edcsdyesurf(:,:,tind) + ...
             runs.eddsurf(:,:,tind) .* (runs.edcsdyesurf(:,:,tind) == 0);
     end
