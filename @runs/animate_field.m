@@ -228,7 +228,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         end
         if addcsdye == 1
             varname = 'edcsdyesurf';
-            titlestr = 'Red = eddy water | Blue = shelf/slope water';
+            titlestr = 'Dyes';
         end
     end
 
@@ -552,6 +552,8 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     handles.htlabel = runs.add_timelabel(ii);
 
     if addcsdye
+        handles.hshelflabel = text(0.1,0.1,'shelf-slope water', ...
+                                   'Units', 'normalized', 'Color', 'w');
         caxis([-1 1]*1.5);
         colorbar('hide');
     end
@@ -728,6 +730,13 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
 
             if addzeta
                 runs.update_surf('zeta', handles.hzeta, ii);
+                runs.update_surf('zeta', handles.hzetaneg, ii);
+                if any(handles.hzeta.LevelList < 0)
+                    handles.hzeta.LevelList(handles.hzeta.LevelList < 0) = [];
+                end
+                if any(handles.hzetaneg.LevelList > 0)
+                    handles.hzetaneg.LevelList(handles.hzeta.LevelList > 0) = [];
+                end
             end
 
             if csdcontourplot
