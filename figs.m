@@ -27,7 +27,7 @@ ax(2).XTick(1) = [];
 ax(3).Position(4) = 0.72;
 beautify;
 
-export_fig -transparent images/shallow-deep-hcen.png
+export_fig -r150 -transparent images/shallow-deep-hcen.png
 
 %% ew-34 vertprofile
 % density profile changes with time as it adjusts to no-flux boundary condition. For some

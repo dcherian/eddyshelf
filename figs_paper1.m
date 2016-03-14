@@ -1,5 +1,15 @@
 %% Figures for paper 1:
-% EW isobaths
+%% ew-64461-5-eddye video
+if ~exist('ew','var') | ~strcmpi(ew.name, 'ew-64461-5')
+    ew = runs('../topoeddy/runew-64461-5/');
+end
+opt = [];
+opt.addcsdye = 1;
+opt.addzeta = 1;
+ew.makeVideo = 1;
+ew.animate_field('eddye', [], 1, [], opt);
+
+%% EW isobaths
 ewall = runArray({ ...
     'runew-4341/', ...
     'runew-36-sym/', ...
@@ -233,7 +243,7 @@ export_fig('images/paper1/bfrics-centrack.pdf');
 %% parameterization
 sl.print_diag('bottom torque');
 title([]); pause(1);
-export_fig('images/paper1/penetration-res-param.pdf');
+export_fig('images/paper1/penetration-param.pdf');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% energy decay
