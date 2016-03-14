@@ -33,7 +33,7 @@ ax(3).Position(4) = 0.82;
 ax(3).FontSize = fontsize(end);
 beautify(fontsize);
 
-export_fig -r150 -transparent images/shallow-deep-hcen.png
+export_fig -r150 images/shallow-deep-hcen.png
 
 %% ew-34 vertprofile
 % density profile changes with time as it adjusts to no-flux boundary condition. For some
