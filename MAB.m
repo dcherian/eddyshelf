@@ -29,11 +29,11 @@ lonshelf = -70;
 %lonshelf = -67.5;
 
 % george's bank 2
-latdeep = 38.85;
-latshelf = 40.7;
+%latdeep = 38.85;
+%latshelf = 40.7;
 
-londeep = -68.13;
-lonshelf = -69.14;
+%londeep = -68.13;
+%lonshelf = -69.14;
 
 f0 = 2 * (2*pi/86400) * sind(latdeep);
 

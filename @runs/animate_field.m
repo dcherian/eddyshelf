@@ -41,7 +41,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     % extra contours
     addcsdye = 0; % add csdye to eddye plot?
     addzeta = 0; % overlay zeta contours
-    stopzeta = 0; % stop display zeta
+    stopzeta = Inf; % stop display zeta
 
     csdcontourplot = 1; % contour csd contours
     try
@@ -87,6 +87,10 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         for ff = 1:length(fields)
             eval([fields{ff} ' = opt.' fields{ff} ';']);
         end
+    end
+
+    if ~isfield(runs.eddy, 'rhovor')
+        rhocontourplot = 0;
     end
 
     if csfluxplot == 2
@@ -182,7 +186,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         titlestr = 'SSH (m)';
 
         if strcmpi(name, 'zeta'), addzeta = 0; end
-        addcsdye = 0;
+        if ~addzeta, addcsdye = 0; end
     end
 
     if strcmpi(name, 'pbot')
@@ -312,8 +316,13 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     % process addcsdye
     if strcmpi(name, 'eddye') && addcsdye
         tind = t0:t0+ntimes-1;
-        runs.edcsdyesurf(:,:,tind) = (runs.csdsurf(:,:,tind) < ...
-                                      (runs.csflux.x(csfluxIsobath)))*-1;
+        if isempty(runs.csflux)
+            csfluxThresh = runs.bathy.xsb + 10e3;
+        else
+            csfluxThresh = runs.csflux.x(csfluxIsobath);
+        end
+
+        runs.edcsdyesurf(:,:,tind) = (runs.csdsurf(:,:,tind) < csfluxThresh)*-1;
         runs.edcsdyesurf(:,:,tind) = runs.edcsdyesurf(:,:,tind) + ...
             runs.eddsurf(:,:,tind) .* (runs.edcsdyesurf(:,:,tind) == 0);
     end

@@ -29,5 +29,5 @@ export_fig -a4 -opengl -transparent images/overlay-bathy.png
 
 % off left = (80,30)
 % bottom right = (825, 820);
-% composite overlay-bathy.png wcr-avhrr-label.png -geometry +79+29 avhrr.png
+% composite overlay-bathy.png wcr-avhrr-label.png -geometry +78+28 avhrr.png
 % non-transparent version is actually smaller by 2 pixels?! +80+30 works ok
