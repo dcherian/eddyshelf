@@ -548,8 +548,8 @@ export_fig -r150 -a2 images/paper2/fluxvertprofile.png
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% shelfbreak flow surface snapshot
 
-if ~exist('ew04', 'var')
-    ew04 = runArray({'runew-04', 'runew-8041'});
+if ~exist('ew34', 'var')
+    ew34 = runs('../topoeddy/runew-34/');
 end
 
 opt.addvelquiver = 1;
@@ -557,40 +557,30 @@ opt.rhocontourplot = 0;
 opt.csdcontourplot = 0;
 opt.dxi = 8; opt.dyi = 5;
 
-handles = ew04.mosaic_field('csdye', {'169'; '169'}, opt);
-xlim([170 400]);
+tindex = 295;
+
+handles = ew34.animate_field('csdye', [], tindex, 1, opt);
+
+xlim([150 350]);
 ylim([0 120]);
-for ii=1:2
-    delete(handles(ii).hrunname)
-    handles(ii).hbathy{1}.ShowText = 'off';
-    handles(ii).hquiv.Color = [1 1 1]*0;
-    handles(ii).hquiv.LineWidth = 1.5;
-    handles(ii).hquiv.AutoScaleFactor = 4.5;
-    handles(ii).htlabel.Position(2) = 0.1;
-    handles(ii).htrack.delete;
-    handles(ii).hbathy{2}.Color = [1 1 1]*0.9;
-end
-correct_ticks('x', [], '450', handles(1).hax);
-handles(1).hax.Title.String = 'Flat shelf | S_{sh} = 0';
-handles(2).hax.Title.String = 'Sloping shelf | S_{sh} = 0.05';
+[hline,htxt] = linex(ew34.eddy.mx(tindex)/1000, 'eddy center', 'w');
 
-handles(1).supax.Position(4) = 0.73;
-handles(1).supax.Title.String = 'Surface cross-shelf dye (km)';
-handles(1).supax.Title.FontSize = 20;
+handles.hbathy{1}.ShowText = 'off';
+handles.hquiv.Color = [1 1 1]*0;
+handles.hquiv.LineWidth = 1.5;
+handles.hquiv.AutoScaleFactor = 4.5;
+handles.htlabel.Position(2) = 0.1;
+handles.htlabel.Color = 'w';
+handles.htrack.delete;
+handles.hbathy{3}.Color = [1 1 1]*0.9;
+handles.hbathy{2}.Color = [1 1 1]*0.9;
+handles.hbathy{1}.Color = [1 1 1]*0.9;
+htxt.FontSize  = handles.htlabel.FontSize;
+htxt.Position(2) = 10;
+htitle = title('Cross shelf dye and velocity vectors');
+htitle.FontSize = 28;
 
-axes(handles.hax(2))
-hl = liney(37.5-12);
-hl.Color = [1 1 1]*0.9;
-hanno = annotation('doublearrow', [0.6 0.6], [0.405 0.445]);
-hanno.Head1Style = 'cback3';
-hanno.Head2Style = 'cback3';
-hanno.Head1Length = 7;
-hanno.Head2Length = 7;
-hanno.Head1Width = 7;
-hanno.Head2Width = 7;
-htxt = text(202, 33, 'L_\beta', 'Color', [1 1 1]*0.9, 'FontSize', 20);
-
-export_fig -opengl -r150 -a2 images/paper2/sbsnapshot.png
+export_fig -r150 -a2 images/paper2/sbsnapshot.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% avg flux
