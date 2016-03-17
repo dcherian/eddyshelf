@@ -62,6 +62,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     dxi = 5; dyi = 5; % decimate vectors
     uref = 1; vref = uref; % scale vectors
     scale = 3;
+    normquiver = 0; % normalize so that magnitude is one everywhere
 
     % graphics
     nocolorbar = 0;
@@ -402,17 +403,22 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         u = avg1(runs.usurf(:,2:end-1,:),1);
         v = avg1(runs.vsurf(2:end-1,:,:),2);
 
+        if normquiver
+            % make all arrows equal length.
+            V = hypot(u,v);
+            u = u./V;
+            v = v./V;
+
+            uref = 1; vref = 1; scale = 1;
+        end
+
         rangex = runs.spng.sx1:dxi:runs.spng.sx2;
         rangey = runs.spng.sy1:dyi:runs.spng.sy2;
 
-        % V = hypot(u,v);
-        % u(V > 0.4*max(V(:))) = 0;
-        % v(V > 0.4*max(V(:))) = 0;
-        % clear V;
-
         handles.hquiv = quiver(runs.eddy.xr(rangex, rangey)/1000 - dx, ...
                                runs.eddy.yr(rangex, rangey)/1000 - dy, ...
-                               u(rangex, rangey, ii)./uref, v(rangex, rangey, ii)./vref, scale, ...
+                               u(rangex, rangey, ii)./uref, ...
+                               v(rangex, rangey, ii)./vref, scale, ...
                                'Color', 'k', 'LineWidth', 1);
     end
 
