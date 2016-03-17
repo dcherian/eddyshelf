@@ -559,26 +559,65 @@ opt.dxi = 8; opt.dyi = 5;
 
 tindex = 295;
 
-handles = ew34.animate_field('csdye', [], tindex, 1, opt);
+ew34.read_zeta(tindex);
 
-xlim([150 350]);
+figure; maximize;
+ax = packfig(2,1);
+handles = ew34.animate_field('csdye', ax(1), tindex, 1, opt);
+
 ylim([0 120]);
-[hline,htxt] = linex(ew34.eddy.mx(tindex)/1000, 'eddy center', 'w');
+hline = linex(ew34.eddy.mx(tindex)/1000, [], 'w');
 
 handles.hbathy{1}.ShowText = 'off';
-handles.hquiv.Color = [1 1 1]*0;
+handles.hquiv.Color = [1 1 1]*0.9;
 handles.hquiv.LineWidth = 1.5;
-handles.hquiv.AutoScaleFactor = 4.5;
+handles.hquiv.AutoScaleFactor = 6;
 handles.htlabel.Position(2) = 0.1;
 handles.htlabel.Color = 'w';
+handles.htlabel.FontSize = 20;
 handles.htrack.delete;
-handles.hbathy{3}.Color = [1 1 1]*0.9;
-handles.hbathy{2}.Color = [1 1 1]*0.9;
-handles.hbathy{1}.Color = [1 1 1]*0.9;
-htxt.FontSize  = handles.htlabel.FontSize;
-htxt.Position(2) = 10;
+handles.hbathy{3}.Color = [1 1 1]*0;
+handles.hbathy{2}.Color = [1 1 1]*0;
+handles.hbathy{1}.Color = [1 1 1]*0;
 htitle = title('Cross shelf dye and velocity vectors');
-htitle.FontSize = 28;
+htitle.FontSize = 26;
+ax(1).XTickLabel = {};
+handles.hcb.Position(1) = 0.82;
+handles.hcb.Position(2) = 0.55;
+handles.hcb.Position(4) = 0.34;
+
+axes(ax(2));
+ax(2).Position(1) = 0.225;
+ax(2).Position(3) = 0.585;
+dy = 0.2;
+ax(2).Position(2) = 0.11 + dy;
+ax(2).Position(4) = 0.4025 - dy;
+[yyax,hzeta,hcsd] = plotyy(ew34.rgrid.x_rho(1,:)/1000, ew34.zeta(:,ew34.bathy.isb,tindex)*100, ...
+                           ew34.rgrid.x_rho(1,:)/1000, ew34.csdsurf(:,ew34.bathy.isb,tindex)/1000);
+linkaxes([ax yyax], 'x');
+xlim([150 450]);
+ylabel('SSH (cm)');
+xlabel('X (km)');
+ax(2).YTick(end) = [];
+
+[hline2,htxt] = linex(ew34.eddy.mx(tindex)/1000, 'eddy center', 'k');
+correct_ticks('x', [], '213');
+ylim([-0.1 0.2]);
+htxt.Position(2) = -0.02;
+htxt.FontSize  = 18;
+ax(2).YTick = [-0.1 0 0.1];
+
+yyax(2).YTick = [37.5 100 150 200];
+yyax(2).YTickLabel = {'Sh'; '100'; 'Edd'; '200'};
+yyax(2).YLabel.String = 'Cross-shelf dye';
+
+yyax(1).YLabel.Color = yyax(1).YAxis.Color;
+yyax(2).YLabel.Color = yyax(2).YAxis.Color;
+
+axes(yyax(1)); beautify;
+axes(yyax(2)); beautify;
+
+ht = text(0.5,0.5, 'At the shelfbreak', 'Units', 'Normalized');
 
 export_fig -r150 -a2 images/paper2/sbsnapshot.png
 
