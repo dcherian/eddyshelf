@@ -58,7 +58,7 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     %mask(2:end-1,2:end-1,:) = runs.eddy.vor.mask(:,:,tind);
     mask = permute(mask(xrange,yrange,:), [2 1 3]); %mask = ones(size(xrmat));
 
-    % chop off extra eddy dye
+    % chop off extra eddy dye by specifying a mask
     if opt.linefilter
         x = opt.x;
         y = opt.y;
@@ -91,31 +91,27 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     hbathy.FaceColor = [1 1 1];
     hbathy.FaceAlpha = 0.3;
 
-    % add eddy
+    % add eddy. mask the dye field, mooth it and create a patch object.
     eddColorMap = runs.eddyeColormap;
     eddVolume = smooth3(bsxfun(@times,eddye(:,:,:,1),mask(:,:,1)));
     hedd = patch(isosurface(xrmat/1000,yrmat/1000,zrmat, eddVolume, opt.eddthresh), ...
                  'EdgeColor', 'none', 'AmbientStrength', 0.5, 'DiffuseStrength', 0.6);
+    % decimate patch
     reducepatch(hedd, opt.eddreducepatch, 'verbose');
     if opt.finalize
+        % makes lighting better and smoother
         isonormals(eddVolume, hedd);
     end
     hedd.FaceColor = eddColorMap(end,:);
     hedd.FaceAlpha = 1;
-    %axis tight;
 
+    % add a cap to the top of the eddy.
     heddcap = patch(isocaps(xrmat/1000,yrmat/1000,zrmat, eddVolume, opt.eddthresh), ...
                     'EdgeColor', 'none');
     linkprop([hedd heddcap], {'FaceColor', 'FaceAlpha'});
     hedd.FaceColor = brighten([215 48 31]/255, 0.1);
 
-    % heddfull = patch(isosurface(xrmat/1000,yrmat/1000,zrmat, ...
-    %                             smooth3(bsxfun(@times,eddye(:,:,:,1),1 - mask(:,:,1)))), ...
-    %                             'EdgeColor', 'none');
-    % reducepatch(heddfull, 0.3, 'verbose');
-    % heddfull.FaceAlpha = 0.7;
-    % heddfull.FaceColor = eddColorMap(end-3,:);
-
+    % Position light in dataunits
     hlight = camlight;
     hlight.Position(3) = -200;
     hlight.Position(2) = 1400;
@@ -123,13 +119,17 @@ function [handles] = animate_3d(runs, tind, opt, hax)
 
     sz = size(xrmat);
 
-    % cross-sectional planes
+    % cross-sectional planes with what look like pcolor/contourf plots
     if ~isempty(cslevel)
+        % combine the dyes to make one field that I'll plot as cross-section
         mergedye = eddVolume;
         mergedye(eddVolume < 0.6) = 0;
         mergedye = fillnan(smooth3(mergedye + -1 * (csdye <= cslevel(1)), 'gaussian', 5),0);
+
         if opt.sect == 'y'
+            % x-z cross-secion
             imy = runs.eddy.imy(tind);
+
             handles.hsect = ...
                 surface(squeeze(xrmat(imy,:,:)/1000), ...
                         squeeze(max(yrmat(:)/1000) * ones(size(yrmat(imy,:,:)))), ...
@@ -142,14 +142,19 @@ function [handles] = animate_3d(runs, tind, opt, hax)
             yvec = yrmat(imy,:,1);
             zvec = squeeze(zrmat(imy,1,:));
 
-            handles.hsectoutline = plot3(xvec([1 sz(2) sz(2) 1 1])/1000, ones([1 5])*max(yrmat(:)/1000), ...
-                                         zvec([1 1 sz(3) sz(3) 1]), 'Color', [1 1 1]*0.3, ...
+            handles.hsectoutline = plot3(xvec([1 sz(2) sz(2) 1 1])/1000, ...
+                                         ones([1 5])*max(yrmat(:)/1000), ...
+                                         zvec([1 1 sz(3) sz(3) 1]), ...
+                                         'Color', [1 1 1]*0.3, ...
                                          'LineWidth', 1, 'Tag', 'dcline');
 
-            handles.hplane = patch(xvec([1 sz(2) sz(2) 1 1])/1000, ones([1 5])*yvec(imy)/1000, ...
-                                   [zvec([1 1])' 1 1 zvec(1)], 'k', 'EdgeColor', [1 1 1]*0.3, ...
+            handles.hplane = patch(xvec([1 sz(2) sz(2) 1 1])/1000, ...
+                                   ones([1 5])*yvec(imy)/1000, ...
+                                   [zvec([1 1])' 1 1 zvec(1)], 'k', ...
+                                   'EdgeColor', [1 1 1]*0.3, ...
                                    'FaceAlpha', 0.08);
         else
+            % y-z section
             imx = runs.eddy.imx(tind) - xrange(1) + 1;
 
             handles.hsect = ...
@@ -164,26 +169,30 @@ function [handles] = animate_3d(runs, tind, opt, hax)
             yvec = yrmat(:,imx,1);
             zvec = squeeze(zrmat(end,imx,:));
 
-            handles.hsectoutline = plot3(max(xrmat(:)/1000)*ones([1 5]), yvec([1 sz(1) sz(1) 1 1])/1000, ...
-                                         zvec([1 1 sz(3) sz(3) 1]), 'Color', [1 1 1]*0.3, ...
+            handles.hsectoutline = plot3(max(xrmat(:)/1000)*ones([1 5]), ...
+                                         yvec([1 sz(1) sz(1) 1 1])/1000, ...
+                                         zvec([1 1 sz(3) sz(3) 1]), ...
+                                         'Color', [1 1 1]*0.3, ...
                                          'LineWidth', 1, 'Tag', 'dcline');
 
-            handles.hplane = patch(ones([1 5]) * xvec(imx)/1000, yvec([1 sz(1) sz(1) 1 1])/1000, ...
-                                   [zvec([1 1])' 1 1 zvec(1)], 'k', 'EdgeColor', [1 1 1]*0.3, ...
+            handles.hplane = patch(ones([1 5]) * xvec(imx)/1000, ...
+                                   yvec([1 sz(1) sz(1) 1 1])/1000, ...
+                                   [zvec([1 1])' 1 1 zvec(1)], 'k', ...
+                                   'EdgeColor', [1 1 1]*0.3, ...
                                    'FaceAlpha', 0.08);
         end
         colormap(flip(cbrewer('div', 'RdBu', 50)));
         caxis([-1.5 1.5]);
     end
 
-    % shelf-slope water
+    % shelf-slope water ribbon
     for kk=1:length(cslevel)
         hcsd(kk) = patch(isosurface(xrmat/1000,yrmat/1000,zrmat, ...
                                     smooth3(csdye),cslevel(kk)), ...
                          'FaceAlpha', 0.8, 'FaceColor', [107 174 214]/255, ...
                          'EdgeColor', 'none', 'AmbientStrength', 0.65);
 
-        % draw contours at surface
+        % be fancy and draw contours at surface to highlight downwelling
         cm = contourc(xrmat(1,:,end)/1000, yrmat(:,1,end)/1000, csdye(:,:,end), ...
                       [1 1] * cslevel(kk));
         ind = 1;
@@ -210,7 +219,7 @@ function [handles] = animate_3d(runs, tind, opt, hax)
         if opt.finalize
             isonormals(smooth3(csdye(:,:,:,1)), hcsd(kk));
         end
-        %hcsd(kk).FaceColor = sbcolors(kk,:);
+        % decimate
         reducepatch(hcsd(kk), opt.csdreducepatch, 'verbose');
     end
 
@@ -257,6 +266,7 @@ function [handles] = animate_3d(runs, tind, opt, hax)
         zlim([-abs(opt.MoveToZLevel) 1.1]);
     end
 
+    % repeat for animation
     for ii=2:4:size(eddye,4)
         pause();
         heddye = isosurface(xrmat/1000,yrmat/1000,zrmat, ...
