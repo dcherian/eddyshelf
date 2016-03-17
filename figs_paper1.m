@@ -232,7 +232,7 @@ ns.plot_penetration(gca, 'all'); drawnow;
 beautify(fontSize)
 legend('off');
 ax1 = gca; ax1.XTick = unique([ax1.XTick 1])
-export_fig('images/paper1/sl-centrack.pdf');
+export_fig('-r150','images/paper1/sl-centrack.png');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% bottom friction
