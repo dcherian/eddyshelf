@@ -556,6 +556,7 @@ opt.addvelquiver = 1;
 opt.rhocontourplot = 0;
 opt.csdcontourplot = 0;
 opt.dxi = 8; opt.dyi = 5;
+opt.normquiver = 1;
 
 tindex = 295;
 
@@ -569,11 +570,12 @@ ylim([0 120]);
 hline = linex(ew34.eddy.mx(tindex)/1000, [], 'w');
 
 handles.hbathy{1}.ShowText = 'off';
-handles.hquiv.Color = [1 1 1]*0.9;
+handles.hquiv.Color = [1 1 1]*1;
 handles.hquiv.LineWidth = 1.5;
-handles.hquiv.AutoScaleFactor = 6;
-handles.htlabel.Position(2) = 0.1;
-handles.htlabel.Color = 'w';
+handles.hquiv.AutoScaleFactor = 0.5;
+handles.htlabel.Position(2) = 0.9;
+handles.htlabel.Position(1) = 0.75;
+handles.htlabel.Color = 'k';
 handles.htlabel.FontSize = 20;
 handles.htrack.delete;
 handles.hbathy{3}.Color = [1 1 1]*0;
@@ -586,12 +588,15 @@ handles.hcb.Position(1) = 0.82;
 handles.hcb.Position(2) = 0.55;
 handles.hcb.Position(4) = 0.34;
 
+htxt = text(ew34.eddy.mx(tindex)/1000, ew34.eddy.my(tindex)/1000 - 5, ...
+            '  eddy center', 'Color', 'k', 'FontSize', 18, ...
+            'HorizontalAlignment', 'center');
+
 axes(ax(2));
-ax(2).Position(1) = 0.225;
-ax(2).Position(3) = 0.585;
 dy = 0.2;
-ax(2).Position(2) = 0.11 + dy;
-ax(2).Position(4) = 0.4025 - dy;
+ax(2).Position(2) = ax(2).Position(2) + dy;
+ax(2).Position(4) = ax(2).Position(4) - dy;
+
 [yyax,hzeta,hcsd] = plotyy(ew34.rgrid.x_rho(1,:)/1000, ew34.zeta(:,ew34.bathy.isb,tindex)*100, ...
                            ew34.rgrid.x_rho(1,:)/1000, ew34.csdsurf(:,ew34.bathy.isb,tindex)/1000);
 linkaxes([ax yyax], 'x');
@@ -600,11 +605,9 @@ ylabel('SSH (cm)');
 xlabel('X (km)');
 ax(2).YTick(end) = [];
 
-[hline2,htxt] = linex(ew34.eddy.mx(tindex)/1000, 'eddy center', 'k');
+hline2 = linex(ew34.eddy.mx(tindex)/1000, [], 'k');
 correct_ticks('x', [], '213');
 ylim([-0.1 0.2]);
-htxt.Position(2) = -0.02;
-htxt.FontSize  = 18;
 ax(2).YTick = [-0.1 0 0.1];
 
 yyax(2).YTick = [37.5 100 150 200];
@@ -617,7 +620,13 @@ yyax(2).YLabel.Color = yyax(2).YAxis.Color;
 axes(yyax(1)); beautify;
 axes(yyax(2)); beautify;
 
-ht = text(0.5,0.5, 'At the shelfbreak', 'Units', 'Normalized');
+% get the damned axes to line up after 'axis image'
+pba = ax(1).PlotBoxAspectRatio;
+pos1 = ax(1).Position;
+pos2 = ax(2).Position;
+pbnew = [pba(1)/pba(2)*pos1(4)/pos2(4) 1 1]
+ax(2).PlotBoxAspectRatio = pbnew;
+yyax(2).PlotBoxAspectRatio = pbnew;
 
 export_fig -r150 -a2 images/paper2/sbsnapshot.png
 
