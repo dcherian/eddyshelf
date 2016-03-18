@@ -650,12 +650,12 @@ hax(2).YTick = [0:20:100];
 axes(hax(3));
 hleg = legend;
 hleg.Position(1) = 0.82;
-ylim([-10 50]);
-hax(3).YTick = [-10 0 20 40];
-correct_ticks('y', '%2d', []);
-hax(3).Position(1) = 0.67;
+%ylim([-1 5]);
+%hax(3).YTick = [-10 0 20 40];
+correct_ticks('y', '%.2f', '0.20');
+hax(3).Position(1) = 0.68;
 
-export_fig -r150 -a2 -png -opengl images/paper2/avgflux
+export_fig -r150 -a2 -png -pdf -opengl images/paper2/avgflux
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% max flux

@@ -700,9 +700,9 @@ classdef runArray < handle
             mmagn = 10^(orderofmagn(mplt(1)));
             cmagn = 10^(orderofmagn(cplt(1)));
 
-            minmagn = max([mmagn cmagn]);
-            mmagn = mmagn./minmagn;
-            cmagn = cmagn./minmagn;
+            %minmagn = max([mmagn cmagn]);
+            cmagn = 1/(cmagn)^2;
+            mmagn = 1;
 
             hax(slopeplot) = subplot(3,3,slopeplot);
             errorbar(runArray.array(1).csflux.ndloc(isobath), ...
