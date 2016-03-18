@@ -609,10 +609,8 @@ classdef runArray < handle
             if ~exist('commands', 'var'), commands = ''; end
 
             if strcmpi(str, 'max flux') | strcmpi(str, 'avg flux') ...
-                    & (~isempty(factor) | ~exist('factor', 'var'))
+                    & (isempty(factor) | ~exist('factor', 'var'))
                 factor = 1; % to 2xH_{sb}
-            else
-                factor = [];
             end
 
             isobath = 1:8;
