@@ -922,29 +922,46 @@ export_fig -painters -a2 images/paper2/ns-35-csdsurf.png
 if ~exist('ew36', 'var')
     ew36 = runs('../topoeddy/runew-36/');
 end
-im = imread('images/churchill-1986-intrusion.png');
 
 figure; maximize;
-hax(1) = subplot(121);
-image(im);
-axis image
-hax(1).XColor = [1 1 1];
-hax(1).YColor = [1 1 1];
-hax(1).Title.String = '(a) From Churchill et al. (1986)';
-beautify;
+hax(1) = subplot(1,5,[1 2]);
+hax(2) = [];
+hax(3) = subplot(1,5,[3]);
+hax(4) = subplot(1,5,[4 5]);
+handles = PlotOleanderSection(114, [17 11], [], hax(1:3));
+hax(2) = handles.hax(2);
+hax(2).Title.String = '(a) Oleander XBT Temperature (C)';
+hax(3).XLabel.String = '';
+handles.hleg.delete;
 
-hax(2) = subplot(122); cla
-handles = ew36.PlotSingleYZSection('csdye', '158.5', [], hax(2));
+axes(hax(1));
+hax(1).XLim = [550 905];
+linkaxes(hax(1:2));
+handles.hax(1).YLabel.String = 'Depth (m)';
+correct_ticks('x', [], {'650'; '750'; '700'}, handles.hax(1));
+htxt = text(0.07, 0.1, {'Oleander XBT'; '19-20 Oct, 1983'}, 'Units', 'normalized');
+handles.hax(2).Title.Position(1) = 600;
+cmap = cbrewer('seq','Reds',50);
+colormap(hax(1), cmap(1:end-12,:))
+caxis([10 20]);
+
+axes(hax(4));
+handles = ew36.PlotSingleYZSection('csdye', '158.5', [], hax(4));
 handles.hed.LevelList = 135;
 handles.hed.Color = 'k';
-hax(2).DataAspectRatio = [1 3 1];
-ylim([-400 0]);
+handles.htlabel.Position = [0.02 0.07 0];
+hax(4).DataAspectRatio = [1 3 1];
+ylabel('');
+ylim([-450 0]);
 xlim([0 150]);
 colorbar('delete');
 hcb = colorbar('SouthOutside');
-title('Cross-shelf dye (km)');
-hax(2).YTick = sort(unique([hax(2).YTick -1*(0:50:400)]));
+title('(b) Cross-shelf dye (km)');
+hax(4).YTick = sort(unique([hax(4).YTick -1*(0:50:400)]));
+hax(4).YTickLabelMode = 'auto';
+hax(4).XTick = sort(unique([hax(4).XTick 0 50 100 150]));
+hax(4).XTickLabelMode = 'auto';
 correct_ticks('y', [], '-200');
 beautify;
 
-export_fig -r150 -a2 -painters images/paper2/eddy-intrusion.png
+export_fig -r150 -a2 images/paper2/eddy-intrusion.png

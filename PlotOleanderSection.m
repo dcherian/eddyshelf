@@ -1,13 +1,22 @@
- function [handles] = PlotOleanderSection(tind, xind, hfig)
+ function [handles] = PlotOleanderSection(tind, xind, hfig, ax)
     if ~exist('hfig', 'var')
         hfig = figure;
         maximize;
     end
 
+    if ~exist('ax', 'var')
+        ax(1) = subplot(1,3,[1 2]); cla;
+        ax(3) = subplot(1,3,3); cla;
+    end
+
+    if length(ax) == 2
+        ax(3) = ax(2);
+    end
+
     fname = '../data/All_Oleander_3D.mat';
     ole = load(fname);
     zint = [-500:1:0];
-    fontsize = [22 24 26];
+    fontsize = [21 23 26];
 
     % do linear vertical interpolation
     Tint = nan([size(ole.Temp_Fix, 2) length(zint)]);
@@ -48,8 +57,8 @@
         end
     end
 
+    axes(ax(1));
     insertAnnotation(['PlotOleanderSection.m(' num2str(tind) ',[' num2str(xind) '])']);
-    ax(1) = subplot(1,3,[1 2]); cla;
     handles.htemp = contourf(xinterp, zint, Tinterp', 20);
     %contourf(xactual(~isnan(xactual)), zint, Tint(~isnan(xactual),:)', 20);
     hold on;
@@ -59,7 +68,7 @@
     end
     handles.xlines = linex(ole.Dist(tind,xind)/1000, [], 'k');
     xlim([min(xactual) max(xactual(lon < 290))]);
-    colorbar; caxis([8 20]);
+    colorbar('southoutside'); caxis([8 20]);
     ylabel('Z (m)'); xlabel('Cross-shelf (km, along-track)');
     beautify(fontsize);
     handles.hbathy.LineWidth = 4;
@@ -81,9 +90,10 @@
            ' ' num2str(ole.Year(tind,1))]);
     beautify(fontsize);
     ax(2).XAxis.TickLength = [0 0];
+    ax(2).YAxis.Color = [1 1 1];
     axes(ax(1));
 
-    ax(3) = subplot(1,3,3); cla;
+    axes(ax(3));
     hold on;
     for kk=1:length(xind)
         if ole.Year(tind,1) < 2008
@@ -97,11 +107,17 @@
                           'LineWidth', 2);
         end
     end
-    ax(3).XAxisLocation = 'top';
-    xlabel('Temp (C)');
-    handles.hleg = legend(hprofile, cellstr(num2str(xind')), 'Location', 'SouthEast');
     beautify(fontsize);
+    ax(3).YTickLabels = {};
+    ax(3).XAxisLocation = 'top';
+    ax(3).XAxis.TickLabelGapMultiplier = 0;
+    ax(3).XAxis.TickLabelGapOffset = -2;
+    xlabel('Temp (C)');
+    ax(3).Position(2) = ax(1).Position(2);
+    ax(3).Position(4) = ax(1).Position(4);
+    handles.hleg = legend(hprofile, cellstr(num2str(xind')), 'Location', 'SouthEast');
 
+    linkaxes(ax(1:2), 'x');
     linkaxes(ax, 'y');
     ylim([-500 0]);
 
