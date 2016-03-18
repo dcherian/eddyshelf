@@ -1,6 +1,6 @@
 % plot eddye - y-z cross-sections to compare against diagnosed vertical
 % scale
-function [] = PlotSingleYZSection(runs, varname, days, loc, hax)
+function [handles] = PlotSingleYZSection(runs, varname, days, loc, hax)
 
     if ~exist('hax', 'var')
         hf = figure; hax = gca;
@@ -50,15 +50,18 @@ function [] = PlotSingleYZSection(runs, varname, days, loc, hax)
 
     var = dc_roms_read_data(runs.dir, varname, tindices, ...
                            {bathyax locstr locstr}, [], runs.rgrid, 'his');
+    if strcmpi(varname, runs.csdname)
+        var = var/1000;
+    end
 
-    contourf(yz, zmat, var, [0.1:0.1:1], 'EdgeColor', 'none');
-    liney(-1 * runs.eddy.Lgauss(tindices));
+    handles.hvar = contourf(yz, zmat, var, 20, 'EdgeColor', 'none');
+    handles.hlz = liney(-1 * runs.eddy.Lgauss(tindices));
     if strcmpi(varname, runs.eddname)
         colormap(cbrewer('seq', 'Greys', 32));
         caxis([0 1]);
     end
-    title([runs.name ' | ' varname]);
-    common(runs, yz, zmat, drho, var, days, locstr, tindices);
+    handles.htitle = title([runs.name ' | ' varname]);
+    handles = common(runs, yz, zmat, drho, var, days, locstr, tindices);
 end
 
 function handles = common(obj, yz, zmat, drho, ed, days, loc, tindices)
@@ -69,11 +72,11 @@ function handles = common(obj, yz, zmat, drho, ed, days, loc, tindices)
     colorbar;
 
     if ~isempty(ed)
-        contour(yz, zmat, ed, 1, 'r', 'LineWidth', 2);
+        [~,handles.hed] = contour(yz, zmat, ed, 1, 'r', 'LineWidth', 2);
     end
     if ~isempty(drho)
-        contour(yz, zmat, drho, [1 1]* obj.eddy.drhothreshssh(1), ...
-                'Color', [44 162 95]/256, 'LineWidth', 2);
+        [~,handles.hdrho] = contour(yz, zmat, drho, [1 1]* obj.eddy.drhothreshssh(1), ...
+                                    'Color', [44 162 95]/256, 'LineWidth', 2);
     end
     caxis(clim);
 
@@ -106,9 +109,10 @@ function handles = common(obj, yz, zmat, drho, ed, days, loc, tindices)
          {'vertical','scale'}, 'VerticalAlignment', 'Bottom', ...
          'HorizontalAlignment','Center');
 
-    text(0.05 , 0.05, {['t = ' num2str(days) ' days']; ...
-                       ['x = ' num2str(str2double(loc)/1000, '%3.0f') ' km']}, ...
-         'Units', 'normalized', 'Color', 'w');
+    handles.htlabel = ....
+        text(0.05 , 0.05, {['t = ' num2str(days) ' days']; ...
+                        ['x = ' num2str(str2double(loc)/1000, '%3.0f') ' km']}, ...
+             'Units', 'normalized', 'Color', 'w');
 
     ylabel('Z (m)');
     xlabel([upper(obj.bathy.axis) '(km)']);

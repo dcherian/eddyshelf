@@ -917,6 +917,7 @@ correct_ticks('x', [], {'50'; '100'}, handles.hax(4:6));
 
 export_fig -painters -a2 images/paper2/ns-35-csdsurf.png
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
 %% churchill figure
 if ~exist('ew36', 'var')
     ew36 = runs('../topoeddy/runew-36/');
@@ -933,13 +934,15 @@ hax(1).Title.String = '(a) From Churchill et al. (1986)';
 beautify;
 
 hax(2) = subplot(122); cla
-ew36.PlotSingleYZSection('eddye', '158.5', [], hax(2));
+handles = ew36.PlotSingleYZSection('csdye', '158.5', [], hax(2));
+handles.hed.LevelList = 135;
+handles.hed.Color = 'k';
 hax(2).DataAspectRatio = [1 3 1];
 ylim([-400 0]);
 xlim([0 150]);
 colorbar('delete');
 hcb = colorbar('SouthOutside');
-title('Eddy dye');
+title('Cross-shelf dye (km)');
 hax(2).YTick = sort(unique([hax(2).YTick -1*(0:50:400)]));
 correct_ticks('y', [], '-200');
 beautify;
