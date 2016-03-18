@@ -1,12 +1,14 @@
+%% params
+isobath = 4;
+factor = 1;
+timesteps = [1 150 200 250 300 380];
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% field map
 
 if ~exist('ew34', 'var') | ~strcmpi(ew34.name, 'ew-34')
     ew34 = runs('../topoeddy/runew-34/');
 end
-factor = 2;
-isobath = 4;
-timesteps = [1 150 200 250 300 380];
 
 opt.rhocontourplot = 1;
 opt.csdcontourplot = 1;
@@ -66,11 +68,13 @@ export_fig -r150 -painters -a2 -png -pdf images/paper2/centracks
 %% flux diagnostics
 
 handles = ew34.plot_fluxts(factor, 3, 3);
-handles.htitle.String = ['Flux of water for z > ' num2str(factor) ' H_{sb}'];
-color = handles.icons(1).Color;
+handles.htitle.String = ['Flux of water for z > -H_{sb}'];
 maximize; %drawnow;
 % mark timesteps
 axes(handles.hax(1));
+ylim([0 30]);
+handles.hax(1).YTick = sort(unique([handles.hax(1).YTick 0 10 30]));
+handles.hax(1).YTickLabelMode = 'auto';
 hold on
 handles.htstep = ...
     plot(handles.ts(1).XData(timesteps), handles.ts(1).YData(timesteps), ...
@@ -82,14 +86,9 @@ legstr = handles.hleg.String;
 legstr{end+1} = 'Time instants shown in Figure 2';
 [handles.hleg, handles.icons] = legend(handles.leghandles, legstr, ...
                                        'Location', 'NorthWest', 'Box', 'off');
-for ii=[1 2 3 6 8]
-    handles.icons(ii).Color = color;
-end
 hpt = findobj(handles.icons, 'Type', 'patch');
-hpt.FaceColor = color;
 hpt.FaceAlpha = 0.2;
 
-axes(handles.hax(2)); % make visible
 export_fig -r150 -a2 -pdf -png images/paper2/flux-diags
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
