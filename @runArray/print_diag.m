@@ -1,3 +1,7 @@
+% [diags, plotx, err, norm, color, rmse, P, Perr] = ...
+%        print_diag(runArray, name, args, hax, commands)
+% commands: 'no_name_points'; 'no_sloping_shelf';
+
 function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
         print_diag(runArray, name, args, hax, commands)
 
@@ -124,6 +128,25 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
             %figure; hold all
             %cb = runArray.sorted_colors;
             sortedflag = 0;
+
+            diags(ff) = [];
+            % x-axis variable for plots
+            plotx(ff) = [];
+            % label points with run-name?
+            name_points = 0;
+            % x,y axes labels
+            labx = [];
+            laby = [];
+        end
+
+        %%%%% rhines scale
+        if strcmpi(name, 'rhines')
+
+            % for local plots
+            %figure; hold all
+            %cb = runArray.sorted_colors;
+            sortedflag = 0;
+
 
             diags(ff) = [];
             % x-axis variable for plots
@@ -661,6 +684,13 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
                     factor = args(2);
                 else
                     factor = default_factor;
+                end
+            end
+
+            if strfind(commands, 'no_sloping_shelf') & (isobath == 1)
+                if run.bathy.sl_shelf ~= 0
+                    disp(['Skipping ' run.name ': sloping shelf.']);
+                    continue;
                 end
             end
 

@@ -604,7 +604,9 @@ classdef runArray < handle
             runArray.reset_colors(corder_backup);
         end
 
-        function [hax] = plot_fluxparam(runArray, str, factor)
+        function [hax] = plot_fluxparam(runArray, str, factor, commands)
+
+            if ~exist('commands', 'var'), commands = ''; end
 
             if strcmpi(str, 'max flux') | strcmpi(str, 'avg flux') ...
                     & (~isempty(factor) | ~exist('factor', 'var'))
@@ -619,6 +621,8 @@ classdef runArray < handle
                 isobath(1) = [];
             end
 
+            commands = [commands '; no_name_points'];
+
             figure;
             insertAnnotation(['runArray.plot_fluxparam(' str ')']);
             slopeplot = 3;
@@ -629,7 +633,7 @@ classdef runArray < handle
                 axes(hax(hh));
                 [diags(ii,:), plotx(ii,:), err(ii,:), norm(ii,:), color, ...
                  ~, P, Perr] = runArray.print_diag(str, [iso factor], hax(hh), ...
-                                                   'no_name_points');
+                                                   commands);
 
                 labx = hax(hh).XLabel.String;
                 laby = hax(hh).YLabel.String;
