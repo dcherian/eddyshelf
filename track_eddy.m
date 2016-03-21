@@ -31,8 +31,14 @@ function [eddy] = track_eddy(dir1)
         v = runobj.vsurf;
         rho = runobj.rhosurf;
 
-        rthresh.vor = runobj.eddy.drhothresh(1);
-        rthresh.ssh = runobj.eddy.drhothreshssh(1);
+        try
+            rthresh.vor = runobj.eddy.drhothresh(1);
+            rthresh.ssh = runobj.eddy.drhothreshssh(1);
+        catch ME
+            warning('resetting rthresh.ssh,vor');
+            rthresh.vor = [];
+            rthresh.ssh = [];
+        end
 
         f = runobj.rgrid.f(2:end-1,2:end-1)';
 
@@ -283,10 +289,10 @@ function [eddy] = track_eddy(dir1)
 
         if isempty(rthresh.ssh)
             rthresh.ssh = squeeze(nanmax(nanmax( ...
-                rho(:,:,1) .* fillnan(eddy.mask(:,:,1),0), [], 1), [], 2));
+                fillnan(rho(:,:,1) .* eddy.mask(:,:,1),0), [], 1), [], 2));
 
             rthresh.vor = squeeze(nanmax(nanmax( ...
-                rho(:,:,1) .* fillnan(eddy.vor.mask(:,:,1),0), [], 1), [], 2));
+                fillnan(rho(:,:,1) .* eddy.vor.mask(:,:,1),0), [], 1), [], 2));
         end
 
         eddy.rthresh = rthresh;
@@ -640,17 +646,17 @@ function [eddy] = eddy_diag(zeta, vor, rho, ...
                 % drhothresh based on ssh mask if it doesn't exist
                 if isempty(rthresh.ssh) | rthresh.ssh == 0 | rthresh.vor == 0
                     rthresh.ssh = squeeze(nanmax(nanmax( ...
-                        rho .* fillnan(eddy.mask,0), [], 1), [], 2));
+                        fillnan(rho .* eddy.mask,0), [], 1), [], 2));
 
                     if rthresh.ssh == 0
                         rthresh.ssh = [];
-                        ME = MException('0 density threshold');
-                        throw(ME);
+                        error('0 density threshold');
                     end
 
                     rthresh.vor = squeeze(nanmax(nanmax( ...
-                        rho .* fillnan(eddy.vor.mask,0), [], 1), [], 2));
+                        fillnan(rho .* eddy.vor.mask,0), [], 1), [], 2));
                 end
+                % eddy.rthresh = rthresh;
                 eddy.rhovor = detect_eddy(rho < rthresh.vor, zeta, opt, grd);
                 eddy.rhossh = detect_eddy(rho < rthresh.ssh, zeta, opt, grd);
                 flag_found = 1;
