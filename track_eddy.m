@@ -638,7 +638,7 @@ function [eddy] = eddy_diag(zeta, vor, rho, ...
             try
                 eddy.vor = detect_eddy(vor.*eddy.mask < 0, zeta, opt, grd);
                 % drhothresh based on ssh mask if it doesn't exist
-                if isempty(rthresh.ssh)
+                if isempty(rthresh.ssh) | rthresh.ssh == 0 | rthresh.vor == 0
                     rthresh.ssh = squeeze(nanmax(nanmax( ...
                         rho .* fillnan(eddy.mask,0), [], 1), [], 2));
 
