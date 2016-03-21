@@ -26,6 +26,9 @@ function [xx,yy,tind,cvy] = locate_resistance(runs, nsmooth, factor)
     if strcmpi(runs.name, 'ew-8352')
         ind0 = ind0 - 30;
     end
+    if strcmpi(runs.name, 'ew-8385')
+        ind0 = ind0 - 100;
+    end
     [mn, imin] = min(vel(5:ind0));
     %[mn, imin] = min(vel(:));
 
