@@ -16,7 +16,10 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
     %center_colorbar(hfield.hcb);
     hfield.hcb.Position(1) = hfield.hcb.Position(1) + 0.04;
     index = find(hfield.hcb.Ticks == 0);
-    hfield.hcb.TickLabels{index} = '0 - Shelfbreak';
+    hfield.hcb.TickLabels{index} = '0';
+    colormap(handles.hax(1), cbrewer('seq', 'Greys', 32));
+    hfield.hcen.Marker = '.';
+    hfield.hcen.MarkerSize = 30;
     handles.hfield = hfield;
 
     if size(n,2) ~= 2
@@ -37,7 +40,13 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
     end
     n = n + 1;
 
-    colors = brighten(cbrewer('qual', 'Paired', n), -0.5);
+    %colors = brighten(cbrewer('qual', 'Paired', n), -0.5);
+    colors = [136 204 238; ...
+              51  34 136; ...
+              17 199  51; ...
+              68 170 153; ...
+              204 102 119; ...
+              170  68 153]/255;
 
     pvback = runs.params.phys.f0 * runs.params.phys.N2/ ...
              runs.params.phys.g;
@@ -47,7 +56,7 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
     for nn = 1:n
         x = xx(nn); y = yy(nn);
         if nn ~= n
-            plot(x,y,'x','Color',colors(nn,:),'MarkerSize', 10);
+            handles.hpt(nn) = plot(x,y,'.','Color',colors(nn,:),'MarkerSize', 30);
         end
 
         x = x*1e3; y = y*1e3;

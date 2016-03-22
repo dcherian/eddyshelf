@@ -241,8 +241,18 @@ opt.addvelquiver = 0;
 opt.csdcontourplot = 0;
 opt.rhocontourplot = 0;
 handles = ew34.secondary_vortices(320, [xx yy], opt);
+
+handles.hax(1).XLim = [120 420];
+handles.hax(1).YLim = [20 120];
+handles.hfield.htlabel.Position(2) = 0.1;
 hbathy = handles.hfield.hbathy;
 clabel(hbathy{4}, hbathy{1}, 'LabelSpacing', 108*12);
+caxis([0 280]);
+handles.hfield.htrack.Visible = 'off';
+handles.hfield.hcen.Color = [1 1 1]*0.8;
+handles.hfield.hcb.Position(1) = 0.7;
+
+correct_ticks('y', [], '0', handles.hax(2:end));
 
 % displace eddy water plots
 dx = 230; dpv = 4e-11;
@@ -280,7 +290,14 @@ for ii=1:4
     handles.hl(ii,2).XData = xlim;
 end
 
-export_fig -r150 -a2 -painters images/paper2/ew-34-secondary-cyclone.png
+% make labels stick when I change y limits
+for ii=1:length(handles.htxt(:))
+    handles.htxt(ii).Units = 'data';
+end
+
+handles.hax(2).YLim = [-310 0];
+
+export_fig -r200 -png -a2 images/paper2/ew-34-secondary-cyclone
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% ew-34 z-slice
