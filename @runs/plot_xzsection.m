@@ -185,7 +185,6 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
         [~,hrho(1)] = contour(xvec/1000, zvec, rho', 30, 'k'); % .* mask
         handles.hcb(4) = colorbar;
         title('Cross-shelf dye  - Y_{sb} (km)');
-        linkaxes(handles.hax, 'xy');
         handles.hline(4) = common(runs, tindex);
 
         % muck with colorbar
@@ -219,7 +218,7 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
         caxis(clim); handles.hcb(3) = center_colorbar;
         handles.hline(3) = common(runs, tindex);
         title('\rho (kg/m^3)');
-        linkaxes(handles.hax, 'xy');
+        linkaxes(handles.hax([1 3 4]), 'xy');
         beautify;
         hrho(2).LevelList = hrho(1).LevelList;
     end
@@ -245,7 +244,7 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
         handles.hax(2).XAxisLocation = 'top';
         handles.hax(2).YLabel.String = '';
         handles.hax(2).YTickLabel = {};
-        ylim(handles.hax(1).YLim);
+        linkprop(handles.hax, 'YLim');
         if ~opt.onlyvel
             pbaspect([1.3 1 1]);
         end
@@ -297,6 +296,8 @@ end
 function [handle] = common(obj, tindex)
     xlabel('X - X_{eddy} (km)'); ylabel('Depth (m)');
     [handle.hl,handle.htxt] = liney(-1 * [obj.eddy.Lgauss(tindex) obj.bathy.hsb], ...
-                                     {'vertical scale'; 'h_{sb}'});
+                                    {'vertical scale'; 'h_{sb}'});
+    handles.htxt{1}.Units = 'data';
+    handles.htxt{2}.Units = 'data';
     beautify;
 end

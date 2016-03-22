@@ -181,7 +181,7 @@ export_fig -painters -r150 -a2 images/paper2/inst-flux.png
 %% x-z sections
 
 handles = ew34.plot_xzsection(isobath, 225);
-correct_ticks('y', [], '-300', handles.hax);
+correct_ticks('y', [], {'-50','-300'}, handles.hax);
 delete(handles.hrunname);
 for ii=3:4
     for jj=1:2
@@ -191,14 +191,20 @@ for ii=3:4
 end
 
 for ii=1:2
-    handles.hline(2).htxt{ii}.Units = 'normalized';
-    handles.hline(2).htxt{ii}.Position(1) = 0.3;
+    handles.hline(ii).hl{1}.delete;
+    handles.hline(ii).htxt{1}.delete;
+    % handles.hline(2).htxt{ii}.Units = 'normalized';
+    %    handles.hline(2).htxt{ii}.Position(1) = 0.3;
 end
 
-handles.hax(1).XLim = [-170 150];
+handles.hline(1).htxt{2}.Position(1) = -150;
+handles.hax(1).XLim = [-170 50];
+linkprop(handles.hax, 'YLim');
+handles.hax(1).YLim = [-300 0];
+handles.hax(2).YTickLabelMode = 'auto';
 handles.hcb(1).Ticks = sort(unique([handles.hcb(1).Ticks -0.09 0.09]));
 
-export_fig -r150 -painters -a2 images/paper2/ew-34-xzsection.png
+export_fig -r200 -opengl -png -pdf -a2 images/paper2/ew-34-xzsection
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% secondary eddy - 2360
