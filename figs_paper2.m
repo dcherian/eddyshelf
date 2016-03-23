@@ -84,11 +84,13 @@ export_fig -r150 -a2 -png -pdf images/paper2/centracks
 
 handles = ew34.plot_fluxts(factor, 3, 3);
 handles.htitle.String = ['Flux of water for z > -H_{sb}'];
+handles.htitle.FontSize = 28;
 maximize; %drawnow;
 % mark timesteps
 axes(handles.hax(1));
-ylim([0 30]);
-handles.hax(1).YTick = sort(unique([handles.hax(1).YTick 0 10 30]));
+ylim([0 25]*1e3);
+handles.hax(1).YTick(handles.hax(1).YTick == 15e3) = [];
+handles.hax(1).YTick = sort(unique([handles.hax(1).YTick 0 10e3 25e3]));
 handles.hax(1).YTickLabelMode = 'auto';
 hold on
 handles.htstep = ...
