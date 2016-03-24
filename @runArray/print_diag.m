@@ -147,15 +147,22 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
             %cb = runArray.sorted_colors;
             sortedflag = 0;
 
+            [start,stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
+            t0 = 1;
+            tend = stop;
 
-            diags(ff) = [];
-            % x-axis variable for plots
-            plotx(ff) = [];
-            % label points with run-name?
-            name_points = 0;
-            % x,y axes labels
-            labx = [];
-            laby = [];
+            [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
+            Lbetash = sqrt(V0/run.bathy.betash);
+
+            diags(ff) = run.supply.xscale/1000;
+            plotx(ff) = Lbetash/1000;
+
+            ptName = num2str(run.bathy.S_sh);
+            name_points = 1;
+            parameterize = 1;
+
+            laby = 'Decay scale of \int dz (along-shelf supply) (km)';
+            labx = 'L_\beta (km)';
         end
 
         %%%%% cross-isobath translation velocity
