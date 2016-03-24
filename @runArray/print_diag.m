@@ -35,6 +35,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
     Perr = nan([2 1]); % error bounds on slope and intercept
     save_diags = 0;
 
+    parameterize = 0;
     if plots
         if isempty(hax)
             hfig = figure;
@@ -54,7 +55,6 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
         kozak = 0; % fancy Kozak scatterplot
         labx = ' '; laby = ' ';
         clr = 'k';
-        parameterize = 0;
         mark_outliers = 0;
         titlestr = name;
         if ~isempty(args), titlestr = [titlestr ' | args = ' num2str(args)]; end
@@ -620,6 +620,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
         % nondim parameters to compare runs
         if strcmpi(name, 'diff') || strcmpi(name, 'nondim')
 
+            beta_t = f0 * run.bathy.sl_shelf./run.bathy.hsb;
             if ff == 1
                 close;
                 disp(sprintf('| %18s | %5s | %4s | %4s | %8s | %5s | %6s |', ...
