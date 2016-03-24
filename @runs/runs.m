@@ -35,7 +35,9 @@ properties
     traj; res;
     % wnoise metric
     wmetric;
-    % along-shore jet properties
+    % along-shore supply jet properties
+    supply;
+    % along-shore slope jet properties
     jet;
     % threshold values
     eddy_thresh = 0.7;
@@ -561,6 +563,14 @@ methods
             disp('Loading streamer diagnostics');
             data = load([dir '/avgstreamer.mat']);
             runs.streamer = data.streamer;
+            clear data
+        end
+        
+        % load average supply jet diagnostics
+        if exist([dir '/supplyjet.mat'],'file') && reset ~= 1 & ~reduced
+            disp('Loading supply diagnostics');
+            data = load([dir '/supplyjet.mat']);
+            runs.supply = data.supply;
             clear data
         end
 
