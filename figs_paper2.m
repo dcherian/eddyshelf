@@ -129,6 +129,8 @@ opt.csdcontourplot = 0;
 opt.addvelquiver = 0;
 opt.csfluxIsobath = 1;
 clear handles
+lab = 'abc';
+
 figure;
 for ii=1:3
     run = ewflux.array(ii);
@@ -139,6 +141,7 @@ for ii=1:3
 
     handles(ii) = run.animate_field('csdye', hax([ii N+ii]), times(ii), 1, opt);
     handles(ii).hfield.CData = handles(ii).hfield.CData - run.bathy.xsb/1000;
+    handles(ii).htext2.delete;
 
     if opt.csdcontourplot
         handles(ii).hcsd.ZData = handles(ii).hcsd.ZData - run.bathy.xsb;
@@ -146,9 +149,12 @@ for ii=1:3
     end
 
     axes(hax(ii)); caxis([-30 200]);
-    handles(ii).htitle.String = ['\lambda = H_{sb}/L_z = ', ...
+    handles(ii).htitle.String = ['(' lab(ii) ') \lambda = H_{sb}/L_z = ', ...
                         num2str(run.bathy.hsb/run.eddy.Lgauss(tres), '%.2f')];
     handles(ii).hbathy{1}.ShowText = 'off';
+    handles(ii).hbathy{2}.Color = 'w';
+    handles(ii).hbathy{3}.Color = 'w';
+
     axes(hax(ii));
     hcen2(ii) = linex(handles(ii).hcen.XData);
     hcen2(ii).YData(2) = hcen2(ii).YData(2) * 3/4;
@@ -161,6 +167,10 @@ for ii=1:3
         axes(hax(N+ii)); ylabel('');
     end
 end
+
+hax(1).XLim = [200 600]; hax(1).YLim = [0 350];
+hax(2).XLim = [120 460]; hax(2).YLim = [0 200];
+hax(3).XLim = [150 480]; hax(3).YLim = [0 300];
 
 hax(5).YLim = [-1 1]*0.4;
 hax(6).YLim = [-1 1]*5;
@@ -181,18 +191,24 @@ linkprop(htxt, 'Color');
 axes(hax(N));
 hcb = colorbar('southoutside');
 pos = hcb.Position;
-hcb.Position(1) = 0.5 - pos(3)/2;
-hcb.Position(2) = 0.5 + pos(4)/2;
 hcb.Label.String = 'Cross shelf dye - Y_{sb} (km)';
 
 axes(hax(2))
-htxt(3) = text(0.7, 0.7, '(Figure 1e)', 'Units', 'normalized', ...
+htxt(3) = text(0.7, 0.9, '(Figure 1e)', 'Units', 'normalized', ...
                'Color', 'k', 'FontSize', 16);
+hax(2).Position(2) = 0.51;
 
-supax = suplabel('Along-shelf profile of cross-isobath velocity at shelfbreak', 't');
-supax.Position(end) = 0.79;
+hcb.Position(1) = hax(2).Position(1); 0.5 - pos(3)/2;
+hcb.Position(2) = 0.59; 0.5 + pos(4)/2;
 
-export_fig -painters -r150 -a2 images/paper2/inst-flux.png
+supax = suplabel('Along-shelf profile of cross-isobath transport at shelfbreak', 't');
+supax.Position(end) = 0.77;
+
+for ii=4:6
+    hax(ii).Position(2) = 0.26;
+end
+
+export_fig -r150 -a2 images/paper2/inst-flux.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% x-z sections

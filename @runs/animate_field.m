@@ -653,8 +653,8 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
             hee = linex(runs.eddy.mx(ii)/1000 - dx);
             liney(0);
             xlabel('X (km)');
-            text(0.05, 0.15, 'Depth Integrated Transport (m^2/s)', ...
-                 'Units', 'normalized');
+            handles.htext2 = text(0.05, 0.15, 'Depth Integrated Transport (m^2/s)', ...
+                                  'Units', 'normalized');
         end
 
         beautify(fontsize); % - slows everything down for some reason
