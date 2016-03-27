@@ -106,7 +106,7 @@ legstr{end+1} = 'Time instants shown in Figure 2';
 hpt = findobj(handles.icons, 'Type', 'patch');
 hpt.FaceAlpha = 0.2;
 
-export_fig -r150 -a2 -pdf -png images/paper2/flux-diags
+export_fig -r150 -a2 -eps -png images/paper2/flux-diags
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% surface map of eddye for sampling schematic

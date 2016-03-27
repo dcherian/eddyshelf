@@ -73,6 +73,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
 
         % some commonly used variables
         tind = run.tscaleind;
+        [itsl, itse, tsl, tse] = run.getEddyCenterTimeScales;
         [~,uind,~] = unique(run.time, 'stable');
         ndtime = run.eddy.t * 86400 / run.eddy.turnover;
         %        try
@@ -627,6 +628,8 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
         % nondim parameters to compare runs
         if strcmpi(name, 'diff') || strcmpi(name, 'nondim')
 
+
+            [~,~,tres] = run.locate_resistance;
             beta_t = f0 * run.bathy.sl_shelf./run.bathy.hsb;
             if ff == 1
                 close;
@@ -638,7 +641,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
                          run.name, run.params.nondim.eddy.Rh, ...
                          Ro(1), beta*Lx(1)/f0, beta_t, ...
                          Lx(1)./run.bathy.L_slope, ...
-                         hsb./Lz(1)));
+                         hsb./Lz(itsl)));
             continue;
         end
 
