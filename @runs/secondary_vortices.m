@@ -21,6 +21,7 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
     hfield.hcen.Marker = '.';
     hfield.hcen.MarkerSize = 30;
     handles.hfield = hfield;
+    handles.hax(1).Title.String = ['(a) ' handles.hax(1).Title.String];
 
     if size(n,2) ~= 2
         [xx,yy] = ginput(n);
@@ -86,7 +87,7 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
     handles.hcsd = plot(csdye - runs.bathy.xsb/1000, zr);
     uistack(handles.hcsd(end), 'bottom');
     [handles.hl(1,:), handles.htxt(1,:)] = common(runs, tindex);
-    xlabel('Cross-shelf dye - X_{sb} (km)');
+    xlabel('(b) Cross-shelf dye - X_{sb} (km)');
     ylabel('Z (m)');
 
     handles.hax(3) = subplot(324);
@@ -94,7 +95,7 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
     [handles.hl(2,:), handles.htxt(2,:)] = common(runs, tindex);
     handles.hax(3).XTickLabelRotation = 0;
     handles.hax(3).XTickMode = 'auto';
-    xlabel('\Delta\rho (kg/m^3)')
+    xlabel('(c) \Delta\rho (kg/m^3)')
     reduceSubplotHorizontalSpace(handles.hax(2:3));
 
     CenterProfileHandles = [handles.hfield.hcen handles.hcsd(end) handles.hrho(end)];
@@ -102,7 +103,7 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
         handles.hax(4) = subplot(325);
         handles.hpv = plot(pv-pvback, zpv);
         [handles.hl(3,:), handles.htxt(3,:)] = common(runs, tindex);
-        xlabel('PV - f_0N^2/g');
+        xlabel('(d) PV - f_0N^2/g');
         ylabel('Z (m)');
         CenterProfileHandles = [CenterProfileHandles handles.hpv(end)];
 
@@ -110,7 +111,7 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
         handles.hrv = plot(rv/runs.params.phys.f0, zpv);
         [handles.hl(4,:), handles.htxt(4,:)] = common(runs, tindex);
         xlim([-1 1] * max(abs(xlim)));
-        xlabel('rv/f_0');
+        xlabel('(e) (Relative vorticity)/f_0');
 
         reduceSubplotHorizontalSpace(handles.hax(4:5));
         CenterProfileHandles = [CenterProfileHandles handles.hrv(end)];

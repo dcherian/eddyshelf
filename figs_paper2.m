@@ -270,6 +270,7 @@ if ~exist('ew34', 'var')
 end
 xx = [394 371 297 282 219 204]';
 yy = [70.5 70.5 46.5 66 91 108]';
+clear opt handles;
 opt.addvelquiver = 0;
 opt.csdcontourplot = 0;
 opt.rhocontourplot = 0;
@@ -295,7 +296,7 @@ end
 
 axes(handles.hax(1));
 correct_ticks('y', [], '198');
-handles.hax(1).Title.String = 'Cross shelf dye - X_{sb} (km)';
+handles.hax(1).Title.String = '(a) Cross shelf dye - X_{sb} (km)';
 
 axes(handles.hax(2)); linex(dx);
 xticks = sort(unique([0 max(handles.hcsd(1).XData) ...
