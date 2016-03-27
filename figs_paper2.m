@@ -231,11 +231,16 @@ for ii=1:2
 end
 
 handles.hline(1).htxt{2}.Position(1) = -150;
-handles.hax(1).XLim = [-170 50];
+handles.hax(1).XLim = [-80 50];
 linkprop(handles.hax, 'YLim');
-handles.hax(1).YLim = [-300 0];
+handles.hax(1).YLim = [-200 0];
 handles.hax(2).YTickLabelMode = 'auto';
 handles.hcb(1).Ticks = sort(unique([handles.hcb(1).Ticks -0.09 0.09]));
+handles.hline(1).htxt{2}.Position(1) = -70;
+
+hanno(1) = annotation('textarrow', [0.19 0.23], [0.78 0.85], 'String', 'intrusion');
+hanno(2) = annotation('textarrow', [0.63 0.67], [0.343 0.39], 'String', 'intrusion', ...
+                      'Color', 'w');
 
 export_fig -r200 -opengl -png -pdf -a2 images/paper2/ew-34-xzsection
 

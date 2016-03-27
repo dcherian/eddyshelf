@@ -158,7 +158,7 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
     hold on
     [~,handles.hmask(1)] = ...
         contour(xvec/1000, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
-    handles.htitle(1) = title('Cross-shelf velocity (m/s)');
+    handles.htitle(1) = title('(a) Cross-shelf velocity (m/s)');
     %linex(xfrac);
     handles.hline(1) = common(runs, tindex);
     caxis([-1 1] * max(abs(csvel(:))));
@@ -184,7 +184,7 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
             contour(xvec/1000, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
         [~,hrho(1)] = contour(xvec/1000, zvec, rho', 30, 'k'); % .* mask
         handles.hcb(4) = colorbar;
-        title('Cross-shelf dye  - Y_{sb} (km)');
+        title('(d) Cross-shelf dye  - Y_{sb} (km)');
         handles.hline(4) = common(runs, tindex);
 
         % muck with colorbar
@@ -216,8 +216,9 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
         %                       asvel(1:dxi:end, 1:dzi:end)'/1000, ...
         %                       w(1:dxi:end, 1:dzi:end)');
         caxis(clim); handles.hcb(3) = center_colorbar;
+        handles.hcb(3).Label.String = 'Vertical velocity (m/s)';
         handles.hline(3) = common(runs, tindex);
-        title('\rho (kg/m^3)');
+        title('(c) \rho contours');
         linkaxes(handles.hax([1 3 4]), 'xy');
         beautify;
         hrho(2).LevelList = hrho(1).LevelList;
@@ -230,7 +231,7 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
         hold on; shading interp;
         contour(xvec/1000, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
         colorbar;
-        title(['Eddy dye | ' runs.name]);
+        title(['(d) Eddy dye | ' runs.name]);
         linkaxes(handles.hax, 'xy');
         handles.hline(2) = common(runs, tindex);
         caxis([0 1]);
@@ -240,7 +241,7 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
         plot(abs(trapz(xvec, repnan(csvel.*mask,0), 1)), zvec);
         handles.hrunname = text(0.8, 0.15, runs.name, 'Units', 'Normalized');
         handles.hline(2) = common(runs, tindex);
-        xlabel('Vertical profile of offshore transport (m^2/s)');
+        xlabel('(b) Vertical profile of offshore transport (m^2/s)');
         handles.hax(2).XAxisLocation = 'top';
         handles.hax(2).YLabel.String = '';
         handles.hax(2).YTickLabel = {};
