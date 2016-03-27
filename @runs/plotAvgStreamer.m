@@ -24,7 +24,7 @@ function [handles] = plotAvgStreamer(runs, isobath)
 
     ax(2) = subplot(3,3,[1 2]);
     hx = plot(xivec, xprof);
-    title('\int dz');
+    title('(a) \int dz');
     hold on;
     hl2(1) = linex(0); hl2(2) = liney(0);
     uistack(hl2, 'bottom');
@@ -38,7 +38,7 @@ function [handles] = plotAvgStreamer(runs, isobath)
     ax(3) = subplot(3,3,[6 9]);
     hz = plot(runs.streamer.off.zprof(:,isobath), zvec);
     hl3 = liney([-runs.bathy.hsb -runs.eddy.Lgauss(1)]);
-    title('Offshore transport (\int dx, m^2/s)');
+    title('(c) Offshore transport (\int dx, m^2/s)');
     beautify;
     ax(3).XAxisLocation = 'top';
     if isobath == 1, xlim([0 max(xlim)*1.15]); end
