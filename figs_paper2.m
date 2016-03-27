@@ -642,7 +642,7 @@ handles.htrack.delete;
 handles.hbathy{3}.Color = [1 1 1]*0;
 handles.hbathy{2}.Color = [1 1 1]*0;
 handles.hbathy{1}.Color = [1 1 1]*0;
-htitle = title('Cross shelf dye and velocity vectors');
+htitle = title('Cross shelf dye and velocity direction');
 htitle.FontSize = 26;
 ax(1).XTickLabel = {};
 handles.hcb.Position(1) = 0.82;
