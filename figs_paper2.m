@@ -289,13 +289,13 @@ clabel(hbathy{4}, hbathy{1}, 'LabelSpacing', 108*12);
 caxis([0 280]);
 handles.hfield.htrack.Visible = 'off';
 handles.hfield.hcen.Color = [1 1 1]*0.8;
-handles.hfield.hcb.Position(1) = 0.7;
+handles.hfield.hcb.Position(1) = 0.72;
 
-correct_ticks('y', [], '0', handles.hax(2:end));
+correct_ticks('y', [], {'0'; '-52.5'}, handles.hax(2:end));
 
-% displace eddy water plots
+% displace cyclonic plots (lines up with rel. vor.)
 dx = 230; dpv = 4e-11;
-for ii=[1 3 5 7]
+for ii=[2 4 6]
     handles.hcsd(ii).XData = handles.hcsd(ii).XData + dx;
 end
 
@@ -314,9 +314,12 @@ axes(handles.hax(3));
 xlim([-0.07 0.05]);
 
 axes(handles.hax(4));
-for ii=[1 3 5 7]
+for ii=[2 4 6]
     handles.hpv(ii).XData = handles.hpv(ii).XData + dpv;
 end
+xlim([-2 7] *1e-11)
+handles.hax(4).XTickMode = 'auto';
+handles.hax(4).XTickLabelMode = 'auto';
 linex(dpv);
 
 axes(handles.hax(5));
@@ -327,6 +330,9 @@ for ii=1:4
     axes(handles.hax(ii+1));
     handles.hl(ii,1).XData = xlim;
     handles.hl(ii,2).XData = xlim;
+    handles.hl(ii,3).XData = xlim;
+
+    handles.htxt(ii,3).VerticalAlignment = 'top';
 end
 
 % make labels stick when I change y limits

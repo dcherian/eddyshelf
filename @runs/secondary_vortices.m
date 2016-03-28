@@ -80,19 +80,21 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
     end
     toc;
 
+    [zrho,~] = runs.predict_zpeak(3, 'detect');
+    zrho = abs(zrho);
     backup = get(groot, 'DefaultAxesColorOrder');
     set(groot, 'DefaultAxesColorOrder', colors);
 
     handles.hax(2) = subplot(323);
     handles.hcsd = plot(csdye - runs.bathy.xsb/1000, zr);
     uistack(handles.hcsd(end), 'bottom');
-    [handles.hl(1,:), handles.htxt(1,:)] = common(runs, tindex);
+    [handles.hl(1,:), handles.htxt(1,:)] = common(runs, tindex, zrho);
     xlabel('(b) Cross-shelf dye - X_{sb} (km)');
     ylabel('Z (m)');
 
     handles.hax(3) = subplot(324);
     handles.hrho = plot(rho-rback, zr);
-    [handles.hl(2,:), handles.htxt(2,:)] = common(runs, tindex);
+    [handles.hl(2,:), handles.htxt(2,:)] = common(runs, tindex, zrho);
     handles.hax(3).XTickLabelRotation = 0;
     handles.hax(3).XTickMode = 'auto';
     xlabel('(c) \Delta\rho (kg/m^3)')
@@ -102,14 +104,14 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
     if ~nopv
         handles.hax(4) = subplot(325);
         handles.hpv = plot(pv-pvback, zpv);
-        [handles.hl(3,:), handles.htxt(3,:)] = common(runs, tindex);
+        [handles.hl(3,:), handles.htxt(3,:)] = common(runs, tindex, zrho);
         xlabel('(d) PV - f_0N^2/g');
         ylabel('Z (m)');
         CenterProfileHandles = [CenterProfileHandles handles.hpv(end)];
 
         handles.hax(5) = subplot(326);
         handles.hrv = plot(rv/runs.params.phys.f0, zpv);
-        [handles.hl(4,:), handles.htxt(4,:)] = common(runs, tindex);
+        [handles.hl(4,:), handles.htxt(4,:)] = common(runs, tindex, zrho);
         xlim([-1 1] * max(abs(xlim)));
         xlabel('(e) (Relative vorticity)/f_0');
 
@@ -133,17 +135,19 @@ function [handles,xx,yy] = secondary_vortices(runs, tindex, n, opt)
     for ii=1:4
         try
             axes(handles.hax(ii+1));
-            handles.hl(ii,1).XData = xlim;
-            handles.hl(ii,2).XData = xlim;
+            for jj=1:size(handles.hl,2)-1
+                handles.hl(ii,jj).XData = xlim;
+            end
         catch ME
         end
     end
 end
 
-function [hl, ht] = common(obj, tindex)
+function [hl, ht] = common(obj, tindex, zrho)
     [hl(1), ht(1)] = liney(-1 * obj.bathy.hsb, 'H_{sb}');
-    [hl(2), ht(2)] = liney(-1 * obj.eddy.Lgauss(tindex), 'L_z^{eddy}');
-    hl(3) = linex(0);
+    [hl(2), ht(2)] = liney(-1 * obj.eddy.Lgauss(tindex), 'L_z');
+    [hl(3), ht(3)] = liney(-1 * zrho, 'z_\rho');
+    hl(4) = linex(0);
     uistack(hl, 'bottom');
     pbaspect([1.65 1 1]); %axis tight; axis square;
     beautify;
