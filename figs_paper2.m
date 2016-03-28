@@ -217,7 +217,7 @@ handles = ew34.plot_xzsection(isobath, 225);
 correct_ticks('y', [], {'-50','-300'}, handles.hax);
 delete(handles.hrunname);
 for ii=3:4
-    for jj=1:2
+    for jj=1:3
         delete(handles.hline(ii).hl{jj});
         delete(handles.hline(ii).htxt{jj});
     end
@@ -226,6 +226,7 @@ end
 for ii=1:2
     handles.hline(ii).hl{1}.delete;
     handles.hline(ii).htxt{1}.delete;
+    handles.hline(ii).htxt{3}.VerticalAlignment = 'bottom';
     % handles.hline(2).htxt{ii}.Units = 'normalized';
     %    handles.hline(2).htxt{ii}.Position(1) = 0.3;
 end
@@ -237,6 +238,7 @@ handles.hax(1).YLim = [-200 0];
 handles.hax(2).YTickLabelMode = 'auto';
 handles.hcb(1).Ticks = sort(unique([handles.hcb(1).Ticks -0.09 0.09]));
 handles.hline(1).htxt{2}.Position(1) = -70;
+handles.hline(1).htxt{3}.Position(1) = -70;
 
 hanno(1) = annotation('textarrow', [0.19 0.23], [0.78 0.85], 'String', 'intrusion');
 hanno(2) = annotation('textarrow', [0.63 0.67], [0.343 0.39], 'String', 'intrusion', ...

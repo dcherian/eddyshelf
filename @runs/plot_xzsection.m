@@ -115,6 +115,9 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
                               runs.csflux.offmask(sx1:sx2,tindex,isobath)),0);
     end
 
+    [zrho,~] = runs.predict_zpeak(isobath, 'detect');
+    zrho = abs(zrho);
+
     if opt.debug_flux
 
         % tind = tindex; % FOR PARAMETERISATION
@@ -158,9 +161,9 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
     hold on
     [~,handles.hmask(1)] = ...
         contour(xvec/1000, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
-    handles.htitle(1) = title('(a) Cross-shelf velocity (m/s)');
+    handles.htitle(1) = title('(a) Cross-isobath velocity (m/s)');
     %linex(xfrac);
-    handles.hline(1) = common(runs, tindex);
+    handles.hline(1) = common(runs, tindex, zrho);
     caxis([-1 1] * max(abs(csvel(:))));
     handles.hcb(1) = center_colorbar;
     handles.htime = runs.add_timelabel(tindex);
@@ -185,7 +188,7 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
         [~,hrho(1)] = contour(xvec/1000, zvec, rho', 30, 'k'); % .* mask
         handles.hcb(4) = colorbar;
         title('(d) Cross-shelf dye  - Y_{sb} (km)');
-        handles.hline(4) = common(runs, tindex);
+        handles.hline(4) = common(runs, tindex, zrho);
 
         % muck with colorbar
         cmin = round(min(runs.sgntamp*(csdye(:) - xsb)/1000));
@@ -217,7 +220,7 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
         %                       w(1:dxi:end, 1:dzi:end)');
         caxis(clim); handles.hcb(3) = center_colorbar;
         handles.hcb(3).Label.String = 'Vertical velocity (m/s)';
-        handles.hline(3) = common(runs, tindex);
+        handles.hline(3) = common(runs, tindex, zrho);
         title('(c) \rho contours');
         linkaxes(handles.hax([1 3 4]), 'xy');
         beautify;
@@ -233,14 +236,14 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
         colorbar;
         title(['(d) Eddy dye | ' runs.name]);
         linkaxes(handles.hax, 'xy');
-        handles.hline(2) = common(runs, tindex);
+        handles.hline(2) = common(runs, tindex, zrho);
         caxis([0 1]);
         beautify;
     else
         handles.hax(2) = subplot(m,2,2);
         plot(abs(trapz(xvec, repnan(csvel.*mask,0), 1)), zvec);
         handles.hrunname = text(0.8, 0.15, runs.name, 'Units', 'Normalized');
-        handles.hline(2) = common(runs, tindex);
+        handles.hline(2) = common(runs, tindex, zrho);
         xlabel('(b) Vertical profile of offshore transport (m^2/s)');
         handles.hax(2).XAxisLocation = 'top';
         handles.hax(2).YLabel.String = '';
@@ -262,7 +265,7 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
         hold on
         contour(xvec/1000, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
         runs.add_timelabel(tindex);
-        common(runs, tindex);
+        common(runs, tindex, zrho);
         title(['Cross-shelf velocity, v (m/s) | ' runs.name]);
         % linex(xfrac*L/1000, 'xfrac');
         caxis([-1 1] * max(abs(csvel(:)))); center_colorbar;
@@ -273,7 +276,7 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
         hold on
         contour(xmask/1000, zmask, repnan(idmask',0), [1 1], 'k', 'LineWidth', 2);
         runs.add_timelabel(tindex);
-        common(runs, tindex);
+        common(runs, tindex, zrho);
         title('Idealized');
         % linex(xfrac*L/1000, 'xfrac');
         caxis([-1 1] * max(abs(csvel(:)))); center_colorbar;
@@ -294,11 +297,12 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
     end
 end
 
-function [handle] = common(obj, tindex)
+function [handle] = common(obj, tindex, zrho)
     xlabel('X - X_{eddy} (km)'); ylabel('Depth (m)');
-    [handle.hl,handle.htxt] = liney(-1 * [obj.eddy.Lgauss(tindex) obj.bathy.hsb], ...
-                                    {'vertical scale'; 'h_{sb}'});
-    handles.htxt{1}.Units = 'data';
-    handles.htxt{2}.Units = 'data';
+    [handle.hl,handle.htxt] = liney(-1 * [obj.eddy.Lgauss(tindex) obj.bathy.hsb abs(zrho)], ...
+                                    {'vertical scale'; 'h_{sb}'; 'z_\rho'});
+    handle.htxt{1}.Units = 'data';
+    handle.htxt{2}.Units = 'data';
+    handle.htxt{3}.VerticalAlignment = 'top';
     beautify;
 end
