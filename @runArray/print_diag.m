@@ -791,7 +791,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
             force_0intercept = 0;
             line_45 = 0;
             laby = [upper(name(1)) name(2:end) ' at isobath ' normstr];
-            labx = ['Parameterization ' normstr];
+            labx = ['Predicted Flux $Q$ ' normstr];
             titlestr = [titlestr ' | ND isobath = ' ...
                         num2str(run.csflux.ndloc(:,isobath))];
         end
@@ -1120,12 +1120,12 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
                      'VerticalAlignment','Bottom');
             end
             if ff == 1 | isnan(diags(1))
-                if strfind(labx, '$$')
+                if strfind(labx, '$') | strfind(laby, '$')
                     xlabel(labx, 'interpreter', 'latex');
                 else
                     xlabel(labx);
                 end
-                if strfind(laby, '$$')
+                if strfind(labx, '$') | strfind(laby, '$')
                     ylabel(laby, 'interpreter', 'latex')
                 else
                     ylabel(laby);
@@ -1243,7 +1243,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
         textstr{tlen+2} = ['c = ' intstr];
 
         htext = text(0.03,0.92,textstr, ...
-                     'FontSize', 16, ...
+                     'FontSize', 18, ...
                      'Units', 'normalized', ...
                      'HorizontalAlignment', 'left', ...
                      'VerticalAlignment', 'top');
@@ -1287,7 +1287,6 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
             % axis square;
             xlim([0 max(plotx)]);
             ylim([0 max(ylim)]);
-            htext.FontSize = 12;
         end
 
         beautify([18 22 26]);

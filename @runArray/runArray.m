@@ -641,8 +641,8 @@ classdef runArray < handle
                               num2str(runArray.array(1).csflux.ndloc(iso), '%.2f')], ...
                              'Units', 'normalized', ...
                              'HorizontalAlignment', 'left', ...
-                             'VerticalAlignment', 'top');
-                beautify([14 16 18]); pbaspect([1.732 1 1]);
+                             'VerticalAlignment', 'top', 'FontSize', 18);
+                pbaspect([1.732 1 1]);
                 ggplot;
                 hax(hh).XColor = [1 1 1];
                 hax(hh).YColor = [1 1 1];
@@ -710,23 +710,24 @@ classdef runArray < handle
                      cplt/cmagn, cerr/cmagn, '.-', ...
                      'Color', [1 1 1]*0.55, 'LineWidth', 2, 'MarkerSize', 20);
             if mmagn == 1
-                mlegstr = 'm';
+                mlegstr = 'Slope';
             else
-                mlegstr = [num2str(1/mmagn) ' x m'];
+                mlegstr = [num2str(1/mmagn) ' x Slope'];
             end
             if cmagn == 1
                 clegstr = 'c';
             else
-                clegstr = [num2str(1/cmagn) 'x c'];
+                clegstr = ['y-intercept x ' num2str(1/cmagn)];
             end
-            legend(mlegstr, clegstr, 'Location', 'NorthEast', 'FontSize', 16);
+            legend(mlegstr, clegstr, 'Location', 'NorthEast', 'FontSize', 18);
             xlabel('Location (y/R)');
             xlim([-0.05 2]);
             hax(slopeplot).YTick = sort([hax(slopeplot).YTick ...
                                 min(mplt)*mmagn max(mplt)*mmagn]);
             correct_ticks('y', '%.2f', []);
-            beautify([14 16 18]); pbaspect([1.732 1 1]);
+            beautify([18 20 22]); pbaspect([1.732 1 1]);
             liney(0);
+            set(gcf, 'renderer', 'opengl');
         end
 
         function [] = plot_field(runArray, varname, tind)

@@ -729,6 +729,7 @@ folders = { ...
 if ~exist('csf', 'var'), csf = runArray(folders); end
 
 hax = csf.plot_fluxparam('avg flux', 1, 'no_sloping_shelf');
+
 hax(2).Title.String = 'Integrated to shelfbreak depth';
 hax(2).XTick = [0:100:600];
 for ii=[2 4:9]
@@ -742,14 +743,17 @@ hax(1).XAxisLocation = 'top';
 hax(1).YLim = [0 120];
 hax(1).YTick = [0:20:100];
 hax(2).YTick = [0:20:100];
+hax(end).XTick(end) = [];
 
 axes(hax(3));
 hleg = legend;
-hleg.Position(1) = 0.82;
-%ylim([-1 5]);
-%hax(3).YTick = [-10 0 20 40];
+legstr = hleg.String;
+hleg.delete;
 correct_ticks('y', '%.2f', '0.20');
 hax(3).Position(1) = 0.68;
+htxt(1) = text(1.25,0.22,'Slope (m)', 'FontSize', 18);
+htxt(2) = text(1.25,0.03,'y-intercept (c)', 'FontSize', 18, ...
+               'Color', [1 1 1]*0.55);
 
 export_fig -r150 -a2 -png -pdf -opengl images/paper2/avgflux
 
