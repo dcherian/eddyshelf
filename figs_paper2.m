@@ -731,10 +731,16 @@ if ~exist('csf', 'var'), csf = runArray(folders); end
 hax = csf.plot_fluxparam('avg flux', 1, 'no_sloping_shelf');
 
 hax(2).Title.String = 'Integrated to shelfbreak depth';
-hax(2).XTick = [0:100:600];
+hax(2).Title.Interpreter = 'latex';
+hax(2).Title.FontSize = 26;
+hax(4).YLabel.FontSize = 24;
+hax(8).XLabel.FontSize = 24;
+dx = 100;
+xmax = 450;
+hax(2).XTick = [0:dx:xmax];
 for ii=[2 4:9]
-    hax(ii).XLim = [0 600];
-    hax(ii).XTick = [100:100:600];
+    hax(ii).XLim = [0 xmax];
+    hax(ii).XTick = [100:dx:xmax];
 end
 hax(7).XTick = [0 hax(7).XTick];
 hax(1).XColor = hax(1).YColor;
@@ -749,11 +755,13 @@ axes(hax(3));
 hleg = legend;
 legstr = hleg.String;
 hleg.delete;
-correct_ticks('y', '%.2f', '0.20');
+correct_ticks('y', '%.2f');
+hax(3).YTick(end-1) = [];
 hax(3).Position(1) = 0.68;
-htxt(1) = text(1.25,0.22,'Slope (m)', 'FontSize', 18);
+htxt(1) = text(1.25,0.30,'Slope (m)', 'FontSize', 18);
 htxt(2) = text(1.25,0.03,'y-intercept (c)', 'FontSize', 18, ...
                'Color', [1 1 1]*0.55);
+ylim([-0.1 0.35]);
 
 export_fig -r150 -a2 -png -pdf -opengl images/paper2/avgflux
 
