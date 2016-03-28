@@ -1241,9 +1241,12 @@ methods
         if ~exist('tend', 'var'), tend = tstart; end
         if ~exist('nsmth', 'var'), nsmth = 10; end
 
+        % peak velocity in eddy
         V = smooth(hypot(runs.eddy.fitx.V0, runs.eddy.fity.V0), nsmth) / 2.3;
         %V = smooth(runs.eddy.rhovor.Vke, nsmth) / 2.3;
-        L = smooth(hypot(runs.eddy.fitx.Lrho, runs.eddy.fity.Lrho), nsmth);
+        % radius to maximum velocity
+        L = smooth(hypot(runs.eddy.fitx.Lrho, runs.eddy.fity.Lrho), nsmth) / sqrt(2);
+        % gaussian decay scale in vertical
         Lz = smooth(runs.eddy.Lgauss, nsmth);
 
         V0 = nanmedian(V(tstart:tend));
