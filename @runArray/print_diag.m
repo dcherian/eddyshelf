@@ -1171,8 +1171,6 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
             Perr = tval * stderror;
 
             Pint = [P-Perr, P+Perr];
-            r = corrcoef(cut_nan(diags), cut_nan(plotx)); % R - value
-            stats(1) = r(2)^2; % return R² always.
         else
             [P,Pint,R,Rint,stats] = regress(cut_nan(diags'), E, 0.05);
 
@@ -1191,6 +1189,15 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
             if mark_outliers
                 plot(plotx(outind), diags(outind), 'ro', 'MarkerSize', 13);
             end
+        end
+
+        % R - value @ 99%
+        [r,Pcorr,rlo,rhi] = corrcoef(cut_nan(diags), cut_nan(plotx), 'alpha', 0.01);
+        stats(1) = r(2)^2; % return R² always.
+        rerr = rhi(2)-r(2);
+
+        if rlo * sign(r) < 0
+            warning('Correlation not significant at 99%');
         end
 
         if force_0intercept
