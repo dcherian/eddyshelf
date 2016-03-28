@@ -213,7 +213,7 @@ classdef runArray < handle
             for ii=1:length(runArray.filter)
                 run = runArray.array(runArray.filter(ii));
                 [~,~,tres] = run.locate_resistance;
-                [~,maxloc] = run.calc_maxflux(2);
+                %[~,maxloc] = run.calc_maxflux(2);
 
                 use run.params;
                 eddy = run.eddy; csflux = run.csflux; bathy = run.bathy;

@@ -44,10 +44,15 @@ function [] = avgSupplyJet(runs)
     while ~exitflag
         [v0,X,v1,exitflag] = gauss_fit(yvec(i0:imin), asvint(i0:imin), 0);
         i0 = i0 + 1;
+        % this condition is bad. I can make any value I want.
+        %if (yvec(imin) + X) > runs.bathy.xsb*1.5
+        %    exitflag = 0;
+        %end
     end
     title(runs.name);
 
     supply.hash = githash([mfilename('fullpath') '.m']);
+    supply.tindices = tindices;
     supply.asvmean = asvmean;
     supply.asvint = asvint;
     supply.xscale = X;

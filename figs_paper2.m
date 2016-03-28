@@ -30,7 +30,7 @@ correct_ticks('y', [], {'50', '100'}, handles.hax([1 4]));
 
 handles.supax.Position(4) = 0.715;
 handles.htitle.String = ...
-    'Surface cross-shelf dye (km) | Ro = 0.1 | Eddy scales = (25 km, 400m)';
+    'Surface cross-shelf dye (km) | Initial Ro = 0.1 | Intial eddy scales = (25 km, 400m)';
 
 axes(handles.hax(1));
 [hleg,icons] = legend([handles.hfield{1}.hcen, ...
@@ -999,7 +999,7 @@ end
 
 figure; maximize;
 hax(1) = subplot(1,5,[1 2]);
-hax(2) = [];
+try hax(2) = []; catch ME; end
 hax(3) = subplot(1,5,[3]);
 hax(4) = subplot(1,5,[4 5]);
 handles = PlotOleanderSection(114, [17 11], [], hax(1:3));
