@@ -5,7 +5,7 @@
 function [width, zpeak] = predict_zpeak(runs, iso, flag, maxloc)
 
     warning on;
-    warning('predict_zpeak is deprecated. Be careful!');
+    warning('predict_zpeak is deprecated. Be careful! Do not use for makeStreamerSection.');
 
     if ~exist('flag', 'var'), flag = 'use'; end
     if ~exist('maxloc', 'var'), maxloc = []; end
@@ -44,7 +44,7 @@ function [width, zpeak] = predict_zpeak(runs, iso, flag, maxloc)
         intercept = zpw.intercept(index);
     end
 
-    if ~strcmpi(flag, 'use') || isempty(slope)
+    if ~strcmpi(flag, 'use') || ~exist('slope', 'var') || isempty(slope)
         slope = 1;
         intercept = 0;
     end
