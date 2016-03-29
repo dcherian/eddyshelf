@@ -57,7 +57,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     end
     modify_bathy = 1; % modify bathymetric contours to show
                       % isobaths corresponding to csdcontours?
-
+    bathycolor = [1 1 1]*0.45;
     addvelquiver = 0; % velocity vectors?
     dxi = 5; dyi = 5; % decimate vectors
     uref = 1; vref = uref; % scale vectors
@@ -437,7 +437,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     end
 
     % bathy
-    handles.hbathy = runs.plot_bathy('contour', [1 1 1]*0.45);
+    handles.hbathy = runs.plot_bathy('contour', bathycolor);
     for bb=1:3
         handles.hbathy{bb}.XData = handles.hbathy{bb}.XData - dx;
         handles.hbathy{bb}.YData = handles.hbathy{bb}.YData - dy;
