@@ -15,6 +15,7 @@ opt.csdcontourplot = 1;
 opt.csdcontours = ew34.csflux.x([1 4 8]);
 opt.addvelquiver = 0;
 opt.addzeta = 1;
+opt.bathycolor = 'w';
 handles = ew34.mosaic_field('csdye', timesteps, opt);
 handles.hcb.delete;
 for ii=1:3
@@ -30,7 +31,7 @@ correct_ticks('y', [], {'50', '100'}, handles.hax([1 4]));
 
 handles.supax.Position(4) = 0.715;
 handles.htitle.String = ...
-    'Surface cross-shelf dye (km) | Initial Ro = 0.1 | Intial eddy scales = (25 km, 400m)';
+    'Surface cross-shelf dye (km) | Initial Ro = 0.1 | Initial eddy scales = (25 km, 400m)';
 
 axes(handles.hax(1));
 [hleg,icons] = legend([handles.hfield{1}.hcen, ...
@@ -44,6 +45,20 @@ hleg.Position(2) = hleg.Position(2) - 0.03;
 icons(end).Children.Children(1).LineWidth = 1;
 icons(end).Children.Children(2).LineWidth = 1;
 icons(end).Children.Children(3).LineWidth = 1;
+
+annofs = 14;
+hanno(1) = annotation('textarrow', [0.54 0.57], [1 1]*0.733, ...
+                      'String', 'wake cyclone','LineWidth', 1, 'FontSize', annofs, ...
+                      'HeadStyle', 'none');
+hanno(2) = annotation('textarrow', [0.33 0.31], [0.262 0.28], ...
+                      'String', 'leakage','LineWidth', 1, 'FontSize', annofs, 'Color', 'w', ...
+                      'HeadStyle', 'none');
+hanno(3) = annotation('textarrow', [1 1]*0.28, [0.36 0.33], ...
+                      'String', {'secondary'; 'cyclone'},'LineWidth', 1, 'FontSize', annofs, ...
+                      'HeadStyle', 'none', 'HorizontalAlignment', 'center');
+hanno(4) = annotation('textarrow', [0.56 0.6], [0.262 0.28], ...
+                      'String', 'anticyclonic eddies', 'LineWidth', 1, ...
+                      'FontSize', annofs, 'Color', 'w', 'HeadStyle', 'none');
 
 export_fig -r150 -a2 -painters images/paper2/ew-34-surface-csdye.png
 
