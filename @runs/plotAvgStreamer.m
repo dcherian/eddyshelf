@@ -17,7 +17,7 @@ function [handles] = plotAvgStreamer(runs, isobath)
     xlabel('Along-isobath, X - X_{eddy} (km)'); ylabel('Depth, Z (m)');
     if isobath ~= 1
         [hl,ht] = liney([-runs.bathy.hsb -runs.eddy.Lgauss(1) zrho], ...
-                        {'h_{sb}'; 'L_z'; 'z_\rho'});
+                        {'H_{sb}'; 'L_z'; 'z_\rho'});
         for ii=1:length(hl)
             hl{ii}.XData(2) = ax(1).XTick(end-2);
             ht{ii}.VerticalAlignment = 'middle';
@@ -51,7 +51,7 @@ function [handles] = plotAvgStreamer(runs, isobath)
     ax(3) = subplot(3,3,[6 9]);
     hz = plot(runs.streamer.off.zprof(:,isobath), zvec);
     [hl3,ht3] = liney([-runs.bathy.hsb -runs.eddy.Lgauss(1) zrho], ...
-                      {'h_{sb}'; 'L_z'; 'z_\rho'});
+                      {'H_{sb}'; 'L_z'; 'z_\rho'});
     for ii=1:3
         ht3{ii}.VerticalAlignment = 'middle';
         %ht3{ii}.Units = 'normalized';
