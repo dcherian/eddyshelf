@@ -558,16 +558,19 @@ htext.Color = handles2.htxt(3).Color;
 
 handles = ew34.plotAvgStreamer(1);
 correct_ticks('y', [], '-50');
-handles.ax(1).Title.String = '(b) Mean cross-isobath velocity (m/s)';
+handles.ax(1).Title.String = '(b) Time averaged cross-isobath velocity (m/s)';
+handles.hcb.Position(1) = 0.61;
 export_fig -r150 -a2 images/paper2/ew34-avgstreamer-sb.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% avg streamer profiles - offshore
 
 handles = ew34.plotAvgStreamer(4);
-handles.ax(1).Title.String = '(b) Mean cross-isobath velocity (m/s)';
+handles.ax(1).Title.String = '(b) Time averaged cross-isobath velocity (m/s)';
 correct_ticks('y', [], {'-50'; '-400'}, handles.ax(1));
 handles.ax(3).XLim = [0 0.6];
+hanno = annotation('textarrow', [0.435 0.335], [0.5 0.6], 'String', 'intrusion', ...
+                   'HeadStyle', 'none', 'LineWidth', 1);
 export_fig -r150 -a2 images/paper2/ew34-avgstreamer-sl.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

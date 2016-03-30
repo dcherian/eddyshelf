@@ -6,16 +6,30 @@ function [handles] = plotAvgStreamer(runs, isobath)
     xivec = runs.streamer.xivec;
     zvec = runs.streamer.zvec(:,isobath);
     xprof = squeeze(trapz(zvec, vmean, 2)); % full vel : x-profile
+    [zrho,~] = runs.predict_zpeak(isobath, 'detect');
+    if isobath == 1, zrho = []; end
 
     hf = figure; maximize();
     insertAnnotation([runs.name '.plotAvgStreamer']);
     ax(1) = subplot(3,3,[4 5 7 8]);
     handles.hfield = pcolorcen(xivec, zvec, vmean');
-    xlabel('X - X_{eddy} (km)'); ylabel('Z (m)');
-    hl = liney([-runs.bathy.hsb -runs.eddy.Lgauss(1)]);
-    hl{1}.XData(2) = ax(1).XTick(end-1);
-    hl{2}.XData(2) = ax(1).XTick(end-1);
-    hl{3} = linex(0);
+    shading interp;
+    xlabel('Along-isobath, X - X_{eddy} (km)'); ylabel('Depth, Z (m)');
+    if isobath ~= 1
+        [hl,ht] = liney([-runs.bathy.hsb -runs.eddy.Lgauss(1) zrho], ...
+                        {'h_{sb}'; 'L_z'; 'z_\rho'});
+        for ii=1:length(hl)
+            hl{ii}.XData(2) = ax(1).XTick(end-2);
+            ht{ii}.VerticalAlignment = 'middle';
+            %ht3{ii}.Units = 'normalized';
+            ht{ii}.Position(1) = mean(ax(1).XTick(end-2));
+            %ht3{ii}.Units = 'data';
+        end
+        hl{end+1} = linex(0);
+    else
+        hl = linex(0);
+    end
+
     handles.isolabel = runs.add_isobathlabel(isobath);
     beautify;
     title([runs.name ' | mean streamer velocity (m/s)']);
@@ -24,12 +38,11 @@ function [handles] = plotAvgStreamer(runs, isobath)
 
     ax(2) = subplot(3,3,[1 2]);
     hx = plot(xivec, xprof);
-    title('(a) \int dz');
+    title('(a) Horizontal profile (\int (b) dz, m^2/s)');
     hold on;
     hl2(1) = linex(0); hl2(2) = liney(0);
     uistack(hl2, 'bottom');
     beautify;
-    ylabel('Flux (m^2/s)');
     htxt(1) = text(0.1, 0.85, 'Offshore', 'Units', 'Normalized');
     htxt(2) = text(0.8, 0.15, 'Onshore', 'Units', 'Normalized');
     linkprop([handles.isolabel htxt], {'FontSize', 'Color'});
@@ -37,8 +50,15 @@ function [handles] = plotAvgStreamer(runs, isobath)
 
     ax(3) = subplot(3,3,[6 9]);
     hz = plot(runs.streamer.off.zprof(:,isobath), zvec);
-    hl3 = liney([-runs.bathy.hsb -runs.eddy.Lgauss(1)]);
-    title('(c) Offshore transport (\int dx, m^2/s)');
+    [hl3,ht3] = liney([-runs.bathy.hsb -runs.eddy.Lgauss(1) zrho], ...
+                      {'h_{sb}'; 'L_z'; 'z_\rho'});
+    for ii=1:3
+        ht3{ii}.VerticalAlignment = 'middle';
+        %ht3{ii}.Units = 'normalized';
+        ht3{ii}.Position(1) = 0.98 * max(xlim);
+        %ht3{ii}.Units = 'data';
+    end
+    title({'(c) Vertical profile of'; 'offshore transport'; '(\int (b) dx, m^2/s)'});
     beautify;
     ax(3).XAxisLocation = 'top';
     if isobath == 1, xlim([0 max(xlim)*1.15]); end
