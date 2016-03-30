@@ -748,42 +748,62 @@ folders = { ...
 
 if ~exist('csf', 'var'), csf = runArray(folders); end
 
-hax = csf.plot_fluxparam('avg flux', 1, 'no_sloping_shelf');
+%hax = csf.plot_fluxparam('avg flux', 1, 'no_sloping_shelf');
 
-hax(2).Title.String = 'Integrated to shelfbreak depth';
-hax(2).Title.Interpreter = 'latex';
-hax(2).Title.FontSize = 26;
-hax(4).YLabel.FontSize = 24;
-hax(8).XLabel.FontSize = 24;
-dx = 100;
-xmax = 450;
-hax(2).XTick = [0:dx:xmax];
-for ii=[2 4:9]
-    hax(ii).XLim = [0 xmax];
-    hax(ii).XTick = [100:dx:xmax];
+
+commands = 'no_sloping_shelf; no_name_points';
+
+figure; maximize;
+hax(1) = subplot(3,1,1);
+csf.print_diag('avg flux', [1 1], hax(1), commands);
+%ggplot;
+title(''); ylabel(''); xlabel('');
+xlim([0 1000]);
+
+hax(2) = subplot(3,1,2);
+csf.print_diag('avg flux', [5 1], hax(2), commands);
+%ggplot;
+title('');
+hax(2).YLabel.Position(2) = 200;
+xlim([0 450]);
+
+hax(3) = subplot(3,1,3);
+param = load('./params/param_avg flux.mat');
+cmagn = 10^(orderofmagn(param.intercept(1)));
+cmagn = 1/(cmagn)^2;
+mlegstr = 'Slope';
+if cmagn == 1
+    clegstr = 'c';
+else
+    clegstr = ['y-intercept x ' num2str(1/cmagn)];
 end
-hax(7).XTick = [0 hax(7).XTick];
-hax(1).XColor = hax(1).YColor;
-hax(1).XTickLabelMode = 'auto';
-hax(1).XAxisLocation = 'top';
-hax(1).YLim = [0 120];
-hax(1).YTick = [0:20:100];
-hax(2).YTick = [0:20:100];
-hax(end).XTick(end) = [];
 
-axes(hax(3));
-hleg = legend;
-legstr = hleg.String;
-hleg.delete;
-correct_ticks('y', '%.2f');
+errorbar(csf.array(1).csflux.ndloc(param.isobath), ...
+         param.slope, param.merr, 'k.-', 'LineWidth', 2, 'MarkerSize', 20);
+hold on;
+errorbar(csf.array(1).csflux.ndloc(param.isobath), ...
+        param.intercept/cmagn, param.cerr/cmagn, '.-', ...
+         'Color', [1 1 1]*0.55, 'LineWidth', 2, 'MarkerSize', 20);
+xlabel('Location (y/R)');
+xlim([-0.05 2]);
+hax(3).YTick = sort([hax(3).YTick min(param.slope) max(param.slope)]);
+correct_ticks('y', '%.2f', []);
+liney(0);
+legstr = {mlegstr; clegstr};
 hax(3).YTick(end-1) = [];
-hax(3).Position(1) = 0.68;
-htxt(1) = text(1.25,0.30,'Slope (m)', 'FontSize', 18);
-htxt(2) = text(1.25,0.03,'y-intercept (c)', 'FontSize', 18, ...
-               'Color', [1 1 1]*0.55);
+%hax(3).Position(1) = 0.68;
+htxt.delete;
+htxt(1) = text(1.5,0.30,'Slope (m)', 'FontSize', 16, 'HorizontalAlignment', 'center');
+htxt(2) = text(1.5,0.06,{'y-intercept'; '(c/100)'}, 'FontSize', 16, ...
+               'Color', [1 1 1]*0.55, 'HorizontalAlignment', 'center');
 ylim([-0.1 0.35]);
+xlim([0 2]);
+beautify([18 20 22]); pbaspect([1.615 1 1]);
 
-export_fig -r150 -a2 -png -pdf -opengl images/paper2/avgflux
+hax(1).Title.String = 'Integrated to shelfbreak depth';
+hax(2).Position(2) = 0.45;
+
+export_fig -a2 -r200 images/paper2/avgflux-summary.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% max flux
