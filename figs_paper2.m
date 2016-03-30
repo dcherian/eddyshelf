@@ -255,9 +255,10 @@ handles.hcb(1).Ticks = sort(unique([handles.hcb(1).Ticks -0.09 0.09]));
 handles.hline(1).htxt{2}.Position(1) = -70;
 handles.hline(1).htxt{3}.Position(1) = -70;
 
-hanno(1) = annotation('textarrow', [0.19 0.23], [0.78 0.85], 'String', 'intrusion');
+hanno(1) = annotation('textarrow', [0.19 0.23], [0.78 0.85], 'String', 'intrusion', ...
+                      'LineWidth', 1, 'HeadStyle', 'none');
 hanno(2) = annotation('textarrow', [0.63 0.67], [0.343 0.39], 'String', 'intrusion', ...
-                      'Color', 'w');
+                      'Color', 'w', 'LineWidth', 1, 'HeadStyle', 'none');
 
 export_fig -r200 -opengl -png -pdf -a2 images/paper2/ew-34-xzsection
 

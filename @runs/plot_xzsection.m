@@ -300,7 +300,7 @@ end
 function [handle] = common(obj, tindex, zrho)
     xlabel('X - X_{eddy} (km)'); ylabel('Depth (m)');
     [handle.hl,handle.htxt] = liney(-1 * [obj.eddy.Lgauss(tindex) obj.bathy.hsb abs(zrho)], ...
-                                    {'vertical scale'; 'h_{sb}'; 'z_\rho'});
+                                    {'vertical scale'; 'H_{sb}'; 'z_\rho'});
     handle.htxt{1}.Units = 'data';
     handle.htxt{2}.Units = 'data';
     handle.htxt{3}.VerticalAlignment = 'top';
