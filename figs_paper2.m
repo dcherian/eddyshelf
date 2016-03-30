@@ -298,12 +298,14 @@ opt.csdcontourplot = 0;
 opt.rhocontourplot = 0;
 handles = ew34.secondary_vortices(320, [xx yy], opt);
 
+axes(handles.hax(1));
 handles.hax(1).XLim = [120 420];
 handles.hax(1).YLim = [20 120];
 handles.hfield.htlabel.Position(2) = 0.1;
 hbathy = handles.hfield.hbathy;
 clabel(hbathy{4}, hbathy{1}, 'LabelSpacing', 108*12);
-caxis([0 280]);
+caxis([0 320]);
+handles.hfield.hcb.Limits = [0 200];
 handles.hfield.htrack.Visible = 'off';
 handles.hfield.hcen.Color = [1 1 1]*0.8;
 handles.hfield.hcb.Position(1) = 0.72;
@@ -318,7 +320,7 @@ end
 
 axes(handles.hax(1));
 correct_ticks('y', [], '198');
-handles.hax(1).Title.String = '(a) Cross shelf dye - X_{sb} (km)';
+handles.hax(1).Title.String = '(a) Cross shelf dye (km)';
 
 axes(handles.hax(2)); linex(dx);
 xticks = sort(unique([0 max(handles.hcsd(1).XData) ...
