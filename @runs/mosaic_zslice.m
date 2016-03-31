@@ -6,7 +6,7 @@ function [handles] = mosaic_zslice(runs, varname, depth, tind, opt)
     n = length(tind);
     letters = 'abcdefghijkl';
 
-    figure;
+    figure; maximize;
     insertAnnotation([runs.name '.mosaic_zslice(' varname ',' ...
                       num2str(depth) ')']);
     hax = packfig(2,ceil(n/2));
@@ -50,7 +50,7 @@ function [handles] = mosaic_zslice(runs, varname, depth, tind, opt)
 
     axes(hax(1));
     handles(1).htext(1) = text(0.05, pos(1), 'Surface cross-shelf dye', 'FontSize', 16, ...
-                               'Units', 'Normalized', 'Color', runs.shelfSlopeColor);
+                               'Units', 'Normalized', 'Color', [49,130,189]/256);
     handles(1).htext(3) = text(0.05, pos(2), 'Eddy core', 'FontSize', 16, ...
                                'Units', 'Normalized', 'Color', runs.rhoContColor);
     handles(1).htext(2) = text(0.05, pos(3), 'Surface eddy dye', 'FontSize', 16, ...

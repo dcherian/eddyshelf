@@ -350,13 +350,16 @@ handles(1).htext(1).Position(2) = 0.18;
 handles(1).htext(3).Position(2) = 0.11;
 xlim([200 400]);
 ylim([0 150]);
-handles(1).htitle.String = 'Eddy dye at z = -75 m | H_{sb} = 50m | Ro = 0.10';
+handles(1).htitle.String = 'Eddy dye at z = -75 m | H_{sb} = 50m | Initial Ro = 0.10';
 handles(1).htitle.FontSize = 22;
 handles(1).htitle.FontWeight = 'normal';
 handles(1).supax.Position(4) = 0.87;
 axes(handles(4).hax); correct_ticks('x', '', '400');
 axes(handles(5).hax); correct_ticks('x', '', '400');
-export_fig -r96 -a2 images/paper2/ew-34-mosaic-zslice.png
+handles(1).hcb.delete;
+
+export_fig -r300 -a2 images/paper2/ew-34-mosaic-zslice.png
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% avg streamer profiles - shelfbreak
 
