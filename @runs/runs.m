@@ -602,8 +602,13 @@ methods
         end
 
         % calculate Rhines scale
-        runs.bathy.Lbetash = sqrt(runs.eddy.fitx.V0(1) / 2.3 / sqrt(2) / ...
-                                  runs.bathy.betash);
+        try
+            runs.bathy.Lbetash = sqrt(runs.eddy.fitx.V0(1) / 2.3 / sqrt(2) / ...
+                                      runs.bathy.betash);
+        catch ME
+            runs.bathy.Lbetash = sqrt(runs.eddy.V(1) / ...
+                                      runs.bathy.betash);
+        end
 
         toc(ticstart);
     end
@@ -790,6 +795,15 @@ methods
 
         axes(hax);
         hplt = plot(avg1(xvec/1000), dzdx);
+    end
+
+    function [] = testAvgSupplyJet(runs)
+
+        [start,stop] = runs.flux_tindices(runs.csflux.off.slope(:, 1, 1));
+        tindices = [start stop];
+
+        runs.animate_field('csdye', [], tindices(2), 1);
+        linex(runs.supply.x/1000);
     end
 
     function [] = plot_test1(runs)
@@ -1360,14 +1374,22 @@ methods
             mcen = runs.eddy.mx(1:runs.eddy.tend)'/1000;
         end
         tvec = runs.eddy.t(1:runs.eddy.tend);
-        cvy = [0; diff(cen)./diff(smooth(tvec', npts))];
+
+        if size(tvec,2) == 1, tvec = tvec'; end
+
+        if strcmpi(type, 'cen')
+            % centroid
+            cvy = [0; diff(cen)./diff(smooth(tvec', npts))];
+        else
+            cvy = [0; smooth(diff(mcen)./diff(tvec'), npts)];
+        end
     end
 
     function [meanx, meany, meant, meanh, err] = averageResistance(runs, nsmooth)
 
         if ~exist('nsmooth', 'var'), nsmooth = []; end
 
-        factors = 1 - [0.55:0.05:0.90];
+        factors = 1 - [0.55:0.05:0.85];
         N = length(factors);
 
         xx = nan([1 N]); yy = xx; tt = xx;
@@ -1388,23 +1410,36 @@ methods
         err(2) = conft(0.05, N-1) * std(yy)/sqrt(N);
         err(3) = conft(0.05, N-1) * std(tt)/sqrt(N);
         err(4) = conft(0.05, N-1) * std(hh)/sqrt(N);
+
+        err = abs(err);
     end
 
-    function [itfit, tfit, T] = fitCenterVelocity(runs, debug)
+    function [itfit, tfit, T, BadFitFlag] = fitCenterVelocity(runs, debug)
 
         if ~exist('debug', 'var'), debug = 0; end
 
         sgn = runs.sgntamp * sign(runs.params.phys.f0);
-        cvy = sgn* runs.smoothCenterVelocity;
+        % eddy center (SSH max) velocity
+        cvy = sgn* runs.smoothCenterVelocity([], 'max');
 
         [~,imin] = min(cvy);
+        imin = imin;
         tvec = runs.eddy.t*86400;
 
-        [v0, T, t0] = gauss_fit(tvec(imin:end) - tvec(imin), ...
-                                cvy(imin:end)./cvy(imin), debug);
-        if debug, linex(T); end
+        [v0, T, t0, exitflag] = gauss_fit(tvec(imin:end) - tvec(imin), ...
+                                          cvy(imin:end)./cvy(imin), debug);
         tfit = T + tvec(imin) + t0;
         itfit = find_approx(tvec, tfit, 1);
+        BadFitFlag = ~exitflag;
+
+        if debug
+            hax = gca;
+            subplot(2,1,1,hax);
+            linex(T); title(runs.name);
+            subplot(2,1,2);
+            plot(tvec, cvy);
+            linex(tfit);
+        end
     end
 
     function [itsl, itse, tsl, tse] = getEddyCenterTimeScales(runs)
@@ -1811,7 +1846,7 @@ methods
                                     runs.rgrid.N}));
             end
 
-            if velname == 'u'
+            if velname == 'u'
                 [vmax, indmax] = min(vel(:));
             else
                 [vmax, indmax] = max(vel(:));
@@ -1884,7 +1919,7 @@ methods
         end
 
         if isempty(runs.usurf) | (t0 > size(runs.usurf,3)) | ...
-                any(isnan(fillnan(runs.usurf(:,:,tind(1):tind(2)),0)))
+                0 ... %any(isnan(fillnan(runs.usurf(:,:,tind(1):tind(2)),0)))
             disp('Reading surface velocity fields...');
             if runs.givenFile
                 runs.usurf = double(squeeze(ncread(runs.out_file, ....
@@ -3401,12 +3436,13 @@ methods
     end
 
     function [] = animate_floats(runs,type)
-        runs.read_zeta;
+    %runs.read_zeta;
+        runs.read_csdsurf;
         if strcmpi(type,'ltrans')
             runs.ltrans.animate(runs.rgrid,runs.zeta,runs.eddy);
         end
         if strcmpi(type,'roms')
-            runs.roms.animate(runs.rgrid,runs.zeta,runs.eddy);
+            runs.roms.animate(runs.rgrid,runs.csdsurf,runs.eddy);
         end
     end
 
@@ -3627,7 +3663,7 @@ methods
         iy = runs.spng.sy1:runs.spng.sy2;
 
         hold on;
-        if ~exist('color','var'), color = [1 1 1]*0.45; end
+        if ~exist('color','var') | isempty(color), color = [1 1 1]*0.45; end
         if strcmpi(plottype,'contour')
             [hplot{4},hplot{1}] = contour(runs.rgrid.xr(ix,iy)/1000,...
                                  runs.rgrid.yr(ix,iy)/1000, ...
