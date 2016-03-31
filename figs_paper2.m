@@ -565,6 +565,7 @@ annolw = 0.5;
 annoheadstyle = 'none'; 'cback3';
 annofontname = 'Fira Sans';
 
+clear opt handles
 zoomin = 1; % for presentation
 opt.MoveToZLevel = -850;
 opt.eddthresh = 0.8;
@@ -689,7 +690,7 @@ tic;
 if multifig
     for ii=1:4
         axes(hax(ii));
-        export_fig('-r300', '-a4', '-p0.01', '-opengl', ...
+        export_fig('-r150', '-a4', '-p0.01', '-opengl', ...
                    ['images/paper2/3d-schem-' num2str(ii) '.png']);
     end
     hash = githash;
@@ -697,7 +698,7 @@ if multifig
             '-geometry +0.05+0.05 ' mergename]);
     system(['exiftool -overwrite_original -Producer=' hash ' ' mergename]);
 else
-    export_fig('-opengl', '-r300', '-a4', '-p0.02', mergename);
+    export_fig('-opengl', '-r150', '-a4', '-p0.02', mergename);
 end
 
 if zoomin
