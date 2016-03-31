@@ -196,11 +196,11 @@ function [] = plot_penetration(runArray, ax, choices)
 
     % axes labels
     if ynorm == run.rrdeep
-        ylabel(['(Y_{cen} - ' y0str ')/(deformation radius)']);
+        ylabel(['(Y_{eddy} - ' y0str ')/(deformation radius)']);
         dytick = 1;
     else
         if ynorm == run.eddy.vor.dia(1)/2
-            ylabel(['(Y_{cen} - ' y0str ')/(initial radius)']);
+            ylabel(['(Y_{eddy} - ' y0str ')/(initial radius)']);
             dytick = 1;
         else
             ylabel(['Distance from shelfbreak / Initial distance from ' ...
@@ -209,10 +209,10 @@ function [] = plot_penetration(runArray, ax, choices)
         end
     end
     if xnorm == run.rrdeep
-        xlabel(['(X_{cen} - ' x0str ')/(deformation radius)']);
+        xlabel(['(X_{eddy} - ' x0str ')/(deformation radius)']);
     else
         if xnorm == run.eddy.vor.dia(1)/2
-            xlabel(['(X_{cen} - ' x0str ')/(initial radius)']);
+            xlabel(['(X_{eddy} - ' x0str ')/(initial radius)']);
         end
     end
 

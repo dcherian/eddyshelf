@@ -60,7 +60,7 @@ hanno(4) = annotation('textarrow', [0.56 0.6], [0.262 0.28], ...
                       'String', 'anticyclonic eddies', 'LineWidth', 1, ...
                       'FontSize', annofs, 'Color', 'w', 'HeadStyle', 'none');
 
-export_fig -r150 -a2 -opengl images/paper2/ew-34-surface-csdye.png
+export_fig -r300 -a2 -opengl images/paper2/ew-34-surface-csdye.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% center tracks
@@ -92,7 +92,7 @@ hanno = annotation('textarrow', [0.65 0.72], [0.42 0.46], ...
                    'LineWidth', 1, 'HeadStyle', 'none', ...
                    'HorizontalAlignment', 'center');
 
-export_fig -r150 -a2 -png -pdf images/paper2/centracks
+export_fig -r300 -a2 -png -pdf images/paper2/centracks
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% flux diagnostics
@@ -121,7 +121,7 @@ legstr{end+1} = 'Time instants shown in Figure 2';
 hpt = findobj(handles.icons, 'Type', 'patch');
 hpt.FaceAlpha = 0.2;
 
-export_fig -r150 -a2 -eps -png images/paper2/flux-diags
+export_fig -r300 -a2 -eps -png images/paper2/flux-diags
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% surface map and instantaneous flux
@@ -216,7 +216,7 @@ for ii=4:6
     hax(ii).Position(2) = 0.26;
 end
 
-export_fig -r150 -a2 images/paper2/inst-flux.png
+export_fig -r300 -a2 images/paper2/inst-flux.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% x-z sections
@@ -253,7 +253,7 @@ hanno(1) = annotation('textarrow', [0.19 0.23], [0.78 0.85], 'String', 'intrusio
 hanno(2) = annotation('textarrow', [0.63 0.67], [0.343 0.39], 'String', 'intrusion', ...
                       'Color', 'w', 'LineWidth', 1, 'HeadStyle', 'none');
 
-export_fig -r200 -opengl -png -pdf -a2 images/paper2/ew-34-xzsection
+export_fig -r300 -opengl -png -pdf -a2 images/paper2/ew-34-xzsection
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% secondary eddy - ew-34
@@ -332,7 +332,7 @@ end
 
 handles.hax(2).YLim = [-310 0];
 
-export_fig -r200 -png -a2 images/paper2/ew-34-secondary-cyclone
+export_fig -r300 -png -a2 images/paper2/ew-34-secondary-cyclone
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% ew-34 z-slice
@@ -363,7 +363,7 @@ handles = ew34.plotAvgStreamer(1);
 correct_ticks('y', [], '-50');
 handles.ax(1).Title.String = '(b) Time averaged cross-isobath velocity (m/s)';
 handles.hcb.Position(1) = 0.61;
-export_fig -r150 -a2 images/paper2/ew34-avgstreamer-sb.png
+export_fig -r300 -a2 images/paper2/ew34-avgstreamer-sb.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% avg streamer profiles - offshore
@@ -374,7 +374,7 @@ correct_ticks('y', [], {'-50'; '-400'}, handles.ax(1));
 handles.ax(3).XLim = [0 0.6];
 hanno = annotation('textarrow', [0.435 0.335], [0.5 0.6], 'String', 'intrusion', ...
                    'HeadStyle', 'none', 'LineWidth', 1);
-export_fig -r150 -a2 images/paper2/ew34-avgstreamer-sl.png
+export_fig -r300 -a2 images/paper2/ew34-avgstreamer-sl.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% shelfbreak flow surface snapshot
@@ -459,7 +459,7 @@ pbnew = [pba(1)/pba(2)*pos1(4)/pos2(4) 1 1]
 ax(2).PlotBoxAspectRatio = pbnew;
 yyax(2).PlotBoxAspectRatio = pbnew;
 
-export_fig -r150 -a2 images/paper2/sbsnapshot.png
+export_fig -r300 -a2 images/paper2/sbsnapshot.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% avg flux - flat shelf only
@@ -542,7 +542,7 @@ beautify([18 20 22]); pbaspect([1.615 1 1]);
 hax(1).Title.String = 'Integrated to shelfbreak depth';
 hax(2).Position(2) = 0.45;
 
-export_fig -a2 -r200 images/paper2/avgflux-summary.png
+export_fig -a2 -r300 images/paper2/avgflux-summary.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 3d schematics
@@ -685,7 +685,7 @@ tic;
 if multifig
     for ii=1:4
         axes(hax(ii));
-        export_fig('-r150', '-a4', '-p0.01', '-opengl', ...
+        export_fig('-r300', '-a4', '-p0.01', '-opengl', ...
                    ['images/paper2/3d-schem-' num2str(ii) '.png']);
     end
     hash = githash;
@@ -693,7 +693,7 @@ if multifig
             '-geometry +0.05+0.05 ' mergename]);
     system(['exiftool -overwrite_original -Producer=' hash ' ' mergename]);
 else
-    export_fig('-opengl', '-r150', '-a4', '-p0.02', mergename);
+    export_fig('-opengl', '-r300', '-a4', '-p0.02', mergename);
 end
 
 if zoomin
@@ -711,7 +711,7 @@ if zoomin
     handles(3).hsect.delete
     handles(3).hsectoutline.delete;
     handles(3).hplane.delete;
-    export_fig('-r150', '-a4', '-p0.01', '-opengl', ...
+    export_fig('-r300', '-a4', '-p0.01', '-opengl', ...
                ['images/paper2/3d-schem-' num2str(3) '-zoom.png']);
 
 end
@@ -765,4 +765,4 @@ correct_ticks('y', [], '-200');
 beautify;
 
 export_fig -opengl -png images/paper2/eddy-intrusion
-%export_fig -r150 -a2 images/paper2/eddy-intrusion.png
+%export_fig -r300 -a2 images/paper2/eddy-intrusion.png
