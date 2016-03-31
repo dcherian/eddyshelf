@@ -774,3 +774,20 @@ beautify;
 
 export_fig -r300 -opengl -png images/paper2/eddy-intrusion
 %export_fig -r300 -a2 images/paper2/eddy-intrusion.png
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% secondary eddy - 2360
+
+if ~exist('ew2360', 'var') | ~strcmpi(ew2360.name, 'ew-2360_wider')
+    ew2360 = runs('../topoeddy/runew-2360_wider/');
+    xx = [343 346 349]';
+    yy = [231 237 231]';
+end
+opt.addvelquiver = 0;
+opt.csdcontourplot = 0;
+opt.rhocontourplot = 0;
+handles = ew2360.secondary_vortices(95, [xx yy], opt);
+handles.hax(3).YLabel.String = 'Depth, Z (m)';
+handles.htxt(2,3).VerticalAlignment = 'top';
+export_fig(handles.hax(3), '-r300', '-a2', ...
+           'images/paper2/ew-2360-secondary-cyclone-rho.png');

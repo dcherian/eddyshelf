@@ -132,30 +132,6 @@ ylim([-0.1 0.35]);
 
 % export_fig -r150 -a2 -png -pdf -opengl images/paper2/avgflux
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% secondary eddy - 2360
-
-if ~exist('ew2360', 'var') | ~strcmpi(ew2360.name, 'ew-2360_wider')
-    ew2360 = runs('../topoeddy/runew-2360_wider/');
-    xx = [343 346 349]';
-    yy = [231 237 231]';
-end
-opt.addvelquiver = 0;
-opt.csdcontourplot = 0;
-opt.rhocontourplot = 0;
-handles = ew2360.secondary_vortices(95, [xx yy], opt);
-handles.hfield.htrack.delete;
-correct_ticks('y', [], '198', handles.hax(1));
-handles.hax(1).Title.String = 'Cross shelf dye - X_{sb} (km)';
-
-export_fig('-r150', '-opengl', '-a2', ...
-           'images/paper2/ew-2360-secondary-cyclone.png');
-
-handles.hax(3).YLabel.String = 'Z (m)';
-export_fig(handles.hax(3), '-painters', '-a2', ...
-           'images/paper2/ew-2360-secondary-cyclone-rho.pdf');
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% ew-2360 z-slice mosaic
 
