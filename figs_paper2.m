@@ -29,7 +29,7 @@ end
 ylim([0 250]);
 correct_ticks('y', [], {'50', '100'}, handles.hax([1 4]));
 
-handles.supax.Position(4) = 0.715;
+handles.supax.Position(4) = 0.7;
 handles.htitle.String = ...
     'Surface cross-shelf dye (km) | Initial Ro = 0.1 | Initial eddy scales = (25 km, 400m)';
 
@@ -60,7 +60,7 @@ hanno(4) = annotation('textarrow', [0.56 0.6], [0.262 0.28], ...
                       'String', 'anticyclonic eddies', 'LineWidth', 1, ...
                       'FontSize', annofs, 'Color', 'w', 'HeadStyle', 'none');
 
-export_fig -r150 -a2 -painters images/paper2/ew-34-surface-csdye.png
+export_fig -r150 -a2 -opengl images/paper2/ew-34-surface-csdye.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% center tracks
@@ -122,13 +122,6 @@ hpt = findobj(handles.icons, 'Type', 'patch');
 hpt.FaceAlpha = 0.2;
 
 export_fig -r150 -a2 -eps -png images/paper2/flux-diags
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% surface map of eddye for sampling schematic
-
-if ~exist('ew34', 'var') | ~strcmpi(ew34.name, 'ew-34')
-    ew34 = runs('../topoeddy/runew-34/');
-end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% surface map and instantaneous flux
@@ -1087,4 +1080,5 @@ hax(4).XTickLabelMode = 'auto';
 correct_ticks('y', [], '-200');
 beautify;
 
-export_fig -r150 -a2 images/paper2/eddy-intrusion.png
+export_fig -opengl -pdf images/paper2/eddy-intrusion
+%export_fig -r150 -a2 images/paper2/eddy-intrusion.png
