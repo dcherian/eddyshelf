@@ -241,7 +241,7 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
         beautify;
     else
         handles.hax(2) = subplot(m,2,2);
-        plot(abs(trapz(xvec, repnan(csvel.*mask,0), 1)), zvec);
+        plot(abs(trapz(xvec, repnan(csvel.*mask,0), 1)), zvec, 'k');
         handles.hrunname = text(0.8, 0.15, runs.name, 'Units', 'Normalized');
         handles.hline(2) = common(runs, tindex, zrho);
         xlabel('(b) Vertical profile of offshore transport (m^2/s)');

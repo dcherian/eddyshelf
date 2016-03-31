@@ -222,7 +222,6 @@ export_fig -r300 -a2 images/paper2/inst-flux.png
 %% x-z sections
 
 handles = ew34.plot_xzsection(isobath, 225);
-correct_ticks('y', [], {'-50','-300'}, handles.hax);
 delete(handles.hrunname);
 for ii=3:4
     for jj=1:3
@@ -247,6 +246,7 @@ handles.hax(2).YTickLabelMode = 'auto';
 handles.hcb(1).Ticks = sort(unique([handles.hcb(1).Ticks -0.09 0.09]));
 handles.hline(1).htxt{2}.Position(1) = -70;
 handles.hline(1).htxt{3}.Position(1) = -70;
+correct_ticks('y', [], {'-50'}, handles.hax(1));
 
 hanno(1) = annotation('textarrow', [0.19 0.23], [0.78 0.85], 'String', 'intrusion', ...
                       'LineWidth', 1, 'HeadStyle', 'none');
