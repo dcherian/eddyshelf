@@ -256,29 +256,6 @@ hanno(2) = annotation('textarrow', [0.63 0.67], [0.343 0.39], 'String', 'intrusi
 export_fig -r200 -opengl -png -pdf -a2 images/paper2/ew-34-xzsection
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% secondary eddy - 2360
-
-if ~exist('ew2360', 'var') | ~strcmpi(ew2360.name, 'ew-2360_wider')
-    ew2360 = runs('../topoeddy/runew-2360_wider/');
-    xx = [343 346 349]';
-    yy = [231 237 231]';
-end
-opt.addvelquiver = 0;
-opt.csdcontourplot = 0;
-opt.rhocontourplot = 0;
-handles = ew2360.secondary_vortices(95, [xx yy], opt);
-handles.hfield.htrack.delete;
-correct_ticks('y', [], '198', handles.hax(1));
-handles.hax(1).Title.String = 'Cross shelf dye - X_{sb} (km)';
-
-export_fig('-r150', '-opengl', '-a2', ...
-           'images/paper2/ew-2360-secondary-cyclone.png');
-
-handles.hax(3).YLabel.String = 'Z (m)';
-export_fig(handles.hax(3), '-painters', '-a2', ...
-           'images/paper2/ew-2360-secondary-cyclone-rho.pdf');
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% secondary eddy - ew-34
 
 if ~exist('ew34', 'var')
@@ -379,174 +356,6 @@ handles(1).supax.Position(4) = 0.87;
 axes(handles(4).hax); correct_ticks('x', '', '400');
 axes(handles(5).hax); correct_ticks('x', '', '400');
 export_fig -r96 -a2 images/paper2/ew-34-mosaic-zslice.png
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% ew-2360 z-slice mosaic
-
-tinds = [63 70 77 95];
-handles = ew2360.mosaic_zslice('dye_03', 200, tinds);
-for ii=1:length(handles)
-    handles(ii).csdsurf.LevelList = [170] * 1e3;
-    handles(ii).eddsurf.Visible = 'off';
-    handles(1).htext(2).Visible = 'off';
-    handles(ii).rhocont.LineWidth = 2.5;
-    handles(ii).csdsurf.LineWidth = 2.5;
-end
-xlim([265 465]);
-ylim([130 250]);
-handles(3).hax.XTickLabel{end} = '';
-handles(1).htitle.String = 'Eddy dye at z = -200 m | H_{sb} = 100m | Ro = 0.25';
-handles(1).htitle.FontSize = 22;
-handles(1).htitle.FontWeight = 'normal';
-handles(1).supax.Position(4) = 0.88;
-axes(handles(1).hax); correct_ticks('y', '', {'150' '200'});
-axes(handles(3).hax); correct_ticks('y', '', {'150' '200'});
-
-xx = [343 346 349]';
-yy = [231 237 231]';
-
-
-colors = brighten(cbrewer('qual', 'Paired', length(xx)), -0.5);
-axes(handles(4).hax);
-for ii=1:length(xx)
-    hpnt(ii) = plot(xx(ii), yy(ii), 'x', 'Color', colors(ii,:), ...
-                    'MarkerSize', 16);
-end
-hpnt(end+1) = plot(ew2360.eddy.mx(tinds(end))/1000, ew2360.eddy.my(tinds(end))/1000, ...
-                   'x', 'Color', [1 1 1]*0.45, 'MarkerSize', 16);
-
-export_fig -r150 -a2 images/paper2/ew-2360-mosaic-zslice.png
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% bottom rho PV
-
-figure;
-hplt = ew2360.plotBottomRhoPV(70);
-hplt.h_bathy{1}.LineStyle = '--';
-hplt.h_bathy{1}.LineWidth = 1;
-hplt.h_bathy{2}.LineStyle = '--';
-title('Bottom PV with \rho contours');
-xlabel('X (km)');
-ylabel('Y (km)');
-hplt.htext = text(330, 149, 'shelfbreak', 'Color', hplt.h_bathy{2}.Color)
-ylim([140 180]);
-set(gca, 'YTickMode', 'auto');
-
-export_fig -r150 -a2 images/paper2/ew-2360-bottomrhopv.png
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% secondary cyclone x-z section
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% flux summary
-if ~exist('shfric', 'var')
-    folders = { ...
-        'runew-34', 'runew-5341', 'runew-8341', ...
-        'runew-583413', 'runew-583411', ...
-        ... %'runew-583414', 'runew-583415', ...
-              };
-    names = { ...
-        '  0      0'; ...
-        '  0    5e-3'; ...
-        '  0.05     0'; ...
-        '  0.05   5e-4'; ...
-        '  0.05   5e-3'; ...
-            };
-    shfric = runArray(folders, names);
-end
-
-handles = shfric.PlotFluxSummary(1);
-
-axes(handles.hax(1))
-handles.hax(1).Position(2) = 0.68;
-ylim([0 15]);
-delete(handles.hleg);
-handles.hleg(1) = legend(handles.hflux(1:2), shfric.name{1:2});
-handles.hleg(2) = legend(handles.henv(3:5), shfric.name{3:5});
-handles.hleg(1).Box = 'off';
-handles.hleg(2).Box = 'off';
-handles.hleg(1).Position(1) = 0.69;
-handles.hleg(1).Position(2) = 0.79;
-pos1 = handles.hleg(1).Position;
-handles.hleg(2).Position(1) = handles.hleg(1).Position(1) + pos1(3) + 0.02;
-handles.hleg(2).Position(2) = pos1(2) + pos1(4) - handles.hleg(2).Position(4);
-
-tblx = [0.685 0.905] + 0.006;
-htable(1) = text(1.21, pos1(2)+0.08, 'S_{sh}   r', 'Units', 'normalized');
-htable(2) = text(1.45, pos1(2)+0.08, 'S_{sh}     r', 'Units', 'normalized');
-htable(3) = annotation('line', tblx, [1 1]*0.890, 'LineWidth', 1);
-htable(4) = annotation('line', tblx, [1 1]*0.848, 'LineWidth', 1);
-htable(5) = annotation('line', tblx, [1 1]*0.760, 'LineWidth', 1);
-linkprop(htable, 'Color');
-htable(1).Color = handles.hax(1).XAxis.Color;
-linkprop(handles.hleg, 'TextColor');
-handles.hleg(1).TextColor = htable(1).Color;
-
-% avg ssh
-linkaxes(handles.hax, 'off');
-linkaxes(handles.hax(1:2), 'x');
-axes(handles.hax(3));
-cla(handles.hax(3), 'reset');
-handles2 = shfric.plot_avgProfile('zeta', 'y', 'sb', 1, handles.hax(3));
-xlim([-200 200]);
-ax = handles.hax(3);
-dy = ax.YTick(2);
-for ii= [1 2]
-    handles2.hpltsh(ii).YData = handles2.hpltsh(ii).YData + dy;
-    handles2.hplted(ii).YData = handles2.hplted(ii).YData + dy;
-end
-
-handles2.hl.YData = ylim;
-legend('off');
-title(''); ylabel('');
-handles2.htxt(1) = text(0.05,0.85, 'Mean SSH at shelfbreak (m)', ...
-                     'Units', 'Normalized', 'FontSize', handles.htxt(1).FontSize);
-handles2.htxt(2) = text(-150, 7e-4, 'Flat shelf', 'Units', 'data', ...
-                        'HorizontalAlignment', 'center');
-handles2.htxt(3) = text(-150, 2e-4, 'Sloping shelf', 'Units', 'data', ...
-                        'HorizontalAlignment', 'center');
-handles2.htxt(4) = text(-50, 1e-3, 'Shelf water', 'Units', 'data', ...
-                        'HorizontalAlignment', 'center', 'FontWeight', 'bold');
-handles2.htxt(5) = text(150, 1e-3, 'Eddy water', 'Units', 'data', ...
-                        'HorizontalAlignment', 'center');
-linkprop(handles2.htxt(4:5), 'Color');
-handles2.htxt(4).Color = [1 1 1]*0.7;
-
-% colors
-colors = flip(cbrewer('seq', 'Reds', 4));
-colors(2,:) = colors(3,:);
-colors(3:7,:) = flip(cbrewer('seq', 'Blues', 5));
-
-for ii=1:length(handles.hflux)
-    handles.hflux(ii).Color = colors(ii,:);
-    handles.henv(ii).Color = colors(ii,:);
-    handles.hprofile(ii).Color = colors(ii,:);
-    handles2.hpltsh(ii).Color = colors(ii,:);
-    handles2.hplted(ii).Color = colors(ii,:);
-    handles2.hpltsh(ii).LineStyle = '-';
-    handles2.hplted(ii).LineStyle = '-';
-end
-handles2.htxt(2).Color = colors(2,:);
-handles2.htxt(3).Color = colors(5,:);
-uistack(handles2.hplted(3), 'top');
-
-%L_β annotation
-axes(handles.hax(2))
-run = shfric.array(3);
-[start,stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
-[V0,L0,Lz0] = run.EddyScalesForFlux(start,stop);
-betash = run.params.phys.f0 / run.bathy.hsb * run.params.bathy.sl_shelf;
-Lbeta = sqrt(V0/betash);
-hlbeta = liney(-Lbeta/1000); uistack(hlbeta, 'bottom');
-correct_ticks('y', [], '-10');
-hanno = annotation('doublearrow', [1 1]*.55, [0 0.075]+0.545);
-hanno.LineWidth = 1; hanno.Color = hlbeta.Color;
-hanno.HeadSize = 8; hanno.HeadStyle = 'vback3';
-htext = text(430, -Lbeta/2000, 'L_\beta', 'Color', hlbeta.Color);
-linkprop([htext hanno hlbeta], 'Color');
-htext.Color = handles2.htxt(3).Color;
-
-%export_fig -r150 -a2 -painters -pdf -png images/paper2/sb-flux-summary
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% avg streamer profiles - shelfbreak
 
@@ -566,67 +375,6 @@ handles.ax(3).XLim = [0 0.6];
 hanno = annotation('textarrow', [0.435 0.335], [0.5 0.6], 'String', 'intrusion', ...
                    'HeadStyle', 'none', 'LineWidth', 1);
 export_fig -r150 -a2 images/paper2/ew34-avgstreamer-sl.png
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% flux vertical profiles
-
-clear handles;
-if ~exist('fluxvert', 'var')
-    fluxvert = runArray({'runew-2360_wider', 'runew-34-cyc'});
-end
-
-day = {'119'; []; '75'};
-names = {'Anticyclone'; 'Cyclone'}; %; 'Anticyclone - flat bottom'};
-opt.rhocontours = 1;
-figs(2) = 1;
-fluxvert.plot_fluxes(4, [],[],figs);
-title('');
-legend(names, 'Location', 'SouthEast')
-set(gcf, 'Position', [1 1 800 821]);
-beautify;
-hax(4) = gca;
-subplot(2,2,[2 4],hax(4));
-axes(hax(4));
-pbaspect([1 1 1]);
-hax(4).Position(1) = 0.65;
-hax(4).Position(3) = 0.28;
-
-for ii=1:2
-    hax(ii) = subplot(2,2,1 + 2*(ii-1));
-    handles(ii) = ...
-        fluxvert.array(ii).PlotSingleXZSection('v', 4, day{ii}, opt, hax(ii));
-    title(names{ii});
-    if ii ~= fluxvert.len
-        hax(ii).XTickLabel = {};
-        xlabel('');
-    end
-    handles(ii).htime.Position(2) = 0.11;
-end
-hax(2).Title.Color = hax(4).Children(1).Color;
-hax(1).Title.Color = hax(4).Children(2).Color;
-
-linkaxes(hax(1:fluxvert.len), 'xy')
-ylim([-400 0]);
-xlim([-100 100]);
-
-axes(hax(1));
-correct_ticks('y', [], '-100');
-axes(hax(2));
-correct_ticks('y', [], {'-100'; '-300'});
-
-handles(1).hcb.Position(1) = 0.5;
-handles(2).hcb.Position(1) = 0.5;
-handles(2).hcb.Label.String = {'Cross-shelf'; 'velocity (m/s)'};
-handles(2).hcb.Label.Position = [1.0 0.135 0];
-handles(2).hcb.Label.Rotation = 0;
-
-for ii=1:2
-    handles(ii).htext{1}.Units = 'Normalized';
-    handles(ii).htext{2}.Units = 'Normalized';
-    handles(ii).htext{1}.Position(1) = 0.5;
-    handles(ii).htext{2}.Position(1) = 0.5;
-end
-export_fig -r150 -a2 images/paper2/fluxvertprofile.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% shelfbreak flow surface snapshot
@@ -742,9 +490,6 @@ folders = { ...
 
 if ~exist('csf', 'var'), csf = runArray(folders); end
 
-%hax = csf.plot_fluxparam('avg flux', 1, 'no_sloping_shelf');
-
-
 commands = 'no_sloping_shelf; no_name_points';
 
 figure; maximize;
@@ -800,23 +545,6 @@ hax(2).Position(2) = 0.45;
 export_fig -a2 -r200 images/paper2/avgflux-summary.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% max flux
-
-hax = csf.plot_fluxparam('max flux');
-hax(2).Title.String = 'Integrated to shelfbreak depth';
-for ii=[2 4:9]
-    hax(ii).XLim = [0 300];
-    hax(ii).XTick = [0:100:300];
-end
-
-axes(hax(3));
-hleg = legend;
-hleg.Position(1) = 0.82;
-ylim([-1 1]*55);
-
-export_fig -r150 -a2 images/paper2/maxflux.png
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 3d schematics
 if ~exist('ew34', 'var') | ~strcmpi(ew34.name, 'ew-34')
     ew34 = runs('../topoeddy/runew-34/');
@@ -831,7 +559,7 @@ annocolor = 'k'; %[1 1 1]*0.5;
 annofs = 23;
 annolw = 0.5;
 annoheadstyle = 'none'; 'cback3';
-annofontname = 'Futura Bk BT';
+annofontname = 'Fira Sans';
 
 zoomin = 1; % for presentation
 opt.MoveToZLevel = -850;
@@ -989,50 +717,6 @@ if zoomin
 end
 toc;
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% western coast
-
-if ~exist('ns', 'var')
-    ns = runs('../topoeddy/runns-35/');
-end
-
-timesteps = [1 75 150 200 280 400];
-
-opt.csdcontourplot = 0;
-opt.csdcontours = ns.csflux.x([1 4 8]);
-opt.addvelquiver = 0;
-opt.addzeta = 1;
-handles = ns.mosaic_field('csdye', timesteps, opt);
-for ii=1:6
-    handles.hfield{ii}.hzeta.LevelList = linspace(0, 0.025, 6);
-    handles.hfield{ii}.hzetaneg.LevelList = linspace(-0.01,0,6);
-    handles.hfield{ii}.htlabel.Position(1) = 0.55;
-    handles.hfield{ii}.htlabel.Position(2) = 0.06;
-end
-handles.hcb.delete;
-
-ylim([min(ylim) 300]);
-handles.supax.Position(4) = 0.88;
-handles.htitle.String = 'Surface cross-shelf dye (km)';
-
-axes(handles.hax(1));
-[hleg,icons] = legend([handles.hfield{1}.hcen, ...
-                    handles.hfield{1}.htrack, ...
-                    handles.hfield{1}.hrho, ...
-                    handles.hfield{1}.hzeta], ...
-                      {'Eddy center', 'Center track', 'Eddy core', 'SSH'}, ...
-                      'Location', 'NorthWest'); %, 'FontSize', 14);
-hleg.Box = 'off';
-hleg.Position(1) = 0.26;
-hleg.Position(2) = 0.56;
-icons(end).Children.Children(1).LineWidth = 1;
-icons(end).Children.Children(2).LineWidth = 1;
-icons(end).Children.Children(3).LineWidth = 1;
-
-correct_ticks('x', [], {'50'; '100'}, handles.hax(4:6));
-
-export_fig -painters -a2 images/paper2/ns-35-csdsurf.png
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
 %% churchill figure
 if ~exist('ew36', 'var')
@@ -1080,5 +764,5 @@ hax(4).XTickLabelMode = 'auto';
 correct_ticks('y', [], '-200');
 beautify;
 
-export_fig -opengl -pdf images/paper2/eddy-intrusion
+export_fig -opengl -png images/paper2/eddy-intrusion
 %export_fig -r150 -a2 images/paper2/eddy-intrusion.png
