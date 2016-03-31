@@ -94,6 +94,7 @@ hanno = annotation('textarrow', [0.65 0.72], [0.42 0.46], ...
 
 export_fig -r300 -a2 -png -pdf images/paper2/centracks
 
+startup
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% flux diagnostics
 
@@ -399,6 +400,8 @@ handles = ew34.animate_field('csdye', ax(1), tindex, 1, opt);
 
 ylim([0 120]);
 hline = linex(ew34.eddy.mx(tindex)/1000, [], 'w');
+hline.LineWidth = 2;
+uistack(handles.hcen, 'top');
 
 handles.hbathy{1}.ShowText = 'off';
 handles.hquiv.Color = [1 1 1]*1;
@@ -415,6 +418,7 @@ handles.hbathy{1}.Color = [1 1 1]*0;
 htitle = title('Cross shelf dye and velocity direction');
 htitle.FontSize = 26;
 ax(1).XTickLabel = {};
+ax(1).XLabel.String = '';
 handles.hcb.Position(1) = 0.82;
 handles.hcb.Position(2) = 0.55;
 handles.hcb.Position(4) = 0.34;
@@ -764,5 +768,5 @@ hax(4).XTickLabelMode = 'auto';
 correct_ticks('y', [], '-200');
 beautify;
 
-export_fig -opengl -png images/paper2/eddy-intrusion
+export_fig -r300 -opengl -png images/paper2/eddy-intrusion
 %export_fig -r300 -a2 images/paper2/eddy-intrusion.png
