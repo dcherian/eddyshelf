@@ -1,4 +1,4 @@
-function [] = VolumeBudget(runs)
+function [handles] = VolumeBudget(runs)
 
     runs.read_velbar;
     runs.read_zeta;
@@ -59,15 +59,15 @@ function [] = VolumeBudget(runs)
     figure; maximize;
     insertAnnotation([runs.name '.VolumeBudget']);
     hold on;
-    plot(runs.csflux.time/86400, runs.csflux.off.slope(:,1,1), ...
-         'Color', [1 1 1]*0.75);
-    plot(runs.time/86400, intAS(isb,:)');
-    plot(runs.time/86400, -1*intCS(1,:)');
-    plot(runs.time/86400, intCS(2,:)');
-    plot(avg1(runs.time/86400), ...
-         intZT - avg1(intAS(isb,:) + intCS(2,:) - intCS(1,:))', 'k');
-    plot(runs.time/86400, -runs.csflux.off.slope(:,1,1) + intAS(isb,:)', ...
-         'Color', [1 1 1]*0.75, 'LineStyle', '--');
+    handles.shelfonly = plot(runs.csflux.time/86400, runs.csflux.off.slope(:,1,1), ...
+                          'Color', [1 1 1]*0.75);
+    handles.totalsb = plot(runs.time/86400, intAS(isb,:)');
+    handles.lowsponge = plot(runs.time/86400, -1*intCS(1,:)');
+    handles.hisponge = plot(runs.time/86400, intCS(2,:)');
+    handles.residual = plot(avg1(runs.time/86400), ...
+                            intZT - avg1(intAS(isb,:) + intCS(2,:) - intCS(1,:))', 'k');
+    handles.nonshelf = plot(runs.time/86400, -runs.csflux.off.slope(:,1,1) + intAS(isb,:)', ...
+                            'Color', [1 1 1]*0.75, 'LineStyle', '--');
     xlabel('Time (days)');
     ylabel('Total volume flux (m^3/s)');
     xlim([0 max(runs.time/86400)]);
@@ -79,10 +79,13 @@ function [] = VolumeBudget(runs)
     hax = gca;
     hax.XAxisLocation = 'origin';
     hax.XLabel.Position(1) = max(runs.time/86400);
-    legend('Offshore flux of shelf water', 'At shelfbreak', ...
-           'At sponge (low)', 'At sponge (high)', 'budget residual', ...
-           'Non-shelf water flow at shelfbreak', 'Location', 'NorthWest');
+    hleg = legend('Offshore flux of shelf water', 'At shelfbreak', ...
+                  'At sponge (low)', 'At sponge (high)', 'budget residual', ...
+                  'Non-shelf water flow at shelfbreak', 'Location', 'NorthWest');
     title([runs.name ' | Volume budget']);
-    beautify;
+    beautify([22 24 28]);
 
+    handles.htxt = htxt;
+    handles.hax = hax;
+    handles.hleg = hleg;
 end
