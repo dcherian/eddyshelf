@@ -56,34 +56,44 @@ function [handles] = VolumeBudget(runs)
     intCS = squeeze(trapz(csvec, asvel, csax));
     intZT = squeeze(trapz(asvec, trapz(csvec, zt, csax), asax));
 
+    eddyeColor = runs.eddyeColormap;
+
     figure; maximize;
     insertAnnotation([runs.name '.VolumeBudget']);
     hold on;
+    handles.totalsb = plot(runs.time/86400, intAS(isb,:)', 'Color', 'k', ...
+                           'DisplayName', 'Cross-shelf: total');
     handles.shelfonly = plot(runs.csflux.time/86400, runs.csflux.off.slope(:,1,1), ...
-                          'Color', [1 1 1]*0.75);
-    handles.totalsb = plot(runs.time/86400, intAS(isb,:)');
-    handles.lowsponge = plot(runs.time/86400, -1*intCS(1,:)');
-    handles.hisponge = plot(runs.time/86400, intCS(2,:)');
-    handles.residual = plot(avg1(runs.time/86400), ...
-                            intZT - avg1(intAS(isb,:) + intCS(2,:) - intCS(1,:))', 'k');
+                             'Color', runs.shelfSlopeColor('light'), 'LineStyle', '--', ...
+                             'DisplayName', 'Cross-shelf: shelf water');
     handles.nonshelf = plot(runs.time/86400, -runs.csflux.off.slope(:,1,1) + intAS(isb,:)', ...
-                            'Color', [1 1 1]*0.75, 'LineStyle', '--');
+                            'Color',eddyeColor(end-3,:,:), 'LineStyle', '--', ...
+                            'DisplayName', 'Cross-shelf: eddy/slope water');
+    handles.hisponge = plot(runs.time/86400, intCS(2,:)', ...
+                            'DisplayName', 'Along-shelf: high sponge');
+    handles.lowsponge = plot(runs.time/86400, -1*intCS(1,:)', ...
+                             'DisplayName', 'Along-shelf: low sponge');
+    handles.residual = plot(avg1(runs.time/86400), ...
+                            intZT - avg1(intAS(isb,:) + intCS(2,:) - intCS(1,:))', ...
+                            'Color', [1 1 1]*0.65, ...
+                            'DisplayName', 'Budget residual');
     xlabel('Time (days)');
     ylabel('Total volume flux (m^3/s)');
     xlim([0 max(runs.time/86400)]);
-    htxt(1) = text(0.5,0.1, 'Import', 'Units', 'Normalized');
-    htxt(2) = text(0.5, 0.9, 'Export', 'Units', 'Normalized');
+    hax = gca;
+    htxt(1) = text(0.2,0.2, 'domain gains water', 'Units', 'Normalized');
+    htxt(2) = text(0.2, 0.8, 'domain loses water', 'Units', 'Normalized');
+    htxt(1).Units = 'data'; htxt(1).Position(2) = hax.YTick(find(hax.YTick < 0, 1, 'last'))*1.5;
+    htxt(2).Units = 'data'; htxt(2).Position(2) = hax.YTick(find(hax.YTick > 0, 1, 'first'))*1.5;
     linkprop(htxt,{'FontSize', 'Color'});
     htxt(1).FontSize = 20;
     htxt(1).Color = [1 1 1]*0.55;
-    hax = gca;
+
     hax.XAxisLocation = 'origin';
-    hax.XLabel.Position(1) = max(runs.time/86400);
-    hleg = legend('Offshore flux of shelf water', 'At shelfbreak', ...
-                  'At sponge (low)', 'At sponge (high)', 'budget residual', ...
-                  'Non-shelf water flow at shelfbreak', 'Location', 'NorthWest');
+    hleg = legend('show', 'Location', 'NorthWest');
     title([runs.name ' | Volume budget']);
     beautify([22 24 28]);
+    hax.XLabel.Position(1) = max(runs.time/86400);
 
     handles.htxt = htxt;
     handles.hax = hax;
