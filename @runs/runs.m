@@ -3452,10 +3452,16 @@ methods
         colors = brighten(cbrewer('seq', 'Reds', 20), 0.4);
         colors = colors(1:end-3,:);
     end
-    function [color] = shelfSlopeColor(runs)
-    % color = [1 1 1]*0.55;
-    %color = [49,130,189]/256;
-        color = [8 48 107]/255;
+    function [color] = shelfSlopeColor(runs, type)
+        if ~exist('type', 'var') | isempty(type)
+            type = 'light';
+        end
+        % color = [1 1 1]*0.55;
+        if strcmpi(type, 'light')
+            color = [49,130,189]/256;
+        else
+            color = [8 48 107]/256;
+        end
     end
     function [color] = rhoContColor(runs)
     % color = 'k';

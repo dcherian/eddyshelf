@@ -425,7 +425,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     if csdcontourplot
         handles.hcsd = runs.plot_surf('csdsurf', 'contour', ii);
         handles.hcsd.LevelList = csdcontours;
-        handles.hcsd.Color = [8 48 107]/255;
+        handles.hcsd.Color = runs.shelfSlopeColor('dark');
         handles.hcsd.LineWidth = 1;
         handles.hcsd.XData = handles.hcsd.XData - dx;
         handles.hcsd.YData = handles.hcsd.YData - dy;
