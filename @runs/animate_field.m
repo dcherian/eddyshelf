@@ -5,7 +5,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     runs.video_init(name);
     titlestr = [];
 
-    fontsize = [16 16 18];
+    fontsize = [];
 
     % zoom in axis?
     limx = [165 410]; limy = [0 120];
