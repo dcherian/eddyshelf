@@ -21,11 +21,12 @@ function [] = avgSupplyJet(runs)
     zmat = runs.rgrid.z_r(:,1:isb,xind)';
     ymat = repmat(yvec, [1 N]);
 
+    % ignore wall ghost point
     volr = {'x' xind xind;
-            'y' 1 isb};
+            'y' 2 isb};
 
     volv = {'x' xind-1 xind;
-            'y' 1 isb};
+            'y' 2 isb};
 
     % vars are (y,z,t)
     asvel = squeeze(avg1(dc_roms_read_data(runs, runs.asvelname, tindices, volv),1));
@@ -38,12 +39,14 @@ function [] = avgSupplyJet(runs)
         asvint(ii) = trapz(zmat(ii,:), asvmean(ii,:));
     end
 
-    [~,imin] = min(asvint./runs.bathy.h(1,1:isb));
+    [~,imin] = min(asvint./runs.bathy.h(1,2:isb));
     exitflag = 0;
     i0 = 1;
     while ~exitflag
-        [v0,X,v1,exitflag] = gauss_fit(yvec(i0:imin), asvint(i0:imin), 0);
-        i0 = i0 + 1;
+        [v0,X,v1,exitflag] = gauss_fit(yvec(i0:imin), asvint(i0:imin), 1);
+        if ~exitflag
+            i0 = i0 + 1;
+        end
         % this condition is bad. I can make any value I want.
         %if (yvec(imin) + X) > runs.bathy.xsb*1.5
         %    exitflag = 0;
