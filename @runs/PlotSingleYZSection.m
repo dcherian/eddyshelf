@@ -48,8 +48,16 @@ function [handles] = PlotSingleYZSection(runs, varname, days, loc, hax)
         iloc = find_approx(pb.xvec, str2double(loc),1);
     end
 
-    var = dc_roms_read_data(runs.dir, varname, tindices, ...
-                           {bathyax locstr locstr}, [], runs.rgrid, 'his');
+    if strcmpi(varname, 'rhoanom')
+        var = dc_roms_read_data(runs.dir, 'rho', tindices, ...
+                                {bathyax locstr locstr}, [], runs.rgrid, 'his');
+        var = bsxfun(@minus, var, tback);
+        varname = '\rho''';
+    else
+        var = dc_roms_read_data(runs.dir, varname, tindices, ...
+                                {bathyax locstr locstr}, [], runs.rgrid, 'his');
+    end
+
     if strcmpi(varname, runs.csdname)
         var = var/1000;
     end
