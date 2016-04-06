@@ -1,3 +1,24 @@
+%% ew-34
+if ~exist('ew34', 'var')
+    ew34 = runs('../topoeddy/runew-34/')
+    ew34.read_csdsurf;
+end
+ew34.makeVideo = 1;
+ew34.video_init('csd-plain');
+handles = ew34.plot_surf('csdsurf', 'contourf', 330);
+handles.EdgeColor = 'none';
+hax = gca;
+hax.XAxis.Color = 'none';
+hax.YAxis.Color = 'none';
+colormap(cbrewer('seq', 'Greys', 32));
+caxis([30 160]*1e3);
+ew34.video_update;
+for tt=330:350
+    ew34.update_surf('csdsurf', handles, tt);
+    ew34.video_update;
+end
+ew34.video_write;
+
 %% ew-34 vertprofile
 % density profile changes with time as it adjusts to no-flux boundary condition. For some
 % runs (ew-34 etc). this is on the order of Δρ seen due to up/downwelling in cyclone. So, ignore!!!
