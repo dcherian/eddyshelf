@@ -1012,12 +1012,13 @@ classdef runArray < handle
                     [~,maxloc] = run.calc_maxflux(2);
                 end
 
-                try
-                    eval(['vec = run.' tsname ';']);
-                catch
-                    eval(['vec = ' tsname ';']);
-                end
-                hplt(ff) = plot(ndtime, vec);
+                use run.params;
+                bathy = run.bathy;
+                eddy = run.eddy;
+
+                eval(['vec = ' tsname ';']);
+
+                hplt(ff) = plot(ndtime, vec(1:run.eddy.tend));
                 plot(ndtime(tind), vec(tind), 'kx');
                 if exist('maxloc', 'var')
                     plot(ndtime(maxloc), vec(maxloc), 'ko');
