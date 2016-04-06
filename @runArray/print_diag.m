@@ -18,7 +18,8 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
         runArray.filter = 1:runArray.len;
     end
 
-    if ~strcmpi(name, 'nondim') && ~strcmpi(name, 'beta gyre') ...
+    if ~strcmpi(name, 'params table') && ~strcmpi(name, 'nondim') ...
+            && ~strcmpi(name, 'beta gyre') ...
             && ~strcmpi(name, 'bfric') && ~strcmpi(name, 'hbl') ...
             && ~strcmpi(name, 'arrest') && isempty(strfind(commands, 'no_plots'))
         plots = 1;
@@ -112,6 +113,9 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
         hsl = run.bathy.hsl;
         xsb = run.bathy.xsb;
         xsl = run.bathy.xsl;
+        bathy = run.bathy;
+        eddy = run.eddy;
+
         if run.bathy.axis == 'y'
             fsb = run.rgrid.f(run.bathy.isb,1);
         else
@@ -627,8 +631,6 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
 
         % nondim parameters to compare runs
         if strcmpi(name, 'diff') || strcmpi(name, 'nondim')
-
-
             [~,~,tres] = run.locate_resistance;
             beta_t = f0 * run.bathy.sl_shelf./run.bathy.hsb;
             if ff == 1
@@ -642,6 +644,27 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
                          Ro(1), beta*Lx(1)/f0, beta_t, ...
                          Lx(1)./run.bathy.L_slope, ...
                          hsb./Lz(itsl)));
+            continue;
+        end
+
+        if strcmpi(name, 'params table')
+            [~,~,tres] = run.locate_resistance;
+
+            if ff == 1
+                fid = fopen(args, 'w');
+                fprintf(fid, ['|- \n | Name | $L$ (km) | $L_z$ (m) | $\\Ro$ | $\\lambda$ | $L\\sh$ (km) | ' ...
+                                 '$L\\sl$ (km) | $S\\sh$ | $S\\sl$ | $N^2$ | $f_0$ | $\\beta$' ...
+                                 '| $r$ (m/s) | \n |- \n']);
+                fclose(fid);
+            end
+            fid = fopen(args, 'a');
+            fprintf(fid, ['| %s | %2.0f | %3.0f | %.2f | %.2f | %3d | %3d | %.2f | %.2f ' ...
+                    '| %1.1e | %1.1e | %1.1e | %1.1e |\n'], ...
+                    runName, Lx(itsl)/1000, Lz(itsl), ...
+                    Ro(1), hsb./Lz(itsl), bathy.L_shelf/1000, ...
+                    bathy.L_slope/1000, bathy.S_sh, bathy.S_sl, ...
+                    N^2, f0, beta, run.params.misc.rdrg);
+            fclose(fid);
             continue;
         end
 
@@ -1304,6 +1327,16 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
         end
 
         beautify([18 22 26]);
+    end
+
+    if strcmpi(name, 'params table')
+        diags = '|- \n';
+
+        fid = fopen(args, 'a');
+        fprintf(fid, diags);
+        fclose(fid);
+
+        type(args);
     end
 end
 

@@ -791,3 +791,9 @@ handles.hax(3).YLabel.String = 'Depth, Z (m)';
 handles.htxt(2,3).VerticalAlignment = 'top';
 export_fig(handles.hax(3), '-r300', '-a2', ...
            'images/paper2/ew-2360-secondary-cyclone-rho.png');
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% try table
+csf.name{11} = 'ew-2360';
+csf.name{12} = 'ew-2365';
+csf.print_diag('params table', 'images/paper2/csf-params-table.txt')
