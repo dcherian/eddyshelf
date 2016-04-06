@@ -1,5 +1,5 @@
 % calculates and saves average velocity seen by shelf-slope water at a given isobath
-function [] = avgStreamerVelSection(runs)
+function [] = avgStreamerVelSection(runs, iso)
 
     ticstart = tic;
     debug = 0;
@@ -7,6 +7,10 @@ function [] = avgStreamerVelSection(runs)
     disp('===================================')
     disp([runs.name '.avgStreamerVelSection']);
     disp('===================================')
+
+    if ~exist('iso', 'var') | isempty(iso)
+        iso = [1:niso];
+    end
 
     xivec = -200:runs.rgrid.dx/1000:200;
     xl = length(xivec);
@@ -18,7 +22,7 @@ function [] = avgStreamerVelSection(runs)
     offvmean = nan(szmeanvel);
     onvmean = nan(szmeanvel);
 
-    for isobath = 1:niso
+    for isobath = iso
         source = isobath;
         [start,stop] = runs.flux_tindices(runs.csflux.off.slope(:, isobath, source));
         tindices = [start stop];
