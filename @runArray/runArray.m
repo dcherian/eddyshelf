@@ -170,7 +170,7 @@ classdef runArray < handle
                 try
                     msg = [runArray.array(ii).name];
                     if isempty(strfind(runArray.array(ii).eddy.hash, ...
-                                       '31d29d2416ec11995254f79538116'))
+                                       githash('./track_eddy.m')))
                         warning(msg);
                     end
                 catch ME
@@ -183,7 +183,7 @@ classdef runArray < handle
                 try
                     msg = [runArray.array(ii).name ' is outdated: csflux'];
                     if isempty(strfind(runArray.array(ii).csflux.hash, ...
-                                       'f5e60c322e2577520549a6c2951ccc830f4cf9b0'))
+                                       githash('./@runs/csfluxes.m')))
                         warning(msg);
                     end
                 catch ME
@@ -196,7 +196,7 @@ classdef runArray < handle
                 try
                     msg = [runArray.array(ii).name ' is outdated: streamer'];
                     if isempty(strfind(runArray.array(ii).streamer.hash, ...
-                                       '801633fe52c9a30bbfd152ac9f71'))
+                                       githash('./@runs/avgStreamerVelSection.m')))
                         warning(msg);
                     end
                 catch ME
