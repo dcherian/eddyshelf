@@ -137,13 +137,13 @@ classdef runArray < handle
         % diagnostics from a sorted runArray object
         function [corder_backup] = sorted_colors(runArray)
             corder_backup = get(groot, 'defaultAxesColorOrder');
-            if runArray.sorted
-                if isempty(runArray.filter)
-                    len = runArray.len;
-                else
-                    len = length(runArray.filter);
-                end
+            if isempty(runArray.filter)
+                len = runArray.len;
+            else
+                len = length(runArray.filter);
+            end
 
+            if runArray.sorted
                 colors = brighten(cbrewer('seq','Reds',len), -0.5);
                 set(groot, 'defaultAxesLineStyleorder','-');
                 if runArray.flip_colors
@@ -151,6 +151,8 @@ classdef runArray < handle
                 else
                     set(groot, 'defaultAxesColorOrder', colors);
                 end
+            else
+                set(groot, 'defaultAxesColorOrder', linspecer(len));
             end
         end
 
