@@ -11,6 +11,8 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
 
     corder_backup = runArray.sorted_colors;
 
+    useAvgStreamer = 1;
+
     figs(length(figs)+1:10) = 0;
 
     if figs(1)
@@ -117,9 +119,14 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
         %%%%%% BAROCLINICITY
         if figs(2)
             figure(hfig2)
-            profile = ...
-                run.csflux.off.slopewater.vertitrans(:,isobath,source);
-            vertbins = run.csflux.vertbins(:,isobath);
+            if useAvgStreamer & ~isnan(run.streamer.off.xwidth(isobath))
+                profile = run.streamer.off.zprof(:,isobath);
+                vertbins = run.streamer.zvec(:,isobath);
+            else
+                profile = ...
+                    run.csflux.off.slopewater.vertitrans(:,isobath,source);
+                vertbins = run.csflux.vertbins(:,isobath);
+            end
             zvec = vertbins ./ hsb; %max(abs(vertbins));
             zind = find_approx(vertbins, -1*hsb);
 
@@ -283,8 +290,9 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
         xlim([0 limx(2)]);
         xlabel('Normalized area transported');
         ylabel('Z / H_{sb}');
-        title(['ND isobath = ', locstr]);
-        legend(hgplt2, names2, 'Location', 'SouthEast');
+        text(0.1, 0.1, ['y/R = ' num2str(run.csflux.ndloc(isobath))], ...
+             'Units', 'normalized');
+        legend(hgplt2, names2, 'Location', 'NorthWest');
         beautify;
     end
 
