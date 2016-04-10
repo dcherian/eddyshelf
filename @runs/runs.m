@@ -1426,8 +1426,9 @@ methods
         imin = imin;
         tvec = runs.eddy.t*86400;
 
-        [v0, T, t0, exitflag] = gauss_fit(tvec(imin:end) - tvec(imin), ...
-                                          cvy(imin:end)./cvy(imin), debug);
+        [v0, T, t0, v1, exitflag] = gauss_fit(tvec(imin:end) - tvec(imin), ...
+                                              (cvy(imin:end) - cvy(end))./cvy(imin), ...
+                                              debug);
         tfit = T + tvec(imin) + t0;
         itfit = find_approx(tvec, tfit, 1);
         BadFitFlag = ~exitflag;
