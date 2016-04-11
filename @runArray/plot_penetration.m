@@ -31,7 +31,7 @@ function [] = plot_penetration(runArray, ax, choices)
     if flag(6) == 0
         dt = 100; % default
     else
-        dt = flag(6);
+        dt = flag(7);
     end
 
     % shelfbreak label options
