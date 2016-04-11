@@ -10,19 +10,21 @@ function [] = plot_penetration(runArray, ax, choices)
 
     if ~exist('choices', 'var'), choices = []; end
     cmd_list = {'mark_timestamp', 'mark_slopebreak', 'mark_fittraj', ...
-               'mark_resistance', 'all','dt'};
+               'mark_resistance', 'mark_fitvel', 'all','dt'};
 
     [flag, ~] = parse_commands(cmd_list, choices);
     mark_timestamp = flag(1);
     mark_slopebreak = flag(2);
     mark_fittraj = flag(3);
     mark_resistance = flag(4);
+    mark_fitvel = flag(5);
 
-    if flag(5)
+    if flag(6)
         mark_timestamp = 1;
         mark_slopebreak = 1;
         mark_fittraj = 0;
-        mark_resistance = 1;
+        mark_resistance = 0;
+        mark_fitvel = 1;
     end
 
     % dt for mark_timestamp
@@ -83,8 +85,8 @@ function [] = plot_penetration(runArray, ax, choices)
             tinds = [];
         end
 
-        %[~,~,tind] = run.locate_resistance;
-        tind = run.FitCenterVelocity; tind = tind(1);
+        [~,~,tres] = run.locate_resistance;
+        tfit = run.FitCenterVelocity;
 
         % normalization for axes
         xnorm = run.eddy.vor.dia(1)/2;
@@ -142,9 +144,15 @@ function [] = plot_penetration(runArray, ax, choices)
 
         % mark start of resistance
         if mark_resistance
-            [~,~,tind] = run.locate_resistance;
-            plot(x(tind), y(tind), 'x', ...
+            [~,~,tres] = run.locate_resistance;
+            plot(x(tres), y(tres), 'x', ...
                  'Color', color, 'Markersize', 22);
+        end
+
+        if mark_fitvel
+            plot(x(tfit(1)), y(tfit(1)), 'x', 'Color', color, 'MarkerSize', 22);
+            %keyboard;
+            %h2 = scatter(x(tfit(2):tfit(3)), y(tfit(2):tfit(3)), 24, color, 'filled');
         end
 
         if run.bathy.L_slope/run.eddy.vor.dia(1) > 1 && ...
