@@ -9,14 +9,16 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt)
         opt.zetaOnFirstPlot = 0;
     end
 
-    N = ceil(length(timesteps)/2);
+    Nt = length(timesteps);
+    N = ceil(Nt/2);
     letters = 'abcdefghijkl';
 
     figure; maximize;
-    if N~=1
-        handles.hax = packfig(2, N);
+    if Nt == 2 | Nt == 3
+        handles.hax = packfig(1, Nt);
+        N = 1;
     else
-        handles.hax = packfig(N, 2);
+        handles.hax = packfig(2, N);
     end
 
     insertAnnotation([runs.name '.mosaic_field']);
@@ -49,28 +51,28 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt)
                 ylabel('');
             end
         else
-            if  ii == 2 % take out y tick labels for first column
+            if  ii > 1 % take out y tick labels for first column
                 handles.hax(ii).YTickLabel = {};
                 ylabel('');
             end
         end
 
-        if ii ~= N*2
+        if ii ~= Nt
             colorbar('off');
         else
             handles.hcb = colorbar;
         end
     end
 
-    switch N
-      case 1
-        moveColorbarOut1x2(handles.hcb);
-      otherwise
-        moveColorbarOut2x2(handles.hcb);
-    end
 
-    if runs.bathy.axis == 'y' & N ~= 1
-        moveSubplotsCloserInY(2, N, handles.hax);
+    if N == 1
+        moveColorbarOut1x2(handles.hcb);
+    else
+        moveColorbarOut2x2(handles.hcb);
+
+        if runs.bathy.axis == 'y'
+            moveSubplotsCloserInY(2, N, handles.hax);
+        end
     end
 
     linkaxes(handles.hax, 'xy'); axis tight;
@@ -79,4 +81,5 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt)
     handles.supax.Position(4) = handles.hax(1).Position(end) ...
         + handles.hax(1).Position(2) - handles.supax.Position(2);
     handles.htitle.FontWeight = 'normal';
+
 end
