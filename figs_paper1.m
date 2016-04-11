@@ -166,8 +166,9 @@ export_fig -r200 -a2 images/paper1/penetration-param.png;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% energy decay
-sl.filter = [3 4 5 7 8 12]
-sl.plot_dEdt; maximize(); pause(1);
+hlines = sl.plot_dEdt; maximize(); pause(1);
+linkprop([hlines.hke hlines.hpe], 'Color');
+hlines.hke(1).Color = [1 1 1]*0.55;
 subplot(121); title([]);
 pbaspect([1.618 1 1]);
 xlim([0 200]);
@@ -175,7 +176,8 @@ legend('off');
 subplot(122);
 xlim([0 200]);
 pbaspect([1.618 1 1]);
-export_fig('images/paper1/energy-decay.pdf');
+export_fig('-r150', '-a2', 'images/paper1/energy-decay.png');
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% shallow and deep
 
