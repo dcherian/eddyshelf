@@ -210,7 +210,7 @@ function [] = plot_eddydiag(runArray)
         % x and y velocities
         if ~isempty(hfig9)
             cvy = run.smoothCenterVelocity ./ run.eddy.V(1);
-            tfit = run.fitCenterVelocity;
+            tfit = run.FitCenterVelocity; tfit = tfit(1);
             [~,~,tres,~,~] = run.averageResistance;
 
             figure(hfig9)

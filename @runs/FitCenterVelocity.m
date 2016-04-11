@@ -1,4 +1,5 @@
 % function [itfit, tfit, T, BadFitFlag] = FitCenterVelocity(runs, debug)
+% returns vectors itfit = [estimate, lower bound, upper bound] for all variables
 function [itfit, tfit, T, BadFitFlag] = FitCenterVelocity(runs, debug)
 
     if ~exist('debug', 'var'), debug = 0; end
@@ -11,11 +12,15 @@ function [itfit, tfit, T, BadFitFlag] = FitCenterVelocity(runs, debug)
     imin = imin;
     tvec = runs.eddy.t*86400;
 
-    [v0, T, t0, v1, exitflag] = gauss_fit(tvec(imin:end) - tvec(imin), ...
-                                          (cvy(imin:end) - cvy(end))./cvy(imin), ...
-                                          debug);
+    [v0, T, t0, v1, exitflag, conf] = gauss_fit(tvec(imin:end) - tvec(imin), ...
+                                                (cvy(imin:end) - cvy(end))./cvy(imin), ...
+                                                debug);
+    Tconf = conf(:,2);
+
+    % ASSUMES THAT ALL VELOCITY POINTS ARE INDEPENDENT ESTIMATES
+    T = [T Tconf(1) Tconf(2)];
     tfit = T + tvec(imin) + t0;
-    itfit = find_approx(tvec, tfit, 1);
+    itfit = vecfind(tvec, tfit);
     BadFitFlag = ~exitflag;
 
     if debug

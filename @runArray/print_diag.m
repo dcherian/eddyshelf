@@ -482,7 +482,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
                 %Y = run.eddy.my(tind) - run.bathy.xsb; ...
                 %    run.eddy.my(tind);
             else
-                [tind,~,~,BadFitFlag] = run.fitCenterVelocity;
+                [tind,~,~,BadFitFlag] = run.FitCenterVelocity;
                 if BadFitFlag
                     warning(['Bad Fit: Skipping ' run.name '.'])
                     continue;
@@ -507,7 +507,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
 
             [clr, ptName] = colorize(run, ptName);
 
-            zz = H./Lz0;
+            zz = H(1)./Lz0;
             diags(ff) = (1 - erf(zz)); %./((zz*(1-erf(zz)) + 1/sqrt(pi) * ...
                                      %(1 - exp(-zz^2))));
             plotx(ff) = beta/beta_t;
@@ -523,8 +523,11 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
                 err(1,ff) = (1 - erf(H./Lz0+zzlo)) - diags(ff);
                 err(2,ff) = (1 - erf(H./Lz0+zzhi)) - diags(ff);
 
-                err(1,ff) = exp(-(H./Lz0+zzlo)) - diags(ff);
+                err(1,ff) = exp(-(H./Lz0)) - diags(ff);
                 err(2,ff) = exp(-(H./Lz0+zzhi)) - diags(ff);
+            else
+                err(1,ff) = (1 - erf(H(2)./Lz0)) - diags(ff);
+                err(2,ff) = (1 - erf(H(3)./Lz0)) - diags(ff);
             end
 
             kozak = 0;
@@ -590,7 +593,8 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
             if isnan(restind), continue; end
             tres = run.time(restind);
 
-            [~,tfit,tscl] = run.fitCenterVelocity;
+            [~,tfit,tscl] = run.FitCenterVelocity;
+            tfit = tfit(1);
             V0 = run.eddy.V(itse);
             Lrh = sqrt(V0/beta);
 
@@ -602,9 +606,9 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
         end
 
         if strcmpi(name, 'initial distance')
-            [~,tfit,tscl] = run.fitCenterVelocity;
+            [~,tfit,tscl] = run.FitCenterVelocity;
 
-            diags(ff) = tscl;
+            diags(ff) = tscl(1);
             plotx(ff) = sgn * (run.params.eddy.cy - run.bathy.xsl)/abs(run.rrdeep);
         end
 

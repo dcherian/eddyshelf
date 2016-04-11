@@ -84,7 +84,7 @@ function [] = plot_penetration(runArray, ax, choices)
         end
 
         %[~,~,tind] = run.locate_resistance;
-        tind = run.fitCenterVelocity;
+        tind = run.FitCenterVelocity; tind = tind(1);
 
         % normalization for axes
         xnorm = run.eddy.vor.dia(1)/2;
@@ -230,7 +230,7 @@ function [] = plot_penetration(runArray, ax, choices)
         % mark shelfbreak
         limx = xlim;
         text(limx(1) + 0.15*diff(limx), 0.02, 'shelfbreak', 'Rotation', ...
-             0, 'VerticalAlignment', 'Bottom', 'FontSize', fontsize);
+             0, 'VerticalAlignment', 'Bottom');
     else
         xlim([0 max(xlim)]);
         ylim([min(ylim) -1*min(ylim)/2]);
