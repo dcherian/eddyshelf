@@ -1330,7 +1330,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         end
 
         beautify([18 22 26]);
-        keyboard;
+
         if kozak
             % call after beautify
             MakeKozak;
