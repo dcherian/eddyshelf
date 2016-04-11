@@ -12,8 +12,12 @@ function [itfit, tfit, T, BadFitFlag] = FitCenterVelocity(runs, debug)
     imin = imin;
     tvec = runs.eddy.t*86400;
 
+    cvy0 = cvy(end);
+
+    if strcmpi(runs.name, 'ew-56341-2'), cvy0 = 0; end
+
     [v0, T, t0, v1, exitflag, conf] = gauss_fit(tvec(imin:end) - tvec(imin), ...
-                                                (cvy(imin:end) - cvy(end))./cvy(imin), ...
+                                                (cvy(imin:end) - cvy0)./cvy(imin), ...
                                                 debug);
     Tconf = conf(:,2);
 
