@@ -13,7 +13,12 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt)
     letters = 'abcdefghijkl';
 
     figure; maximize;
-    handles.hax = packfig(2, N);
+    if N~=1
+        handles.hax = packfig(2, N);
+    else
+        handles.hax = packfig(N, 2);
+    end
+
     insertAnnotation([runs.name '.mosaic_field']);
     for ii=1:length(timesteps)
         tstep = runs.process_time(timesteps(ii));
@@ -34,13 +39,20 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt)
             clim = caxis;
         end
 
-        if ii <= N % take out x tick labels for top row
-            handles.hax(ii).XTickLabel = {};
-            xlabel('');
-        end
-        if  (ii~=1) & (ii~=N+1) % take out y tick labels for first column
-            handles.hax(ii).YTickLabel = {};
-            ylabel('');
+        if N ~= 1
+            if ii <= N % take out x tick labels for top row
+                handles.hax(ii).XTickLabel = {};
+                xlabel('');
+            end
+            if  (ii~=1) & (ii~=N+1) % take out y tick labels for first column
+                handles.hax(ii).YTickLabel = {};
+                ylabel('');
+            end
+        else
+            if  ii == 2 % take out y tick labels for first column
+                handles.hax(ii).YTickLabel = {};
+                ylabel('');
+            end
         end
 
         if ii ~= N*2
@@ -57,7 +69,7 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt)
         moveColorbarOut2x2(handles.hcb);
     end
 
-    if runs.bathy.axis == 'y'
+    if runs.bathy.axis == 'y' & N ~= 1
         moveSubplotsCloserInY(2, N, handles.hax);
     end
 

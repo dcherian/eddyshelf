@@ -565,7 +565,7 @@ methods
             runs.streamer = data.streamer;
             clear data
         end
-        
+
         % load average supply jet diagnostics
         if exist([dir '/supplyjet.mat'],'file') && reset ~= 1 & ~reduced
             disp('Loading supply diagnostics');
@@ -1818,7 +1818,7 @@ methods
                                     runs.rgrid.N}));
             end
 
-            if velname == 'u'
+            if velname == 'u'
                 [vmax, indmax] = min(vel(:));
             else
                 [vmax, indmax] = max(vel(:));

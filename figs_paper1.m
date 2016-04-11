@@ -1,4 +1,29 @@
 %% Figures for paper 1:
+
+%% ew-64461-5 dye
+if ~exist('ew','var') | ~strcmpi(ew.name, 'ew-64461-5')
+    ew = runs('../topoeddy/runew-64461-5/');
+end
+opt = [];
+opt.addcsdye = 1;
+opt.addzeta = 1;
+opt.rhocontourplot = 1;
+
+handles = ew.mosaic_field('eddye', [1 230], opt);
+handles.hcb.delete;
+handles.supax.Position(4) = 0.76;
+handles.htitle.String = 'Surface dyes';
+
+correct_ticks('y', [], {'200'; '50'}, handles.hax(1));
+handles.hfield{2}.hzetaneg.delete;
+handles.hfield{1}.hbathy{2}.Color = 'k';
+handles.hfield{1}.hbathy{3}.Color = 'k';
+handles.hfield{2}.hbathy{2}.Color = 'k';
+handles.hfield{2}.hbathy{3}.Color = 'k';
+
+export_fig -r150 -a2 images/paper1/xymap.png
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% ew-64461-5-eddye video
 if ~exist('ew','var') | ~strcmpi(ew.name, 'ew-64461-5')
     ew = runs('../topoeddy/runew-64461-5/');
