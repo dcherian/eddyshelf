@@ -1183,13 +1183,19 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
 
         xvec = linspace(0.5*nanmin(plotx(:)), 1*nanmax(plotx), 100);
 
+        err = max(abs(err), [], 1);
+        if strcmpi(name, 'bottom torque')
+            err = fillnan(err, 0); % 6362-1
+            diags(isnan(err)) = NaN;
+            plotx(isnan(err)) = NaN;
+        end
+
         if ~force_0intercept
             E = [cut_nan(plotx') ones(size(cut_nan(plotx')))];
         else
             E = cut_nan(plotx');
         end
 
-        err = mean(abs(err),1);
         if ~isempty(cut_nan(err)) & ~strcmpi(name, 'max flux')
             disp('Using weighted least squares');
             disp(['% error: ' num2str(round(100*err./diags))]);
