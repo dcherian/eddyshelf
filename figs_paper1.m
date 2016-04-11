@@ -130,18 +130,15 @@ export_fig('images/paper1/centrack.pdf');
 ew.filter = [];
 ns.filter = [];
 
-fontSize = [22 22 30]
 figure; maximize();
 ax1 = subplot(121);
 ew.plot_penetration(ax1, 'all');
-beautify(fontSize)
-legend('off');
+beautify
 subplot(122);
 ns.plot_penetration(gca, 'all'); drawnow;
-beautify(fontSize)
-legend('off');
-ax1 = gca; ax1.XTick = unique([ax1.XTick 1])
-export_fig('-r150','images/paper1/sl-centrack.png');
+beautify
+ax1 = gca; ax1.XTick = unique([ax1.XTick 1]);
+export_fig('-r150', '-a2', 'images/paper1/sl-centrack.png');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% bottom friction

@@ -85,9 +85,6 @@ function [] = plot_penetration(runArray, ax, choices)
             tinds = [];
         end
 
-        [~,~,tres] = run.locate_resistance;
-        tfit = run.FitCenterVelocity;
-
         % normalization for axes
         xnorm = run.eddy.vor.dia(1)/2;
         ynorm = run.eddy.vor.dia(1)/2; run.eddy.my(1) - run.bathy.xsb;
@@ -150,7 +147,10 @@ function [] = plot_penetration(runArray, ax, choices)
         end
 
         if mark_fitvel
-            plot(x(tfit(1)), y(tfit(1)), 'x', 'Color', color, 'MarkerSize', 22);
+            [tfit,~,~,BadFitFlag] = run.FitCenterVelocity;
+            if ~BadFitFlag
+                plot(x(tfit(1)), y(tfit(1)), 'x', 'Color', color, 'MarkerSize', 22);
+            end
             %keyboard;
             %h2 = scatter(x(tfit(2):tfit(3)), y(tfit(2):tfit(3)), 24, color, 'filled');
         end
