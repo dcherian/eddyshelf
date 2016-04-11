@@ -2,7 +2,7 @@
 %        print_diag(runArray, name, args, hax, commands)
 % commands: 'no_name_points'; 'no_sloping_shelf';
 
-function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
+function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         print_diag(runArray, name, args, hax, commands)
 
     if ~exist('args', 'var'), args = []; end
@@ -488,6 +488,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
                     continue;
                 end
 
+                % [estimate, lower bound, upper bound]
                 H = run.eddy.hcen(tind);
                 titlestr = ['Using fits to translation velocity'];
                 errorbarflag = 0;
@@ -530,10 +531,11 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
                 err(2,ff) = (1 - erf(H(3)./Lz0)) - diags(ff);
             end
 
-            kozak = 0;
-            name_points = 0; line_45 = 0;
+            kozak = 1;
+            name_points = 1; line_45 = 0;
             parameterize = 1;
             slope = num2str(round(alpha*1e3));
+            errorbarflag = 1;
 
             % mark NS isobath runs with gray points
             if run.bathy.axis == 'x'
@@ -1301,23 +1303,13 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
             set(gca, 'YScale', 'log');
         end
 
-        if kozak
-            ax2 = kozakscatterplot(hax, [min(plotx) max(plotx)], ...
-                             [min(diags) max(diags)]);
-            grid off;
-            %hleg = legend;
-            %pos = hleg.Position;
-            %hleg.Position = [pos(1)-0.1 pos(2:end)];
-        else
-            pbaspect([1.618 1 1]);
-        end
+        pbaspect([1.618 1 1]);
 
         if strcmpi(name, 'bottom torque')
             hleg = legend(hparam, ['$$ \frac{U_b}{U_s} = ' ...
                             '1 - \mathrm{erf}(\frac{H}{L_z^0}) ' ...
                             '= ' num2str(c,3) ' \frac{\beta}{\' ...
-                            'beta_t} + ' num2str(P(2),2) '$$ ' ...
-                            '; rmse = ' num2str(rmse,3)], ...
+                            'beta_t} + ' num2str(P(2),2) '$$'], ...
                       'Location', 'SouthEast');
             set(hleg, 'interpreter', 'latex');
         end
@@ -1338,7 +1330,14 @@ function [diags, plotx, err, norm, color, rmse, P, Perr] = ...
         end
 
         beautify([18 22 26]);
+        keyboard;
+        if kozak
+            % call after beautify
+            MakeKozak;
+        end
     end
+
+    handles.htext = htext;
 
     if strcmpi(name, 'params table')
         diags = '|- \n';
