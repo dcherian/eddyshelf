@@ -34,6 +34,18 @@ ew.makeVideo = 1;
 ew.animate_field('eddye', [], 1, [], opt);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% ew-64461-5-eddye eddydiag
+if ~exist('ew','var') | ~strcmpi(ew.name, 'ew-64461-5')
+    ew = runs('../topoeddy/runew-64461-5/');
+end
+
+handles = ew.EddyDiags(gcf);
+
+correct_ticks('y', [], {'0.5'}, handles.hax(2));
+
+export_fig -r150 -a2 images/paper1/eddydiag.png
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% EW isobaths
 ewall = runArray({ ...
     'runew-4341/', ...

@@ -6,7 +6,10 @@ function [handles] = EddyDiags(runs, hfig)
 
     nsmooth = 10;
 
-    itfit = runs.FitCenterVelocity;
+    mvx = smooth(eddy.mvx, nsmooth);
+    mvy = smooth(eddy.mvy, nsmooth);
+
+    itfit = runs.FitCenterVelocity; itfit = itfit(1);
     [itsl, itse, tsl, tse] = runs.getEddyCenterTimeScales;
 
     figure(hfig); maximize;
@@ -15,19 +18,31 @@ function [handles] = EddyDiags(runs, hfig)
     [axyy, hplt(1), hplt(2)] = ...
         plotyy(tvec, eddy.vor.dia/2000, ...
                tvec, eddy.Lgauss);
-    linex(tvec([itsl itfit]));
+    axes(axyy(1)); hold on;
+    handles.hsl(1) = plot(tvec(itsl), eddy.vor.dia(itsl)/2000, ...
+                          'ko', 'MarkerSize', 12);
+    handles.hfit(1) = plot(tvec(itfit), eddy.vor.dia(itfit)/2000, ...
+                           'kx', 'MarkerSize', 12);
+    %linex(tvec([itsl itfit]));
+    axes(axyy(2)); hold on
+    handles.hsl(2) = plot(tvec(itsl), eddy.Lgauss(itsl), 'ko', 'MarkerSize', 12);
+    handles.hfit(2) = plot(tvec(itfit), eddy.Lgauss(itfit), 'kx', 'MarkerSize', 12);
 
-    axyy(1).YLabel.String = 'Horizontal Scale (km)';
-    axyy(2).YLabel.String = 'Vertical Scale, L^z (km)';
+    axyy(1).YLabel.String = 'Horizontal Scale, L_0 (km)';
+    axyy(2).YLabel.String = 'Vertical Scale, L_z (m)';
     axyy(1).XTickLabel = {};
     axes(axyy(1)); beautify;
     axes(axyy(2)); beautify;
 
     axes(hax(2));
     hold on;
-    hplt(3) = plot(tvec, smooth(eddy.mvx, nsmooth));
-    hplt(4) = plot(tvec, smooth(eddy.mvy, nsmooth));
-    linex(tvec([itsl itfit]));
+    hplt(3) = plot(tvec, mvx);
+    hplt(4) = plot(tvec, mvy);
+    handles.hsl(3) = plot(tvec([itsl itsl]), [mvx(itsl) mvy(itsl)], ...
+                          'ko', 'MarkerSize', 12);
+    handles.hfit(3) = plot(tvec([itfit itfit]), [mvx(itfit) mvy(itfit)], ...
+                           'kx', 'MarkerSize', 12);
+    %linex(tvec([itsl itfit]));
     liney(0);
     hleg = legend([hplt(4) hplt(3)], {'V_{cen}^y', 'V_{cen}^x'}, 'Location', 'NorthEast');
     hleg.Position(1) = 0.84;
