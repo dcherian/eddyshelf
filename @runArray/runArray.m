@@ -1007,7 +1007,7 @@ classdef runArray < handle
                 names{ff} = runArray.name{ii};
                 ndtime = run.eddy.t*86400 / run.eddy.turnover;
 
-                [~,~,tind] = run.averageResistance;
+                tind = run.FitCenterVelocity; tind = tind(1);
                 if isfield(run.csflux, 'off')
                     [~,maxloc] = run.calc_maxflux(2);
                 end
@@ -1019,7 +1019,7 @@ classdef runArray < handle
                 eval(['vec = ' tsname ';']);
 
                 hplt(ff) = plot(ndtime, vec(1:run.eddy.tend));
-                plot(ndtime(tind), vec(tind), 'kx');
+                plot(ndtime(tind), vec(tind), 'kx', 'MarkerSize', 16);
                 if exist('maxloc', 'var')
                     plot(ndtime(maxloc), vec(maxloc), 'ko');
                 end
