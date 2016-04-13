@@ -527,8 +527,12 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 err(1,ff) = exp(-(H./Lz0)) - diags(ff);
                 err(2,ff) = exp(-(H./Lz0+zzhi)) - diags(ff);
             else
-                err(1,ff) = (1 - erf(H(2)./Lz0)) - diags(ff);
-                err(2,ff) = (1 - erf(H(3)./Lz0)) - diags(ff);
+                %err(1,ff) = (1 - erf(H(2)./Lz0)) - diags(ff);
+                %err(2,ff) = (1 - erf(H(3)./Lz0)) - diags(ff);
+                err(1,ff) = 2/sqrt(pi) * exp(-zz^2) * ...
+                    sqrt( ((H(2)-H(1))/Lz0)^2 + (zz * 0/Lz0)^2);
+                err(2,ff) = 2/sqrt(pi) * exp(-zz^2) * ...
+                    sqrt( ((H(3)-H(1))/Lz0)^2 + (zz * 0/Lz0)^2);
             end
 
             kozak = 1;
