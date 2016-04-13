@@ -1351,6 +1351,35 @@ methods
         end
     end
 
+    function [] = CalculateLzUncertainity(runs, debug)
+
+        if ~exist('debug', 'var'), debug = 0; end
+        T = runs.eddy.T;
+        zT = runs.eddy.zT;
+
+        for tt=1:size(T,1)
+            [T0(tt),Lzfit(tt),z0(tt),T1(tt),~,conf(tt,:,:)] = gauss_fit(zT(tt,:) - zT(tt,1), T(tt,:));
+        end
+
+        Lzfit(2,:) = conf(:,1,2);
+        Lzfit(3,:) = conf(:,1,3);
+
+        runs.eddy.Lzfit = Lzfit;
+        eddy.fithash = githash([mfilename('fullpath') '.m']);
+        eddy = runs.eddy;
+        save([runs.dir '/eddytrack.mat'], 'eddy');
+
+        if debug
+            figure;
+            plot(Lz);
+            hold on; plot(runs.eddy.Lgauss);
+            plot(conf(:,1,2), 'k--');
+            plot(conf(:,2,2), 'k--');
+            title(runs.name);
+            ylim([0 runs.params.eddy.depth*2]);
+        end
+    end
+
     function [cvy] = smoothCenterVelocity(runs, nsmooth, type)
         if ~exist('nsmooth', 'var') | isempty(nsmooth), nsmooth = 10; end
         if ~exist('type', 'var'), type = 'cen'; end
