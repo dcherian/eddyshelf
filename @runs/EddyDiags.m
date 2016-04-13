@@ -9,7 +9,7 @@ function [handles] = EddyDiags(runs, hfig)
     mvx = smooth(eddy.mvx, nsmooth);
     mvy = smooth(eddy.mvy, nsmooth);
 
-    itfit = runs.FitCenterVelocity; itfit = itfit(1);
+    [itfit,~,~,~,FitTimeSeries] = runs.FitCenterVelocity; itfit = itfit(1);
     [itsl, itse, tsl, tse] = runs.getEddyCenterTimeScales;
 
     figure(hfig); maximize;
@@ -42,11 +42,13 @@ function [handles] = EddyDiags(runs, hfig)
                           'ko', 'MarkerSize', 12);
     handles.hfit(3) = plot(tvec([itfit itfit]), [mvx(itfit) mvy(itfit)], ...
                            'kx', 'MarkerSize', 12);
+    hplt(5) = plot(FitTimeSeries(:,1)/86400, FitTimeSeries(:,2), 'k--');
     %linex(tvec([itsl itfit]));
     liney(0);
-    hleg = legend([hplt(4) hplt(3)], {'V_{cen}^y', 'V_{cen}^x'}, 'Location', 'NorthEast');
-    hleg.Position(1) = 0.84;
-    hleg.Position(2) = 0.25;
+    hleg = legend([hplt(4) hplt(3) hplt(5)], {'V_{cen}^y', 'V_{cen}^x', 'Fit'}, ...
+                  'Location', 'NorthEast');
+    hleg.Position(1) = 0.86;
+    hleg.Position(2) = 0.23;
     ylabel({'Eddy center'; 'translation velocity';  '(m/s)'});
     xlabel('Time (days)');
     beautify;

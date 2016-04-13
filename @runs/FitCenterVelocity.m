@@ -1,6 +1,6 @@
-% function [itfit, tfit, T, BadFitFlag] = FitCenterVelocity(runs, debug)
+% function [itfit, tfit, T, BadFitFlag, FitTimeSeries] = FitCenterVelocity(runs, debug)
 % returns vectors itfit = [estimate, lower bound, upper bound] for all variables
-function [itfit, tfit, T, BadFitFlag] = FitCenterVelocity(runs, debug)
+function [itfit, tfit, T, BadFitFlag, FitTimeSeries] = FitCenterVelocity(runs, debug)
 
     if ~exist('debug', 'var'), debug = 0; end
 
@@ -59,6 +59,10 @@ function [itfit, tfit, T, BadFitFlag] = FitCenterVelocity(runs, debug)
     tfit = T + tvec(imin) + t0;
     itfit = vecfind(runs.eddy.t*86400, tfit);
     BadFitFlag = ~exitflag;
+
+    FitTimeSeries(:,2) = (v0 * exp(-((tvec(imin-10:end)-t0-tvec(imin))./T(1)).^2)  ...
+                          + v1)*cvy(imin) + cvy0;
+    FitTimeSeries(:,1) = tvec(imin-10:end);
 
     if any(isnan(itfit)), BadFitFlag = 1; end
 
