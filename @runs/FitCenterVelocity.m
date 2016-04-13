@@ -53,10 +53,11 @@ function [itfit, tfit, T, BadFitFlag, FitTimeSeries] = FitCenterVelocity(runs, d
                                                 (cvy(imin-10:end) - cvy0)./cvy(imin), ...
                                                 debug);
     Tconf = conf(:,2);
+    t0conf = conf(:,3);
 
     % ASSUMES THAT ALL VELOCITY POINTS ARE INDEPENDENT ESTIMATES
     T = [T Tconf(1) Tconf(2)];
-    tfit = T + tvec(imin) + t0;
+    tfit = T(1) + tvec(imin) + t0(1) + [0 -1 1]* sqrt( (t0conf(2)-t0(1))^2 + (Tconf(2)-T(1))^2);
     itfit = vecfind(runs.eddy.t*86400, tfit);
     BadFitFlag = ~exitflag;
 
