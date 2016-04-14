@@ -22,10 +22,6 @@ function [itfit, tfit, T, BadFitFlag, FitTimeSeries] = FitCenterVelocity(runs, d
     cvy0 = cvy(end);
     if abs(cvy0./cvy(imin)) > 0.1, cvy0 = 0; end
 
-    % I want to use a few values before the peak as a constraint.
-    % Sometimes this won't work if you don't average the velocity enough.
-    if imin-10 < 1, imin = 11; end
-
     if strcmpi(runs.name, 'ew-64461-4') | strcmpi(runs.name, 'ew-64461-7');
         % this one appears to split, so cut off the end
         cvy = cvy(1:220);
@@ -44,13 +40,24 @@ function [itfit, tfit, T, BadFitFlag, FitTimeSeries] = FitCenterVelocity(runs, d
         %cvy = smooth(cvy, 10);
         %end
 
-    if strcmpi(runs.name, 'ew-6441')
-        imin = 51;
-    end
+    % if strcmpi(runs.name, 'ew-64461-6') ...
+    %         | strcmpi(runs.name, 'ew-6341-2') ...
+    %         | strcmpi(runs.name, 'ew-6341-4')
+    %     imin = imin - 0;
+    % end
+
+    % if strcmpi(runs.name, 'ew-6441')
+    %     imin = 51;
+    % end
+
+    % I want to use a few values before the peak as a constraint.
+    % Sometimes this won't work if you don't average the velocity enough.
+    dimin = ceil(15/diff(tvec(1:2))*86400);
+    if imin-dimin < 1, imin = dimin + 1; end
 
     %if strcmpi(runs.name, 'ew-56341-2'), cvy0 = 0; end
-    [v0, T, t0, v1, exitflag, conf] = gauss_fit(tvec(imin-10:end) - tvec(imin), ...
-                                                (cvy(imin-10:end) - cvy0)./cvy(imin), ...
+    [v0, T, t0, v1, exitflag, conf] = gauss_fit(tvec(imin-dimin:end) - tvec(imin), ...
+                                                (cvy(imin-dimin:end) - cvy0)./cvy(imin), ...
                                                 debug);
     Tconf = conf(:,2);
     t0conf = conf(:,3);
@@ -61,9 +68,9 @@ function [itfit, tfit, T, BadFitFlag, FitTimeSeries] = FitCenterVelocity(runs, d
     itfit = vecfind(runs.eddy.t*86400, tfit);
     BadFitFlag = ~exitflag;
 
-    FitTimeSeries(:,2) = (v0 * exp(-((tvec(imin-10:end)-t0-tvec(imin))./T(1)).^2)  ...
+    FitTimeSeries(:,2) = (v0 * exp(-((tvec(imin-dimin:end)-t0-tvec(imin))./T(1)).^2)  ...
                           + v1)*cvy(imin) + cvy0;
-    FitTimeSeries(:,1) = tvec(imin-10:end);
+    FitTimeSeries(:,1) = tvec(imin-dimin:end);
 
     if any(isnan(itfit)), BadFitFlag = 1; end
 
@@ -74,5 +81,9 @@ function [itfit, tfit, T, BadFitFlag, FitTimeSeries] = FitCenterVelocity(runs, d
         subplot(2,1,2);
         plot(tvec, cvy);
         linex([tfit t0]); liney(0);
+        plot(FitTimeSeries(:,1), FitTimeSeries(:,2));
+
+        fprintf('T = '); disp(T/86400);
+        fprintf('t0 = '); disp([t0 t0conf']/86400);
     end
 end
