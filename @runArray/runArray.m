@@ -1032,7 +1032,7 @@ classdef runArray < handle
             runArray.reset_colors(corder_backup);
         end
 
-        function [] = plot_dEdt(runArray)
+        function [handles] = plot_dEdt(runArray)
             if isempty(runArray.filter)
                 runArray.filter = 1:runArray.len;
             end
@@ -1058,30 +1058,30 @@ classdef runArray < handle
 
                 subplot(121)
                 vec = run.eddy.KE(:,loc);
-                hplt(kk) = plot(tvec, vec./vec(1)); %, 'Color', [1 1 1]*0.5);
+                handles.hke(kk) = plot(tvec, vec./vec(1)); %, 'Color', [1 1 1]*0.5);
                 plot(tvec(tind), vec(tind)./vec(1), 'kx');
 
                 subplot(122)
                 vec = run.eddy.PE(:,loc);
-                plot(tvec, vec./vec(1)) %, 'Color', [1 1 1]*0.5);
+                handles.hpe(kk) = plot(tvec, vec./vec(1)); %, 'Color', [1 1 1]*0.5);
                 plot(tvec(tind), vec(tind)./vec(1), 'kx');
 
                 kk = kk+1;
             end
-            legend(hplt, names);
+            legend(handles.hke, names);
             subplot(121);
             ylim([0 1.1]);
             ylabel('KE / KE_0');
             title(['Crosses at traj.tind. Values normalized by initial ' ...
                    'value']);
             xlabel('Time / Turnover time');
-            beautify([22 24 28]);
+            beautify;
 
             subplot(122);
             ylim([0 1.1]);
             ylabel('PE / PE_0');
             xlabel('Time / Turnover time');
-            beautify([22 24 28]);
+            beautify;
 
             %packrows;
             runArray.reset_colors(corder_backup);
