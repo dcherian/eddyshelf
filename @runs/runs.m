@@ -1351,7 +1351,7 @@ methods
         end
     end
 
-    function [] = CalculateLzUncertainity(runs, debug)
+    function [] = CalculateLzUncertainty(runs, debug)
 
         if ~exist('debug', 'var'), debug = 0; end
         T = runs.eddy.T;
@@ -1371,7 +1371,7 @@ methods
 
         if debug
             figure;
-            plot(Lz);
+            plot(Lzfit(1,:));
             hold on; plot(runs.eddy.Lgauss);
             plot(conf(:,1,2), 'k--');
             plot(conf(:,2,2), 'k--');
