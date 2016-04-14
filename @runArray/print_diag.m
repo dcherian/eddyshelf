@@ -460,6 +460,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             name_points = 1;
             line_45 = 1;
         end
+
         %%%%% Flierl (1987) bottom torque hypothesis.
         if strcmpi(name, 'bottom torque')
             Ro = Ro(1);
@@ -489,9 +490,11 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 end
 
                 % [estimate, lower bound, upper bound]
-                H = run.eddy.hcen(tind);
+                % Since H decreases with time, using upper bound on tfit
+                % gives lower bound on H
+                H = run.eddy.hcen([tind(1) tind(3) tind(2)]);
                 titlestr = ['Using fits to translation velocity'];
-                errorbarflag = 0;
+                errorbarflag = 1;
             end
 
             if isempty(tind) | isnan(tind)
@@ -503,16 +506,29 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             t0 = tind; run.eddy.tscaleind;
             titlestr = [titlestr ' | t0 = ' num2str(t0)];
 
-            Lz0 = nanmean(Lz(1:ceil(mean([itsl tind])))); %*run.eddy.grfactor(1);
-            beta_t = (alpha*abs(f0)/Lz0);
+            %Lz0 = nanmean(Lz(1:ceil(mean([tind(1) tind(3)])))); %*run.eddy.grfactor(1);
+            %dLz = 0;
+            % Lzfit = run.eddy.Lzfit;
+
+            Lz0 = run.eddy.Lzfit(tind(1));
+            z0 = run.eddy.z0fit(tind(1),1);
+
+            % sometimes the fits are trash.
+            % go back one time instant at a time till something reasonable is found.
+            while abs(z0) > 1e3
+                z0 = run.eddy.z0fit(tind(1)-1);
+                Lz0 = run.eddy.Lzfit(tind(1)-1);
+            end
+
+            dLz = 0; %mean(Lzfit(2,1:tind(1))-Lzfit(1,1:tind(1)));
+
+            beta_z = (alpha*abs(f0)/Lz0);
 
             [clr, ptName] = colorize(run, ptName);
 
-            zz = H(1)./Lz0;
-            diags(ff) = (1 - erf(zz)); %./((zz*(1-erf(zz)) + 1/sqrt(pi) * ...
-                                     %(1 - exp(-zz^2))));
-            plotx(ff) = beta/beta_t;
-            %plotx(ff) = run.params.nondim.eddy.Rh;
+            zz = (H(1) - z0)./Lz0; errorbarflag = 0;
+            diags(ff) = (1 - erf(zz))./(1-erf(-z0/Lz0));
+            plotx(ff) = beta/beta_z./ (1 + beta/beta_z);
 
             if isnan(diags(ff)), plotx(ff) = NaN; end
 
@@ -530,16 +546,15 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 %err(1,ff) = (1 - erf(H(2)./Lz0)) - diags(ff);
                 %err(2,ff) = (1 - erf(H(3)./Lz0)) - diags(ff);
                 err(1,ff) = 2/sqrt(pi) * exp(-zz^2) * ...
-                    sqrt( ((H(2)-H(1))/Lz0)^2 + (zz * 0/Lz0)^2);
+                    sqrt( ((H(2)-H(1))/Lz0)^2 + (zz * dLz/Lz0)^2);
                 err(2,ff) = 2/sqrt(pi) * exp(-zz^2) * ...
-                    sqrt( ((H(3)-H(1))/Lz0)^2 + (zz * 0/Lz0)^2);
+                    sqrt( ((H(3)-H(1))/Lz0)^2 + (zz * dLz/Lz0)^2);
             end
 
             kozak = 1;
             name_points = 1; line_45 = 0;
             parameterize = 1;
             slope = num2str(round(alpha*1e3));
-            errorbarflag = 1;
 
             % mark NS isobath runs with gray points
             if run.bathy.axis == 'x'
