@@ -1358,13 +1358,14 @@ methods
         zT = runs.eddy.zT;
 
         for tt=1:size(T,1)
-            [T0(tt),Lzfit(tt),z0(tt),T1(tt),~,conf(tt,:,:)] = gauss_fit(zT(tt,:) - zT(tt,1), T(tt,:));
+            [T0(tt),Lzfit(tt),z0(tt),T1(tt),~,conf(tt,:,:)] = gauss_fit(zT(tt,:)*-1, T(tt,:));
         end
 
         Lzfit(2,:) = conf(:,1,2);
-        Lzfit(3,:) = conf(:,1,3);
+        Lzfit(3,:) = conf(:,2,2);
 
         runs.eddy.Lzfit = Lzfit;
+        runs.eddy.z0fit = [z0' conf(:,1,3) conf(:,2,3)];
         eddy.fithash = githash([mfilename('fullpath') '.m']);
         eddy = runs.eddy;
         save([runs.dir '/eddytrack.mat'], 'eddy');
@@ -1378,6 +1379,7 @@ methods
             title(runs.name);
             ylim([0 runs.params.eddy.depth*2]);
         end
+
     end
 
     function [cvy] = smoothCenterVelocity(runs, nsmooth, type)
