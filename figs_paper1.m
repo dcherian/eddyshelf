@@ -55,19 +55,30 @@ ewall = runArray({ ...
 ewall.name = {'R/L_{sl} > 1', 'R/L_{sl} ~ 1', ...
               'R/L_{sl} < 1'};
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ew = runArray({ ...
     'runew-64361-shallow', ...
     'runew-6341', ...
     'runew-6362-2', ...
     'runew-6441' });
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% NS isobaths
 folders = { ...
     'runns-64361', 'runns-6341', 'runns-6362-2',...
     'runns-6441', ...
           };
 ns = runArray(folders);
+
+ew.name{1} = 'ew-64361';
+ew.sort(ew.print_params('params.nondim.eddy.Rh'))
+ns.sort(ns.print_params('params.nondim.eddy.Rh'))
+
+for ii=1:ew.len
+    ns.name{ii} = [num2str(ns.array(ii).params.nondim.eddy.Rh', '%2.0f') ...
+                   ' | ' ns.name{ii}];
+    ew.name{ii} = [num2str(ew.array(ii).params.nondim.eddy.Rh', '%2.0f') ...
+                   ' | ' ew.name{ii}];
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% shelfbreak depth - xy maps
@@ -170,18 +181,22 @@ figure; maximize();
 ax1 = subplot(121);
 ew.plot_penetration(ax1, 'all');
 beautify
-subplot(122);
-ns.plot_penetration(gca, 'all'); drawnow;
+ax2 = subplot(122);
+ns.plot_penetration(ax2, 'all'); drawnow;
 beautify
-ax1 = gca; ax1.XTick = unique([ax1.XTick 1]);
+ax2.XTick = unique([ax2.XTick 1]);
+ax1.XLim = [-15 0];
+hline = findall(ax1,'Tag','dcline')
+hline.XData = ax1.XLim;
 export_fig('-r150', '-a2', 'images/paper1/sl-centrack.png');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% bottom friction
 
+bfrics.sort(bfrics.print_params('params.misc.rdrg'));
 bfrics.plot_penetration([],'all'); maximize();
 pbaspect([1.618 1 1]);
-export_fig -r300 -a2 images/paper1/bfrics-centrack.png
+export_fig -r300 -gray -a2 images/paper1/bfrics-centrack.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% parameterization
