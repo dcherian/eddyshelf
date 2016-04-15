@@ -179,11 +179,21 @@ ns.filter = [];
 
 figure; maximize();
 ax1 = subplot(121);
-ew.plot_penetration(ax1, 'all');
+hew = ew.plot_penetration(ax1, 'all');
+hew.hgplt2(1).Color = 'k';
+linkprop([hew.hgplt2 hew.hfit hew.hslbreak], 'Color');
+hew.hgplt2(1).LineStyle = '--';
+hew.hgplt2(2).LineStyle = '--';
 beautify
+
 ax2 = subplot(122);
-ns.plot_penetration(ax2, 'all'); drawnow;
+hns = ns.plot_penetration(ax2, 'all'); drawnow;
 beautify
+hns.hgplt2(1).Color = 'k';
+linkprop([hns.hgplt2 hns.hfit hns.hslbreak], 'Color');
+hns.hgplt2(1).LineStyle = '--';
+hns.hgplt2(2).LineStyle = '--';
+
 ax2.XTick = unique([ax2.XTick 1]);
 ax1.XLim = [-15 0];
 hline = findall(ax1,'Tag','dcline')
