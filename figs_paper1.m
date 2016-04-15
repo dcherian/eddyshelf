@@ -195,13 +195,18 @@ hax.YAxis.Axle.VertexData(2,:) = single([0.0132 0.1768]);
 
 hleg.FontSize = handles.htext.FontSize;
 
-export_fig -r200 -a2 images/paper1/penetration-param.png;
+export_fig -r200 -a2 images/paper1/penetration-param.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% energy decay
 hlines = sl.plot_dEdt; maximize(); pause(1);
 linkprop([hlines.hke hlines.hpe], 'Color');
 hlines.hke(1).Color = [1 1 1]*0.55;
+a = strcmp(sl.name, 'ew-64461-5');
+hlines.hke(a).Color = [0 0 0];
+hlines.hpe(a).Color = [0 0 0];
+uistack(hlines.hke(a), 'top');
+uistack(hlines.hpe(a), 'top');
 subplot(121); title([]);
 pbaspect([1.618 1 1]);
 xlim([0 200]);
