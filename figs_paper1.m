@@ -137,8 +137,9 @@ for ii=1:bfrics.len
     run = bfrics.array(ii);
     tind = find_approx(run.eddy.t/run.eddy.tscale*86400, 1);
     bfrics.name{ii} = ['r = ' ...
-                       num2str(bfrics.array(ii).params.misc.rdrg) ' m/s'];
+                       num2str(bfrics.array(ii).params.misc.rdrg, '%1.0e') ' m/s'];
 end
+bfrics.name{1} = 'r = 0 m/s';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% y-z cross section
@@ -204,9 +205,15 @@ export_fig('-r150', '-a2', 'images/paper1/sl-centrack.png');
 %% bottom friction
 
 bfrics.sort(bfrics.print_params('params.misc.rdrg'));
-bfrics.plot_penetration([],'all'); maximize();
-pbaspect([1.618 1 1]);
-export_fig -r300 -gray -a2 images/paper1/bfrics-centrack.png
+hfric = bfrics.plot_penetration([],'all'); maximize();
+pbaspect([1.618 1 1])
+hfric.hgplt2(1).Color = [1 1 1] * 0.7;
+hfric.hgplt2(2).Color = [1 1 1] * 0.4;
+hfric.hgplt2(3).Color = [1 1 1] * 0.1;
+linkprop([hfric.hgplt2(1) hfric.hfit(1) hfric.hslbreak(1)], 'Color');
+linkprop([hfric.hgplt2(2) hfric.hfit(2) hfric.hslbreak(2)], 'Color');
+linkprop([hfric.hgplt2(3) hfric.hfit(3) hfric.hslbreak(3)], 'Color');
+export_fig -r300 -a2 images/paper1/bfrics-centrack.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% parameterization
