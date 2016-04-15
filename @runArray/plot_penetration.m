@@ -1,5 +1,5 @@
 % diagnostic plots to show how much eddy penetrates slope
-function [] = plot_penetration(runArray, ax, choices)
+function [handles] = plot_penetration(runArray, ax, choices)
 
     if ~exist('ax', 'var'), ax = []; end
 
@@ -136,20 +136,21 @@ function [] = plot_penetration(runArray, ax, choices)
         y = (my - y0)/ynorm;
 
         % plot track
-        hgplt2(ff) = plot(x, y, 'Color', color, 'LineStyle', '-');
+        handles.hgplt2(ff) = plot(x, y, 'Color', color, 'LineStyle', '-');
         names{ff} = name;
 
         % mark start of resistance
         if mark_resistance
             [~,~,tres] = run.locate_resistance;
-            plot(x(tres), y(tres), 'x', ...
-                 'Color', color, 'Markersize', 22);
+            handles.hres(ff) = plot(x(tres), y(tres), 'x', ...
+                                    'Color', color, 'Markersize', 22);
         end
 
         if mark_fitvel
             [tfit,~,~,BadFitFlag] = run.FitCenterVelocity;
             if ~BadFitFlag
-                plot(x(tfit(1)), y(tfit(1)), 'x', 'Color', color, 'MarkerSize', 22);
+                handles.hfit(ff) = ...
+                    plot(x(tfit(1)), y(tfit(1)), 'x', 'Color', color, 'MarkerSize', 22);
             end
             %keyboard;
             %h2 = scatter(x(tfit(2):tfit(3)), y(tfit(2):tfit(3)), 24, color, 'filled');
@@ -158,22 +159,22 @@ function [] = plot_penetration(runArray, ax, choices)
         if run.bathy.L_slope/run.eddy.vor.dia(1) > 1 && ...
                 mark_fittraj
             run.fit_traj();
-            plot(x(run.traj.tind), y(run.traj.tind), 'x', ...
-                 'Color', color, 'Markersize', 16);
+            handles.htraj(ff) = plot(x(run.traj.tind), y(run.traj.tind), 'x', ...
+                                     'Color', color, 'Markersize', 16);
         end
 
         % mark timestamps
-        if mark_timestamp
-            plot(x(tinds), y(tinds), '.', 'Color', color, 'MarkerSize', ...
-                 26);
+        if mark_timestamp & ~isempty(tinds)
+            handles.htstampt(ff) = ...
+                plot(x(tinds), y(tinds), '.', 'Color', color, 'MarkerSize', 26);
             %text(x(tinds), y(tinds), ...
             %     cellstr(num2str(ndtime(tinds)', 2)));
         end
 
         % mark slopebreak
         if mark_slopebreak
-            plot(x(tsl), y(tsl), 'o', 'Color', color, ...
-                 'MarkerSize', 10);
+            handles.hslbreak(ff) = plot(x(tsl), y(tsl), 'o', 'Color', color, ...
+                                        'MarkerSize', 10);
         end
 
         if ~isempty(ax2)
@@ -250,8 +251,8 @@ function [] = plot_penetration(runArray, ax, choices)
              270, 'VerticalAlignment', 'bottom', 'FontSize', fontsize);
     end
 
-    hlegend = legend(hgplt2, names, 'Location', legloc, 'Box', ...
-                     'off');
+    handles.hlegend = legend(handles.hgplt2, names, 'Location', legloc, 'Box', ...
+                             'off');
     beautify(fontSize);
 
     if ~isempty(ax2)
