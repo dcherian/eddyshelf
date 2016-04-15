@@ -144,7 +144,7 @@ classdef runArray < handle
             end
 
             if runArray.sorted
-                colors = brighten(cbrewer('seq','Reds',len), -0.5);
+                colors = brighten(cbrewer('seq','Greys',len), 0);
                 set(groot, 'defaultAxesLineStyleorder','-');
                 if runArray.flip_colors
                     set(groot, 'defaultAxesColorOrder', flip(colors));
