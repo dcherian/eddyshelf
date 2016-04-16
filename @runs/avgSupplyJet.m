@@ -1,5 +1,5 @@
 % calculate and save average along-shelf supply velocity (using csdye for mask) and SSH;
-function [] = avgSupplyJet(runs)
+function [] = avgSupplyJet(runs, debug)
 
     ticstart = tic;
 
@@ -55,15 +55,16 @@ function [] = avgSupplyJet(runs)
 
     % fit time-averaged, dye-masked SSH
     [~,imax] = nanmax(zetamean);
-    [zeta0, Xzeta, zeta1] = gauss_fit(yvec(1:imax), ...
-                                      zetamean(1:imax) - min(zetamean(1:imax)), 0);
+    [zeta0, Xzeta, X0, zeta1,~,zetaconf] = gauss_fit(yvec(1:imax), ...
+                                                     zetamean(1:imax)...
+                                                     - min(zetamean(1:imax)), 0);
 
     % fit vertically integrated, time-averaged, dye-masked along-shelf velocity
     [~,imin] = min(asvint./runs.bathy.h(1,2:isb));
     exitflag = 0;
     i0 = 1;
     while ~exitflag
-        [v0,X,v1,exitflag] = gauss_fit(yvec(i0:imin), asvint(i0:imin), 0);
+        [v0,X,x0,v1,exitflag,conf] = gauss_fit(yvec(i0:imin), asvint(i0:imin), debug);
         if ~exitflag
             i0 = i0 + 1;
         end
@@ -79,7 +80,9 @@ function [] = avgSupplyJet(runs)
     supply.asvmean = asvmean;
     supply.asvint = asvint;
     supply.xscale = X;
+    supply.xscaleConf = conf(:,2);
     supply.xscaleZeta = Xzeta;
+    supply.zetaConf = zetaconf(:,2);
     supply.xmin = yvec(imin);
     supply.imin = imin;
     supply.csdmean = csdmean;
