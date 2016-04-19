@@ -71,6 +71,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
         ptName = runName;
         clr = 'k'; % reset color
+        marker = '.'; % reset marker
 
         % some commonly used variables
         tind = run.tscaleind;
@@ -523,7 +524,8 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
             beta_z = (alpha*abs(f0)/Lz0);
 
-            [clr, ptName] = colorize(run, ptName);
+            [clr, ptName, marker] = colorize(run, ptName);
+            clr = 'k';
 
             zz = (H(1) - z0)./Lz0;
             diags(ff) = (1 - erf(zz))./(1-erf(-z0/Lz0));
@@ -1161,10 +1163,10 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                     err(2,ff) = err(1,ff);
                 end
                 errorbar(plotx(ff), diags(ff), abs(err(1,ff)), abs(err(2,ff)), ...
-                         'x', 'LineWidth', 2, 'Color', clr);
+                         'x', 'LineWidth', 2, 'Color', clr, 'Marker', marker);
             else
-                plot(plotx(ff), diags(ff), '.', 'Color', clr, ...
-                     'MarkerSize', 20);
+                plot(plotx(ff), diags(ff), 'Marker', marker, 'Color', clr, ...
+                     'MarkerSize', 18);
             end
 
             % add run names
@@ -1383,8 +1385,9 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 end
 
 % colorize points
-function [clr, ptName] = colorize(run, ptName)
+function [clr, ptName, marker] = colorize(run, ptName)
     clr = [96 125 139]/255;
+    marker = '.';
 
     try
         if run.params.flags.conststrat == 0
@@ -1401,6 +1404,7 @@ function [clr, ptName] = colorize(run, ptName)
 
     if run.params.misc.rdrg ~= 0
         clr = [63 81 181]/255;
+        marker = '+';
     end
 
     if (run.bathy.sl_shelf ~=0) ...
@@ -1411,6 +1415,7 @@ function [clr, ptName] = colorize(run, ptName)
     if run.params.eddy.tamp < 0
         ptName = ' C';
         clr = [117,112,179]/255;
+        marker = 'o';
     end
 
     if run.params.phys.f0 < 0
