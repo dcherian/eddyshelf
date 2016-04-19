@@ -489,10 +489,6 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                     continue;
                 end
 
-                % [estimate, lower bound, upper bound]
-                % Since H decreases with time, using upper bound on tfit
-                % gives lower bound on H
-                H = run.eddy.hcen([tind(1) tind(3) tind(2)]);
                 titlestr = ['Using fits to translation velocity'];
                 errorbarflag = 1;
             end
@@ -506,29 +502,32 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             t0 = tind; run.eddy.tscaleind;
             titlestr = [titlestr ' | t0 = ' num2str(t0)];
 
-            %Lz0 = nanmean(Lz(1:ceil(mean([tind(1) tind(3)])))); %*run.eddy.grfactor(1);
-            %dLz = 0;
-            % Lzfit = run.eddy.Lzfit;
+            Lz = run.eddy.Lzfit;
+            Lz(Lz > 1e3) = nan;
 
-            Lz0 = run.eddy.Lzfit(tind(1));
-            z0 = run.eddy.z0fit(tind(1),1);
-
+            trange = 1:itsl; %tind(1); %1:ceil(mean([itsl tind(1)]));
+            Lz0 = nanmean(run.eddy.Lgauss(trange)); %Lz(1,tind(1));
+            z0  = 0; nanmean(run.eddy.z0fit(trange,1));
             % sometimes the fits are trash.
             % go back one time instant at a time till something reasonable is found.
-            while abs(z0) > 1e3
-                z0 = run.eddy.z0fit(tind(1)-1);
-                Lz0 = run.eddy.Lzfit(tind(1)-1);
-            end
-
-            dLz = 0; %mean(Lzfit(2,1:tind(1))-Lzfit(1,1:tind(1)));
+            % while abs(z0) > 1e3 | abs(Lz0) > 1e3
+            %     tind = tind - 1;
+            %     z0 = run.eddy.z0fit(tind(1),1);
+            %     Lz0 = run.eddy.Lzfit(1,tind(1));
+            %end
+            %z0 = 0;
+            % [estimate, lower bound, upper bound]
+            % Since H decreases with time, using upper bound on tfit
+            % gives lower bound on H
+            H = run.eddy.hcen([tind(1) tind(3) tind(2)]);
 
             beta_z = (alpha*abs(f0)/Lz0);
 
             [clr, ptName] = colorize(run, ptName);
 
-            zz = (H(1) - z0)./Lz0; errorbarflag = 0;
+            zz = (H(1) - z0)./Lz0;
             diags(ff) = (1 - erf(zz))./(1-erf(-z0/Lz0));
-            plotx(ff) = beta/beta_z./ (1 + beta/beta_z);
+            plotx(ff) = beta/beta_z ./ (1 + beta/beta_z);
 
             if isnan(diags(ff)), plotx(ff) = NaN; end
 
@@ -545,16 +544,30 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             else
                 %err(1,ff) = (1 - erf(H(2)./Lz0)) - diags(ff);
                 %err(2,ff) = (1 - erf(H(3)./Lz0)) - diags(ff);
-                err(1,ff) = 2/sqrt(pi) * exp(-zz^2) * ...
-                    sqrt( ((H(2)-H(1))/Lz0)^2 + (zz * dLz/Lz0)^2);
-                err(2,ff) = 2/sqrt(pi) * exp(-zz^2) * ...
-                    sqrt( ((H(3)-H(1))/Lz0)^2 + (zz * dLz/Lz0)^2);
+                % F = 1 - erf( (H-z0)/Lz )
+                % error bounds are hopeless. z0, Lz are correlated.
+                % and then numerator and denominator of y-axis are correlated.
+                F0 = 2/sqrt(pi) * exp( - ((H(1)-z0)./Lz0)^2 );
+                dFdH = F0./Lz0;
+                dFdz0 = F0./Lz0;
+                dFdLz = F0 * (H(1) - z0)./Lz0^2;
+
+                dH = mean(abs(diff(H([2 1 3]))));
+                dLz = mean([abs(Lz(2,tind(1)) - Lz0), abs(Lz(3,tind(1)) - Lz0)]);
+                dz0 = 0; %mean([abs(z0(tind(1),2) - z0), abs(z0(tind(1),3) - z0)]);
+
+                dnum = sqrt( dFdH^2 * dH^2 + dFdLz^2 * dLz^2 + dFdz0^2 * dz0^2 );
+                dden = 0; sqrt( dFdLz^2 * dLz^2 + dFdz0^2 * dz0^2 );
+
+                err(1,ff) = sqrt(dnum^2 + dden^2);
+                err(2,ff) = sqrt(dnum^2 + dden^2);
             end
 
             kozak = 1;
             name_points = 1; line_45 = 0;
             parameterize = 1;
             slope = num2str(round(alpha*1e3));
+            errorbarflag = 0;
 
             % mark NS isobath runs with gray points
             if run.bathy.axis == 'x'
