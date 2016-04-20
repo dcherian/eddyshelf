@@ -223,6 +223,8 @@ classdef runArray < handle
                 beta_sl = phys.f0 * bathy.sl_slope./bathy.hsl;
                 beta_sh = phys.f0 * bathy.sl_shelf./bathy.hsb;
 
+                [start,stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
+
                 temp = [];
                 try
                     temp = eval(['run.' command]);
@@ -987,7 +989,7 @@ classdef runArray < handle
             runArray.filter = fold;
         end
 
-        function [] = plot_ts(runArray, tsname, ax)
+        function [handles] = plot_ts(runArray, tsname, ax)
         % plot time series
             corder_backup = runArray.sorted_colors;
 
@@ -1018,16 +1020,16 @@ classdef runArray < handle
 
                 eval(['vec = ' tsname ';']);
 
-                hplt(ff) = plot(ndtime, vec(1:run.eddy.tend));
-                plot(ndtime(tind), vec(tind), 'kx', 'MarkerSize', 16);
+                handles.hplt(ff) = plot(ndtime, vec(1:run.eddy.tend));
+                handles.htind(ff) = plot(ndtime(tind), vec(tind), 'kx', 'MarkerSize', 16);
                 if exist('maxloc', 'var')
-                    plot(ndtime(maxloc), vec(maxloc), 'ko');
+                    handles.hmaxloc(ff) = plot(ndtime(maxloc), vec(maxloc), 'ko');
                 end
             end
 
-            legend(hplt, names);
+            legend(handles.hplt, names);
             title(tsname);
-            xlabel('Non-dimensional time');
+            xlabel('Time / Turnover time');
             beautify;
             runArray.reset_colors(corder_backup);
         end
