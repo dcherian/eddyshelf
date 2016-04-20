@@ -232,10 +232,12 @@ hleg.FontSize = handles.htext.FontSize;
 
 export_fig -r200 -a2 images/paper1/penetration-param.png
 
+sl.print_diag('params table', 'images/paper1/sl-params-table.org');
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% energy decay
 hlines = sl.plot_dEdt; maximize(); pause(1);
-linkprop([hlines.hke hlines.hpe], 'Color');
+prop = linkprop([hlines.hke hlines.hpe], 'Color');
 hlines.hke(1).Color = [1 1 1]*0.55;
 a = strcmp(sl.name, 'ew-64461-5');
 hlines.hke(a).Color = [0 0 0];
@@ -294,4 +296,4 @@ ax(3).Position(4) = 0.80;
 ax(3).FontSize = fontsize(end);
 beautify(fontsize);
 
-export_fig -r150 -a2 images/shallow-deep-hcen.png
+export_fig -r150 -a2 images/paper1/shallow-deep-hcen.png
