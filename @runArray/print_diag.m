@@ -1158,15 +1158,22 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
             [clr,ptName] = colorize(run, ptName);
 
+            if marker == '.'
+                markersize = 28;
+            else
+                markersize = 18;
+            end
+
             if errorbarflag
                 if ~isnan(err(1,ff)) && isnan(err(2,ff))
                     err(2,ff) = err(1,ff);
                 end
                 errorbar(plotx(ff), diags(ff), abs(err(1,ff)), abs(err(2,ff)), ...
-                         'x', 'LineWidth', 2, 'Color', clr, 'Marker', marker);
+                         'x', 'LineWidth', 2, 'Color', clr, ...
+                         'Marker', marker, 'MarkerSize', markersize);
             else
                 plot(plotx(ff), diags(ff), 'Marker', marker, 'Color', clr, ...
-                     'MarkerSize', 18);
+                     'MarkerSize', markersize);
             end
 
             % add run names
@@ -1371,7 +1378,9 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         end
     end
 
-    handles.htext = htext;
+    if plots
+        handles.htext = htext;
+    end
 
     if strcmpi(name, 'params table')
         diags = '|- \n';
@@ -1418,8 +1427,12 @@ function [clr, ptName, marker] = colorize(run, ptName)
         marker = 'o';
     end
 
-    if run.params.phys.f0 < 0
-        ptName = ' f^{-}';
-        clr = [27,158,119]/255;
+    % if run.params.phys.f0 < 0
+    %     ptName = ' f^{-}';
+    %     clr = [27,158,119]/255;
+    % end
+
+    if strfind(run.name, 'ew-64461-9')
+        marker = 'o';
     end
 end
