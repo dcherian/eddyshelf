@@ -221,12 +221,14 @@ export_fig -r300 -a2 images/paper1/bfrics-centrack.png
 [~,~,~,~,~,~,~,~,handles] = ...
     sl.print_diag('bottom torque', [], [], 'no_name_points');
 title([]);
-handles.htext.FontSize = 22;
-hax = gca; hleg = legend;
-hax.XAxis.Axle.VertexData(1,:) = single([0.0051 0.1139]);
-hax.YAxis.Axle.VertexData(2,:) = single([0.0132 0.1768]);
 
+hax = gca; hleg = legend;
+hax.FontSize = 30
 hleg.FontSize = handles.htext.FontSize;
+handles.htext.FontSize = 30;
+hleg.FontSize = handles.htext.FontSize;
+%hax.XAxis.Axle.VertexData(1,:) = single([0.0051 0.1139]);
+%hax.YAxis.Axle.VertexData(2,:) = single([0.0132 0.1768]);
 
 export_fig -r200 -a2 images/paper1/penetration-param.png
 
