@@ -223,7 +223,10 @@ classdef runArray < handle
                 beta_sl = phys.f0 * bathy.sl_slope./bathy.hsl;
                 beta_sh = phys.f0 * bathy.sl_shelf./bathy.hsb;
 
-                [start,stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
+                try
+                    [start,stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
+                catch ME
+                end
 
                 temp = [];
                 try
