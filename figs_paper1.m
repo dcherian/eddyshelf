@@ -211,9 +211,6 @@ pbaspect([1.618 1 1])
 hfric.hgplt2(1).Color = [1 1 1] * 0.7;
 hfric.hgplt2(2).Color = [1 1 1] * 0.4;
 hfric.hgplt2(3).Color = [1 1 1] * 0.1;
-linkprop([hfric.hgplt2(1) hfric.hfit(1) hfric.hslbreak(1)], 'Color');
-linkprop([hfric.hgplt2(2) hfric.hfit(2) hfric.hslbreak(2)], 'Color');
-linkprop([hfric.hgplt2(3) hfric.hfit(3) hfric.hslbreak(3)], 'Color');
 export_fig -r300 -a2 images/paper1/bfrics-centrack.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

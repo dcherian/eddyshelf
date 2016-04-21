@@ -28,7 +28,7 @@ function [handles] = plot_penetration(runArray, ax, choices)
     end
 
     % dt for mark_timestamp
-    if flag(6) == 0
+    if flag(7) == 0
         dt = 100; % default
     else
         dt = flag(7);
@@ -131,6 +131,7 @@ function [handles] = plot_penetration(runArray, ax, choices)
             plot(ndtime, (edge2 - y0)./ynorm, 'Color', color);
         end
 
+        htotal = [];
         axes(ax1)
         x = (mx - x0)/xnorm;
         y = (my - y0)/ynorm;
@@ -139,11 +140,13 @@ function [handles] = plot_penetration(runArray, ax, choices)
         handles.hgplt2(ff) = plot(x, y, 'Color', color, 'LineStyle', '-');
         names{ff} = name;
 
+        htotal = handles.hgplt2(ff);
         % mark start of resistance
         if mark_resistance
             [~,~,tres] = run.locate_resistance;
             handles.hres(ff) = plot(x(tres), y(tres), 'x', ...
                                     'Color', color, 'Markersize', 22);
+            htotal = [htotal handles.hres(ff)];
         end
 
         if mark_fitvel
@@ -152,6 +155,7 @@ function [handles] = plot_penetration(runArray, ax, choices)
                 handles.hfit(ff) = ...
                     plot(x(tfit(1)), y(tfit(1)), 'x', 'Color', color, 'MarkerSize', 22);
             end
+            htotal = [htotal handles.hfit(ff)];
             %keyboard;
             %h2 = scatter(x(tfit(2):tfit(3)), y(tfit(2):tfit(3)), 24, color, 'filled');
         end
@@ -161,12 +165,14 @@ function [handles] = plot_penetration(runArray, ax, choices)
             run.fit_traj();
             handles.htraj(ff) = plot(x(run.traj.tind), y(run.traj.tind), 'x', ...
                                      'Color', color, 'Markersize', 16);
+            htotal = [htotal handles.htraj(ff)];
         end
 
         % mark timestamps
         if mark_timestamp & ~isempty(tinds)
             handles.htstampt(ff) = ...
                 plot(x(tinds), y(tinds), '.', 'Color', color, 'MarkerSize', 26);
+            htotal = [htotal handles.htstampt(ff)];
             %text(x(tinds), y(tinds), ...
             %     cellstr(num2str(ndtime(tinds)', 2)));
         end
@@ -175,7 +181,10 @@ function [handles] = plot_penetration(runArray, ax, choices)
         if mark_slopebreak
             handles.hslbreak(ff) = plot(x(tsl), y(tsl), 'o', 'Color', color, ...
                                         'MarkerSize', 10);
+            htotal = [htotal handles.hslbreak(ff)];
         end
+
+        handles.hprop(ff) = linkprop(htotal, 'Color');
 
         if ~isempty(ax2)
             axes(ax2)
