@@ -1,7 +1,8 @@
 % diagnostic plots to show how much eddy penetrates slope
-function [handles] = plot_penetration(runArray, ax, choices)
+function [handles] = plot_penetration(runArray, ax, choices, clear_axis)
 
     if ~exist('ax', 'var'), ax = []; end
+    if ~exist('clear_axis', 'var'), clear_axis = 0; end
 
     if ischar(ax)
         choices = ax;
@@ -39,15 +40,23 @@ function [handles] = plot_penetration(runArray, ax, choices)
     fontsize = 18;
 
     corder_backup = runArray.sorted_colors;
+    if clear_axis
+        % if using multiple panels, then sorted_colors won't work because the axis is
+        % probably already created.
+        pos = ax.Position;
+        ax.delete;
+        warning('deleting provided axis.');
+        ax = axes('position', pos);
+    end
 
     hfig1 = []; %figure; subplot(2,1,1); hold all; subplot(2,1,2);
                 %hold all; insertAnnotation('runArray.plot_penetration');
-
     if ~exist('ax', 'var') || isempty(ax)
         hfig2 = figure;ax1 = gca; hold all; %subplot(2,2,[1 3]); hold all;
     else
         hfig2 = gcf;
-        ax1 = ax; hold all;
+        ax1 = ax;
+        axes(ax1);  hold on;
     end
     figure(hfig2); insertAnnotation('runArray.plot_penetration');
     ax2 = []; %subplot(2,2,2); hold all;

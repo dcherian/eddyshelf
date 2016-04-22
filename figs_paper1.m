@@ -130,7 +130,6 @@ sl = runArray(folders);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% bottom friction
 folders = { ...
-    ... %'runew-34', 'runew-5341', 'runew-5343'
     'runew-6341', 'runew-56341', 'runew-56341-2', ...
           };
 bfrics = runArray(folders);
@@ -141,6 +140,19 @@ for ii=1:bfrics.len
                        num2str(bfrics.array(ii).params.misc.rdrg, '%1.0e') ' m/s'];
 end
 bfrics.name{1} = 'r = 0 m/s';
+
+folders = { ...
+    'runew-64361-shallow', 'runew-564361', 'runew-564361-2', ...
+    'runew-564361-3', 'runew-564361-4', ...
+          };
+bfrics60 = runArray(folders);
+for ii=1:bfrics60.len
+    run = bfrics60.array(ii);
+    tind = find_approx(run.eddy.t/run.eddy.tscale*86400, 1);
+    bfrics60.name{ii} = ['r = ' ...
+                       num2str(run.params.misc.rdrg, '%1.0e') ' m/s'];
+end
+bfrics60.name{1} = 'r = 0 m/s';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% y-z cross section
@@ -206,11 +218,34 @@ export_fig('-r150', '-a2', 'images/paper1/sl-centrack.png');
 %% bottom friction
 
 bfrics.sort(bfrics.print_params('params.misc.rdrg'));
-hfric = bfrics.plot_penetration([],'all'); maximize();
+bfrics60.sort(bfrics60.print_params('params.misc.rdrg'));
+
+figure; maximize
+hax = packfig(1,2);
+hfric = bfrics.plot_penetration(hax(1),'all'); maximize();
 pbaspect([1.618 1 1])
 hfric.hgplt2(1).Color = [1 1 1] * 0.7;
 hfric.hgplt2(2).Color = [1 1 1] * 0.4;
-hfric.hgplt2(3).Color = [1 1 1] * 0.1;
+hfric.hgplt2(3).Color = [1 1 1] * 0.2;
+
+hfric60 = bfrics60.plot_penetration(hax(2),'all',1); maximize();
+hax(2) = gca;
+pbaspect([1.618 1 1])
+hfric60.hgplt2(1).Color = [1 1 1] * 0.8;
+hfric60.hgplt2(2).Color = [1 1 1] * 0.6;
+hfric60.hgplt2(3).Color = [1 1 1] * 0.4;
+hfric60.hgplt2(4).Color = [1 1 1] * 0.2;
+
+linkaxes(hax, 'xy');
+hax(1).YLim = [0 8];
+hax(1).YTick = [0:1:8];
+hax(2).YLabel.String = [];
+hax(2).YTickLabel = {};
+hax(1).XTickLabel{end} = '';
+
+hax(1).Title.String = 'Rh = 12';
+hax(2).Title.String = 'Rh = 60';
+
 export_fig -r300 -a2 images/paper1/bfrics-centrack.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
