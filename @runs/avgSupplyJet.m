@@ -3,6 +3,8 @@ function [] = avgSupplyJet(runs, debug)
 
     ticstart = tic;
 
+    if ~exist('debug', 'var'), debug = 0; end
+
     assert(runs.bathy.axis == 'y', 'Error: EW isobaths only!');
 
     [xx,yy,tt] = runs.locate_resistance;
@@ -46,10 +48,12 @@ function [] = avgSupplyJet(runs, debug)
     % end
 
     zetamean = nanmean(zeta .* csdvint, 2);
-    asvmean = mean(asvel .* (asvel < 0) .* (csdye <= runs.bathy.xsl), 3);
+    asvshmean = mean(asvel .* (csdye <= runs.bathy.xsl), 3);
     csdmean = mean(csdye, 3);
+    asvmean = mean(asvel, 3);
 
     for ii=1:size(asvmean,1)
+        asvshint(ii) = trapz(zmat(ii,:), asvshmean(ii,:));
         asvint(ii) = trapz(zmat(ii,:), asvmean(ii,:));
     end
 
@@ -60,11 +64,11 @@ function [] = avgSupplyJet(runs, debug)
                                                      - min(zetamean(1:imax)), 0);
 
     % fit vertically integrated, time-averaged, dye-masked along-shelf velocity
-    [~,imin] = min(asvint./runs.bathy.h(1,2:isb));
+    [~,imin] = min(asvshint./runs.bathy.h(1,2:isb));
     exitflag = 0;
     i0 = 1;
     while ~exitflag
-        [v0,X,x0,v1,exitflag,conf] = gauss_fit(yvec(i0:imin), asvint(i0:imin), debug);
+        [v0,X,x0,v1,exitflag,conf] = gauss_fit(yvec(i0:imin), asvshint(i0:imin), debug);
         if ~exitflag
             i0 = i0 + 1;
         end
@@ -73,19 +77,33 @@ function [] = avgSupplyJet(runs, debug)
         %    exitflag = 0;
         %end
     end
+
+    % fit vertically integrated, time-averaged, *unmasked* along-shelf velocity
+    [v0,Xfull,x0,v1,exitflag,confFull] = gauss_fit(yvec, asvint, debug);
+    supply.IntersectIndex = max(find(asvint == asvshint));
+    supply.IntersectLocation = yvec(supply.IntersectIndex);
+    supply.IntersectScale = runs.bathy.xsb - supply.IntersectLocation;
+
     title(runs.name);
+    supply.shelf.vmean = asvshmean;
+    supply.shelf.vint = asvshint;
+    supply.shelf.xscale = X;
+    supply.shelf.xscaleConf = conf(:,2);
+    supply.shelf.xmin = yvec(imin);
+    supply.shelf.imin = imin;
+    supply.shelf.comment = 'shelf-water only';
+
+    supply.zeta.xscale = Xzeta;
+    supply.zeta.conf = zetaconf(:,2);
+
+    supply.vmean = asvmean;
+    supply.vint = asvint;
+    supply.xscale = Xfull;
+    supply.conf = confFull;
+    supply.csdmean = csdmean;
 
     supply.hash = githash([mfilename('fullpath') '.m']);
     supply.tindices = tindices;
-    supply.asvmean = asvmean;
-    supply.asvint = asvint;
-    supply.xscale = X;
-    supply.xscaleConf = conf(:,2);
-    supply.xscaleZeta = Xzeta;
-    supply.zetaConf = zetaconf(:,2);
-    supply.xmin = yvec(imin);
-    supply.imin = imin;
-    supply.csdmean = csdmean;
     supply.ymat = ymat;
     supply.zmat = zmat;
     supply.x = xloc;
@@ -93,8 +111,13 @@ function [] = avgSupplyJet(runs, debug)
     supply.i0 = i0;
     supply.comment = ['Along-shelf velocity averaged (flux_tindices for sb) ' ...
                       'as function of (y,z) ' ...
-                      '| (asvmean, asvint) = (mean, depth integrated) | ' ...
-                      'i0 ≠ 0 means I had to remove points near coast'];
+                      '| (v*mean, v*int) = (mean, depth integrated) | ' ...
+                      'i0 ≠ 0 means I had to remove points near coast | ' ...
+                      'Intersect(Index,Location,Scale) = point where shelf.vint and ' ...
+                      ' vint intersect: this is the last point where the jet is ' ...
+                      ' all shelf water. ' ...
+                      ' IntersectScale is essentially a length scale for penetration ' ...
+                      'of slope-eddy water on the shelf.'];
 
     runs.supply = supply;
 
