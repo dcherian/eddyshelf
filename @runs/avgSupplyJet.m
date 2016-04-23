@@ -63,12 +63,15 @@ function [] = avgSupplyJet(runs, debug)
                                                      zetamean(1:imax)...
                                                      - min(zetamean(1:imax)), 0);
 
-    % fit vertically integrated, time-averaged, dye-masked along-shelf velocity
+    asvavg   = asvint./runs.bathy.h(1,2:isb);
+    asvshavg = asvshint./runs.bathy.h(1,2:isb);
+
+    % fit vertically averaged, time-averaged, dye-masked along-shelf velocity
     [~,imin] = min(asvshint./runs.bathy.h(1,2:isb));
     exitflag = 0;
     i0 = 1;
     while ~exitflag
-        [v0,X,x0,v1,exitflag,conf] = gauss_fit(yvec(i0:imin), asvshint(i0:imin), debug);
+        [v0,X,x0,v1,exitflag,conf] = gauss_fit(yvec(i0:imin), asvshavg(i0:imin), debug);
         if ~exitflag
             i0 = i0 + 1;
         end
@@ -78,15 +81,16 @@ function [] = avgSupplyJet(runs, debug)
         %end
     end
 
-    % fit vertically integrated, time-averaged, *unmasked* along-shelf velocity
-    [v0,Xfull,x0,v1,exitflag,confFull] = gauss_fit(yvec, asvint, debug);
-    supply.IntersectIndex = max(find(asvint == asvshint));
+    % fit vertically averaged, time-averaged, *unmasked* along-shelf velocity
+    [v0,Xfull,x0,v1,exitflag,confFull] = gauss_fit(yvec, asvavg, debug);
+    supply.IntersectIndex = max(find(abs(asvavg - asvshavg) < 0.01));
     supply.IntersectLocation = yvec(supply.IntersectIndex);
     supply.IntersectScale = runs.bathy.xsb - supply.IntersectLocation;
 
     if debug, title(runs.name); end
     supply.shelf.vmean = asvshmean;
     supply.shelf.vint = asvshint;
+    supply.shelf.vavg = asvshavg;
     supply.shelf.xscale = X;
     supply.shelf.xscaleConf = conf(:,2);
     supply.shelf.xmin = yvec(imin);
@@ -99,6 +103,7 @@ function [] = avgSupplyJet(runs, debug)
 
     supply.vmean = asvmean;
     supply.vint = asvint;
+    supply.vavg = asvavg;
     supply.xscale = Xfull;
     supply.conf = confFull(:,2);
     supply.csdmean = csdmean;
@@ -112,7 +117,7 @@ function [] = avgSupplyJet(runs, debug)
     supply.i0 = i0;
     supply.comment = ['Along-shelf velocity averaged (flux_tindices for sb) ' ...
                       'as function of (y,z) ' ...
-                      '| (v*mean, v*int) = (mean, depth integrated) | ' ...
+                      '| (v*mean, v*int, v*avg) = (mean, depth integrated, depth averaged) | ' ...
                       'i0 ≠ 0 means I had to remove points near coast | ' ...
                       'Intersect(Index,Location,Scale) = point where shelf.vint and ' ...
                       ' vint intersect: this is the last point where the jet is ' ...
