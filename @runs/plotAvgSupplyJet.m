@@ -2,23 +2,29 @@ function [] = plotAvgSupplyJet(runs)
 
     supply = runs.supply;
 
+    xloc = -[supply.xscale supply.IntersectScale]/1000;
+
     figure;
     hax = packfig(3,1);
     insertAnnotation([runs.name '.plotAvgSupplyJet']);
 
     axes(hax(1));
-    plot(supply.ymat(:,1)/1000 - runs.bathy.xsb/1000, supply.asvint);
+    plot(supply.ymat(:,1)/1000 - runs.bathy.xsb/1000, supply.vint);
+    hold on;
+    plot(supply.ymat(:,1)/1000 - runs.bathy.xsb/1000, supply.shelf.vint);
     ylabel({'Depth-integrated'; 'velocity'});
+    legend('All water', 'Shelf water', 'Location', 'NorthWest');
     title(['Averaged along-shelf supply jet (m/s) | ' runs.name]);
     beautify([22 24 28]);
-    linex([supply.xmin supply.xmin-supply.xscale]/1000 - runs.bathy.xsb/1000);
+    linex(xloc);
+    liney(0);
     hax(1).XTickLabel = [];
 
     axes(hax(2));
-    contourf(supply.ymat/1000 - runs.bathy.xsb/1000, supply.zmat, supply.asvmean, ...
+    contourf(supply.ymat/1000 - runs.bathy.xsb/1000, supply.zmat, supply.vmean, ...
             40, 'EdgeColor', 'none');
     hcb(1) = center_colorbar;
-    linex([supply.xmin supply.xmin-supply.xscale]/1000 - runs.bathy.xsb/1000);
+    linex(xloc);
     ylabel('Z (m)');
     %pbaspect([1.618 1 1]);
     beautify([22 24 28]);
@@ -35,7 +41,7 @@ function [] = plotAvgSupplyJet(runs)
     text(0.1, 0.1, 'Averaged cross-shelf dye - Y_{sb} (km)', 'Units', 'normalized');
     xlabel('Y - Y_{sb} (km)');
     ylabel('Z (m)');
-    linex([supply.xmin supply.xmin-supply.xscale]/1000 - runs.bathy.xsb/1000);
+    linex(xloc);
     %pbaspect([1.618 1 1]);
     beautify([22 24 28]);
 
