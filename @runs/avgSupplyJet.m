@@ -84,13 +84,14 @@ function [] = avgSupplyJet(runs, debug)
     supply.IntersectLocation = yvec(supply.IntersectIndex);
     supply.IntersectScale = runs.bathy.xsb - supply.IntersectLocation;
 
-    title(runs.name);
+    if debug, title(runs.name); end
     supply.shelf.vmean = asvshmean;
     supply.shelf.vint = asvshint;
     supply.shelf.xscale = X;
     supply.shelf.xscaleConf = conf(:,2);
     supply.shelf.xmin = yvec(imin);
     supply.shelf.imin = imin;
+    supply.shelf.conf = conf(:,2);
     supply.shelf.comment = 'shelf-water only';
 
     supply.zeta.xscale = Xzeta;
@@ -99,7 +100,7 @@ function [] = avgSupplyJet(runs, debug)
     supply.vmean = asvmean;
     supply.vint = asvint;
     supply.xscale = Xfull;
-    supply.conf = confFull;
+    supply.conf = confFull(:,2);
     supply.csdmean = csdmean;
 
     supply.hash = githash([mfilename('fullpath') '.m']);
