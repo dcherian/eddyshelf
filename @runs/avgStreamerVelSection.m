@@ -66,7 +66,7 @@ function [] = avgStreamerVelSection(runs, iso)
                 offmask = xivec' > 0;
             end
         else
-            offmask = xivec' < runs.eddy.rhovor.dia(1)/2;
+            offmask = 1; %xivec' < runs.eddy.rhovor.dia(1)/2;
         end
 
         offvmean(:,:,isobath) = mean(bsxfun(@times, vi .* (csdyei < runs.csflux.x(source)), ...
