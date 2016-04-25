@@ -11,6 +11,8 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     limx = [165 410]; limy = [0 120];
     limx = []; limy = [];
 
+    commands = '';
+
     dt = 1; dx = 0; dy = 0;
     factor = 1; % scale variable (1 by default)
 
@@ -186,7 +188,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         varname = 'zeta';
         titlestr = 'SSH (m)';
 
-        if strcmpi(name, 'zeta'), addzeta = 0; end
+        %if strcmpi(name, 'zeta'), addzeta = 0; end
         if ~addzeta, addcsdye = 0; end
     end
 
@@ -706,6 +708,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         beautify(fontsize);
     end
 
+    eval(commands);
     if ntimes > 1
         runs.video_update();
         for ii = t0+1:dt:t0+ntimes*dt-1
