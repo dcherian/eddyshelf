@@ -152,8 +152,10 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
             %metric = run.bathy.h(1,ind)./run.bathy.hsb .* ...
             %         (1+run.rgrid.f(run.bathy.isb,1)./run.rgrid.f(ind,1))';
 
-            hgplt3(ff) = plot(ndtime, (run.csflux.x(isobath) - env), ...
+            hgplt3(ff) = plot(ndtime, (run.csflux.x(isobath) - env)/1000, ...
                               'Color', hgplt1(ff).Color);
+            plot(0, run.bathy.Lbetash/1000, 'x', ...
+                 'MarkerSize', 20, 'Color', hgplt1(ff).Color);
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EDDY WATER
@@ -300,7 +302,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
         figure(hfig3)
         insertAnnotation('runArray.plot_fluxes');
         xlabel('Non-dimensional time');
-        ylabel('Distance from shelfbreak');
+        ylabel('Distance from shelfbreak (km)');
         legend(hgplt3, names);
         beautify;
     end
