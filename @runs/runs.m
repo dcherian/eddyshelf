@@ -3710,7 +3710,7 @@ methods
             runs.mm_instance = mm_setup('frameDir',['videos/' runs.name '-' filename]);
             runs.mm_instance.pixelSize = [1600 900];
             runs.mm_instance.outputFile = ['videos/' runs.name '-' filename '.mp4'];
-            runs.mm_instance.ffmpegArgs = '-q:v 1 -g 1';
+            runs.mm_instance.ffmpegArgs = '-q:v 1 -g 5';
             runs.mm_instance.InputFrameRate = 5;
             runs.mm_instance.frameRate = 5;
 %                 aviobj = VideoWriter('output','MPEG-4');
