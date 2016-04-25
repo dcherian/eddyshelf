@@ -1,7 +1,7 @@
 % mosaic animate_field plots.
 %     [ax] = mosaic_field(runs, varname, timesteps, opt)
 
-function [handles] = mosaic_field(runs, varname, timesteps, opt)
+function [handles] = mosaic_field(runs, varname, timesteps, opt, hax)
 
     if ~exist('opt', 'var'), opt = []; end
 
@@ -13,12 +13,19 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt)
     N = ceil(Nt/2);
     letters = 'abcdefghijkl';
 
-    figure; maximize;
-    if Nt == 2 | Nt == 3
-        handles.hax = packfig(1, Nt);
-        N = 1;
+    if ~exist('hax', 'var')
+        figure; maximize;
+        if Nt == 2 | Nt == 3
+            handles.hax = packfig(1, Nt);
+        else
+            handles.hax = packfig(2, N);
+        end
     else
-        handles.hax = packfig(2, N);
+        handles.hax = hax;
+    end
+
+    if Nt == 2 | Nt == 3
+        N = 1;
     end
 
     insertAnnotation([runs.name '.mosaic_field']);
