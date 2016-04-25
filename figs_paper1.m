@@ -243,8 +243,8 @@ hax(2).YLabel.String = [];
 hax(2).YTickLabel = {};
 hax(1).XTickLabel{end} = '';
 
-hax(1).Title.String = 'Rh = 12';
-hax(2).Title.String = 'Rh = 60';
+hax(1).Title.String = 'a) Rh = 12';
+hax(2).Title.String = 'b) Rh = 60';
 
 export_fig -r300 -a2 images/paper1/bfrics-centrack.png
 
