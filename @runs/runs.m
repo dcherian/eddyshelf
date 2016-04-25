@@ -37,6 +37,8 @@ properties
     wmetric;
     % along-shore supply jet properties
     supply;
+    % SSH scale at shelfbreak
+    sbssh;
     % along-shore slope jet properties
     jet;
     % threshold values
@@ -563,6 +565,14 @@ methods
             disp('Loading streamer diagnostics');
             data = load([dir '/avgstreamer.mat']);
             runs.streamer = data.streamer;
+            clear data
+        end
+
+        % load average streamer section diagnostics if the file exists
+        if exist([dir '/sbssh.mat'],'file') && reset ~= 1 & ~reduced
+            disp('Loading shelfbreak SSH diagnostics');
+            data = load([dir '/sbssh.mat']);
+            runs.sbssh = data.sbssh;
             clear data
         end
 

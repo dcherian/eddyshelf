@@ -1,8 +1,8 @@
-% Averages 'varname' at 'axname' = 'ix' after applying 'mask'
+% Averages 'varname' at 'axname' = 'ix'
 % Average is taken over time interval returned by flux_tindices.
 %   mask == 1, indicate boundary of shelf/eddy water
-%      [varmean,maskmean,xivec] = avgProfile(runs, varname, axname, ix, mask)
-function [varmean,maskmean,xivec] = avgProfile(runs, varname, axname, ix, mask)
+%      [varmean,maskmean,xivec, varmaskedmean] = avgProfile(runs, varname, axname, ix, mask)
+function [varmean,maskmean,xivec, varmaskedmean] = avgProfile(runs, varname, axname, ix, mask)
 
     if ~exist('mask', 'var'), mask = 0; end
 
@@ -67,10 +67,13 @@ function [varmean,maskmean,xivec] = avgProfile(runs, varname, axname, ix, mask)
         vari(:,tt) = interp1(xvec-mx(tt), var(:,tt), xivec);
         if mask
             maski(:,tt) = interp1(xvec-mx(tt), maskvar(:,tt), xivec);
+            varmaski(:,tt) = interp1(xvec-mx(tt), ...
+                                     var(:,tt).*(maskvar(:,tt) < runs.bathy.xsl), xivec);
         end
     end
 
     varmean = nanmean(vari(:,start:stop), 2);
+    varmaskedmean = nanmean(varmaski(:,start:stop), 2);
     if mask
         maskmean = nanmean(maski(:,start:stop), 2) > runs.bathy.xsl;
     else
