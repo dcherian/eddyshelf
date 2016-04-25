@@ -58,21 +58,25 @@ function [handles] = PlotSingleYZSection(runs, varname, days, loc, hax)
                                 {bathyax locstr locstr}, [], runs.rgrid, 'his');
     end
 
+    if strcmpi(varname, 'rho')
+        drho = bsxfun(@minus, var, tback);
+    end
+
     if strcmpi(varname, runs.csdname)
         var = var/1000;
     end
 
     handles.hvar = contourf(yz, zmat, var, 20, 'EdgeColor', 'none');
-    handles.hlz = liney(-1 * runs.eddy.Lgauss(tindices));
+    hold on;
     if strcmpi(varname, runs.eddname)
         colormap(cbrewer('seq', 'Greys', 32));
         caxis([0 1]);
     end
     handles.htitle = title([runs.name ' | ' varname]);
-    handles = common(runs, yz, zmat, drho, var, days, locstr, tindices);
+    handles = common(runs, yz, zmat, drho, ed, days, locstr, tindices, handles);
 end
 
-function handles = common(obj, yz, zmat, drho, ed, days, loc, tindices)
+function handles = common(obj, yz, zmat, drho, ed, days, loc, tindices, handles)
 % do common tasks
     drawnow;
     clim = caxis; limx = xlim; limy = ylim;
@@ -83,15 +87,15 @@ function handles = common(obj, yz, zmat, drho, ed, days, loc, tindices)
         [~,handles.hed] = contour(yz, zmat, ed, 1, 'r', 'LineWidth', 2);
     end
     if ~isempty(drho)
-        [~,handles.hdrho] = contour(yz, zmat, drho, [1 1]* obj.eddy.drhothreshssh(1), ...
+        [~,handles.hdrho] = contour(yz, zmat, drho, [1 1]* obj.eddy.drhothresh(1), ...
                                     'Color', [44 162 95]/256, 'LineWidth', 2);
     end
     caxis(clim);
 
     % vertical scale
-    liney(-1 * obj.eddy.Lgauss(tindices), [], 'k');
+    hanldes.hlz = liney(-1 * obj.eddy.Lgauss(tindices), [], 'k');
 
-    linex(obj.eddy.my(tindices)/1000, [], 'k');
+    handles.hcen = linex(obj.eddy.my(tindices)/1000, [], 'k');
 
     % patch bathymetry
     if obj.bathy.loc == 'h'
@@ -102,20 +106,22 @@ function handles = common(obj, yz, zmat, drho, ed, days, loc, tindices)
     else
         if obj.bathy.axis == 'y'
             % southern coast
-            patch(([obj.rgrid.y_rho(:,1); min(obj.rgrid.y_rho(:,1))])./1000, ...
-                  -1*[min(obj.rgrid.h(:)); obj.rgrid.h(:,1)], 'k');
+            handles.htopo = ...
+                patch(([obj.rgrid.y_rho(:,1); min(obj.rgrid.y_rho(:,1))])./1000, ...
+                      -1*[min(obj.rgrid.h(:)); obj.rgrid.h(:,1)], 'k');
             textx = 0.85;
         else
             % western coast
-            patch(([obj.rgrid.x_rho(1,:)'; min(obj.rgrid.x_rho(1,:))])./1000, ...
-                  -1*[min(obj.rgrid.h(:)); obj.rgrid.h(1,:)'], 'k');
+            handles.htopo = ...
+                patch(([obj.rgrid.x_rho(1,:)'; min(obj.rgrid.x_rho(1,:))])./1000, ...
+                      -1*[min(obj.rgrid.h(:)); obj.rgrid.h(1,:)'], 'k');
             textx = 0.85;
         end
     end
 
-    text(textx*limx(2), -1 * obj.eddy.Lgauss(tindices), ...
-         {'vertical','scale'}, 'VerticalAlignment', 'Bottom', ...
-         'HorizontalAlignment','Center');
+    handles.hlzlabel = text(textx*limx(2), -1 * obj.eddy.Lgauss(tindices), ...
+                            {'vertical','scale'}, 'VerticalAlignment', 'Bottom', ...
+                            'HorizontalAlignment','Center');
 
     handles.htlabel = ....
         text(0.05 , 0.05, {['t = ' num2str(days) ' days']; ...
@@ -124,5 +130,5 @@ function handles = common(obj, yz, zmat, drho, ed, days, loc, tindices)
 
     ylabel('Z (m)');
     xlabel([upper(obj.bathy.axis) '(km)']);
-    beautify([15 15 18]);
+    beautify([26 28 30]);
 end

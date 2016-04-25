@@ -8,19 +8,72 @@ opt = [];
 opt.addcsdye = 1;
 opt.addzeta = 1;
 opt.rhocontourplot = 1;
+tsteps = [1 40 230];
 
-handles = ew.mosaic_field('eddye', [1 40 230], opt);
+figure;
+for ii=1:6, hax(ii) = subplot(2,3,ii); end
+maximize;
+
+handles = ew.mosaic_field('eddye', tsteps, opt, hax(1:3));
 handles.hcb.delete;
+handles.hfield{2}.hshelflabel.delete;
+handles.hfield{3}.hshelflabel.delete;
 handles.supax.Position(4) = 0.65;
 handles.htitle.String = 'Surface dyes';
 
 correct_ticks('y', [], {'200'; '50'}, handles.hax(1));
-for ii=1:length(handles.hax)
+for ii=1:3
+    str = handles.hfield{ii}.htlabel.String;
+    handles.hfield{ii}.htlabel.String = str(1:2);
+    hax(ii).Title.String = str(4:end);
     handles.hfield{ii}.hbathy{2}.Color = [1 1 1]*0.77;
-    %handles.hfield{ii}.hbathy{3}.Color = 'k';
+    if ii > 1
+        handles.hfield{ii}.hzetaneg.LevelList = ...
+            [-6 -4 -3 -2]*1e-3;
+    end
 end
 
-export_fig -r150 -a2 images/paper1/xymap.png
+labels = 'def';
+for ii=1:3
+    handlesyz{ii} = ew.PlotSingleYZSection('rho', tsteps(ii), [], hax(3+ii));
+    title('');
+    if ii~=3
+        colorbar('delete');
+        correct_ticks('x', [], {'200'}, hax(3+ii));
+    else
+        hcb = colorbar;
+        hcb.Position(1) = 0.91;
+        hcb.Label.String = '\rho (kg/m^3)';
+    end
+    handlesyz{ii}.htlabel.String{1} = [labels(ii) ') '];
+    handlesyz{ii}.htlabel.String{2} = [];
+
+    handlesyz{ii}.hlzlabel.Position(2) = ...
+        handlesyz{ii}.hlzlabel.Position(2) - 75;
+    handlesyz{ii}.hlzlabel.Position(1) = ...
+        handlesyz{ii}.hlzlabel.Position(1) - 20;
+
+    caxis([21.6 22.4]);
+
+    % change colormap
+    colormap(hax(3+ii), cbrewer('div', 'BrBG', 20));
+    if ii > 1
+        hax(3+ii).YTickLabel = [];
+        hax(3+ii).YLabel.String = '';
+    end
+end
+
+export_fig -opengl -r150 -a2 images/paper1/xyzmap.png
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% vertical structure
+
+if ~exist('ew','var') | ~strcmpi(ew.name, 'ew-64461-5')
+    ew = runs('../topoeddy/runew-6341/');
+end
+
+ew.PlotSingleYZSection('csdye',  255);
+center_colorbar;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% ew-64461-5-eddye video
