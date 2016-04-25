@@ -16,7 +16,7 @@ function [] = avgSupplyJet(runs, debug)
     N = runs.rgrid.N;
     isb = runs.bathy.isb;
 
-    xloc = xx + 30e3;
+    xloc = xx + 2 * runs.params.eddy.dia;
     xind = find_approx(runs.rgrid.x_rho(1,:), xloc, 1);
     assert(xind < runs.spng.sx2, 'Error: Location within sponge!');
     yvec = runs.rgrid.y_rho(2:isb, 1);
@@ -48,12 +48,14 @@ function [] = avgSupplyJet(runs, debug)
     % end
 
     zetamean = nanmean(zeta .* csdvint, 2);
-    asvshmean = mean(asvel .* (csdye <= runs.bathy.xsl), 3);
+    asvshmean = mean(asvel .* (csdye <= runs.bathy.xsb), 3);
+    asvslmean = mean(asvel .* (csdye <= runs.bathy.xsl), 3);
     csdmean = mean(csdye, 3);
     asvmean = mean(asvel, 3);
 
     for ii=1:size(asvmean,1)
         asvshint(ii) = trapz(zmat(ii,:), asvshmean(ii,:));
+        asvslint(ii) = trapz(zmat(ii,:), asvslmean(ii,:));
         asvint(ii) = trapz(zmat(ii,:), asvmean(ii,:));
     end
 
@@ -65,6 +67,7 @@ function [] = avgSupplyJet(runs, debug)
 
     asvavg   = asvint./runs.bathy.h(1,2:isb);
     asvshavg = asvshint./runs.bathy.h(1,2:isb);
+    asvslavg = asvslint./runs.bathy.h(1,2:isb);
 
     % fit vertically averaged, time-averaged, dye-masked along-shelf velocity
     [~,imin] = min(asvshint./runs.bathy.h(1,2:isb));
@@ -87,16 +90,24 @@ function [] = avgSupplyJet(runs, debug)
     supply.IntersectLocation = yvec(supply.IntersectIndex);
     supply.IntersectScale = runs.bathy.xsb - supply.IntersectLocation;
 
+    [v0,Xsl,x0,v1,exitflag,confsl] = gauss_fit(yvec, asvavg, debug);
+
     if debug, title(runs.name); end
     supply.shelf.vmean = asvshmean;
     supply.shelf.vint = asvshint;
     supply.shelf.vavg = asvshavg;
     supply.shelf.xscale = X;
-    supply.shelf.xscaleConf = conf(:,2);
     supply.shelf.xmin = yvec(imin);
     supply.shelf.imin = imin;
     supply.shelf.conf = conf(:,2);
     supply.shelf.comment = 'shelf-water only';
+
+    supply.shsl.vmean = asvslmean;
+    supply.shsl.vint = asvslint;
+    supply.shsl.vavg = asvslavg;
+    supply.shsl.xscale = Xsl;
+    supply.shsl.conf = confsl(:,2);
+    supply.shsl.comment = 'shelf + slope water only';
 
     supply.zeta.xscale = Xzeta;
     supply.zeta.conf = zetaconf(:,2);
