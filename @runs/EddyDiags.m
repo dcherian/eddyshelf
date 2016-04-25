@@ -49,7 +49,7 @@ function [handles] = EddyDiags(runs, hfig)
                   'Location', 'NorthEast');
     hleg.Position(1) = 0.86;
     hleg.Position(2) = 0.23;
-    ylabel({'Eddy center'; 'translation velocity';  '(m/s)'});
+    ylabel({'Eddy center'; 'translation velocity';  '(km/day)'});
     xlabel('Time (days)');
     beautify;
 
