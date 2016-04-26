@@ -9,7 +9,7 @@ function [] = avgSupplyJet(runs, debug)
 
     [xx,yy,tt] = runs.locate_resistance;
     [start,stop] = runs.flux_tindices(runs.csflux.off.slope(:, 1, 1));
-    tindices = [start ceil((start+stop)/2)];
+    tindices = [start stop];
 
     xivec = -100:runs.rgrid.dx/1000:0;
     xl = length(xivec);
@@ -61,9 +61,12 @@ function [] = avgSupplyJet(runs, debug)
 
     % fit time-averaged, dye-masked SSH
     [~,imax] = nanmax(zetamean);
-    [zeta0, Xzeta, X0, zeta1,~,zetaconf] = gauss_fit(yvec(1:imax), ...
-                                                     zetamean(1:imax)...
-                                                     - min(zetamean(1:imax)), 0);
+    [zeta0, Xzeta, X0, zeta1,zetaconf, zfitobj] = tanh_fit(yvec(1:imax), ...
+                                                      zetamean(1:imax)...
+                                                      - min(zetamean(1:imax)), debug);
+    if debug
+        title(['zeta | ' runs.name]);
+    end
 
     asvavg   = asvint./runs.bathy.h(1,2:isb);
     asvshavg = asvshint./runs.bathy.h(1,2:isb);
@@ -111,6 +114,7 @@ function [] = avgSupplyJet(runs, debug)
 
     supply.zeta.xscale = Xzeta;
     supply.zeta.conf = zetaconf(:,2);
+    supply.zeta.fitobj = zfitobj;
 
     supply.vmean = asvmean;
     supply.vint = asvint;
