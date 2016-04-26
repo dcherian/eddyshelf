@@ -964,6 +964,30 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             end
         end
 
+        if strcmpi(name, 'streamerwidth')
+            % use run.streamer.xprof and estimate peak width at half maximum
+
+            xprof = run.streamer.xprof(:,1);
+            xivec = run.streamer.xivec;
+            [xmax,imax] = max(xprof);
+
+            % find half-maximum
+            hm(1) = find_approx(xprof(1:imax), xmax/2, 1);
+            hm(2) = imax-1 + find(xprof(imax:end) <= xmax/2, 1, 'first');
+
+            % peak width at half maximum
+            pwhm = abs(diff(xivec(hm)));
+
+            [start,stop] = run.flux_tindices(1);
+            [~,L0,~] = run.EddyScalesForFlux(start,stop);
+
+            diags(ff) = run.supply.zeta.xscale*2/1000;
+            plotx(ff) = run.sbssh.X/1000*2;
+            %run.supply.xscale/1000 - run.supply.IntersectScale/1000; bathy.Lbetash/1000; abs(L0)/1000;
+
+            parameterize = 1;
+        end
+
         if strcmpi(name, 'zpeakwidth')
             parameterize = 1;
             iso = args(1);
