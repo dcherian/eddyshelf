@@ -36,8 +36,7 @@ function [] = avgSupplyJet(runs, debug)
     zeta = dc_roms_read_data(runs, 'zeta', tindices, volr);
 
     % look for shelf water all throughout water column
-    csdvint = fillnan(double( ...
-        squeeze(sum(csdye <= runs.bathy.xsb, 2)) == runs.rgrid.N), 0);
+    csdvint = squeeze(sum(csdye < runs.bathy.xsl, 2)) == runs.rgrid.N;
 
     % the fit doesn't seem helpful
     % for tt=1:size(zeta,2)
@@ -60,10 +59,8 @@ function [] = avgSupplyJet(runs, debug)
     end
 
     % fit time-averaged, dye-masked SSH
-    [~,imax] = nanmax(zetamean);
-    [zeta0, Xzeta, X0, zeta1,zetaconf, zfitobj] = tanh_fit(yvec(1:imax), ...
-                                                      zetamean(1:imax)...
-                                                      - min(zetamean(1:imax)), debug);
+    %[~,imax] = nanmax(zetamean); imax = length(zetamean);
+    [zeta0, Xzeta, X0, zeta1,zetaconf, zfitobj] = tanh_fit(yvec, zetamean, debug);
     if debug
         title(['zeta | ' runs.name]);
     end
@@ -112,6 +109,7 @@ function [] = avgSupplyJet(runs, debug)
     supply.shsl.conf = confsl(:,2);
     supply.shsl.comment = 'shelf + slope water only';
 
+    supply.zeta.zetamean = zetamean;
     supply.zeta.xscale = Xzeta;
     supply.zeta.conf = zetaconf(:,2);
     supply.zeta.fitobj = zfitobj;
