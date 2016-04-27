@@ -41,6 +41,9 @@ function [varmean,maskmean,xivec, varmaskedmean] = avgProfile(runs, varname, axn
     [start,stop] = runs.flux_tindices(runs.csflux.off.slope(:,1,1));
 
     [var, xax, yax]  = dc_roms_read_data(runs, varname, [], vol);
+    % restrict to unique time indices
+    [tvec, uind] = unique(runs.eddy.t);
+    var = var(:,uind);
 
     if mask
         % Using csdye > bathy.xsl works a *lot* better than using
@@ -50,6 +53,7 @@ function [varmean,maskmean,xivec, varmaskedmean] = avgProfile(runs, varname, axn
         % moves inshore, screwing up mask detection (first change from
         % 0 to 1).
         maskvar = dc_roms_read_data(runs, runs.csdname, [], volmask);
+        maskvar = maskvar(:,uind);
     end
 
     if axname == 'x'
@@ -59,11 +63,21 @@ function [varmean,maskmean,xivec, varmaskedmean] = avgProfile(runs, varname, axn
     else
         % for y = iy, plot against x
         xvec = xax(:,1);
-        mx = runs.eddy.mx;
+        mx = runs.eddy.mx(uind);
     end
 
     xivec = [-200:200]*1000;
-    for tt=1:length(mx) % only as long as I can track the eddy.
+    for tt=1:length(uind) % only as long as I can track the eddy.
+        % find location of eddy-shelf/slope water boundary
+        ref = find(maskvar(:,tt) > runs.bathy.xsl, 1, 'first');
+        if isempty(ref)
+            mx(tt) = nan;
+            continue;
+        else
+            mx(tt) = xvec(ref);
+        end
+
+        % interpolate to common reference frame.
         vari(:,tt) = interp1(xvec-mx(tt), var(:,tt), xivec);
         if mask
             maski(:,tt) = interp1(xvec-mx(tt), maskvar(:,tt), xivec);

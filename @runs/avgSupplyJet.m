@@ -35,6 +35,12 @@ function [] = avgSupplyJet(runs, debug)
     csdye = dc_roms_read_data(runs, runs.csdname, tindices, volr);
     zeta = dc_roms_read_data(runs, 'zeta', tindices, volr);
 
+    % restrict to unique time indices
+    [tvec, uind] = unique(runs.eddy.t(start:stop));
+    asvel = asvel(:,:,uind);
+    csdye = csdye(:,:,uind);
+    zeta = zeta(:,uind);
+
     % look for shelf water all throughout water column
     csdvint = squeeze(sum(csdye < runs.bathy.xsl, 2)) == runs.rgrid.N;
 
