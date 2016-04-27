@@ -5,22 +5,27 @@ function [] = plotAvgSupplyJet(runs)
     xloc = -[supply.xscale supply.IntersectScale]/1000;
 
     figure;
-    hax = packfig(3,1);
+    hax = packfig(4,1);
     insertAnnotation([runs.name '.plotAvgSupplyJet']);
 
     axes(hax(1));
-    plot(supply.ymat(:,1)/1000 - runs.bathy.xsb/1000, supply.vint);
+    plot(supply.ymat(:,1)/1000 - runs.bathy.xsb/1000, supply.zeta.zetamean);
+    ylabel('SSH (m)');
+    linex(-supply.zeta.xscale/1000*2 + [0 -supply.IntersectScale/1000]);
+    title(['Averaged along-shelf supply jet | ' runs.name]);
+
+    axes(hax(2));
+    plot(supply.ymat(:,1)/1000 - runs.bathy.xsb/1000, supply.vavg);
     hold on;
-    plot(supply.ymat(:,1)/1000 - runs.bathy.xsb/1000, supply.shelf.vint);
-    ylabel({'Depth-integrated'; 'velocity'});
+    plot(supply.ymat(:,1)/1000 - runs.bathy.xsb/1000, supply.shelf.vavg);
+    ylabel({'Depth-averaged'; 'velocity (m/s)'});
     legend('All water', 'Shelf water', 'Location', 'NorthWest');
-    title(['Averaged along-shelf supply jet (m/s) | ' runs.name]);
     beautify([22 24 28]);
     linex(xloc);
     liney(0);
     hax(1).XTickLabel = [];
 
-    axes(hax(2));
+    axes(hax(3));
     contourf(supply.ymat/1000 - runs.bathy.xsb/1000, supply.zmat, supply.vmean, ...
             40, 'EdgeColor', 'none');
     hcb(1) = center_colorbar;
@@ -30,7 +35,7 @@ function [] = plotAvgSupplyJet(runs)
     beautify([22 24 28]);
     hax(2).XTickLabel = [];
 
-    axes(hax(3));
+    axes(hax(4));
     contourf(supply.ymat/1000 - runs.bathy.xsb/1000, supply.zmat, ...
              supply.csdmean/1000 - runs.bathy.xsb/1000, 40, 'EdgeColor', 'none');
     hold on;
@@ -49,7 +54,7 @@ function [] = plotAvgSupplyJet(runs)
     xlim([min(supply.ymat(:) - runs.bathy.xsb)/1000 ...
           max(supply.ymat(:) - runs.bathy.xsb)/1000]);
 
-    set(gcf, 'Position', [455 387 1013 710]);
+    maximize; %set(gcf, 'Position', [455 387 1013 710]);
     hcb(1).Position(1) = 0.92;
     hcb(2).Position(1) = 0.92;
 end
