@@ -51,8 +51,8 @@ function [] = avgSupplyJet(runs, debug)
     %     [z0,Xzeta(tt),z1] = gauss_fit(yvec(1:length(zetamasked)), ...
     %                                   zetamasked - min(zetamasked), 1);
     % end
-
     zetamean = nanmean(zeta .* csdvint, 2);
+    zetamean = zetamean - mean(zetamean);
     asvshmean = mean(asvel .* (csdye <= runs.bathy.xsb), 3);
     asvslmean = mean(asvel .* (csdye <= runs.bathy.xsl), 3);
     csdmean = mean(csdye, 3);
@@ -66,7 +66,7 @@ function [] = avgSupplyJet(runs, debug)
 
     % fit time-averaged, dye-masked SSH
     %[~,imax] = nanmax(zetamean); imax = length(zetamean);
-    [zeta0, Xzeta, X0, zeta1,zetaconf, zfitobj] = tanh_fit(yvec, zetamean, debug);
+    [zeta0, Xzeta, X0, zeta1,zetaconf, zfitobj] = tanh_fit((yvec-runs.bathy.xsb)/1000, zetamean, debug);
     if debug
         title(['zeta | ' runs.name]);
     end
