@@ -66,15 +66,7 @@ function [] = avgSupplyJet(runs, debug)
     end
 
     % fit time-averaged, dye-masked SSH
-    % normalize so that fit works for ew-8151
-    if strcmpi(runs.name, 'ew-8151')
-        zetamean = zetamean./max(abs(zetamean));
-        supply.zeta.normalized = 1;
-    else
-        supply.zeta.normalized = 0;
-    end
-
-    [zeta0, Xzeta, X0, zeta1,zetaconf, zfitobj] = tanh_fit((yvec-runs.bathy.xsb)/1000, zetamean, debug);
+    [zeta0, Xzeta, X0, zeta1,zetaconf, zfitobj] = tanh_fit(yvec, zetamean, debug);
 
     if debug
         title(['zeta | ' runs.name]);
