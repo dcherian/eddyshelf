@@ -1,6 +1,8 @@
 function [] = plotAvgSupplyJet(runs)
 
     supply = runs.supply;
+    fitobj = supply.zeta.fitobj;
+    zetamean = supply.zeta.zetamean - mean(supply.zeta.zetamean);
 
     xloc = -[supply.xscale supply.IntersectScale]/1000;
 
@@ -9,9 +11,18 @@ function [] = plotAvgSupplyJet(runs)
     insertAnnotation([runs.name '.plotAvgSupplyJet']);
 
     axes(hax(1));
-    plot(supply.ymat(:,1)/1000 - runs.bathy.xsb/1000, supply.zeta.zetamean);
-    ylabel('SSH (m)');
-    linex(-supply.zeta.xscale/1000*2 + [0 -supply.IntersectScale/1000]);
+    hplt = plot(fitobj, ...
+                supply.ymat(:,1)/1000 - runs.bathy.xsb/1000, ...
+                zetamean./max(zetamean), 'predobs');
+    hplt(1).MarkerSize = 20;
+    if supply.zeta.normalized
+        ylabel('Norm. SSH')
+    else
+        ylabel('SSH (m)');
+    end
+    legend('off'); xlabel('');
+    linex(fitobj.x0 - abs(fitobj.X));
+    %linex(-supply.zeta.xscale/1000*2 + [0 -supply.IntersectScale/1000]);
     title(['Averaged along-shelf supply jet | ' runs.name]);
 
     axes(hax(2));
