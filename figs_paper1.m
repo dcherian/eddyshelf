@@ -63,6 +63,18 @@ for ii=1:3
     end
 end
 
+correct_ticks('y', [], {'-300'}, hax(4));
+% move panels closer to each other
+hax(1).Position(1) = hax(1).Position(1) + 0.05;
+hax(4).Position(1) = hax(4).Position(1) + 0.05;
+hax(3).Position(1) = hax(3).Position(1) - 0.05;
+hax(6).Position(1) = hax(6).Position(1) - 0.05;
+hcb.Position(1) = hcb.Position(1) - 0.05;
+for ii=4:6
+    hax(ii).Position(2) = hax(ii).Position(2) + 0.06;
+end
+hcb.Position(2) = hcb.Position(2) + 0.06;
+
 export_fig -opengl -r150 -a2 images/paper1/xyzmap.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
