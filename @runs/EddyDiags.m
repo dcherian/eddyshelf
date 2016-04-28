@@ -23,6 +23,7 @@ function [handles] = EddyDiags(runs, hfig)
                           'ko', 'MarkerSize', 12);
     handles.hfit(1) = plot(tvec(itfit), eddy.vor.dia(itfit)/2000, ...
                            'kx', 'MarkerSize', 12);
+    handles.hlabel(1) = text(0.05,0.1,'a)','Units','normalized');
     %linex(tvec([itsl itfit]));
     axes(axyy(2)); hold on
     handles.hsl(2) = plot(tvec(itsl), eddy.Lgauss(itsl), 'ko', 'MarkerSize', 12);
@@ -51,6 +52,7 @@ function [handles] = EddyDiags(runs, hfig)
     hleg.Position(2) = 0.23;
     ylabel({'Eddy center'; 'translation velocity';  '(km/day)'});
     xlabel('Time (days)');
+    handles.hlabel(2) = text(0.05,0.1,'b)','Units','normalized');
     beautify;
 
     handles.hax = hax;

@@ -78,16 +78,6 @@ hcb.Position(2) = hcb.Position(2) + 0.06;
 export_fig -opengl -r150 -a2 images/paper1/xyzmap.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% vertical structure
-
-if ~exist('ew','var') | ~strcmpi(ew.name, 'ew-64461-5')
-    ew = runs('../topoeddy/runew-6341/');
-end
-
-ew.PlotSingleYZSection('csdye',  255);
-center_colorbar;
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% ew-64461-5-eddye video
 if ~exist('ew','var') | ~strcmpi(ew.name, 'ew-64461-5')
     ew = runs('../topoeddy/runew-64461-5/');
@@ -121,13 +111,15 @@ ewall.name = {'R/L_{sl} > 1', 'R/L_{sl} ~ 1', ...
               'R/L_{sl} < 1'};
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% EW, NS isobaths
+clear ew
 ew = runArray({ ...
     'runew-64361-shallow', ...
     'runew-6341', ...
     'runew-6362-2', ...
     'runew-6441' });
 
-%% NS isobaths
+% NS isobaths
 folders = { ...
     'runns-64361', 'runns-6341', 'runns-6362-2',...
     'runns-6441', ...
@@ -263,6 +255,7 @@ hew.hgplt2(1).Color = 'k';
 linkprop([hew.hgplt2 hew.hfit hew.hslbreak], 'Color');
 hew.hgplt2(1).LineStyle = '--';
 hew.hgplt2(2).LineStyle = '--';
+ax1.Title.String = ['a) ' ax1.Title.String];
 beautify
 
 ax2 = subplot(122);
@@ -272,10 +265,11 @@ hns.hgplt2(1).Color = 'k';
 linkprop([hns.hgplt2 hns.hfit hns.hslbreak], 'Color');
 hns.hgplt2(1).LineStyle = '--';
 hns.hgplt2(2).LineStyle = '--';
+ax2.Title.String = ['b) ' ax2.Title.String];
 
 ax2.XTick = unique([ax2.XTick 1]);
 ax1.XLim = [-15 0];
-hline = findall(ax1,'Tag','dcline')
+hline = findall(ax1,'Tag','dcline');
 hline.XData = ax1.XLim;
 export_fig('-r150', '-a2', 'images/paper1/sl-centrack.png');
 
@@ -367,7 +361,7 @@ handles.hplt(1).Color = 'k';
 handles.hplt(2).Color = 'k';
 handles.hplt(2).LineStyle = '--';
 pbaspect([1.618 1 1]);
-title('$$ \frac{U}{\beta L^2} \sim 20 $$');
+title('$$a) \frac{U}{\beta L^2} \sim 20 $$');
 ax(1).Title.Interpreter = 'latex';
 legend('off');
 beautify(fontsize);
@@ -379,7 +373,7 @@ handles.hplt(1).Color = 'k';
 handles.hplt(2).Color = 'k';
 handles.hplt(2).LineStyle = '--';
 pbaspect([1.618 1 1]);
-title('$$\frac{U}{\beta L^2} \sim 60 $$');
+title('$$b) \frac{U}{\beta L^2} \sim 60 $$');
 ax(2).Title.Interpreter = 'latex';
 legend('off');
 beautify(fontsize);
