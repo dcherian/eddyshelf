@@ -42,7 +42,8 @@ function [] = avgSupplyJet(runs, debug)
     zeta = zeta(:,uind);
 
     % look for shelf water all throughout water column
-    csdvint = squeeze(sum(csdye < runs.bathy.xsl, 2)) == runs.rgrid.N;
+    %csdvint = squeeze(sum(csdye < runs.bathy.xsl, 2)) >= runs.rgrid.N;
+    csdvint = squeeze(csdye(:,end,:) < runs.bathy.xsl);
 
     % the fit doesn't seem helpful
     % for tt=1:size(zeta,2)
@@ -92,7 +93,7 @@ function [] = avgSupplyJet(runs, debug)
 
     % fit vertically averaged, time-averaged, *unmasked* along-shelf velocity
     [v0,Xfull,x0,v1,exitflag,confFull] = gauss_fit(yvec, asvavg, debug);
-    supply.IntersectIndex = max(find(abs(asvavg - asvshavg) < 0.01));
+    supply.IntersectIndex = find(abs(asvavg - asvshavg) > 0.01, 1, 'first');
     supply.IntersectLocation = yvec(supply.IntersectIndex);
     supply.IntersectScale = runs.bathy.xsb - supply.IntersectLocation;
 
