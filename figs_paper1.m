@@ -126,6 +126,8 @@ folders = { ...
           };
 ns = runArray(folders);
 
+ns.print_diag('params table', 'images/paper1/sl-params-table-ns.org');
+
 ew.name{1} = 'ew-64361';
 ew.sort(ew.print_params('params.nondim.eddy.Rh'))
 ns.sort(ns.print_params('params.nondim.eddy.Rh'))
@@ -396,6 +398,6 @@ export_fig -r150 -a2 images/paper1/shallow-deep-hcen.png
 
 rh = runArray({'ew-64361-shallow', 'ew-64361-deep', ...
                'ew-6441', 'ew-564361-2', 'runew-564361-3', ...
-               'ew-6040', 'ew-6041', 'ew-6042-new', ...
-               'ew-6050', 'ew-6051'});
+               'ew-6040', 'ew-6041', 'ew-6042', ...
+               'ew-6050', 'ew-6051'})
 rh.print_diag('params table', 'images/paper1/sl-params-table-Rh.org');
