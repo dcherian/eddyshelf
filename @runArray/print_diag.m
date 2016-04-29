@@ -470,7 +470,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             Tamp = run.params.eddy.tamp;
             TCOEF = run.params.phys.TCOEF;
 
-            if run.params.nondim.eddy.Rh(1) > 40, continue; end
+            if run.params.nondim.eddy.Rh(1) > 50, continue; end
 
             avgresflag = 0; % this is crap. keep it 0
             if avgresflag %|| run.params.eddy.tamp < 0
@@ -503,12 +503,12 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             t0 = tind; run.eddy.tscaleind;
             titlestr = [titlestr ' | t0 = ' num2str(t0)];
 
-            Lz = run.eddy.Lzfit;
-            Lz(Lz > 1e3) = nan;
+            %Lz = run.eddy.Lzfit;
+            %Lz(Lz > 1e3) = nan;
 
             trange = 1:itsl; %tind(1); %1:ceil(mean([itsl tind(1)]));
             Lz0 = nanmean(run.eddy.Lgauss(trange)); %Lz(1,tind(1));
-            z0  = 0; nanmean(run.eddy.z0fit(trange,1));
+            z0  = 0; %nanmean(run.eddy.z0fit(trange,1));
             % sometimes the fits are trash.
             % go back one time instant at a time till something reasonable is found.
             % while abs(z0) > 1e3 | abs(Lz0) > 1e3
@@ -533,37 +533,37 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
             if isnan(diags(ff)), plotx(ff) = NaN; end
 
-            if avgresflag
-                % these are not justifiable error bounds
-                zzlo = (-erres(4))./Lz0;
-                zzhi = (+erres(4))./Lz0;
+            % if avgresflag
+            %     % these are not justifiable error bounds
+            %     zzlo = (-erres(4))./Lz0;
+            %     zzhi = (+erres(4))./Lz0;
 
-                err(1,ff) = (1 - erf(H./Lz0+zzlo)) - diags(ff);
-                err(2,ff) = (1 - erf(H./Lz0+zzhi)) - diags(ff);
+            %     err(1,ff) = (1 - erf(H./Lz0+zzlo)) - diags(ff);
+            %     err(2,ff) = (1 - erf(H./Lz0+zzhi)) - diags(ff);
 
-                err(1,ff) = exp(-(H./Lz0)) - diags(ff);
-                err(2,ff) = exp(-(H./Lz0+zzhi)) - diags(ff);
-            else
-                %err(1,ff) = (1 - erf(H(2)./Lz0)) - diags(ff);
-                %err(2,ff) = (1 - erf(H(3)./Lz0)) - diags(ff);
-                % F = 1 - erf( (H-z0)/Lz )
-                % error bounds are hopeless. z0, Lz are correlated.
-                % and then numerator and denominator of y-axis are correlated.
-                F0 = 2/sqrt(pi) * exp( - ((H(1)-z0)./Lz0)^2 );
-                dFdH = F0./Lz0;
-                dFdz0 = F0./Lz0;
-                dFdLz = F0 * (H(1) - z0)./Lz0^2;
+            %     err(1,ff) = exp(-(H./Lz0)) - diags(ff);
+            %     err(2,ff) = exp(-(H./Lz0+zzhi)) - diags(ff);
+            % else
+            %     %err(1,ff) = (1 - erf(H(2)./Lz0)) - diags(ff);
+            %     %err(2,ff) = (1 - erf(H(3)./Lz0)) - diags(ff);
+            %     % F = 1 - erf( (H-z0)/Lz )
+            %     % error bounds are hopeless. z0, Lz are correlated.
+            %     % and then numerator and denominator of y-axis are correlated.
+            %     F0 = 2/sqrt(pi) * exp( - ((H(1)-z0)./Lz0)^2 );
+            %     dFdH = F0./Lz0;
+            %     dFdz0 = F0./Lz0;
+            %     dFdLz = F0 * (H(1) - z0)./Lz0^2;
 
-                dH = mean(abs(diff(H([2 1 3]))));
-                dLz = mean([abs(Lz(2,tind(1)) - Lz0), abs(Lz(3,tind(1)) - Lz0)]);
-                dz0 = 0; %mean([abs(z0(tind(1),2) - z0), abs(z0(tind(1),3) - z0)]);
+            %     dH = mean(abs(diff(H([2 1 3]))));
+            %     dLz = mean([abs(Lz(2,tind(1)) - Lz0), abs(Lz(3,tind(1)) - Lz0)]);
+            %     dz0 = 0; %mean([abs(z0(tind(1),2) - z0), abs(z0(tind(1),3) - z0)]);
 
-                dnum = sqrt( dFdH^2 * dH^2 + dFdLz^2 * dLz^2 + dFdz0^2 * dz0^2 );
-                dden = 0; sqrt( dFdLz^2 * dLz^2 + dFdz0^2 * dz0^2 );
+            %     dnum = sqrt( dFdH^2 * dH^2 + dFdLz^2 * dLz^2 + dFdz0^2 * dz0^2 );
+            %     dden = 0; sqrt( dFdLz^2 * dLz^2 + dFdz0^2 * dz0^2 );
 
-                err(1,ff) = sqrt(dnum^2 + dden^2);
-                err(2,ff) = sqrt(dnum^2 + dden^2);
-            end
+            %     err(1,ff) = sqrt(dnum^2 + dden^2);
+            %     err(2,ff) = sqrt(dnum^2 + dden^2);
+            % end
 
             kozak = 1;
             name_points = 1; line_45 = 0;
@@ -1282,11 +1282,11 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         xvec = linspace(0.5*nanmin(plotx(:)), 1*nanmax(plotx), 100);
 
         err = max(abs(err), [], 1);
-        if strcmpi(name, 'bottom torque')
-            err = fillnan(err, 0); % 6362-1
-            diags(isnan(err)) = NaN;
-            plotx(isnan(err)) = NaN;
-        end
+        % if strcmpi(name, 'bottom torque')
+        %     err = fillnan(err, 0); % 6362-1
+        %     diags(isnan(err)) = NaN;
+        %     plotx(isnan(err)) = NaN;
+        % end
 
         if ~force_0intercept
             E = [cut_nan(plotx') ones(size(cut_nan(plotx')))];
