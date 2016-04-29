@@ -163,8 +163,8 @@ function [handles] = plot_penetration(runArray, ax, choices, clear_axis)
             if ~BadFitFlag
                 handles.hfit(ff) = ...
                     plot(x(tfit(1)), y(tfit(1)), 'x', 'Color', color, 'MarkerSize', 22);
+                htotal = [htotal handles.hfit(ff)];
             end
-            htotal = [htotal handles.hfit(ff)];
             %keyboard;
             %h2 = scatter(x(tfit(2):tfit(3)), y(tfit(2):tfit(3)), 24, color, 'filled');
         end
@@ -266,7 +266,7 @@ function [handles] = plot_penetration(runArray, ax, choices, clear_axis)
         % mark shelfbreak
         limy = ylim;
         text(0.06, limy(1) + 0.25*diff(limy), 'shelfbreak', 'Rotation', ...
-             270, 'VerticalAlignment', 'bottom', 'FontSize', fontsize);
+             270, 'VerticalAlignment', 'bottom');
     end
 
     handles.hlegend = legend(handles.hgplt2, names, 'Location', legloc, 'Box', ...
