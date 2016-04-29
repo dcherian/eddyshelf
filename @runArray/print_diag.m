@@ -94,7 +94,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         V = run.eddy.V;
         if isfield(run.eddy, 'Vb'), Vb = run.eddy.Vb; end
 
-        hedge = run.eddy.hedge;
+        %hedge = run.eddy.hedge;
         hcen = run.eddy.hcen;
         fcen = run.eddy.fcen;
         my = run.eddy.my;
@@ -709,13 +709,12 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                         N^2, f0, beta, run.params.misc.rdrg);
 
             else % sl runs
-
                 [tind,~,~,BadFitFlag] = run.FitCenterVelocity;
                 if BadFitFlag
-                    warning(['Bad Fit: Skipping ' run.name '.'])
-                    continue;
+                    H = 0;
+                else
+                    H = run.eddy.hcen(tind(1));
                 end
-                H = run.eddy.hcen(tind(1));
 
                 if ff == 1
                     fid = fopen(args, 'w');
