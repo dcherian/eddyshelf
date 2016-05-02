@@ -21,10 +21,8 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
         axes(ax1(1)); hold all; axes(ax1(2)); hold all;
     end
 
-    if figs(2)  % integrated vertical structure / baroclinicity
-        hfig2 = figure;
-        ax1 = subplot(121); hold all; % outflow
-        ax2 = subplot(122); hold all % supply
+    if figs(2)
+        hfig2 = figure; hold all % integrated vertical structure / baroclinicity
     end
 
     if figs(3)
@@ -121,12 +119,10 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
         %%%%%% BAROCLINICITY
         if figs(2)
             figure(hfig2)
-            axes(ax1);
             if useAvgStreamer & ~isnan(run.streamer.off.xwidth(isobath))
                 profile = run.streamer.off.zprof(:,isobath);
                 vertbins = run.streamer.zvec(:,isobath);
             else
-                warning('not using avgStreamer!');
                 profile = ...
                     run.csflux.off.slopewater.vertitrans(:,isobath,source);
                 vertbins = run.csflux.vertbins(:,isobath);
@@ -144,19 +140,6 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
             hgplt2(ff) = plot(profile, zvec, 'Color',hgplt1(ff).Color);
             %plot(profile(zind), zvec(zind), 'x', 'Color', hgplt1(ff).Color);
             names2{ff} =  [names{ff} ' | bc = ' num2str(bc, '%.3f')];
-
-            axes(ax2);
-            vmean = run.supply.shelf.vmean;
-            zivec = linspace(min(run.supply.zmat(:)), 0, 100);
-            vinterp = nan([size(vmean,1) length(zivec)]);
-            for yy=1:size(vmean, 1)
-                vinterp(yy,:) = interp1(run.supply.zmat(yy,:), vmean(yy,:), zivec);
-            end
-            profile = abs(trapz(run.supply.ymat(:,1), repnan(vinterp,0), 1));
-            bc = baroclinicity(zivec, profile);
-
-            plot(profile, zivec./hsb, 'Color', hgplt1(ff).Color, ...
-                 'DisplayName', [names{ff} ' | bc = ' num2str(bc, '%.3f')]);
         end
 
         %%%%%%%%%%%%% ENVELOPE
@@ -302,7 +285,6 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
 
     if figs(2)
         figure(hfig2)
-        axes(ax1);
         set(gca, 'XAxisLocation', 'Top');
         insertAnnotation('runArray.plot_fluxes');
         liney(-1);%ylim([-1 0]);
@@ -314,20 +296,6 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
              'Units', 'normalized');
         legend(hgplt2, names2, 'Location', 'NorthWest');
         beautify;
-
-        axes(ax2);
-        set(gca, 'XAxisLocation', 'Top');
-        insertAnnotation('runArray.plot_fluxes');
-        liney(-1);
-        limx = xlim;
-        xlim([0 limx(2)]);
-        xlabel('Normalized area transported');
-        ylabel('Z / H_{sb}');
-        text(0.1, 0.1, ['y/R = ' num2str(run.csflux.ndloc(isobath))], ...
-             'Units', 'normalized');
-        legend('Location', 'NorthWest');
-        beautify;
-        linkaxes([ax1 ax2], 'y');
     end
 
     if figs(3)

@@ -672,20 +672,28 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         % nondim parameters to compare runs
         if strcmpi(name, 'diff') || strcmpi(name, 'nondim')
             [~,~,tres] = run.locate_resistance;
+
+            [start,stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
+            t0 = start;
+            tend = stop;
+            [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
+
             betash = f0 * run.bathy.sl_shelf./run.bathy.hsb;
             Lbetash = sqrt(V(1)/betash);
+
+            bc = V0./bathy.S_sh/sqrt(run.params.phys.N2)/hsb;
             if ff == 1
                 close;
-                disp(sprintf('| %18s | %5s | %4s | %4s | %8s | %5s | %6s | %4s | %5s | %5s |', ...
+                disp(sprintf('| %10s | %5s | %4s | %4s | %8s | %5s | %5s | %6s | %4s | %5s | %5s |', ...
                              '', 'Rh', 'Ro', 'bl/f', 'beta_sh', ...
-                             'L/Lsl', 'lambda', 'S_sh', 'L_rh/L_edd', 'L_def/L_rh'));
+                             'L_rh/Lsh', 'bc', 'lambda', 'S_sh', 'L_rh/L_edd', 'L_def/L_rh'));
                 disp(repmat('-', [1 90]));
             end
-            disp(sprintf('| %18s | %5.2f | %4.2f | %4.2f | %.2e | %5.2f | %5.2f  | %0.2f | %10.2f | %5.2f |' , ...
+            disp(sprintf('| %10s | %5.2f | %4.2f | %4.2f | %.2e | %5.2f | %5.2f | %6.2f | %0.2f | %10.2f | %5.2f |' , ...
                          run.name, run.params.nondim.eddy.Rh, ...
                          Ro(1), beta*Lx(1)/f0, betash, ...
-                         Lx(1)./run.bathy.L_slope, ...
-                         hsb./Lz(itsl), bathy.S_sh, Lbetash/Lx(itsl), run.rrshelf/Lbetash*pi));
+                         Lbetash./run.bathy.L_shelf, ...
+                         bc, hsb./Lz(itsl), bathy.S_sh, Lbetash, run.rrshelf/Lbetash*pi));
             continue;
         end
 
