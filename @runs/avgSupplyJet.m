@@ -7,16 +7,12 @@ function [] = avgSupplyJet(runs, debug)
 
     assert(runs.bathy.axis == 'y', 'Error: EW isobaths only!');
 
-    [xx,yy,tt] = runs.locate_resistance;
-    [start,stop] = runs.flux_tindices(runs.csflux.off.slope(:, 1, 1));
+    [start,stop] = runs.flux_tindices(runs.csflux.off.slope(:, 1, 1), 0.3);
     tindices = [start stop];
-
-    xivec = -100:runs.rgrid.dx/1000:0;
-    xl = length(xivec);
     N = runs.rgrid.N;
     isb = runs.bathy.isb;
 
-    xloc = xx + 2 * runs.params.eddy.dia;
+    xloc = runs.eddy.mx(start) + 1 * runs.params.eddy.dia;
     xind = find_approx(runs.rgrid.x_rho(1,:), xloc, 1);
     assert(xind < runs.spng.sx2, 'Error: Location within sponge!');
     yvec = runs.rgrid.y_rho(2:isb, 1);
@@ -81,6 +77,10 @@ function [] = avgSupplyJet(runs, debug)
     exitflag = 0;
     i0 = 1;
     while ~exitflag
+        if (imin-i0 + 1) <= 4
+            X = NaN;
+            break;
+        end
         [v0,X,x0,v1,exitflag,conf] = gauss_fit(yvec(i0:imin), asvshavg(i0:imin), debug);
         if ~exitflag
             i0 = i0 + 1;
@@ -106,7 +106,11 @@ function [] = avgSupplyJet(runs, debug)
     supply.shelf.xscale = X;
     supply.shelf.xmin = yvec(imin);
     supply.shelf.imin = imin;
-    supply.shelf.conf = conf(:,2);
+    if ~isnan(X)
+        supply.shelf.conf = conf(:,2);
+    else
+        supply.shelf.conf = [NaN NaN];
+    end
     supply.shelf.comment = 'shelf-water only';
 
     supply.shsl.vmean = asvslmean;
