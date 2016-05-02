@@ -1440,7 +1440,8 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         end
     end
 
-    if plots
+    if strcmpi(name, 'avg flux') || strcmpi(name, 'max flux') ...
+            || strcmpi(name, 'zpeakwidth');
         handles.htext = htext;
     end
 
