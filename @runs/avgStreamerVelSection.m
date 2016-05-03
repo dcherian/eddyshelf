@@ -8,14 +8,16 @@ function [] = avgStreamerVelSection(runs, iso)
     disp([runs.name '.avgStreamerVelSection']);
     disp('===================================')
 
-    if ~exist('iso', 'var') | isempty(iso)
-        iso = [1:niso];
-    end
-
     xivec = -200:runs.rgrid.dx/1000:200;
     xl = length(xivec);
     N = runs.rgrid.N;
-    niso = length(runs.csflux.x);
+
+    if ~exist('iso', 'var') | isempty(iso)
+        niso = length(runs.csflux.x);
+        iso = [1:niso];
+    else
+        niso = length(iso);
+    end
 
     szmeanvel = [xl N niso];
     vmean = nan(szmeanvel);
