@@ -29,12 +29,14 @@ function [] = avgSupplyJet(runs, debug)
     % vars are (y,z,t)
     asvel = squeeze(avg1(dc_roms_read_data(runs, runs.asvelname, tindices, volv),1));
     csdye = dc_roms_read_data(runs, runs.csdname, tindices, volr);
+    eddye = dc_roms_read_data(runs, runs.eddname, tindices, volr);
     zeta = dc_roms_read_data(runs, 'zeta', tindices, volr);
 
     % restrict to unique time indices
     [tvec, uind] = unique(runs.eddy.t(start:stop));
     asvel = asvel(:,:,uind);
     csdye = csdye(:,:,uind);
+    eddye = eddye(:,:,uind);
     zeta = zeta(:,uind);
 
     % look for shelf water all throughout water column
@@ -54,6 +56,7 @@ function [] = avgSupplyJet(runs, debug)
     asvshmean = mean(asvel .* (csdye <= runs.bathy.xsb), 3);
     asvslmean = mean(asvel .* (csdye <= runs.bathy.xsl), 3);
     csdmean = mean(csdye, 3);
+    eddmean = mean(eddye, 3);
     asvmean = mean(asvel, 3);
 
     for ii=1:size(asvmean,1)
@@ -133,6 +136,7 @@ function [] = avgSupplyJet(runs, debug)
     supply.xscale = Xfull;
     supply.conf = confFull(:,2);
     supply.csdmean = csdmean;
+    supply.eddmean = eddmean;
 
     supply.hash = githash([mfilename('fullpath') '.m']);
     supply.tindices = tindices;
