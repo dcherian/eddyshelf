@@ -78,23 +78,14 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         [itsl, itse, tsl, tse] = run.getEddyCenterTimeScales;
         [~,uind,~] = unique(run.time, 'stable');
         ndtime = run.eddy.t * 86400 / run.eddy.turnover;
-        %        try
-        %    Lx = run.eddy.rhovor.dia/2;
-        %catch ME
-            Lx = run.eddy.vor.lmaj;
-            %end
+        Lx = run.eddy.vor.lmaj;
         Ly = run.eddy.vor.lmin;
         Lz = run.eddy.Lgauss;
         Ls = run.eddy.Ls;
-        try
-            Ro = run.eddy.rhovor.Ro;
-        catch ME
-            Ro = run.eddy.Ro;
-        end
+        Ro = run.eddy.rhovor.Ro;
         V = run.eddy.V;
         if isfield(run.eddy, 'Vb'), Vb = run.eddy.Vb; end
 
-        %hedge = run.eddy.hedge;
         hcen = run.eddy.hcen;
         fcen = run.eddy.fcen;
         my = run.eddy.my;
@@ -123,8 +114,10 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             fsb = run.rgrid.f(1,run.bathy.isb);
         end
         Sa = run.bathy.S_sl;
+        Ssh = run.bathy.S_sh;
         beta_t = f0 * alpha./Lz(1);
         N = sqrt(run.params.phys.N2);
+        ash = run.bathy.sl_shelf;
         diagstr = [];
 
         %%%%% dummy
