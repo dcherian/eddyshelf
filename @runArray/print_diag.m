@@ -139,29 +139,104 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         end
 
         %%%%% rhines scale
-        if strcmpi(name, 'rhines')
+        if strcmpi(name, 'supply') | strcmpi(name, 'eddyonshelf')
 
-            % for local plots
-            %figure; hold all
-            %cb = runArray.sorted_colors;
             sortedflag = 0;
 
+            % averaging between [start,stop] works better because of Rh = 3 runs.
             [start,stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
-            t0 = 1;
+            t0 = start;
             tend = stop;
 
+            Ro = mean(Ro(t0:tend));
             [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
-            Lbetash = sqrt(V0/run.bathy.betash);
 
-            diags(ff) = run.supply.xscale/1000;
-            plotx(ff) = Lbetash/1000;
+            betash = fsb/hsb * bathy.sl_shelf;
 
-            ptName = num2str(run.bathy.S_sh);
+            Lbetash = sqrt(V0/(betash-beta));
+            Lctw = V0/bathy.sl_shelf/sqrt(N2);
+
+            if strcmpi(name, 'supply')
+                % "natural" vertical scale from scaling density equation at the bottom
+                D = V0/N/Ssh;
+                delta = hsb/D;
+
+                if strcmpi(run.name, 'ew-8392') | strcmpi(run.name, 'ew-8151')
+                    i0 = 10;
+                else
+                    i0 = 1;
+                end
+
+                vavg = run.supply.shsl.vavg;
+                [vmin, imin] = min(vavg(i0:end));
+                imin = imin + i0-1;
+                ind = find_approx(vavg(i0:imin), 0.2 * vmin, 1) + i0-1;
+
+                % figure;
+                % plot(run.supply.shelf.vavg);
+                % linex([imin ind]);
+                % title(run.name)
+
+                % eddy water on shelf
+                dz = diff(run.supply.zmat, 1, 2);
+                csdint = sum(dz .* avg1(run.supply.csdmean,2), 2)./sum(dz,2);
+                ind = find(csdint >= (run.bathy.xsl), 1, 'first');
+                eddyonslope = (xsb - run.supply.ymat(ind, 1))/1000;
+
+                % shelf water envelope
+                env = xsb/1000 - run.csflux.off.slopewater.envelope(:,1)/1000;
+                tvec = run.csflux.time(~isnan(env))/86400;
+                env = env(~isnan(env));
+                menv = mean(env);
+
+                [y0,T,t0,y1,conf,fitobj] = tanh_fit(tvec, env, 0);
+                diags(ff) = y0 + y1;
+                err(1,ff) = hypot(conf(1,1)-y0, conf(1,4)-y1);
+
+                errorbarflag = 1;
+                %diags(ff) = max(smooth(env,10))/1000;
+                %diags(ff) = abs(ind-imin); % in km
+                laby = 'Width of shelf water supply jet (km)';
+            else % eddy water on shelf
+                D = Lz0; % vertical scale of inflow
+                         %D = V0/N/Ssh;
+
+                dz = diff(run.supply.zmat, 1, 2);
+                csdint = sum(dz .* avg1(run.supply.csdmean,2), 2)./sum(dz,2);
+                eddint = sum(dz .* avg1(run.supply.eddmean,2), 2)./sum(dz,2);
+                %ind = find(run.supply.csdmean(:,end) >= (run.bathy.xsb), 1, 'first');
+                %ind = find(csdint >= (run.bathy.xsb), 1, 'first');
+                ind = find(run.supply.eddmean(:,end) >= 0.7, 1, 'first');
+                %ind = find(eddint >= 0.3, 1, 'first');
+                diags(ff) = (xsb - run.supply.ymat(ind, 1))/1000;
+
+                laby = 'Penetration of eddy water on shelf (km)';
+            end
+
+            zvec = -hsb:0.1:0;
+            vel = 1 - erf((abs(zvec)./D));
+            vfactor = sqrt(trapz(zvec, vel)./hsb/vel(1));
+
+            plotx(ff) = Lbetash/1000 * sqrt(vfactor);
+            labx = 'Rhines scale, L_\beta (km)';
+
+            if strcmpi(name, 'eddyonshelf')
+                plotx(ff) = N*hsb/fsb/1000; %plotx(ff) / sqrt(1-Ro);
+                labx = 'Shelf Rossby radius (km)';
+            end
+
+            % errorbarflag = 0;
+            % if errorbarflag
+            %     err(1,ff) = conf(1) - diags(ff);
+            %     err(2,ff) = conf(2) - diags(ff);
+            % end
+
+            ptName = [num2str(run.bathy.S_sh) ' | ' run.name(4:end)];
+            strip_ew = 0;
             name_points = 1;
             parameterize = 1;
 
-            laby = 'Decay scale of \int dz (along-shelf supply) (km)';
-            labx = 'L_\beta (km)';
+            %laby = 'Decay scale of \int dz (along-shelf supply) (km)';
         end
 
         %%%%% cross-isobath translation velocity
