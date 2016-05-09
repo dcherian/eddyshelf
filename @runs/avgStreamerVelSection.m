@@ -13,7 +13,7 @@ function [] = avgStreamerVelSection(runs, iso)
     N = runs.rgrid.N;
 
     if ~exist('iso', 'var') | isempty(iso)
-        niso = length(runs.csflux.x);
+        niso = size(runs.csflux.vertbins,2);
         iso = [1:niso];
     else
         niso = length(iso);
@@ -116,7 +116,12 @@ function [] = avgStreamerVelSection(runs, iso)
             findProfilePeakWidth(runs.streamer.on.xprof(:,iso), xivec);
 
         zvec = runs.csflux.vertbins(:,iso);
-        [~,ilo,~] = findProfilePeakWidth(runs.streamer.off.zprof(:,iso), zvec);
+
+        try
+            [~,ilo,~] = findProfilePeakWidth(runs.streamer.off.zprof(:,iso), zvec);
+        catch ME
+            [~,ilo,~] = findProfilePeakWidth(runs.streamer.off.zprof, zvec);
+        end
         if ~isempty(ilo) & ~isnan(ilo)
             runs.streamer.off.zwidth(iso) = zvec(ilo);
         else
