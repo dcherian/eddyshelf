@@ -154,7 +154,8 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             betash = fsb/hsb * bathy.sl_shelf;
 
             Lbetash = sqrt(V0/(betash-beta));
-            Lctw = V0/bathy.sl_shelf/sqrt(N2);
+            Lctw = V0/bathy.sl_shelf/N;
+            Ldef = N*hsb/fsb;
 
             if strcmpi(name, 'supply')
                 % "natural" vertical scale from scaling density equation at the bottom
@@ -204,10 +205,14 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 dz = diff(run.supply.zmat, 1, 2);
                 csdint = sum(dz .* avg1(run.supply.csdmean,2), 2)./sum(dz,2);
                 eddint = sum(dz .* avg1(run.supply.eddmean,2), 2)./sum(dz,2);
+                eddcumvol = cumtrapz(run.supply.ymat(:,1), ...
+                                     sum(dz .* avg1(run.supply.eddmean,2), 2));
+                eddcumvol = eddcumvol./max(eddcumvol);
                 %ind = find(run.supply.csdmean(:,end) >= (run.bathy.xsb), 1, 'first');
                 %ind = find(csdint >= (run.bathy.xsb), 1, 'first');
-                ind = find(run.supply.eddmean(:,end) >= 0.7, 1, 'first');
-                %ind = find(eddint >= 0.3, 1, 'first');
+                %ind = find(run.supply.eddmean(:,end) >= 0.7, 1, 'first');
+                ind = find(eddint >= 0.3, 1, 'first');
+                %ind = find(eddcumvol >= 0.15, 1, 'first');
                 diags(ff) = (xsb - run.supply.ymat(ind, 1))/1000;
 
                 laby = 'Penetration of eddy water on shelf (km)';
@@ -221,7 +226,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             labx = 'Rhines scale, L_\beta (km)';
 
             if strcmpi(name, 'eddyonshelf')
-                plotx(ff) = N*hsb/fsb/1000; %plotx(ff) / sqrt(1-Ro);
+                plotx(ff) = Ldef/1000; %plotx(ff) / sqrt(1-Ro);
                 labx = 'Shelf Rossby radius (km)';
             end
 
