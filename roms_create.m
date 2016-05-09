@@ -336,7 +336,7 @@ else
     bathy.S_sl = bathy.sl_slope * sqrt(phys.N2)./phys.f0; % slope
 
     % Calculate topographic beta
-    bathy.b_sh = phys.f0 * bathy.sl_shelf / bathy.H_shelf;
+    bathy.b_sh = phys.f0 * bathy.sl_shelf / bathy.H_sbreak;
     bathy.b_sl = phys.f0 * bathy.sl_slope / max(S.h(:));
 
     % calculate for smoothed bathymetry
@@ -1221,16 +1221,23 @@ if flags.eddy
         % The check at this point makes no sense. If I have got here the
         % gradient wind quadratic has real root, so there is no issue. The
         % condition is that Ro using _geostrophic_ velocity is < 0.25
-%        if  nondim.eddy.Ro > 0.25, error('Error: Ro > 0.25'); end
+        %        if  nondim.eddy.Ro > 0.25, error('Error: Ro > 0.25'); end
+        Lbetash = sqrt(eddy.U/bathy.b_sh);
+        rrshelf = sqrt(phys.N2)*bathy.H_sbreak/phys.f0;
+        Drho = eddy.U/bathy.S_sh/sqrt(phys.N2);
         nondim.eddy.Rh = eddy.U/phys.beta/eddy.R^2;
         nondim.eddy.Bu = (eddy.R / eddy.Ldef)^2;
         nondim.eddy.Ri = phys.N2./(phys.TCOEF*phys.g*eddy.tamp/phys.f0/eddy.R).^2;
         nondim.eddy.Bu_temp = phys.TCOEF * phys.g * Z * eddy.tamp / phys.f0^2 / eddy.R^2;
         nondim.eddy.gamma = bathy.hsb/eddy.depth;
+        nondim.eddy.delta = bathy.hsb / Drho;
+        nondim.eddy.epsilon = Drho/eddy.depth;
         fprintf('\n Ro (vor/f) = %.2f | Bu = %.2f | Bu_temp = %.2f | Ri = %.2f | Rh = %.2f | Lsl/R = %.2f | H_sb/H_eddy = %.2f\n\n', ....
                 nondim.eddy.Rovor,nondim.eddy.Bu,nondim.eddy.Bu_temp, ...
                 nondim.eddy.Ri,nondim.eddy.Rh, bathy.L_slope/eddy.R, ...
                 nondim.eddy.gamma);
+        fprintf('\n delta = %.2f | epsilon = %.2f | L_beta = %.2f km | L_def_sh = %.2f km \n', ...
+                nondim.eddy.delta, nondim.eddy.epsilon, Lbetash/1000, rrshelf/1000);
 
         % calculate Ro using vorticity
         vor = avg1(diff(eddy.v(:,:,end),1,1)./diff(xrmat(:,:,end),1,1),2) - ...
