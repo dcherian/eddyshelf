@@ -124,6 +124,9 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
             axes(ax1);
             if useAvgStreamer & ~isnan(run.streamer.off.xwidth(isobath))
                 profile = run.streamer.off.zprof(:,isobath);
+                if length(profile) == 1
+                    profile = run.streamer.off.zprof;
+                end
                 vertbins = run.streamer.zvec(:,isobath);
             else
                 warning('not using avgStreamer!');
@@ -138,7 +141,6 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
             %if ~isnan(zwidth)
             %    zind = [zind find_approx(vertbins, zwidth)];
             %end
-
             bc = baroclinicity(zvec, profile);
             profile = profile ./ max(profile);
             hgplt2(ff) = plot(profile, zvec, 'Color',hgplt1(ff).Color);
@@ -146,16 +148,23 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
             names2{ff} =  [names{ff} ' | bc = ' num2str(bc, '%.3f')];
 
             axes(ax2);
-            vmean = run.supply.shelf.vmean;
-            zivec = linspace(min(run.supply.zmat(:)), 0, 100);
-            vinterp = nan([size(vmean,1) length(zivec)]);
-            for yy=1:size(vmean, 1)
-                vinterp(yy,:) = interp1(run.supply.zmat(yy,:), vmean(yy,:), zivec);
-            end
-            profile = abs(trapz(run.supply.ymat(:,1), repnan(vinterp,0), 1));
+            % vmean = run.supply.shelf.vmean;
+            % zivec = linspace(min(run.supply.zmat(:)), 0, 100);
+            % vinterp = nan([size(vmean,1) length(zivec)]);
+            % for yy=1:size(vmean, 1)
+            %     vinterp(yy,:) = interp1(run.supply.zmat(yy,:), vmean(yy,:), zivec);
+            % end
+            % profile = abs(trapz(run.supply.ymat(:,1), repnan(vinterp,0), 1));
+
+            [start, stop] = run.flux_tindices(run.csflux.on.eddy(:,1,1), 0.05, 0.5);
+            zivec = run.csflux.vertbins(:,isobath);
+            profile = trapz(run.csflux.time(start:stop)*86400, ...
+                            run.csflux.on.eddyzt(:,start:stop,1,1), 2);
+            profile = profile./max(abs(profile));
+
             bc = baroclinicity(zivec, profile);
 
-            plot(profile, zivec./hsb, 'Color', hgplt1(ff).Color, ...
+            plot(-1*profile, zivec./hsb, 'Color', hgplt1(ff).Color, ...
                  'DisplayName', [names{ff} ' | bc = ' num2str(bc, '%.3f')]);
         end
 
@@ -169,10 +178,10 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
             %metric = run.bathy.h(1,ind)./run.bathy.hsb .* ...
             %         (1+run.rgrid.f(run.bathy.isb,1)./run.rgrid.f(ind,1))';
 
-            hgplt3(ff) = plot(ndtime, (run.csflux.x(isobath) - env)/1000, ...
+            hgplt3(ff) = plot(ndtime, (run.csflux.x(isobath) - env), ...
                               'Color', hgplt1(ff).Color);
-            plot(0, run.bathy.Lbetash/1000, 'x', ...
-                 'MarkerSize', 20, 'Color', hgplt1(ff).Color);
+            %            plot(0, run.bathy.Lbetash/1000, 'x', ...
+            %     'MarkerSize', 20, 'Color', hgplt1(ff).Color);
         end
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EDDY WATER
@@ -308,7 +317,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
         liney(-1);%ylim([-1 0]);
         limx = xlim;
         xlim([0 limx(2)]);
-        xlabel('Normalized area transported');
+        xlabel('Shelf water outflow (m^2/s)');
         ylabel('Z / H_{sb}');
         text(0.1, 0.1, ['y/R = ' num2str(run.csflux.ndloc(isobath))], ...
              'Units', 'normalized');
@@ -321,7 +330,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
         liney(-1);
         limx = xlim;
         xlim([0 limx(2)]);
-        xlabel('Normalized area transported');
+        xlabel('Eddy water inflow (m^2/s)');
         ylabel('Z / H_{sb}');
         text(0.1, 0.1, ['y/R = ' num2str(run.csflux.ndloc(isobath))], ...
              'Units', 'normalized');
@@ -334,7 +343,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
         figure(hfig3)
         insertAnnotation('runArray.plot_fluxes');
         xlabel('Non-dimensional time');
-        ylabel('Distance from shelfbreak (km)');
+        ylabel('Distance from shelfbreak/L_β');
         legend(hgplt3, names);
         beautify;
     end
