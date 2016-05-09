@@ -1012,21 +1012,27 @@ classdef runArray < handle
                 names{ff} = runArray.name{ii};
                 ndtime = run.eddy.t*86400 / run.eddy.turnover;
 
-                tind = run.FitCenterVelocity; tind = tind(1);
-                if isfield(run.csflux, 'off')
-                    [~,maxloc] = run.calc_maxflux(2);
-                end
-
                 use run.params;
                 bathy = run.bathy;
                 eddy = run.eddy;
 
                 eval(['vec = ' tsname ';']);
+                try
+                    tind = run.FitCenterVelocity; tind = tind(1);
+                    if isfield(run.csflux, 'off')
+                        [~,maxloc] = run.calc_maxflux(2);
+                    end
 
-                handles.hplt(ff) = plot(ndtime, vec(1:run.eddy.tend));
-                handles.htind(ff) = plot(ndtime(tind), vec(tind), 'kx', 'MarkerSize', 16);
-                if exist('maxloc', 'var')
-                    handles.hmaxloc(ff) = plot(ndtime(maxloc), vec(maxloc), 'ko');
+                    handles.hplt(ff) = plot(ndtime, vec(1:run.eddy.tend));
+                    handles.htind(ff) = plot(ndtime(tind), vec(tind), 'kx', ...
+                                             'MarkerSize', 16);
+                    if exist('maxloc', 'var')
+                        handles.hmaxloc(ff) = plot(ndtime(maxloc), vec(maxloc), 'ko');
+                    end
+                catch ME
+                    if length(handles.hplt) < ff
+                        handles.hplt(ff) = plot(vec);
+                    end
                 end
             end
 
