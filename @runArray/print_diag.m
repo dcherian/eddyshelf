@@ -751,8 +751,9 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             tend = stop;
             [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
 
+            Ldefsh = N * hsb / fsb;
             betash = f0 * run.bathy.sl_shelf./run.bathy.hsb;
-            Lbetash = sqrt(V(1)/betash);
+            Lbetash = sqrt(V(1)/(betash-beta));
 
             delta = hsb./(V0./bathy.S_sh/N);
             epsilon = (erf(hsb/Lz0))/delta;
