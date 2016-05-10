@@ -156,10 +156,11 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
             % end
             % profile = abs(trapz(run.supply.ymat(:,1), repnan(vinterp,0), 1));
 
-            [start, stop] = run.flux_tindices(run.csflux.on.eddy(:,1,1), 0.05, 0.5);
+            [start, stop] = run.flux_tindices(run.csflux.on.slope(:,1,1), 0.05, 0.5);
+            onflux = run.csflux.on.slopezt(:,start:stop,1,1);
             zivec = run.csflux.vertbins(:,isobath);
             profile = trapz(run.csflux.time(start:stop)*86400, ...
-                            run.csflux.on.eddyzt(:,start:stop,1,1), 2);
+                            onflux, 2);
             profile = profile./max(abs(profile));
 
             bc = baroclinicity(zivec, profile);
