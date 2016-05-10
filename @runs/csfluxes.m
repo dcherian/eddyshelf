@@ -225,7 +225,7 @@ function [] = csfluxes(runs, ftype)
     end
 
     % loop over all isobaths
-    for kk=1:length(indices)
+    for kk=1:1 %length(indices)
         disp(['Doing isobath ' num2str(kk) '/', ...
               num2str(length(indices))]);
 
@@ -531,7 +531,7 @@ function [] = csfluxes(runs, ftype)
         toc;
 
         for ll=1:kk
-            disp(['Parititioning slope water: ' num2str(ll) '/' num2str(kk)]);
+            disp(['Parititioning slope water (offshore): ' num2str(ll) '/' num2str(kk)]);
             if (bathyax == 2) && (sgntamp == -1)
                 % cyclones moving northwards
                 slopemask = (csdye > loc(ll));
@@ -544,9 +544,8 @@ function [] = csfluxes(runs, ftype)
             disp('Integrating in z...');
             runs.csflux.slopext(:,:,kk,ll) = squeeze(trapz(zvec, slopemask .* csvel,2));
             runs.csflux.off.slopext(:,:,kk,ll) = squeeze(trapz(zvec, ...
-                                                              slopemask .* csvel .* csvoffmask,2));
-            runs.csflux.on.slopext(:,:,kk,ll) = squeeze(trapz(zvec, ...
-                                                              slopemask .* csvel .* csvonmask,2));
+                                                              slopemask .* csvel .* ...
+                                                              csvoffmask,2));
 
             if do_energy
                 runs.csflux.ikefluxxt(:,:,kk,ll) = squeeze(trapz(zvec, keflux,2));
@@ -568,15 +567,10 @@ function [] = csfluxes(runs, ftype)
             runs.csflux.off.slopezt(:,:,kk,ll) = ...
                 squeeze(nansum(bsxfun(@times, bsxfun(@times, squeeze(slopemask .* csvel .* csvoffmask), ...
                                                      permute(offmask, [1 3 2])), dx),1));
-            runs.csflux.on.slopezt(:,:,kk,ll) = ...
-                squeeze(nansum(bsxfun(@times, bsxfun(@times, squeeze(slopemask .* csvel .* csvonmask), ...
-                                                     permute(onmask, [1 3 2])), dx),1));
 
             % transports as a function of z only
             runs.csflux.off.slopewater.vertitrans(:,kk,ll) = ...
                 nansum(bsxfun(@times, runs.csflux.off.slopezt(:,:,kk,ll), dt), 2);
-            runs.csflux.on.slopewater.vertitrans(:,kk,ll) = ...
-                nansum(bsxfun(@times, runs.csflux.on.slopezt(:,:,kk,ll), dt), 2);
 
             % don't need on-off paritition for edge of northern sponge
             disp('Calculating fluxes...');
@@ -589,15 +583,6 @@ function [] = csfluxes(runs, ftype)
                 [runs.csflux.off.itrans.slope(:,kk,ll), ...
                  runs.csflux.off.avgflux.slope(kk,ll)] = ...
                     runs.integrate_flux(time, runs.csflux.off.slope(:,kk,ll));
-
-                % east of center
-                runs.csflux.on.slope(t0:tinf,kk,ll) = squeeze(nansum( ...
-                    bsxfun(@times, runs.csflux.on.slopext(:,:,kk,ll) .* onmask, dx),1))';
-
-                % save average flux and itrans (east of center)
-                [runs.csflux.on.itrans.slope(:,kk,ll), ...
-                 runs.csflux.on.avgflux.slope(kk,ll)] = ...
-                    runs.integrate_flux(time, runs.csflux.on.slope(:,kk,ll));
             end
         end
 
@@ -637,6 +622,47 @@ function [] = csfluxes(runs, ftype)
             runs.csflux.on.rv(t0:tinf,kk) = squeeze(nansum( ...
                 bsxfun(@times, rvcsflux .* onmask, ...
                        1./runs.rgrid.pm(1,2:end-1)'),1))';
+        end
+
+        for ll=1:kk
+            disp(['Parititioning slope water (onshore): ' num2str(ll) '/' num2str(kk)]);
+            if (bathyax == 2) && (sgntamp == -1)
+                % cyclones moving northwards
+                slopemask = (csdye < loc(ll));
+            else
+                % everything else
+                slopemask = (csdye > loc(ll));
+            end
+
+            % transports - integrate in z - f(x,t)
+            disp('Integrating in z...');
+            runs.csflux.on.slopext(:,:,kk,ll) = ...
+                squeeze(trapz(zvec, slopemask .* csvel .* csvonmask,2));
+
+            % calculate transport as fn of vertical depth - west of
+            % eddy only - f(z,t)
+            disp('Binning vertically...');
+            runs.csflux.on.slopezt(:,:,kk,ll) = ...
+                squeeze(nansum(bsxfun(@times, ...
+                                      bsxfun(@times, squeeze(slopemask .* csvel .* csvonmask), ...
+                                             permute(onmask, [1 3 2])), dx),1));
+
+            % transports as a function of z only
+            runs.csflux.on.slopewater.vertitrans(:,kk,ll) = ...
+                nansum(bsxfun(@times, runs.csflux.on.slopezt(:,:,kk,ll), dt), 2);
+
+            % don't need on-off paritition for edge of northern sponge
+            disp('Calculating fluxes...');
+            if runs.csflux.ix(kk) ~= sy2
+                % east of center
+                runs.csflux.on.slope(t0:tinf,kk,ll) = squeeze(nansum( ...
+                    bsxfun(@times, runs.csflux.on.slopext(:,:,kk,ll) .* onmask, dx),1))';
+
+                % save average flux and itrans (east of center)
+                [runs.csflux.on.itrans.slope(:,kk,ll), ...
+                 runs.csflux.on.avgflux.slope(kk,ll)] = ...
+                    runs.integrate_flux(time, runs.csflux.on.slope(:,kk,ll));
+            end
         end
     end
 
