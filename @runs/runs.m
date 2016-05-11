@@ -39,6 +39,8 @@ properties
     supply;
     % SSH scale at shelfbreak
     sbssh;
+    % shelf baroclinicity
+    shelfbc;
     % along-shore slope jet properties
     jet;
     % threshold values
@@ -533,6 +535,14 @@ methods
             disp('Loading eddy-on-shelf diagnostics');
             data = load([dir '/onshelf.mat']);
             runs.onshelf = data.onshelf;
+            clear data
+        end
+
+        % load shelf baroclinicity diagnostics if the file exists
+        if exist([dir '/shelfbc.mat'],'file') && reset ~= 1 & ~reduced
+            disp('Loading shelf baroclinicity diagnostics');
+            data = load([dir '/shelfbc.mat']);
+            runs.shelfbc = data.shelfbc;
             clear data
         end
 
