@@ -1376,7 +1376,8 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             disp('Using weighted least squares');
             disp(['% error: ' num2str(round(100*err./diags))]);
 
-            [P,stderror] = lscov(E, cut_nan(diags'), 1./cut_nan(err));
+            [P,stderror,MSE] = lscov(E, cut_nan(diags'), 1./cut_nan(err));
+            stderror = stderror * sqrt(1/MSE);
             tval = abs(conft(0.05,length(diags)));
             Perr = tval * stderror;
 
