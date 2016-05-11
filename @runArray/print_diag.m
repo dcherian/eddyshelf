@@ -236,6 +236,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             strip_ew = 0;
             name_points = 1;
             parameterize = 1;
+            clr = 'k';
             %line_45 = 1;
         end
 
@@ -1288,7 +1289,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             figure(hfig);
             axes(hax);
 
-            [clr,ptName] = colorize(run, ptName);
+            %[clr,ptName] = colorize(run, ptName);
 
             if marker == '.'
                 markersize = 28;

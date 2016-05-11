@@ -25,11 +25,17 @@ hleg.delete;
 export_fig -r150 images/paper3/sb-vert-profiles.png
 
 %% eddy water on shelf scale
-sh.print_diag('eddyonshelf');
+figure;
+hax(1) = subplot(121);
+hax(2) = subplot(122);
 
-%% supply jet scale
-sh.print_diag('supply');
+sh.print_diag('supply', [], hax(1), 'no_name_points');
+sh.print_diag('eddyonshelf', [], hax(2), 'no_name_points');
 
+hax(1).Title.String = '';
+hax(2).Title.String = '';
+
+export_fig -r150 images/paper3/parameterizations.png
 %%
 for ii=1:sh.len
     % sbssh = sh.array(ii).sbssh;
