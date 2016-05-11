@@ -122,18 +122,25 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
         if figs(2)
             figure(hfig2)
             axes(ax1);
-            if useAvgStreamer & ~isnan(run.streamer.off.xwidth(isobath))
-                profile = run.streamer.off.zprof(:,isobath);
-                if length(profile) == 1
-                    profile = run.streamer.off.zprof;
-                end
-                vertbins = run.streamer.zvec(:,isobath);
-            else
-                warning('not using avgStreamer!');
-                profile = ...
-                    run.csflux.off.slopewater.vertitrans(:,isobath,source);
-                vertbins = run.csflux.vertbins(:,isobath);
-            end
+            % if useAvgStreamer & ~isnan(run.streamer.off.xwidth(isobath))
+            %     profile = run.streamer.off.zprof(:,isobath);
+            %     if length(profile) == 1
+            %         profile = run.streamer.off.zprof;
+            %     end
+            vertbins = run.streamer.zvec(:,isobath);
+            % else
+            %     warning('not using avgStreamer!');
+            %     profile = ...
+            %         run.csflux.off.slopewater.vertitrans(:,isobath,source);
+            %     vertbins = run.csflux.vertbins(:,isobath);
+            % end
+            [start, stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
+            offflux = run.csflux.off.slopezt(:,start:stop,1,1);
+            zivec = run.csflux.vertbins(:,isobath);
+            profile = trapz(run.csflux.time(start:stop)*86400, ...
+                            offflux, 2);
+            profile = profile./max(abs(profile));
+
             zvec = vertbins ./ hsb; %max(abs(vertbins));
             zind = find_approx(vertbins, -1*hsb);
 
@@ -323,6 +330,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
         text(0.1, 0.1, ['y/R = ' num2str(run.csflux.ndloc(isobath))], ...
              'Units', 'normalized');
         legend(hgplt2, names2, 'Location', 'NorthWest');
+        axis square;
         beautify;
 
         axes(ax2);
@@ -332,12 +340,14 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
         limx = xlim;
         xlim([0 limx(2)]);
         xlabel('Eddy water inflow (m^2/s)');
-        ylabel('Z / H_{sb}');
-        text(0.1, 0.1, ['y/R = ' num2str(run.csflux.ndloc(isobath))], ...
-             'Units', 'normalized');
+        ax2.YTickLabels = {};
+        axis square;
+        %text(0.1, 0.1, ['y/R = ' num2str(run.csflux.ndloc(isobath))], ...
+        %     'Units', 'normalized');
         legend('Location', 'NorthWest');
         beautify;
         linkaxes([ax1 ax2], 'y');
+        ax2.Position(1) = 0.5
     end
 
     if figs(3)
