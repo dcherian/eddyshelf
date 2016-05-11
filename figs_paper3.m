@@ -1,11 +1,52 @@
 %% shelf slopes
 folders = { ...
-    'runew-8041', 'runew-8042','runew-8150', 'runew-8151', ...
-    ... %'runew-82342', 'runew-82343', 'runew-82344' ...
-    'runew-8341', 'runew-8352', ...
-    'runew-8383', 'ew-8384', 'ew-8385' ...
+    'ew-8041', 'ew-8042', ...
+    ... %'ew-8150', 'ew-8151', ...
+    'ew-82342', 'ew-82343', ... %'ew-82344' ...
+    'ew-8341', 'ew-8361', ...
+    'ew-8352', 'ew-8352-2', ...
+    'ew-8383', 'ew-8384', 'ew-8385', ...
+    'ew-8392'... %, 'ew-8346', ...
+    'ew-583411', 'ew-583413', ...
+    'ew-583414', 'ew-583415', ...
           };
 sh = runArray(folders);
+
+for ii=1:sh.len
+    sh.name{ii} = sh.name{ii}(4:end);
+end
+
+%% inflow/outflow vertical profiles
+sh.filter = [1:12];
+sh.plot_fluxes(1,1,[],[0 1]);
+hleg = findobj('type','legend');
+hleg.delete;
+
+export_fig -r150 images/paper3/sb-vert-profiles.png
+
+%% eddy water on shelf scale
+sh.print_diag('eddyonshelf');
+
+%% supply jet scale
+sh.print_diag('supply');
+
+%%
+for ii=1:sh.len
+    % sbssh = sh.array(ii).sbssh;
+    % supply = sh.array(ii).supply;
+
+    % figure; maximize;
+    % plot(sbssh.xvec/1000, sbssh.ssh - min(sbssh.ssh)); hold on;
+    % plot(supply.ymat(:,1)/1000 - sh.array(ii).bathy.xsb/1000, ...
+    %      supply.zeta.zetamean - min(supply.zeta.zetamean));
+    % title(sh.array(ii).name);
+    %sh.array(ii).avgSupplyJet;
+    %sh.array(ii).plotAvgSupplyJet;
+    %export_fig('-r96',  ['images/supply-' sh.array(ii).name '.png']);
+
+    % sh.array(ii).VolumeBudget;
+    % export_fig(['images/volume-budget-' sh.array(ii).name '.png']);
+end
 
 %% volume budget
 handles = sh.array(4).VolumeBudget;
@@ -17,7 +58,7 @@ export_fig -r150 -a2 images/paper3/ew-8341-volume-budget.png
 
 %% compare flat and sloping
 if ~exist('ew04', 'var')
-    ew04 = runArray({'runew-04', 'runew-8041'});
+    ew04 = runArray({'ew-04', 'ew-8041'});
 end
 
 opt.addvelquiver = 1;
@@ -59,3 +100,5 @@ hanno.Head2Width = 7;
 htxt = text(202, 33, 'L_\beta', 'Color', [1 1 1]*0.9, 'FontSize', 20);
 
 export_fig -opengl -r150 -a2 images/paper3/sbsnapshot.png
+
+%%
