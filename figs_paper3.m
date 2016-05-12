@@ -4,7 +4,7 @@ folders = { ...
     ... %'ew-8150', 'ew-8151', ...
     'ew-82342', 'ew-82343', ... %'ew-82344' ...
     'ew-8341', 'ew-8361', ...
-    'ew-8352', 'ew-8352-2', ...
+    'ew-8352', 'ew-8352-2', 'ew-8342-2', ...
     'ew-8383', 'ew-8384', 'ew-8385', ...
     'ew-8392'... %, 'ew-8346', ...
     'ew-583411', 'ew-583413', ...
@@ -17,23 +17,24 @@ for ii=1:sh.len
 end
 
 %% inflow/outflow vertical profiles
-sh.filter = [1:12];
+sh.filter = [1:13];
 sh.plot_fluxes(1,1,[],[0 1]);
 hleg = findobj('type','legend');
 hleg.delete;
+maximize;
 
 export_fig -r150 images/paper3/sb-vert-profiles.png
 
 %% eddy water on shelf scale
-figure;
+figure; maximize;
 hax(1) = subplot(121);
 hax(2) = subplot(122);
 
 sh.print_diag('supply', [], hax(1), 'no_name_points');
 sh.print_diag('eddyonshelf', [], hax(2), 'no_name_points');
 
-hax(1).Title.String = '';
-hax(2).Title.String = '';
+hax(1).Title.String = '(a)';
+hax(2).Title.String = '(b)';
 
 export_fig -r150 images/paper3/parameterizations.png
 %%
@@ -86,8 +87,8 @@ for ii=1:2
     handles(ii).hbathy{2}.Color = [1 1 1]*0.9;
 end
 correct_ticks('x', [], '450', handles(1).hax);
-handles(1).hax.Title.String = 'Flat shelf | S_{sh} = 0';
-handles(2).hax.Title.String = 'Sloping shelf | S_{sh} = 0.05';
+handles(1).hax.Title.String = 'a) Flat shelf | S_{sh} = 0';
+handles(2).hax.Title.String = 'b) Sloping shelf | S_{sh} = 0.05';
 
 handles(1).supax.Position(4) = 0.73;
 handles(1).supax.Title.String = 'Surface cross-shelf dye (km)';
