@@ -107,3 +107,4 @@ htxt = text(202, 33, 'L_\beta', 'Color', [1 1 1]*0.9, 'FontSize', 20);
 export_fig -opengl -r150 -a2 images/paper3/sbsnapshot.png
 
 %%
+sh.print_diag('params table', 'images/paper3/sh-params-table.org')

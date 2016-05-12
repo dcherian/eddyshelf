@@ -771,7 +771,8 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         if strcmpi(name, 'params table')
             [~,~,tres] = run.locate_resistance;
 
-            if strfind(args, 'csf') % cross-shelf flux runs
+            % cross-shelf flux runs
+            if strfind(args, 'csf')
                 if ff == 1
                     fid = fopen(args, 'w');
                     fprintf(fid, ['|- \n | Name | $L$ (km) | $L_z$ (m) | $\\Ro$ | $\\lambda$ | $L\\sh$ (km) | ' ...
@@ -786,8 +787,10 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                         Ro(1), hsb./Lz(itsl), bathy.L_shelf/1000, ...
                         bathy.L_slope/1000, bathy.S_sh, bathy.S_sl, ...
                         N^2, f0, beta, run.params.misc.rdrg);
+            end
 
-            else % sl runs
+            % sl runs
+            if strfind(args, 'sl')
                 [tind,~,~,BadFitFlag] = run.FitCenterVelocity;
                 if BadFitFlag
                     H = 0;
@@ -811,7 +814,39 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                         runName, Lx(1)/1000, bathy.L_slope/1000, Lz(1), max(bathy.h(:)), H, ...
                         Ro(1), run.params.nondim.eddy.Rh, ...
                         N^2, run.params.phys.f0, beta, alpha, run.params.misc.rdrg);
+            end
 
+            % sloping shelf runs
+            if strfind(args, 'sh')
+
+                [start,stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
+                t0 = start;
+                tend = stop;
+                [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
+
+                Ldefsh = N * hsb / fsb;
+                betash = f0 * run.bathy.sl_shelf./run.bathy.hsb;
+                Lbetash = sqrt(V(1)/(betash-beta));
+
+                phi = hsb./(V0./bathy.S_sh/N);
+                chi = (2/sqrt(pi)*exp(-(hsb/Lz0)^2) * V0/Lz0)/(bathy.S_sl*N);
+                if ff == 1
+                    fid = fopen(args, 'w');
+                    fprintf(fid, ['|-\n| %10s | %5s | %4s | %4s | %8s | %5s |' ...
+                                  '%6s | %6s | %4s | %5s | %5s | %3s |\n|-\n'], ...
+                            '', '$\\Rh$', '$\\Ro$', '$\\beta$', '$\\beta\\shl$', ...
+                            '$\\phi$', '$\\chi$', '$\\lambda$', '$\\Ssh$', '$L_\\text{rh}$', ...
+                            '$L_\\text{def}$', '$r$');
+                    fclose(fid);
+                end
+                fid = fopen(args, 'a');
+                fprintf(fid, ['| %10s | %5.2f | %4.2f | %1.1e |' ...
+                              '%.2e | %5.2f | %7.2f |  %5.2f | %0.2f | %5.2f |' ...
+                              '%5.2f | %1.1e |\n'], ...
+                        run.name, run.params.nondim.eddy.Rh, ...
+                        Ro(1), beta, betash, ...
+                        phi, chi, hsb./Lz(itsl), bathy.S_sh, Lbetash/1000, Ldefsh/1000, ...
+                        run.params.misc.rdrg);
             end
 
             fclose(fid);
