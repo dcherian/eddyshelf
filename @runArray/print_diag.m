@@ -161,8 +161,8 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             Lctw = V0/bathy.sl_shelf/N;
             Ldef = N*hsb/fsb;
 
-            delta = hsb./(V0./bathy.S_sh/N);
-            epsilon = (2/sqrt(pi)*exp(-(hsb/Lz0)^2) * V0/Lz0)/(bathy.S_sl*N);
+            phi = hsb./(V0./bathy.S_sh/N);
+            xi = (2/sqrt(pi)*exp(-(hsb/Lz0)^2) * V0/Lz0)/(bathy.S_sl*N);
             lambda = hsb/Lz0;
 
             % if strcmpi(run.name, 'ew-8392') | strcmpi(run.name, 'ew-8151')
@@ -212,7 +212,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             % vfactor = sqrt(trapz(zvec, vel)./hsb/vel(1));
 
             if strcmpi(name, 'supply')
-                if lambda > 0.35
+                if phi >= 0.35
                     continue;
                 end
                 diags(ff) = supply;
@@ -751,20 +751,20 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             betash = f0 * run.bathy.sl_shelf./run.bathy.hsb;
             Lbetash = sqrt(V(1)/(betash-beta));
 
-            delta = hsb./(V0./bathy.S_sh/N);
-            epsilon = (2/sqrt(pi)*exp(-(hsb/Lz0)^2) * V0/Lz0)/(bathy.S_sl*N);
+            phi = hsb./(V0./bathy.S_sh/N);
+            xi = (2/sqrt(pi)*exp(-(hsb/Lz0)^2) * V0/Lz0)/(bathy.S_sl*N);
             if ff == 1
                 close;
                 disp(sprintf('| %10s | %5s | %4s | %4s | %8s | %8s | %5s | %6s | %6s | %4s | %5s | %5s |', ...
                              '', 'Rh', 'Ro', 'bl/f', 'beta_sh', ...
-                             'L_rh/Lsh', 'delta', 'epsilon', 'lambda', 'S_sh', 'L_rh', 'L_def/L_rh'));
+                             'L_rh/Lsh', 'phi', 'xi', 'lambda', 'S_sh', 'L_rh', 'L_def/L_rh'));
                 disp(repmat('-', [1 100]));
             end
             disp(sprintf('| %10s | %5.2f | %4.2f | %4.2f | %.2e | %8.2f | %5.2f | %7.2f |  %5.2f | %0.2f | %5.2f | %5.2f |' , ...
                          run.name, run.params.nondim.eddy.Rh, ...
                          Ro(1), beta*Lx(1)/f0, betash, ...
                          Lbetash./run.bathy.L_shelf, ...
-                         delta, epsilon, hsb./Lz(itsl), bathy.S_sh, Lbetash/1000, Ldefsh/Lbetash));
+                         phi, xi, hsb./Lz(itsl), bathy.S_sh, Lbetash/1000, Ldefsh/Lbetash));
             continue;
         end
 
