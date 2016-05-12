@@ -17,11 +17,7 @@ for ii=1:sh.len
 end
 
 %% inflow/outflow vertical profiles
-sh.filter = [1:13];
-sh.plot_fluxes(1,1,[],[0 1]);
-hleg = findobj('type','legend');
-hleg.delete;
-maximize;
+handles = sh.PlotFluxVertProfiles;
 
 export_fig -r150 images/paper3/sb-vert-profiles.png
 
