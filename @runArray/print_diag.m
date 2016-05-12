@@ -162,7 +162,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             Ldef = N*hsb/fsb;
 
             phi = hsb./(V0./bathy.S_sh/N);
-            xi = (2/sqrt(pi)*exp(-(hsb/Lz0)^2) * V0/Lz0)/(bathy.S_sl*N);
+            chi = (2/sqrt(pi)*exp(-(hsb/Lz0)^2) * V0/Lz0)/(bathy.S_sl*N);
             lambda = hsb/Lz0;
 
             % if strcmpi(run.name, 'ew-8392') | strcmpi(run.name, 'ew-8151')
@@ -752,7 +752,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             Lbetash = sqrt(V(1)/(betash-beta));
 
             phi = hsb./(V0./bathy.S_sh/N);
-            xi = (2/sqrt(pi)*exp(-(hsb/Lz0)^2) * V0/Lz0)/(bathy.S_sl*N);
+            chi = (2/sqrt(pi)*exp(-(hsb/Lz0)^2) * V0/Lz0)/(bathy.S_sl*N);
             if ff == 1
                 close;
                 disp(sprintf('| %10s | %5s | %4s | %4s | %8s | %8s | %5s | %6s | %6s | %4s | %5s | %5s |', ...
@@ -764,7 +764,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                          run.name, run.params.nondim.eddy.Rh, ...
                          Ro(1), beta*Lx(1)/f0, betash, ...
                          Lbetash./run.bathy.L_shelf, ...
-                         phi, xi, hsb./Lz(itsl), bathy.S_sh, Lbetash/1000, Ldefsh/Lbetash));
+                         phi, chi, hsb./Lz(itsl), bathy.S_sh, Lbetash/1000, Ldefsh/Lbetash));
             continue;
         end
 
