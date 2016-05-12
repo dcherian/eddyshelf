@@ -36,6 +36,8 @@ sh.print_diag('eddyonshelf', [], hax(2), 'no_name_points');
 hax(1).Title.String = '(a)';
 hax(2).Title.String = '(b)';
 
+hax(2).YLim(1) = 0;
+
 export_fig -r150 images/paper3/parameterizations.png
 %%
 for ii=1:sh.len
