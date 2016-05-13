@@ -78,6 +78,7 @@ function [handles] = plot_fluxts(runs, factor, isobath, source)
     LowerLines;
 
     axes(handles.hax(2)); beautify([24 25 28]);
+    handles.hax(2).YLim(1) = 0;
     handles.hax(2).YColor = handles.ts(2).Color;
     handles.hax(2).YLabel.Color = handles.ts(2).Color;
 
