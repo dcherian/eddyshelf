@@ -99,6 +99,33 @@ icons(end).Children.Children(3).LineWidth = 1;
 
 export_fig -r150 -a2 -opengl images/paper3/ew-8341-surface-csdye.png
 
+%% shelf baroclinicity
+sh.print_diag('shelfbc');
+title('');
+axis square;
+beautify;
+xlim([0 1]);
+
+export_fig -r150 -a2 images/paper3/shelfbc.png
+
+%% shelfbc time series
+% phi = sh.print_params('bathy.hsb./(V0./bathy.S_sh/sqrt(phys.N2))');
+% sh.sort(phi);
+% phi = sh.print_params('bathy.hsb./(V0./bathy.S_sh/sqrt(phys.N2))');
+
+% figure; maximize; hold on;
+% corder_backup = sh.sorted_colors;
+% for ii=1:sh.len
+%     run = sh.array(ii);
+%     handles(ii) = plot(smooth(run.shelfbc.shelf,10), ...
+%                        'DisplayName', ['\phi = ' num2str(phi(ii), '%.2f')]);
+%     if run.params.misc.rdrg ~= 0
+%         handles(ii).LineStyle = '--';
+%         handles(ii).Color = 'k';
+%     end
+% end
+% sh.reset_colors(corder_backup);
+
 %% flux time series
 if ~exist('ew8341', 'var')
     if exist('sh', 'var')

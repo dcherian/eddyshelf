@@ -139,6 +139,35 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             laby = [];
         end
 
+        %%%%% shelfbc
+        if strcmpi(name, 'shelfbc')
+
+            % for local plots
+            %figure; hold all
+            %cb = runArray.sorted_colors;
+            sortedflag = 0;
+
+            [start,stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
+            t0 = start;
+            tend = stop;
+            [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
+
+            phi = hsb./(V0./bathy.S_sh/N);
+
+            [clr, ptName, marker] = colorize(run, '');
+            if run.params.misc.rdrg == 0
+                clr = [0 0 0];
+            end
+            diags(ff) = median(run.shelfbc.shelf);
+            % x-axis variable for plots
+            plotx(ff) = phi;
+            % label points with run-name?
+            name_points = 0;
+            % x,y axes labels
+            labx = '\phi';
+            laby = 'BC';
+        end
+
         %%%%% rhines scale
         if strcmpi(name, 'supply') | strcmpi(name, 'eddyonshelf')
 
@@ -201,6 +230,15 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
             [y0,T,t0,y1,conf,fitobj] = tanh_fit(tvec, env, 0);
             supply = y0 + y1;
+            errsupp = hypot(conf(1,1)-y0, conf(1,4)-y1);
+
+            % use transport binned by on-shelf origin
+            % bins = avg1(run.csflux.off.bins{1})/1000;
+            % %bins = bins - max(bins);
+            % trans = run.csflux.off.slopewater.itrans{1}/1e10;
+            % [y0, X, x0, y1, ~, conf] = gauss_fit(bins, trans, 0);
+            % supply = abs(X);
+            % errsupp = abs(abs(conf(1,2)) - abs(X));
 
             % if strfind(run.name, '8234');
             %     supply = supply - eddyonshelf;
@@ -216,7 +254,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                     continue;
                 end
                 diags(ff) = supply;
-                err(1,ff) = hypot(conf(1,1)-y0, conf(1,4)-y1);
+                err(1,ff) = errsupp;
 
                 errorbarflag = 1;
                 %diags(ff) = max(smooth(env,10))/1000;
@@ -1565,7 +1603,7 @@ end
 
 % colorize points
 function [clr, ptName, marker] = colorize(run, ptName)
-    clr = [96 125 139]/255;
+    clr = 'k'; %[96 125 139]/255;
     marker = '.';
 
     try
