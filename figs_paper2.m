@@ -30,7 +30,7 @@ ylim([0 250]);
 correct_ticks('y', [], {'50', '100'}, handles.hax([1 4]));
 
 handles.supax.Position(4) = 0.7;
-handles.htitle.String = ...
+handles.hsuptitle.String = ...
     'Surface cross-shelf dye (km) | Initial Ro = 0.1 | Initial eddy scales = (25 km, 400m)';
 
 axes(handles.hax(1));
@@ -796,4 +796,4 @@ export_fig(handles.hax(3), '-r300', '-a2', ...
 %% try table
 csf.name{11} = 'ew-2360';
 csf.name{12} = 'ew-2365';
-csf.print_diag('params table', 'images/paper2/csf-params-table.txt')
+csf.print_diag('params table', 'images/paper2/csf-params-table.org');

@@ -71,7 +71,6 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt, hax)
         end
     end
 
-
     if N == 1
         moveColorbarOut1x2(handles.hcb);
     else
@@ -87,6 +86,6 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt, hax)
     [handles.supax, handles.hsuptitle] = suplabel(['Surface ' varname], 't');
     handles.supax.Position(4) = handles.hax(1).Position(end) ...
         + handles.hax(1).Position(2) - handles.supax.Position(2);
-    handles.htitle.FontWeight = 'normal';
+    handles.hsuptitle.FontWeight = 'normal';
 
 end
