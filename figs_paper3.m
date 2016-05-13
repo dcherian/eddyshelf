@@ -35,6 +35,43 @@ hax(2).Title.String = '(b)';
 hax(2).YLim(1) = 0;
 
 export_fig -r150 images/paper3/parameterizations.png
+
+%% surface dye panels
+timesteps = [1 70 100 200 300];
+
+%% flux time series
+if ~exist('ew8341', 'var')
+    if exist('sh', 'var')
+        ew8341 = sh.array(5);
+    else
+        ew8341 = runs('../topoeddy/runew-8341/');
+    end
+end
+
+handles = ew8341.plot_fluxts(1, 1, 1);
+handles.htitle.String = ['Offshore flux of shelf water at the shelfbreak'];
+handles.htitle.FontSize = 28;
+maximize; %drawnow;
+% mark timesteps
+axes(handles.hax(1));
+ylim([0 12]*1e3);
+handles.hax(1).YTick(handles.hax(1).YTick == 5e3) = [];
+hold on
+handles.htstep = ...
+    plot(handles.ts(1).XData(timesteps), handles.ts(1).YData(timesteps), ...
+         '.', 'MarkerSize', 28);
+linkprop([handles.ts(1) handles.htstep], 'Color');
+
+handles.leghandles = [handles.leghandles handles.htstep];
+legstr = handles.hleg.String;
+legstr{end+1} = 'Time instants shown in Figure 2';
+[handles.hleg, handles.icons] = legend(handles.leghandles, legstr, ...
+                                       'Location', 'NorthWest', 'Box', 'off');
+hpt = findobj(handles.icons, 'Type', 'patch');
+hpt.FaceAlpha = 0.2;
+
+export_fig -r150 -a2 -png images/paper3/flux-diags
+
 %%
 for ii=1:sh.len
     % sbssh = sh.array(ii).sbssh;
