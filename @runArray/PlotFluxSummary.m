@@ -51,7 +51,7 @@ function [handles] = PlotFluxSummary(runArray, isobath, source, factor)
     fs = [16 18 20];
 
     axes(handles.hax(1))
-    handles.htxt(1) = text(0.05,0.85, 'Flux (mSv)', ...
+    handles.htxt(1) = text(0.05,0.85, 'a) Flux (mSv)', ...
                            'Units', 'Normalized');
     ylim([0 max(ylim)]);
     handles.hax(1).XTickLabel = {};
@@ -60,7 +60,7 @@ function [handles] = PlotFluxSummary(runArray, isobath, source, factor)
     beautify(fs);
 
     axes(handles.hax(2))
-    handles.htxt(2) = text(0.05,0.15, {'Distance from shelfbreak of'; ...
+    handles.htxt(2) = text(0.05,0.15, {'b) Distance from shelfbreak of'; ...
                         'most onshore water parcel (km)'}, ...
                            'Units', 'Normalized');
     %handles.hax(2).XTickLabel = {};
@@ -72,7 +72,7 @@ function [handles] = PlotFluxSummary(runArray, isobath, source, factor)
 
     axes(handles.hax(4));
     ylabel('Z/H_{sb}');
-    xlabel('\int Flux dx dt (m^2)');
+    xlabel('d) \int Flux dx dt (m^2)');a
     handles.hax(4).XAxisLocation = 'top';
     LowerLines;
     beautify(fs);
@@ -81,7 +81,7 @@ function [handles] = PlotFluxSummary(runArray, isobath, source, factor)
     linkaxes(handles.hax(1:3), 'x');
 
     axes(handles.hax(3))
-    handles.htxt(3) = text(0.05,0.85, 'Volume transported (m^3)', ...
+    handles.htxt(3) = text(0.05,0.85, 'c) Volume transported (m^3)', ...
                            'Units', 'Normalized');
     xlabel('Time (day)');
     beautify(fs);
