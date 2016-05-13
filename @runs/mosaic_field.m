@@ -84,7 +84,7 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt, hax)
 
     linkaxes(handles.hax, 'xy'); axis tight;
 
-    [handles.supax, handles.htitle] = suplabel(['Surface ' varname], 't');
+    [handles.supax, handles.hsuptitle] = suplabel(['Surface ' varname], 't');
     handles.supax.Position(4) = handles.hax(1).Position(end) ...
         + handles.hax(1).Position(2) - handles.supax.Position(2);
     handles.htitle.FontWeight = 'normal';

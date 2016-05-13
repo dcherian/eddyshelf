@@ -82,7 +82,8 @@ for ii=1:2
     handles(ii).hquiv.AutoScaleFactor = 4.5;
     handles(ii).htlabel.Position(2) = 0.1;
     handles(ii).htrack.delete;
-    handles(ii).hbathy{2}.Color = [1 1 1]*0.9;
+    handles(ii).hbathy{1}.Color = [1 1 1]*0;
+    handles(ii).hbathy{2}.Color = [1 1 1]*0;
 end
 correct_ticks('x', [], '450', handles(1).hax);
 handles(1).hax.Title.String = 'a) Flat shelf | S_{sh} = 0';
@@ -90,11 +91,18 @@ handles(2).hax.Title.String = 'b) Sloping shelf | S_{sh} = 0.05';
 
 handles(1).supax.Position(4) = 0.73;
 handles(1).supax.Title.String = 'Surface cross-shelf dye (km)';
-handles(1).supax.Title.FontSize = 20;
+handles(1).supax.Title.FontSize = 28;
 
-axes(handles.hax(2))
-hl = liney(37.5-12);
-hl.Color = [1 1 1]*0.9;
+handles(1).hax.Title.FontSize = 26;
+handles(2).hax.Title.FontSize = 26;
+
+axes(handles(1).hax)
+caxis([-50 250])
+
+axes(handles(2).hax)
+caxis([-50 250])
+hl = liney(37.5-12*1.37);
+hl.Color = [1 1 1]*0;
 hanno = annotation('doublearrow', [0.6 0.6], [0.405 0.445]);
 hanno.Head1Style = 'cback3';
 hanno.Head2Style = 'cback3';
@@ -102,7 +110,7 @@ hanno.Head1Length = 7;
 hanno.Head2Length = 7;
 hanno.Head1Width = 7;
 hanno.Head2Width = 7;
-htxt = text(202, 33, 'L_\beta', 'Color', [1 1 1]*0.9, 'FontSize', 20);
+htxt = text(185, 30, '1.37L_\beta', 'Color', 'k', 'FontSize', 20);
 
 export_fig -opengl -r150 -a2 images/paper3/sbsnapshot.png
 
