@@ -4,6 +4,9 @@ function [] = ShelfbreakSSHScale(runs)
 
     % find interface. do fit of SSH till the interface
     ind = find(maskmean == 1, 1, 'first') - 1;
+    if strcmpi(runs.name, 'ew-8352')
+        prof = prof./prof(ind)
+    end
     [y0,X,x0,y1,conf,fitobj] = tanh_fit(xivec(1:ind), prof(1:ind), 1);
     title(runs.name);
 
