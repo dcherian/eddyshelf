@@ -325,7 +325,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
         liney(-1);%ylim([-1 0]);
         limx = xlim;
         xlim([0 limx(2)]);
-        xlabel('Shelf water outflow (m^2/s)');
+        xlabel('a) Shelf water outflow (m^2/s)');
         ylabel('Z / H_{sb}');
         text(0.1, 0.1, ['y/R = ' num2str(run.csflux.ndloc(isobath))], ...
              'Units', 'normalized');
@@ -339,7 +339,7 @@ function [] = plot_fluxes(runArray, isobath, source, factor, figs)
         liney(-1);
         limx = xlim;
         xlim([0 limx(2)]);
-        xlabel('Eddy water inflow (m^2/s)');
+        xlabel('b) Eddy & slope water inflow (m^2/s)');
         ax2.YTickLabels = {};
         axis square;
         %text(0.1, 0.1, ['y/R = ' num2str(run.csflux.ndloc(isobath))], ...
