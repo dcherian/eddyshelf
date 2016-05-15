@@ -1,9 +1,11 @@
 function [] = ShelfbreakSSHScale(runs)
 
-% Use profile that is the time-average of (SSH .* mask)
-    [~,~,xivec,prof] = runs.avgProfile('zeta', runs.bathy.axis, 'sb', 1);
+    [varmean, maskmean,xivec,prof] = runs.avgProfile('zeta', runs.bathy.axis, 'sb', 1);
 
-    [y0,X,x0,y1,conf,fitobj] = tanh_fit(xivec, prof);
+    % find interface. do fit of SSH till the interface
+    ind = find(maskmean == 1, 1, 'first') - 1;
+    [y0,X,x0,y1,conf,fitobj] = tanh_fit(xivec(1:ind), prof(1:ind), 1);
+    title(runs.name);
 
     sbssh.X = X;
     sbssh.conf = conf(:,2);
