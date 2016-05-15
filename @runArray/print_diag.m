@@ -1038,7 +1038,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             err(1,ff) = errflx/plotnorm;
 
             diagstr = [num2str(flux/1000,'%.2f') '±' ...
-                       num2str(errflx/1000,'%.2f') ' mSv | scale = ' num2str(fluxscl)];
+                       num2str(errflx/1000,'%.2f') ' mSv'];
 
             if err(1,ff) ~= 0
                 errorbarflag = 1;
@@ -1379,6 +1379,9 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
         if isempty(diagstr)
             diagstr = num2str(diags(ff));
+            if ~isnan(err(1,ff))
+                diagstr = [diagstr '±' num2str(err(1,ff))];
+            end
         end
 
         if plots
