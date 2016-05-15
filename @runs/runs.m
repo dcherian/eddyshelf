@@ -1279,13 +1279,13 @@ methods
         V = smooth(hypot(runs.eddy.fitx.V0, runs.eddy.fity.V0), nsmth) / 2.3;
         %V = smooth(runs.eddy.rhovor.Vke, nsmth) / 2.3;
         % radius to maximum velocity
-        L = smooth(hypot(runs.eddy.fitx.Lrho, runs.eddy.fity.Lrho), nsmth) / sqrt(2);
+        L = smooth(hypot(runs.eddy.fitx.L, runs.eddy.fity.L), nsmth) / sqrt(2);
         % gaussian decay scale in vertical
         Lz = smooth(runs.eddy.Lgauss, nsmth);
 
-        V0 = nanmedian(V(tstart:tend));
-        L0 = nanmedian(L(tstart:tend));
-        Lz0 = nanmedian(Lz(tstart:tend));
+        V0 = nanmedian(addnan(V(tstart:tend), 1));
+        L0 = nanmedian(addnan(L(tstart:tend), 5e5));
+        Lz0 = nanmedian(addnan(Lz(tstart:tend), 1000));
     end
 
     function [fluxscl] = eddyfluxscale(runs)
