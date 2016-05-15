@@ -168,6 +168,29 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             laby = 'BC';
         end
 
+        % shelfbreak SSH decay scale
+        if strcmpi(name, 'sbssh')
+
+            [start,stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
+            t0 = start;
+            tend = stop;
+
+            [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
+
+            diags(ff) = abs(run.sbssh.X/1000);
+            plotx(ff) = L0/1000;
+
+            conf = confint(run.sbssh.fitobj);
+            err(1,ff) = abs(abs(conf(1,2)/1000)-diags(ff));
+
+            parameterize = 1;
+            errorbarflag = 1;
+            name_points = 1;
+
+            labx = 'Eddy radius (km)';
+            laby = 'Shelf-water SSH decay scale at shelfbreak';
+        end
+
         %%%%% rhines scale
         if strcmpi(name, 'supply') | strcmpi(name, 'eddyonshelf')
 
