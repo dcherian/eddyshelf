@@ -7,7 +7,8 @@ function [] = ShelfbreakSSHScale(runs)
     if strcmpi(runs.name, 'ew-8352')
         prof = prof./prof(ind)
     end
-    [y0,X,x0,y1,conf,fitobj] = tanh_fit(xivec(1:ind), prof(1:ind), 1);
+
+    [y0,X,x0,y1,conf,fitobj] = tanh_fit(xivec(10:ind), prof(10:ind), 1);
     title(runs.name);
 
     sbssh.X = X;
