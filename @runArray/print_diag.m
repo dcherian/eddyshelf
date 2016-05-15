@@ -956,7 +956,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             default_factor = 2; % integrate to 2xHsb
 
             if isempty(args)
-                isobath = 3;
+                isobath = 1;
                 factor = default_factor;
             else
                 isobath = args(1);
