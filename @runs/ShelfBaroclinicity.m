@@ -7,7 +7,7 @@ function [] = ShelfBaroclinicity(runs)
     [start, stop] = runs.flux_tindices(runs.csflux.off.slope(:,1,1));
 
     if runs.params.misc.rdrg == 0
-        zbot = 1;
+        zbot = 10;
     else
         zbot = 10;
     end
