@@ -50,7 +50,7 @@ function [bcmn] = baroclinicity(usurf, ubot, nanmask)
     usurf(nanmask) = NaN;
     ubot(nanmask) = NaN;
 
-    uabs = (abs(usurf) + abs(ubot));
+    uabs = abs(usurf); %(abs(usurf) + abs(ubot));
     bc = abs(usurf - ubot)./uabs; % (us - ub)/(|us| + |ub|)
     bc(bsxfun(@lt, uabs, 0.3 * max(uabs, [], 3))) = NaN; % mask out low velocity points
 
