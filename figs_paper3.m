@@ -21,6 +21,12 @@ handles = sh.PlotFluxVertProfiles;
 
 export_fig -r150 images/paper3/sb-vert-profiles.png
 
+%% fluxes
+sh.filter = [1 2 5:13];
+sh.print_diag('avg flux');
+
+export_fig images/paper3/sh-avgflux.png
+
 %% eddy water on shelf scale
 figure; maximize;
 hax(1) = subplot(121);

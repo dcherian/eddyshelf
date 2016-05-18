@@ -85,17 +85,21 @@ function [v, mask, rho, xvec, zvec] = ...
         % offshore flow.
         if runs.bathy.sl_shelf ~= 0
             betash = runs.params.phys.f0/runs.bathy.hsb * runs.bathy.sl_shelf;
-            Lbeta = sqrt(V0/betash) / L0;
+            Lbeta = 1.37*sqrt(V0/betash) - 3300;
 
-            if Lbeta > 1
+            Lcorr = 1 - 1.42*runs.rrshelf*pi/L0;
+            %Lcorr = sqrt((1-Lbeta)^2 - 1/2);
+
+            if Lcorr > 1
                 % for gentle slopes, I shouldn't do anything.
-                Lbeta = 1;
+                Lcorr = 1;
             end
         else
-            Lbeta = 1;
+            Lcorr = 1;
         end
 
-        mask = xmat < -(1-Lbeta);
+        Lcorr = 1;
+        mask = xmat < -(1-Lcorr);
     else
         eddymask = ((xmat.^a + zmat.^a) > 1.0^a) .* (zmat < -width);
         if circle_kink
