@@ -1,3 +1,28 @@
+%% sbssh plots
+for ii=1:sh.len
+    %sh.array(ii).ShelfbreakSSHScale;
+    sbssh = sh.array(ii).sbssh; %
+    figure; maximize;
+    plot(sbssh.fitobj, sbssh.xvec, sbssh.ssh - mean(sbssh.ssh), 'predobs');
+    hax = gca;
+    hax.XAxis.Exponent = 3;
+    title([sh.array(ii).name ' | ' num2str(sbssh.X*2/1000) ' km']);
+    legend('Location' ,'SouthEast');
+
+    %sh.array(ii).avgSupplyJet;
+    export_fig(['images/sbssh-' sh.array(ii).name '.png']);
+end
+
+%%
+% 8383, 8352, 8392
+
+figure; hold on; maximize;
+for ii=[5 6 9]
+    plot(sh.array(ii).sbssh.xvec, sh.array(ii).sbssh.ssh./sh.array(ii).sbssh.fitobj.y0, ...
+         'DisplayName', sh.array(ii).name);
+end
+legend;
+
 %% ew-34
 if ~exist('ew34', 'var')
     ew34 = runs('../topoeddy/runew-34/')
@@ -291,3 +316,31 @@ icons(end).Children.Children(3).LineWidth = 1;
 correct_ticks('x', [], {'50'; '100'}, handles.hax(4:6));
 
 export_fig -painters -a2 images/paper2/ns-35-csdsurf.png
+
+
+%% penetration on shelf
+ew = sh.array(3);
+opt.dt = 3;
+opt.addzeta = 1;
+opt.addvelquiver = 1;
+[start,stop] = ew.flux_tindices(ew.csflux.off.slope(:,1,1), 0.3);
+opt.limy = [0 ew.bathy.xsb/1000 + 40];
+ew.animate_field('csdye', [], 80, 1, opt);
+
+%% shelf supply diagnostics
+env = ew.csflux.off.slopewater.envelope(:,1);
+tvec = ew.csflux.time(~isnan(env));
+env = env(~isnan(env));
+
+tanh_fit(tvec/86400, ew.bathy.xsb/1000 - env/1000, 1);
+hax = gca;
+hax.Children(1).Visible = 'off';
+hax.Children(2).Visible = 'off';
+hax.Children(6).LineStyle = '-';
+for ii=[3 4 5 6]
+    hax.Children(ii).YData = hax.Children(ii).YData + 6.619;
+end
+ylabel('Max. distance of parcels from shelfbreak');
+xlabel('Time (days)');
+beautify([26 24 28]);
+export_fig images/env.png
