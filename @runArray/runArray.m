@@ -763,7 +763,9 @@ classdef runArray < handle
             end
         end
 
-        function [handles] = plot_avgProfile(runArray, varname, axname, ix, mask, hax)
+        function [handles] = plot_avgProfile(runArray, varname, normalize, axname, ix, mask, hax)
+
+            if ~exist('normalize', 'var'), normalize = 0; end
             if ~exist('axname', 'var'), axname = 'y'; end
             if ~exist('ix', 'var'), ix = 'sb'; end
             if ~exist('mask', 'var'), mask = 1; end
@@ -783,8 +785,10 @@ classdef runArray < handle
 
                 [vm,mm,xi] = run.avgProfile(varname, axname, ix, mask);
                 if strcmpi(varname, 'zeta'), vm = vm - min(vm); end
-                vm = vm ./ max(vm);
                 ind = find(mm == 1, 1, 'first');
+                if normalize
+                    vm = vm ./ vm(ind);
+                end
 
                 if axname == 'y'
                     %hplt(ii) = plot(xi/1000, vm);
@@ -808,7 +812,7 @@ classdef runArray < handle
 
             if axname == 'y'
                 ylabel(varname);
-                xlabel('X - X_{edd} (km)');
+                xlabel('X - X_{front} (km)');
             else
                 ylabel('Y - Y_{sb} (km)');
                 xlabel(varname);
@@ -828,6 +832,9 @@ classdef runArray < handle
 
             hl = linex(0);
             if ~strcmpi(varname, 'zeta'), hl(2) = liney(0); end
+
+            handles.htxt(1) = text(0.1,0.2, 'shelf water', 'units', 'normalized');
+            handles.htxt(2) = text(0.6,0.2, 'eddy/slope water', 'units', 'normalized');
 
             handles.hpltsh = hpltsh;
             handles.hplted = hplted;
