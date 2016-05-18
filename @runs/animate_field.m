@@ -65,6 +65,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     uref = 1; vref = uref; % scale vectors
     scale = 3;
     normquiver = 0; % normalize so that magnitude is one everywhere
+    quivercolor = 'k';
 
     % graphics
     nocolorbar = 0;
@@ -421,7 +422,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
                                runs.eddy.yr(rangex, rangey)/1000 - dy, ...
                                u(rangex, rangey, ii)./uref, ...
                                v(rangex, rangey, ii)./vref, scale, ...
-                               'Color', 'k', 'LineWidth', 1);
+                               'Color', quivercolor, 'LineWidth', 1);
     end
 
     if csdcontourplot
