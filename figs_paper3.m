@@ -24,7 +24,7 @@ export_fig -r150 images/paper3/sb-vert-profiles.png
 %% fluxes
 sh.filter = [1 2 5:13];
 sh.print_diag('avg flux');
-
+title('');
 export_fig images/paper3/sh-avgflux.png
 
 %% eddy water on shelf scale
@@ -109,7 +109,6 @@ export_fig -r150 -a2 -opengl images/paper3/ew-8341-surface-csdye.png
 sh.print_diag('shelfbc');
 title('');
 axis square;
-beautify;
 xlim([0 1]);
 
 export_fig -r150 -a2 images/paper3/shelfbc.png

@@ -1603,7 +1603,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                          'VerticalAlignment', 'top', 'FontSize', 16);
         end
 
-        beautify([18 22 26]);
+        beautify([24 26 28]);
 
         if kozak
             % call after beautify
