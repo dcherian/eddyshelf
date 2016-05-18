@@ -60,6 +60,15 @@ function [handles] = PlotSingleXZSection(runs, varname, loc, day, opt, hax)
     L = runs.eddy.rhovor.dia(tindex)/2;
     xsb = runs.bathy.xsb;
 
+    if strcmpi(varname, 'rhoanom')
+        rhoanomflag = 1;
+        rback = dc_roms_read_data(runs.dir, 'rho', ...
+                                  1, {runs.bathy.axis ix ix}, ...
+                                  [], runs.rgrid, 'his', 'single');
+        varname = 'rho';
+    else
+        rhoanomflag = 0;
+    end
 
     if strcmpi(varname, runs.csvelname)
         var = squeeze(avg1( ...
@@ -80,6 +89,10 @@ function [handles] = PlotSingleXZSection(runs, varname, loc, day, opt, hax)
         end
     end
 
+    if rhoanomflag
+        var = var - rback(sx1:sx2,:);
+    end
+
     if opt.rhocontours
         rho = dc_roms_read_data(runs.dir, 'rho', ...
                                     tindex, {runs.bathy.axis ix ix}, ...
@@ -98,24 +111,15 @@ function [handles] = PlotSingleXZSection(runs, varname, loc, day, opt, hax)
     var = var(sx1:sx2,:);
     csdye = csdye(sx1:sx2,:);
 
-    if strcmpi(varname, 'rho')
-        rback = dc_roms_read_data(runs.dir, 'rho', ...
-                                  1, {runs.bathy.axis ix ix}, ...
-                                  [], runs.rgrid, 'his', 'single');
-        % rho = rho - rback(sx1:sx2,:);
-    end
-
-    if isobath == 1
-        mask = ones(size(csvel));
-    else
-        if runs.sgntamp > 0
+    %if isobath ~= 1
+    if runs.sgntamp > 0
             mask = fillnan(bsxfun(@times, csdye < runs.csflux.x(isobath), ...
                                   runs.csflux.offmask(sx1:sx2,tindex,isobath)),0);
         else
             mask = fillnan(bsxfun(@times, csdye > runs.csflux.x(isobath), ...
                                   runs.csflux.offmask(sx1:sx2,tindex,isobath)),0);
         end
-    end
+        %end
 
     if ~exist('hax', 'var')
         figure; hax = gca;
@@ -128,13 +132,18 @@ function [handles] = PlotSingleXZSection(runs, varname, loc, day, opt, hax)
 
     [~,handles.hfield] = contourf(xvec/1000, zvec, var', 20);
     hold on;
+    clim = caxis;
     if opt.rhocontours
         [~,handles.hrhocont] = contour(xvec/1000, zvec, rho',10, 'k');
+        caxis(clim);
     end
     handles.hfield.EdgeColor = 'none';
+    %if isobath ~= 1
     [~,handles.hmask] = ...
         contour(xvec/1000, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
-    handles.htitle(1) = title(varname);
+    caxis(clim);
+        %end
+    handles.htitle(1) = title([runs.name ' | ' varname]);
     xlabel('X - X_{eddy} (km)'); ylabel('Z (m)');
 
     if ~runs.params.flags.flat_bottom
