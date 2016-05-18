@@ -13,12 +13,16 @@ function [handles] = PlotFluxVertProfiles(runArray)
 
     corder_backup = runArray.sorted_colors;
 
+    kk = 1;
     axes(handles.hax(1));
-    for ff=1:length(runArray.filter)
-        ii = runArray.filter(ff);
+    for ii=1:length(runArray.array)
         run = runArray.array(ii);
 
         hsb = run.bathy.hsb;
+
+        if run.params.misc.rdrg ~= 0
+            continue;
+        end
 
         [start, stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
         offflux = run.csflux.off.slopezt(:,start:stop,1,1);
@@ -27,21 +31,31 @@ function [handles] = PlotFluxVertProfiles(runArray)
                         offflux, 2);
         profile = profile./max(abs(profile));
 
-        handles.hplt1(ff) = plot(profile, zivec./hsb, ...
+        handles.hplt1(kk) = plot(profile, zivec./hsb, ...
                                  'DisplayName', ['\phi = ' ...
-                            num2str(phi(ff), '%.2f')]);
+                            num2str(phi(ii), '%.2f')]);
+        if run.bathy.sl_shelf == 0
+            handles.hplt1(kk).Color = [1 1 1]*0;
+            hflat = handles.hplt1(kk);
+        end
+        kk = kk+1;
     end
+    uistack(hflat, 'top');
 
     chi = runArray.print_params(['(2/sqrt(pi)*exp(-(bathy.hsb/Lz0)^2)) *' ...
-                        'V0/Lz0/(bathy.S_sl*sqrt(phys.N2))']);
+                        'V0/Lz0/(bathy.S_sh*sqrt(phys.N2))']);
     runArray.sort(chi);
     chi = runArray.print_params(['(2/sqrt(pi)*exp(-(bathy.hsb/Lz0)^2)) *' ...
-                        'V0/Lz0/(bathy.S_sl*sqrt(phys.N2))']);
+                        'V0/Lz0/(bathy.S_sh*sqrt(phys.N2))']);
 
+    kk = 1;
     axes(handles.hax(2));
-    for ff=1:length(runArray.filter)
-        ii = runArray.filter(ff);
+    for ii=1:length(runArray.array)
         run = runArray.array(ii);
+
+        if run.params.misc.rdrg ~= 0
+            continue;
+        end
 
         hsb = run.bathy.hsb;
 
@@ -52,10 +66,16 @@ function [handles] = PlotFluxVertProfiles(runArray)
                         onflux, 2);
         profile = abs(profile./max(abs(profile)));
 
-        handles.hplt2(ff) = plot(profile, zivec./hsb, ...
+        handles.hplt2(kk) = plot(profile, zivec./hsb, ...
                                  'DisplayName', ['\chi = ' ...
-                            num2str(chi(ff), '%.2f')]);
+                            num2str(chi(ii), '%.2f')]);
+        if run.bathy.sl_shelf == 0
+            handles.hplt2(kk).Color = [1 1 1]*0;
+            hflat = handles.hplt2(kk);
+        end
+        kk = kk+1;
     end
+    uistack(hflat, 'top');
 
     axes(handles.hax(1));
     set(gca, 'XAxisLocation', 'Top');
