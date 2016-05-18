@@ -41,7 +41,7 @@ function [handles] = mosaic_field(runArray, varname, timesteps, opt, clim)
         handles(ii).hax = ax(ii);
     end
 
-    linkaxes(ax, 'xy'); axis tight;
+    linkaxes(ax, 'xy'); %axis tight;
     if isempty(clim), clim = caxis; end
 
     [handles(1).supax, handles(1).htitle] = suplabel(['Surface ' varname], 't');
