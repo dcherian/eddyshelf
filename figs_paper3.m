@@ -173,6 +173,24 @@ handles.hisponge.DisplayName = 'Along-shelf: supply';
 
 export_fig -r150 -a2 images/paper3/ew-8341-volume-budget.png
 
+%% flat and sloping, sbssh
+if ~exist('ew34', 'var')
+    ew34 = runArray({'ew-34', 'ew-8341'});
+end
+
+ew34.name = {'flat shelf'; 'sloping shelf'};
+figure; maximize;
+hax(1) = subplot(121); hold on;
+ew34.plot_avgProfile('zeta', 1, 'y', 'sb', 1, hax(1));
+title('Mean SSH at shelfbreak (normalized)');
+pbaspect([1.617 1 1]);
+hax(2) = subplot(122); hold on;
+ew34.plot_avgProfile('zeta', 0, 'y', 'sb', 1, hax(2));
+title('Mean SSH at shelfbreak');
+pbaspect([1.617 1 1]);
+
+export_fig -r120 images/sb-ssh-ew34-flat-sloping.png
+
 %% compare flat and sloping
 if ~exist('ew04', 'var')
     ew04 = runArray({'ew-04', 'ew-8041'});
