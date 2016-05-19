@@ -156,15 +156,50 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
             phi = hsb./(V0./bathy.S_sh/N);
 
-            [clr, ptName, marker] = colorize(run, '');
+            [clr, ptName, marker] = colorize(run, ptName);
             if run.params.misc.rdrg == 0
                 clr = [0 0 0];
             end
-            diags(ff) = median(run.shelfbc.shelf);
+            diags(ff) = nanmedian(run.shelfbc.shelf);
             % x-axis variable for plots
             plotx(ff) = phi;
             % label points with run-name?
-            name_points = 0;
+            name_points = 1;
+            strip_ew = 1;
+            % x,y axes labels
+            labx = '\phi';
+            laby = 'BC';
+        end
+
+
+        %%%%% sbreakbc
+        if strcmpi(name, 'sbreakbc')
+
+            % for local plots
+            %figure; hold all
+            %cb = runArray.sorted_colors;
+            sortedflag = 0;
+
+            if ~isfield(run.shelfbc, 'sbreak')
+                continue;
+            end
+
+            [start,stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
+            t0 = start;
+            tend = stop;
+            [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
+
+            phi = hsb./(V0./bathy.S_sh/N);
+
+            [clr, ptName, marker] = colorize(run, ptName);
+            if run.params.misc.rdrg == 0
+                clr = [0 0 0];
+            end
+            diags(ff) = nanmedian(run.shelfbc.sbreak.shelf);
+            % x-axis variable for plots
+            plotx(ff) = phi;
+            % label points with run-name?
+            name_points = 1;
             % x,y axes labels
             labx = '\phi';
             laby = 'BC';
