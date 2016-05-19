@@ -42,11 +42,11 @@ function [handles] = PlotFluxVertProfiles(runArray)
     end
     uistack(hflat, 'top');
 
-    chi = runArray.print_params(['(2/sqrt(pi)*exp(-(bathy.hsb/Lz0)^2)) *' ...
-                        'V0/Lz0/(bathy.S_sh*sqrt(phys.N2))']);
+    chi = runArray.print_params(['1./((2/sqrt(pi)*exp(-(bathy.hsb/Lz0)^2)) *' ...
+                        'V0/Lz0/(bathy.S_sh*sqrt(phys.N2)))']);
     runArray.sort(chi);
-    chi = runArray.print_params(['(2/sqrt(pi)*exp(-(bathy.hsb/Lz0)^2)) *' ...
-                        'V0/Lz0/(bathy.S_sh*sqrt(phys.N2))']);
+    chi = runArray.print_params(['1./((2/sqrt(pi)*exp(-(bathy.hsb/Lz0)^2)) *' ...
+                        'V0/Lz0/(bathy.S_sh*sqrt(phys.N2)))']);
 
     kk = 1;
     axes(handles.hax(2));
