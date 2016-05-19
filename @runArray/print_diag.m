@@ -1552,7 +1552,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         tlen = 0;
         if exist('stats', 'var')
             disp(['stats = ' num2str(stats)]);
-            textstr{1} = ['r = ' num2str(sqrt(stats(1)), '%.2f')];
+            textstr{1} = ['C_r = ' num2str(sqrt(stats(1)), '%.2f')];
             %textstr{2} = ['rmse = ' num2str(rmse, '%.2f')];
             tlen = length(textstr);
         end
