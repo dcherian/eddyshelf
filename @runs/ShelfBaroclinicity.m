@@ -43,11 +43,35 @@ function [] = ShelfBaroclinicity(runs)
                         'y' 1 runs.bathy.isb; ...
                         'z' zbot zbot});
 
-    shelfbc.shelf = baroclinicity(usurf, ubot, csdsurf > runs.bathy.xsb);
-    shelfbc.nonshelf = baroclinicity(usurf, ubot, csdsurf < runs.bathy.xsb);
+    % mask of 1s is NaN-ed out
+    nonshelfmask = (csdsurf > runs.bathy.xsb) | (csdbot > runs.bathy.xsb);
 
-    shelfbc.sbreak.shelf = baroclinicity(vsurf, vbot, csdsurf(:,end,:) > runs.bathy.xsb);
-    shelfbc.sbreak.nonshelf = baroclinicity(vsurf, vbot, csdsurf(:,end,:) < runs.bathy.xsb);
+    % find most on-shore extent of eddy water, mask out everything north of that
+    % this criterion is too restrictive, lose a lot of points
+    % yind = bsxfun(@times, fillnan(double(nonshelfmask),0), [1:70]);
+    % nonshelfmask(:,nanmin(yind(:)):end,:) = 1;
+
+    % look only for negative velocities
+    upos = (usurf > 0) | (ubot > 0);
+    nonshelfmask = (nonshelfmask | upos);
+
+    % us = usurf; ub = ubot;
+    % nanmask = nonshelfmask;
+    % us(nanmask) = NaN;
+    % ub(nanmask) = NaN;
+
+    % uabs = abs(us);
+    % magmask = bsxfun(@lt, uabs, 0.2 * nanmax(uabs(:)));
+    % bc = abs(us - ub)./uabs; % (us - ub)/(|us| + |ub|)
+    % bc(magmask) = NaN; % mask out low velocity points
+    % bcmn = squeeze(nanmedian(nanmedian(bc,1),2));
+    % bc = nanmean(bcmn)
+
+    shelfbc.shelf = baroclinicity(usurf, ubot, nonshelfmask);
+    shelfbc.nonshelf = baroclinicity(usurf, ubot, ~nonshelfmask);
+
+    shelfbc.sbreak.shelf = baroclinicity(vsurf, vbot, nonshelfmask(:,end,:));
+    shelfbc.sbreak.nonshelf = baroclinicity(vsurf, vbot, ~nonshelfmask(:,end,:));
 
     shelfbc.time = runs.csflux.time(start:stop);
     shelfbc.tind = [start stop];
@@ -65,9 +89,9 @@ function [bcmn] = baroclinicity(usurf, ubot, nanmask)
     usurf(nanmask) = NaN;
     ubot(nanmask) = NaN;
 
-    uabs = abs(usurf); %(abs(usurf) + abs(ubot));
+    uabs = abs(usurf);
     bc = abs(usurf - ubot)./uabs; % (us - ub)/(|us| + |ub|)
-    bc(bsxfun(@lt, uabs, 0.3 * max(uabs, [], 3))) = NaN; % mask out low velocity points
+    bc(uabs < 0.3 * max(uabs(:))) = NaN; %mask out low velocity points
 
     bcmn = squeeze(nanmedian(nanmedian(bc,1),2));
 end
