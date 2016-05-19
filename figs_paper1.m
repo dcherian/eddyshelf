@@ -313,13 +313,12 @@ export_fig -r300 -a2 images/paper1/bfrics-centrack.png
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% parameterization
 [~,~,~,~,~,~,~,~,handles] = ...
-    sl.print_diag('bottom torque', [], [], 'no_name_points');
+    sl.print_diag('bottom torque', 'regression', [], 'no_name_points');
 title([]);
 
 hax = gca; hleg = legend;
 hax.FontSize = 30
-hleg.FontSize = handles.htext.FontSize;
-handles.htext.FontSize = 30;
+handles.htext.FontSize = 28;
 hleg.FontSize = handles.htext.FontSize;
 %hax.XAxis.Axle.VertexData(1,:) = single([0.0051 0.1139]);
 %hax.YAxis.Axle.VertexData(2,:) = single([0.0132 0.1768]);
@@ -327,6 +326,22 @@ hleg.FontSize = handles.htext.FontSize;
 export_fig -r200 -a2 images/paper1/penetration-param.png
 
 sl.print_diag('params table', 'images/paper1/sl-params-table.org');
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% functional form
+[~,~,~,~,~,~,~,~,handles] = ...
+    sl.print_diag('bottom torque', 'functional', [], 'no_name_points');
+title([]);
+
+hax = gca; hleg = legend;
+hax.FontSize = 30
+hax.XTick(1) = 5e-3;
+hax.YTick(1) = [];
+hax.YTick(end) = 1.92;
+%hax.XAxis.Axle.VertexData(1,:) = single([0.0051 0.1139]);
+%hax.YAxis.Axle.VertexData(2,:) = single([0.0132 0.1768]);
+
+export_fig -r200 -a2 images/paper1/functional.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% energy decay
