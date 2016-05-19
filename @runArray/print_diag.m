@@ -83,7 +83,9 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         Ly = run.eddy.vor.lmin;
         Lz = run.eddy.Lgauss;
         Ls = run.eddy.Ls;
-        Ro = run.eddy.rhovor.Ro;
+        if isfield(run.eddy, 'rhovor')
+            Ro = run.eddy.rhovor.Ro;
+        end
         V = run.eddy.V;
         if isfield(run.eddy, 'Vb'), Vb = run.eddy.Vb; end
 
@@ -1666,7 +1668,8 @@ function [clr, ptName, marker] = colorize(run, ptName)
     %     clr = [27,158,119]/255;
     % end
 
-    if strfind(run.name, 'ew-64461-9')
+    if ~isempty(strfind(run.name, 'ew-64461-9')) | ...
+            ~isempty(strfind(run.name, 'ew-64461-8'))
         marker = 'o';
     end
 end
