@@ -660,8 +660,23 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             clr = 'k';
 
             zz = (H(1) - z0)./Lz0;
-            diags(ff) = (1 - erf(zz))./(1-erf(-z0/Lz0));
-            plotx(ff) = beta/beta_z ./ (1 + beta/beta_z);
+            if strcmpi(args, 'regression') | isempty(args)
+                diags(ff) = (1 - erf(zz))./(1-erf(-z0/Lz0));
+                plotx(ff) = beta/beta_z ./ (1 + beta/beta_z)
+
+                parameterize = 1;
+                laby = '$$\frac{U_b}{U_s} = 1 - \mathrm{erf}(\frac{H}{L_z^0})$$';
+                labx = '$$\frac{\beta}{\beta + \beta_z}$$';
+            end
+
+            if strcmpi(args, 'functional')
+                diags(ff) = zz;
+                plotx(ff) = beta/beta_z;
+
+                parameterize = 0;
+                laby = '$$\frac{H}{L_z^0}$$';
+                labx = '$$\frac{\beta}{\beta_z}$$';
+            end
 
             if isnan(diags(ff)), plotx(ff) = NaN; end
 
@@ -699,7 +714,6 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
             kozak = 1;
             name_points = 1; line_45 = 0;
-            parameterize = 1;
             slope = num2str(round(alpha*1e3));
             errorbarflag = 0;
 
@@ -707,9 +721,6 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             if run.bathy.axis == 'x'
                 clr = [1 1 1]*0.75;
             end
-
-            laby = '$$\frac{U_b}{U_s} = 1 - \mathrm{erf}(\frac{H}{L_z^0})$$';
-            labx = '$$\frac{\beta}{\beta + \beta_z}$$';
         end
 
         if strcmpi(name, 'btrq')
@@ -1581,7 +1592,20 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
         pbaspect([1.618 1 1]);
 
-        if strcmpi(name, 'bottom torque')
+        if strcmpi(name, 'bottom torque') & strcmpi(args, 'functional')
+            c = 0.01;
+            x = linspace(4e-3, 0.15, 100);
+            y = erfinv(1 - 1.84* (x./(1+x)) - 0.01);
+            y0 = erfinv(1 - (1.84-0.18)*(x./(1+x)) - 0.0);
+            y1 = erfinv(1 - (1.84+0.18)*(x./(1+x)) - 0.02);
+            hold on;
+            hparam(1) = plot(x, y, '--','Color', [1 1 1]*0.75);
+            hparam(2) = plot(x, y0, '--', 'Color', [1 1 1]*0.75);
+            hparam(3) = plot(x, y1, '--', 'Color', [1 1 1]*0.75);
+        end
+
+        if strcmpi(name, 'bottom torque') ...
+                & (strcmpi(args, 'regression') | isempty(args))
             hleg = legend(hparam, ['$$ \frac{U_b}{U_s} = ' ...
                             '1 - \mathrm{erf}(\frac{H}{L_z^0}) ' ...
                                 '= ' num2str(c,3) ' \frac{\beta}{\beta + \beta_z}' ...
