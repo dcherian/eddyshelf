@@ -1613,9 +1613,11 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         end
     end
 
-    if strcmpi(name, 'avg flux') || strcmpi(name, 'max flux') ...
-            || strcmpi(name, 'zpeakwidth');
+    if exist('htext', 'var')
         handles.htext = htext;
+    end
+    if exist('hiso','var')
+        handles.hiso = hiso;
     end
 
     if strcmpi(name, 'params table')
