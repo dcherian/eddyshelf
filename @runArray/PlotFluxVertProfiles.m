@@ -43,10 +43,10 @@ function [handles] = PlotFluxVertProfiles(runArray)
     uistack(hflat, 'top');
 
     chi = runArray.print_params(['1./((2/sqrt(pi)*exp(-(bathy.hsb/Lz0)^2)) *' ...
-                        'V0/Lz0/(bathy.S_sh*sqrt(phys.N2)))']);
+                        'V0/Lz0/(bathy.S_sl*sqrt(phys.N2)))']);
     runArray.sort(chi);
     chi = runArray.print_params(['1./((2/sqrt(pi)*exp(-(bathy.hsb/Lz0)^2)) *' ...
-                        'V0/Lz0/(bathy.S_sh*sqrt(phys.N2)))']);
+                        'V0/Lz0/(bathy.S_sl*sqrt(phys.N2)))']);
 
     kk = 1;
     axes(handles.hax(2));
@@ -60,7 +60,7 @@ function [handles] = PlotFluxVertProfiles(runArray)
         hsb = run.bathy.hsb;
 
         [start, stop] = run.flux_tindices(run.csflux.on.slope(:,1,1), 0.05, 0.5);
-        onflux = run.csflux.on.slopezt(:,start:stop,1,1);
+        onflux = run.csflux.on.slopeztneg(:,start:stop,1,1);
         zivec = run.csflux.vertbins(:,isobath);
         profile = trapz(run.csflux.time(start:stop)*86400, ...
                         onflux, 2);
