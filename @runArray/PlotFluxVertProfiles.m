@@ -36,11 +36,12 @@ function [handles] = PlotFluxVertProfiles(runArray)
                             num2str(phi(ii), '%.2f')]);
         if run.bathy.sl_shelf == 0
             handles.hplt1(kk).Color = [1 1 1]*0;
-            hflat = handles.hplt1(kk);
+            hflat(1) = handles.hplt1(kk);
         end
         kk = kk+1;
     end
-    uistack(hflat, 'top');
+
+    %uistack(hflat, 'top');
 
     chi = runArray.print_params(['1./((2/sqrt(pi)*exp(-(bathy.hsb/Lz0)^2)) *' ...
                         'V0/Lz0/(bathy.S_sl*sqrt(phys.N2)))']);
@@ -71,11 +72,10 @@ function [handles] = PlotFluxVertProfiles(runArray)
                             num2str(chi(ii), '%.2f')]);
         if run.bathy.sl_shelf == 0
             handles.hplt2(kk).Color = [1 1 1]*0;
-            hflat = handles.hplt2(kk);
+            hflat(2) = handles.hplt2(kk);
         end
         kk = kk+1;
     end
-    uistack(hflat, 'top');
 
     axes(handles.hax(1));
     set(gca, 'XAxisLocation', 'Top');
@@ -100,4 +100,7 @@ function [handles] = PlotFluxVertProfiles(runArray)
     beautify;
     linkaxes(handles.hax, 'y');
     handles.hax(2).Position(1) = 0.5;
+
+    uistack(hflat(1), 'top');
+    uistack(hflat(2), 'top');
 end
