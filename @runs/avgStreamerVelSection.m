@@ -73,8 +73,8 @@ function [] = avgStreamerVelSection(runs, iso)
 
         offvmean(:,:,isobath) = mean(bsxfun(@times, vi .* (csdyei < runs.csflux.x(source)), ...
                                             offmask), 3);
-        onvmean(:,:,isobath) = mean(bsxfun(@times, vi .* (csdyei < runs.csflux.x(source)), ...
-                                            ~offmask), 3);
+        onvmean(:,:,isobath) = mean(bsxfun(@times, vi .* (csdyei > runs.csflux.x(source)), ...
+                                            offmask), 3);
         vmean(:,:,isobath) = mean(vi .* (csdyei < runs.csflux.x(source)), 3);
     end
 
