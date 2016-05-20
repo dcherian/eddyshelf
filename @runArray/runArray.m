@@ -220,16 +220,14 @@ classdef runArray < handle
                 use run.params;
                 eddy = run.eddy; csflux = run.csflux; bathy = run.bathy;
 
-                [start,stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
-                t0 = start;
-                tend = stop;
-                [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
-
                 beta_sl = phys.f0 * bathy.sl_slope./bathy.hsl;
                 beta_sh = phys.f0 * bathy.sl_shelf./bathy.hsb;
 
                 try
                     [start,stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
+                    t0 = start;
+                    tend = stop;
+                    [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
                 catch ME
                 end
 
