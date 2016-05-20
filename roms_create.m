@@ -283,52 +283,91 @@ else
     % linear bathymetry
     %if flags.linear_bathymetry == 1
 
-    if flags.crooked_bathy
-        [S] = bathy2_x(S,bathy,X,Y);
-    else
-        [S] = bathy_simple(S,bathy,X,Y,bathy.axis);
-    end
+    if ~strcmpi(bathy.axis, 'xy')
+        if flags.crooked_bathy
+            [S] = bathy2_x(S,bathy,X,Y);
+        else
+            [S] = bathy_simple(S,bathy,X,Y,bathy.axis);
+        end
 
-    switch bathy.axis
-        case 'x'
+        switch bathy.axis
+          case 'x'
             ax_cs = xrmat(:,1,1);
             ax_as = yrmat(1,:,1)'; % cross-shelf axis
             i_cs = 1; % cross shelf axis
             i_as = 2; % along shelf axis
             hvec = S.h(:,1);
-        case 'y'
+          case 'y'
             ax_cs = yrmat(1,:,1)'; % cross-shelf axis
             ax_as = xrmat(:,1,1); % along shelf axis
             i_cs = 2; % along shelf axis
             i_as = 1; % cross-shelf axis
             hvec = S.h(1,:)';
-    end
+        end
 
-    % run smoother
-    for i=1:bathy.n_passes
-        hvec = smooth(hvec,bathy.n_points);
-    end
-    if bathy_plot
-        fbathy = figure;
-        subplot(133);
-        plot(hvec,'b'); hold on
-        plot(hvec,'k');
-    end
+        % run smoother
+        for i=1:bathy.n_passes
+            hvec = smooth(hvec,bathy.n_points);
+        end
+        if bathy_plot
+            fbathy = figure;
+            subplot(133);
+            plot(hvec,'b'); hold on
+            plot(hvec,'k');
+        end
 
-    % smooth transition to deep water even more
-    % find end of slope
-    dh2dx2 = diff(hvec,2,1)./avg1(diff(ax_cs,1,1).^2,1);
-    [~,isl] = min(dh2dx2(:));
-    isl = isl - bathy.n_points;
-    % smooth again!
-%    for i=1:bathy.n_passes
-%       hvec(isl:end) = smooth(hvec(isl:end),bathy.n_points*4);
-%    end
-%    reconstruct h
-    if bathy.axis == 'y'
-        S.h = repmat(hvec',[size(S.h,1) 1]);
+        % smooth transition to deep water even more
+        % find end of slope
+        dh2dx2 = diff(hvec,2,1)./avg1(diff(ax_cs,1,1).^2,1);
+        [~,isl] = min(dh2dx2(:));
+        isl = isl - bathy.n_points;
+        % smooth again!
+        %    for i=1:bathy.n_passes
+        %       hvec(isl:end) = smooth(hvec(isl:end),bathy.n_points*4);
+        %    end
+        %    reconstruct h
+        if bathy.axis == 'y'
+            S.h = repmat(hvec',[size(S.h,1) 1]);
+        else
+            S.h = repmat(hvec, [1 size(S.h, 2)]);
+        end
+
+        % calculate for smoothed bathymetry
+        % find shelfbreak
+        dh2dx2 = diff(hvec,2,1)./avg1(diff(ax_cs,1,1).^2,1);
+        [~,bathy.isb] = max(dh2dx2(:));
+        bathy.isb = bathy.isb-1;
+        bathy.hsb = hvec(bathy.isb);
+        bathy.xsb = ax_cs(bathy.isb);
+
+        % find end of slope
+        [~,bathy.isl] = min(dh2dx2(:));
+        bathy.isl = bathy.isl;
+        bathy.hsl = hvec(bathy.isl);
+        bathy.xsl = ax_cs(bathy.isl);
+
     else
-        S.h = repmat(hvec, [1 size(S.h, 2)]);
+
+        bathy.h = bathy.H_sbreak ...
+                  + bathy.sl_slope/sqrt(2) * (S.x_rho - bathy.L_shelf) ...
+                  + bathy.sl_slope/sqrt(2) * (S.y_rho - bathy.L_shelf);
+        hfilt = filter2([0.25 1 0.25; 1 1 1; 0.25 1 0.25]/6, bathy.h, 'same');
+        hfilt(1,:) = bathy.h(1,:);
+        hfilt(:,1) = bathy.h(:,1);
+        hfilt(:,end) = bathy.h(:,end);
+        hfilt(end,:) = bathy.h(end,:);
+        bathy.h = hfilt;
+        bathy.h(bathy.h < bathy.H_sbreak) = bathy.H_sbreak;
+        Hmax = bathy.H_sbreak + bathy.sl_slope * bathy.L_slope;
+        bathy.h(bathy.h >= Hmax) = Hmax;
+
+        figure;
+        pcolorcen(S.x_rho, S.y_rho, bathy.h);
+        hold on;
+        contour(S.x_rho, S.y_rho, bathy.h, [bathy.H_sbreak Hmax], 'w');
+        colorbar;
+
+        S.h = bathy.h;
     end
 
     % Calculate Burger numbers
@@ -338,20 +377,6 @@ else
     % Calculate topographic beta
     bathy.b_sh = phys.f0 * bathy.sl_shelf / bathy.H_sbreak;
     bathy.b_sl = phys.f0 * bathy.sl_slope / max(S.h(:));
-
-    % calculate for smoothed bathymetry
-    % find shelfbreak
-    dh2dx2 = diff(hvec,2,1)./avg1(diff(ax_cs,1,1).^2,1);
-    [~,bathy.isb] = max(dh2dx2(:));
-    bathy.isb = bathy.isb-1;
-    bathy.hsb = hvec(bathy.isb);
-    bathy.xsb = ax_cs(bathy.isb);
-
-    % find end of slope
-    [~,bathy.isl] = min(dh2dx2(:));
-    bathy.isl = bathy.isl;
-    bathy.hsl = hvec(bathy.isl);
-    bathy.xsl = ax_cs(bathy.isl);
 end
 
 if any(S.h(:) < 0), error('h < 0!'); end
