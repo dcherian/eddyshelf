@@ -7,9 +7,9 @@ function [handles] = PlotFluxVertProfiles(runArray)
     handles.hax(1) = subplot(121); hold on;
     handles.hax(2) = subplot(122); hold on;
 
-    phi = runArray.print_params('bathy.hsb./(V0./bathy.S_sh/sqrt(phys.N2))');
-    runArray.sort(phi);
-    phi = runArray.print_params('bathy.hsb./(V0./bathy.S_sh/sqrt(phys.N2))');
+    phio = runArray.print_params('bathy.hsb./(V0./bathy.S_sh/sqrt(phys.N2))');
+    runArray.sort(phio);
+    phio = runArray.print_params('bathy.hsb./(V0./bathy.S_sh/sqrt(phys.N2))');
 
     corder_backup = runArray.sorted_colors;
 
@@ -31,9 +31,8 @@ function [handles] = PlotFluxVertProfiles(runArray)
                         offflux, 2);
         profile = profile./max(abs(profile));
 
-        handles.hplt1(kk) = plot(profile, zivec./hsb, ...
-                                 'DisplayName', ['\phi = ' ...
-                            num2str(phi(ii), '%.2f')]);
+        legstr1{kk} = num2str(phio(ii), '%.2f');
+        handles.hplt1(kk) = plot(profile, zivec./hsb);
         if run.bathy.sl_shelf == 0
             handles.hplt1(kk).Color = [1 1 1]*0;
             hflat(1) = handles.hplt1(kk);
@@ -41,14 +40,15 @@ function [handles] = PlotFluxVertProfiles(runArray)
         kk = kk+1;
     end
 
-    %uistack(hflat, 'top');
+    phii = runArray.print_params('bathy.hsb./(V0./bathy.S_sl/sqrt(phys.N2))');
+    runArray.sort(phii);
+    phii = runArray.print_params('bathy.hsb./(V0./bathy.S_sl/sqrt(phys.N2))');
 
-    chi = runArray.print_params(['1./((2/sqrt(pi)*exp(-(bathy.hsb/Lz0)^2)) *' ...
-                        'V0/Lz0/(bathy.S_sl*sqrt(phys.N2)))']);
-    runArray.sort(chi);
-    chi = runArray.print_params(['1./((2/sqrt(pi)*exp(-(bathy.hsb/Lz0)^2)) *' ...
-                        'V0/Lz0/(bathy.S_sl*sqrt(phys.N2)))']);
+    chi = runArray.print_params(['(2/sqrt(pi)*exp(-(bathy.hsb/Lz0)^2)) *' ...
+                        'V0/Lz0/(bathy.S_sl*sqrt(phys.N2))']);
 
+    set(handles.hax(2), 'ColorOrder', ...
+                      brighten(cbrewer('seq', 'Blues', runArray.len), -0.5));
     kk = 1;
     axes(handles.hax(2));
     for ii=1:length(runArray.array)
@@ -67,15 +67,17 @@ function [handles] = PlotFluxVertProfiles(runArray)
                         onflux, 2);
         profile = abs(profile./max(abs(profile)));
 
-        handles.hplt2(kk) = plot(profile, zivec./hsb, ...
-                                 'DisplayName', ['\chi = ' ...
-                            num2str(chi(ii), '%.2f')]);
+        legstr2{kk} = ['(' num2str(phii(ii), '%.1f') ...
+                      ', ' num2str(chi(ii), '%.2f') ')'];
+        handles.hplt2(kk) = plot(profile, zivec./hsb);
         if run.bathy.sl_shelf == 0
             handles.hplt2(kk).Color = [1 1 1]*0;
             hflat(2) = handles.hplt2(kk);
         end
         kk = kk+1;
     end
+
+    legfontsize = 20;
 
     axes(handles.hax(1));
     set(gca, 'XAxisLocation', 'Top');
@@ -84,9 +86,12 @@ function [handles] = PlotFluxVertProfiles(runArray)
     xlim([0 limx(2)]);
     xlabel('a) Shelf water outflow (m^2/s)');
     ylabel('Z / H_{sb}');
-    handles.hleg(1) = legend('Location', 'NorthWest');
     axis square;
     beautify;
+    handles.hleg(1) = columnlegend(2, legstr1, 'FontSize', legfontsize, 'Location', 'NorthWest');
+    handles.hleg(1).Position(1) = 0.15;
+    handles.hleg(1).Position(2) = 0.23;
+    handles.htxt(1) = text(0.23, -0.08, '\phi_o');
 
     axes(handles.hax(2));
     set(gca, 'XAxisLocation', 'Top');
@@ -96,11 +101,16 @@ function [handles] = PlotFluxVertProfiles(runArray)
     xlabel('b) Eddy & slope water inflow (m^2/s)');
     handles.hax(2).YTickLabels = {};
     axis square;
-    handles.hleg(2) = legend('Location', 'NorthWest');
     beautify;
     linkaxes(handles.hax, 'y');
     handles.hax(2).Position(1) = 0.5;
+    handles.hleg(2) = columnlegend(2, legstr2, 'FontSize', legfontsize);
+    handles.hleg(2).Position(1) = 0.72;
+    handles.hleg(2).Position(2) = -0.01;
+    handles.htxt(2) = text(0.95, -0.5, '(\phi_i, \chi)');
 
+    hflat(1).LineWidth = 4;
+    hflat(2).LineWidth = 4;
     uistack(hflat(1), 'top');
     uistack(hflat(2), 'top');
 end
