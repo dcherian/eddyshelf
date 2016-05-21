@@ -33,6 +33,9 @@ for ii=1:3
     end
 end
 
+handles.hfield{2}.hzeta.LevelList = [0.5 1 2 8 15 20]*1e-3;
+handles.hfield{2}.hzetaneg.LevelList = [-6 -4 -3.5 -3 -2.5 -2 -1]*1e-3;
+
 labels = 'def';
 for ii=1:3
     handlesyz{ii} = ew.PlotSingleYZSection('rho', tsteps(ii), [], hax(3+ii));
