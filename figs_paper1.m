@@ -383,8 +383,8 @@ handles.hplt(1).Color = 'k';
 handles.hplt(2).Color = 'k';
 handles.hplt(2).LineStyle = '--';
 pbaspect([1.618 1 1]);
-title('$$a) \frac{U}{\beta L^2} \sim 20 $$');
 ax(1).Title.Interpreter = 'latex';
+title('$$a) \frac{U}{\beta L^2} \sim 18,\; \beta = 4\times10^{-11}m^{-1}s^{-1} $$');
 legend('off');
 beautify(fontsize);
 
@@ -395,8 +395,8 @@ handles.hplt(1).Color = 'k';
 handles.hplt(2).Color = 'k';
 handles.hplt(2).LineStyle = '--';
 pbaspect([1.618 1 1]);
-title('$$b) \frac{U}{\beta L^2} \sim 60 $$');
 ax(2).Title.Interpreter = 'latex';
+title('$$b) \frac{U}{\beta L^2} \sim 60,\; \beta = 1.2\times10^{-11}m^{-1}s^{-1} $$');
 legend('off');
 beautify(fontsize);
 

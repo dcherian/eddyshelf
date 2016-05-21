@@ -1028,7 +1028,6 @@ classdef runArray < handle
                 eddy = run.eddy;
 
                 eval(['vec = ' tsname ';']);
-                handles.hplt = [];
                 try
                     tind = run.FitCenterVelocity; tind = tind(1);
                     if isfield(run.csflux, 'off')
