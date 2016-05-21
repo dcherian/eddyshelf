@@ -31,6 +31,8 @@ function [handles] = EddyDiags(runs, hfig)
 
     axyy(1).YLabel.String = 'Horizontal Scale, L_0 (km)';
     axyy(2).YLabel.String = 'Vertical Scale, L_z (m)';
+    axyy(1).YLabel.Color = hplt(1).Color;
+    axyy(2).YLabel.Color = hplt(2).Color;
     axyy(1).XTickLabel = {};
     axes(axyy(1)); beautify;
     axes(axyy(2)); beautify;
@@ -46,15 +48,19 @@ function [handles] = EddyDiags(runs, hfig)
     hplt(5) = plot(FitTimeSeries(:,1)/86400, FitTimeSeries(:,2), 'k--');
     %linex(tvec([itsl itfit]));
     liney(0);
-    hleg = legend([hplt(4) hplt(3) hplt(5)], {'V_{cen}^y', 'V_{cen}^x', 'Fit'}, ...
-                  'Location', 'NorthEast');
-    hleg.Position(1) = 0.86;
+    hleg = legend([hplt(4) hplt(3) hplt(5)], ...
+                  {'V_{cen}^y (Cross-isobath)', ...
+                   'V_{cen}^x (Along-isobath)', ...
+                   'Fit using (7)'}, 'Location', 'NorthEast');
+    hleg.Position(1) = 0.78;
     hleg.Position(2) = 0.23;
     ylabel({'Eddy center'; 'translation velocity';  '(km/day)'});
     xlabel('Time (days)');
     handles.hlabel(2) = text(0.05,0.1,'b)','Units','normalized');
     beautify;
 
+    linkprop([hax axyy], 'xlim');
+    hax(1).XLim = [0 500];
     handles.hax = hax;
     handles.axyy = axyy;
     handles.hplt = hplt;
