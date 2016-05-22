@@ -81,6 +81,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     drawtrack = 1; % plot eddy track?
     drawedgetrack = 0; % plot eddy's edge tracks?
     drawcenter = 1; % mark eddy center location.
+    drawarrest = 0; % mark arrest location
 
     % grid diagnostics
     telesplot = 0;  % plot lines where grid stretching starts
@@ -477,7 +478,14 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     end
 
     if drawcenter
-        handles.hcen = plot(runs.eddy.mx(ii)/1000 - dx, runs.eddy.my(ii)/1000 - dy, 'kx');
+        handles.hcen = plot(runs.eddy.mx(ii)/1000 - dx, runs.eddy.my(ii)/1000 - dy, ...
+                            'k.', 'MarkerSize', 20);
+    end
+
+    if drawarrest
+        [tfit,~,~,BadFitFlag] = runs.FitCenterVelocity;
+        handles.hfit = plot(runs.eddy.mx(tfit(1))/1000 - dx, ...
+                            runs.eddy.my(tfit(1))/1000 - dy, 'kx');
     end
 
     % zeta too?

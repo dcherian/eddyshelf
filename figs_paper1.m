@@ -5,6 +5,7 @@ if ~exist('ew','var') | ~strcmpi(ew.name, 'ew-64461-5')
     ew = runs('../topoeddy/runew-64461-5/');
 end
 opt = [];
+opt.drawarrest = 1;
 opt.addcsdye = 1;
 opt.addzeta = 1;
 opt.rhocontourplot = 1;
