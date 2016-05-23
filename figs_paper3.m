@@ -195,44 +195,98 @@ if ~exist('ew04', 'var')
     ew04 = runArray({'ew-04', 'ew-8041'});
 end
 
+opt.drawtrack = 0;
+opt.drawcen = 0;
 opt.addvelquiver = 1;
 opt.rhocontourplot = 0;
 opt.csdcontourplot = 0;
 opt.dxi = 8; opt.dyi = 5;
 
-handles = ew04.mosaic_field('csdye', {'169'; '169'}, opt);
-xlim([170 400]);
-ylim([0 120]);
+ew04.array(1).read_velsurf(find_approx(ew04.array(1).time, 169*86400, 1));
+ew04.array(1).read_csdsurf(find_approx(ew04.array(1).time, 169*86400, 1));
+
+clear handles
+figure; maximize;
+hax = packfig(2,2);
 for ii=1:2
-    delete(handles(ii).hrunname)
+    run = ew04.array(ii);
+    tind = find_approx(run.time, 169*86400, 1);
+
+    handles(ii) = run.animate_field('csdye', hax(ii), '169', 1, opt);
+    xlim([170 400]);
+    ylim([0 120]);
+
     handles(ii).hbathy{1}.ShowText = 'off';
     handles(ii).hquiv.Color = [1 1 1]*0;
     handles(ii).hquiv.LineWidth = 1.5;
     handles(ii).hquiv.AutoScaleFactor = 4.5;
     handles(ii).htlabel.Position(2) = 0.1;
-    handles(ii).htrack.delete;
     handles(ii).hbathy{1}.Color = [1 1 1]*0;
     handles(ii).hbathy{2}.Color = [1 1 1]*0;
+    handles(ii).hcb.delete;
+    hax(ii).XTickLabel = {};
+    hax(ii).XLabel.delete;
+    caxis([-50 250])
+
+    axes(hax(ii+2))
+    [hyy(ii,:), hplt(ii,1), hplt(ii,2)] = ...
+        plotyy(run.rgrid.x_rho(1,:)/1000, run.vsurf(:, run.bathy.isb, tind), ...
+               run.rgrid.x_rho(1,:)/1000, ...
+               (run.csdsurf(:, run.bathy.isb, tind) - run.bathy.xsb)/1000);
+    hyy(ii,1).XLim = [170 400];
+    hyy(ii,2).XLim = [170 400];
+
+    hyy(ii,1).Box = 'off';
+    hyy(ii,2).Box = 'off';
+
+    axes(hyy(ii,1));
+    hyy(ii,1).Color = 'none';
+    liney(0);
 end
-correct_ticks('x', [], '450', handles(1).hax);
-handles(1).hax.Title.String = 'a) Flat shelf | S_{sh} = 0';
-handles(2).hax.Title.String = 'b) Sloping shelf | S_{sh} = 0.05';
+
+hyy(1,1).YLim = [-1 1]*0.05;
+hyy(2,1).YLim = [-1 1]*0.05;
+hyy(1,2).YLim = [-40 180];
+hyy(2,2).YLim = [-40 180];
+
+hyy(1,1).YTick = [-0.05 -0.03 0 0.03 0.05];
+linkprop(hyy(:,1), 'YTick');
+hyy(1,2).YAxis.Visible = 'off';
+hyy(2,1).YAxis.Visible = 'off';
+hyy(2,1).Box = 'off';
+hyy(2,1).YTickLabel = {};
+hyy(1,2).YTickLabel = {};
+
+hax(2).YLabel.delete;
+hax(2).YTickLabel = {};
+hax(1).Title.String = 'a) Flat shelf | S_{sh} = 0';
+hax(2).Title.String = 'b) Sloping shelf | S_{sh} = 0.05';
+handles(1).hax.Title.FontSize = 26;
+handles(2).hax.Title.FontSize = 26;
 
 handles(1).supax.Position(4) = 0.73;
 handles(1).supax.Title.String = 'Surface cross-shelf dye (km)';
 handles(1).supax.Title.FontSize = 28;
 
-handles(1).hax.Title.FontSize = 26;
-handles(2).hax.Title.FontSize = 26;
+hax(3).YLabel.String = {'Cross-isobath'; 'surface velocity (m/s)'};
+hax(3).YLabel.Color = hplt(1,1).Color;
+hax(3).XLabel.String = 'X (km)';
+hyy(2,2).YLabel.String = 'Cross-shelf dye - Y_{sb}';
+hyy(2,2).YLabel.Color = hplt(1,2).Color;
+hyy(2,2).XLabel.String = 'X (km)';
 
-axes(handles(1).hax)
-caxis([-50 250])
+axes(hyy(1,1))
+htxt(1) = text(200, 0.04, 'offshore', 'Color', hplt(ii,1).Color);
+htxt(2) = text(200, -0.04, 'onshore', 'Color', hplt(ii,1).Color);
 
-axes(handles(2).hax)
-caxis([-50 250])
+axes(hyy(2,2));
+htxt(3) = text(320, 150, 'eddy water', 'Color', hplt(ii,2).Color);
+htxt(4) = text(320, -20, 'shelf water', 'Color', hplt(ii,2).Color);
+
+axes(hax(2))
 hl = liney(37.5-12*1.37);
 hl.Color = [1 1 1]*0;
-hanno = annotation('doublearrow', [0.6 0.6], [0.405 0.445]);
+hanno = annotation('doublearrow', [0.6 0.6], 0.615 + [0 0.04]);
 hanno.Head1Style = 'cback3';
 hanno.Head2Style = 'cback3';
 hanno.Head1Length = 7;
