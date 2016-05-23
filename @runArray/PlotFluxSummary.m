@@ -72,7 +72,7 @@ function [handles] = PlotFluxSummary(runArray, isobath, source, factor)
 
     axes(handles.hax(4));
     ylabel('Z/H_{sb}');
-    xlabel('d) \int Flux dx dt (m^2)');a
+    xlabel('d) \int Flux dx dt (m^2)');
     handles.hax(4).XAxisLocation = 'top';
     LowerLines;
     beautify(fs);

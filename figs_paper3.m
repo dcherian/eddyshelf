@@ -315,6 +315,7 @@ if ~exist('shfric', 'var')
     shfric = runArray(folders, names);
 end
 
+clear handles;
 handles = shfric.PlotFluxSummary(1);
 
 axes(handles.hax(1))
@@ -347,7 +348,7 @@ linkaxes(handles.hax, 'off');
 linkaxes(handles.hax(1:2), 'x');
 axes(handles.hax(3));
 cla(handles.hax(3), 'reset');
-handles2 = shfric.plot_avgProfile('zeta', 'y', 'sb', 1, handles.hax(3));
+handles2 = shfric.plot_avgProfile('zeta', 0, 'y', 'sb', 1, handles.hax(3));
 xlim([-200 200]);
 ax = handles.hax(3);
 dy = ax.YTick(2);
@@ -406,7 +407,36 @@ htext = text(430, -Lbeta/2000, 'L_\beta', 'Color', hlbeta.Color);
 linkprop([htext hanno hlbeta], 'Color');
 htext.Color = handles2.htxt(3).Color;
 
-export_fig -r150 -a2 -png images/paper2/sb-flux-summary
+export_fig -r150 -a2 -png images/paper3/sb-flux-summary
 
 %%
 sh.print_diag('params table', 'images/paper3/sh-params-table.org')
+
+%% friction mosaic
+if ~exist('shfric2', 'var')
+    folders = { ...
+        'runew-8341', ...
+        'runew-583413', 'runew-583411', ...
+        'runew-583414', 'runew-583415', ...
+              };
+    shfric2 = runArray(folders, names);
+end
+
+% for ii=1:4
+%     shfric2.array(ii).usurf = [];
+%     shfric2.array(ii).vsurf = [];
+%     shfric2.array(ii).read_velsurf;
+% end
+
+opt.addvelquiver = 1;
+opt.quivercolor = 'k';
+opt.scale = 5;
+opt.limy = [0 150];
+shfric2.filter = [1 2 3 4];
+handles = shfric2.mosaic_field('csdye', [350 370 280 280], opt, [-40 150]);
+
+%% along-shelf inflow structure
+sh.filter = [1 2 5:13];
+%sh.plot_avgProfile('vbar');
+figs = [0 0 0 0 1];
+sh.plot_fluxes(1,1,1,figs);
