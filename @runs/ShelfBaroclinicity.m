@@ -66,8 +66,11 @@ function [] = ShelfBaroclinicity(runs)
     % bcmn = squeeze(nanmedian(nanmedian(bc,1),2));
     % bc = nanmean(bcmn)
 
-    [shelfbc.shelf, shelfbc.thresh] = baroclinicity(usurf, ubot, nonshelfmask | upos);
-    shelfbc.nonshelf = baroclinicity(usurf, ubot, ~(nonshelfmask | upos));
+    [shelfbc.shelf, shelfbc.thresh] = baroclinicity(usurf, ubot, nonshelfmask);
+    shelfbc.nonshelf = baroclinicity(usurf, ubot, ~nonshelfmask);
+
+    shelfbc.shelfneg = baroclinicity(usurf, ubot, (nonshelfmask | upos));
+    shelfbc.nonshelfneg = baroclinicity(usurf, ubot, ~(nonshelfmask | upos));
 
     shelfbc.sbreak.shelf = baroclinicity(vsurf, vbot, nonshelfmask(:,end,:));
     shelfbc.sbreak.nonshelf = baroclinicity(vsurf, vbot, ~nonshelfmask(:,end,:));
