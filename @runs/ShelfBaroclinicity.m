@@ -67,7 +67,7 @@ function [] = ShelfBaroclinicity(runs)
     % bcmn = squeeze(nanmedian(nanmedian(bc,1),2));
     % bc = nanmean(bcmn)
 
-    shelfbc.shelf = baroclinicity(usurf, ubot, nonshelfmask);
+    [shelfbc.shelf, shelfbc.thresh] = baroclinicity(usurf, ubot, nonshelfmask);
     shelfbc.nonshelf = baroclinicity(usurf, ubot, ~nonshelfmask);
 
     shelfbc.sbreak.shelf = baroclinicity(vsurf, vbot, nonshelfmask(:,end,:));
@@ -80,18 +80,20 @@ function [] = ShelfBaroclinicity(runs)
     shelfbc.hash = hash;
 
     runs.shelfbc = shelfbc;
-
     save([runs.dir '/shelfbc.mat'], 'shelfbc');
     toc(ticstart);
 end
 
-function [bcmn] = baroclinicity(usurf, ubot, nanmask)
+function [bcmn, thresh] = baroclinicity(usurf, ubot, nanmask)
     usurf(nanmask) = NaN;
     ubot(nanmask) = NaN;
 
-    uabs = abs(usurf);
-    bc = abs(usurf - ubot)./uabs; % (us - ub)/(|us| + |ub|)
-    bc(uabs < 0.3 * max(uabs(:))) = NaN; %mask out low velocity points
+    thresh = [0.1 0.2 0.3 0.4];
 
-    bcmn = squeeze(nanmedian(nanmedian(bc,1),2));
+    uabs = abs(usurf);
+    for ii=1:length(thresh)
+        bc = abs(usurf - ubot)./uabs; % (us - ub)/(|us| + |ub|)
+        bc(uabs < thresh(ii) * max(uabs(:))) = NaN; %mask out low velocity points
+        bcmn(:,ii) = squeeze(nanmedian(nanmedian(bc,1),2));
+    end
 end
