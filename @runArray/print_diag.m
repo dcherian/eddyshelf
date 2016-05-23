@@ -143,6 +143,9 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
         %%%%% shelfbc
         if strcmpi(name, 'shelfbc')
+            if isempty(args)
+                args(1) = 1;
+            end
 
             % for local plots
             %figure; hold all
@@ -160,7 +163,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             if run.params.misc.rdrg == 0
                 clr = [0 0 0];
             end
-            diags(ff) = nanmedian(run.shelfbc.shelf);
+            diags(ff) = nanmedian(run.shelfbc.shelf(:,args(1)));
             % x-axis variable for plots
             plotx(ff) = phi;
             % label points with run-name?
@@ -168,12 +171,16 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             strip_ew = 1;
             % x,y axes labels
             labx = '\phi';
-            laby = 'BC';
+            laby = ['BC_{' num2str(run.shelfbc.thresh(args)) '}'];
         end
 
 
         %%%%% sbreakbc
         if strcmpi(name, 'sbreakbc')
+
+            if isempty(args)
+                args(1) = 1;
+            end
 
             % for local plots
             %figure; hold all
@@ -195,14 +202,14 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             if run.params.misc.rdrg == 0
                 clr = [0 0 0];
             end
-            diags(ff) = nanmedian(run.shelfbc.sbreak.shelf);
+            diags(ff) = nanmedian(run.shelfbc.sbreak.shelf(:,args(1)));
             % x-axis variable for plots
             plotx(ff) = phi;
             % label points with run-name?
             name_points = 1;
             % x,y axes labels
             labx = '\phi';
-            laby = 'BC';
+            laby = ['BC_{' num2str(run.shelfbc.thresh(args)) '}'];
         end
 
         % shelfbreak SSH decay scale
