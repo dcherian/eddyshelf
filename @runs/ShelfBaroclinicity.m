@@ -53,7 +53,6 @@ function [] = ShelfBaroclinicity(runs)
 
     % look only for negative velocities
     upos = (usurf > 0) | (ubot > 0);
-    nonshelfmask = (nonshelfmask | upos);
 
     % us = usurf; ub = ubot;
     % nanmask = nonshelfmask;
@@ -67,8 +66,8 @@ function [] = ShelfBaroclinicity(runs)
     % bcmn = squeeze(nanmedian(nanmedian(bc,1),2));
     % bc = nanmean(bcmn)
 
-    [shelfbc.shelf, shelfbc.thresh] = baroclinicity(usurf, ubot, nonshelfmask);
-    shelfbc.nonshelf = baroclinicity(usurf, ubot, ~nonshelfmask);
+    [shelfbc.shelf, shelfbc.thresh] = baroclinicity(usurf, ubot, nonshelfmask | upos);
+    shelfbc.nonshelf = baroclinicity(usurf, ubot, ~(nonshelfmask | upos));
 
     shelfbc.sbreak.shelf = baroclinicity(vsurf, vbot, nonshelfmask(:,end,:));
     shelfbc.sbreak.nonshelf = baroclinicity(vsurf, vbot, ~nonshelfmask(:,end,:));
