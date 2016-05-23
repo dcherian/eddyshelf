@@ -319,7 +319,7 @@ clear handles;
 handles = shfric.PlotFluxSummary(1);
 
 axes(handles.hax(1))
-handles.hax(1).Position(2) = 0.68;
+handles.hax(1).Position(2) = 0.70;
 ylim([0 15]);
 delete(handles.hleg);
 handles.hleg(1) = legend(handles.hflux(1:2), shfric.name{1:2});
@@ -333,8 +333,8 @@ handles.hleg(2).Position(1) = handles.hleg(1).Position(1) + pos1(3) + 0.02;
 handles.hleg(2).Position(2) = pos1(2) + pos1(4) - handles.hleg(2).Position(4);
 
 tblx = [0.685 0.905] + 0.006;
-htable(1) = text(1.21, pos1(2)+0.08, 'S_{sh}   r', 'Units', 'normalized');
-htable(2) = text(1.45, pos1(2)+0.08, 'S_{sh}     r', 'Units', 'normalized');
+htable(1) = text(1.21, pos1(2)+0.08, 'S_{sh}   r', 'Units', 'normalized', 'FontSize', 18);
+htable(2) = text(1.45, pos1(2)+0.08, 'S_{sh}     r', 'Units', 'normalized', 'FontSize', 18);
 htable(3) = annotation('line', tblx, [1 1]*0.890, 'LineWidth', 1);
 htable(4) = annotation('line', tblx, [1 1]*0.848, 'LineWidth', 1);
 htable(5) = annotation('line', tblx, [1 1]*0.760, 'LineWidth', 1);
@@ -349,6 +349,7 @@ linkaxes(handles.hax(1:2), 'x');
 axes(handles.hax(3));
 cla(handles.hax(3), 'reset');
 handles2 = shfric.plot_avgProfile('zeta', 0, 'y', 'sb', 1, handles.hax(3));
+handles2.htxt.delete;
 xlim([-200 200]);
 ax = handles.hax(3);
 dy = ax.YTick(2);
@@ -363,13 +364,13 @@ title(''); ylabel('');
 handles2.htxt(1) = text(0.05,0.85, 'Mean SSH at shelfbreak (m)', ...
                      'Units', 'Normalized', 'FontSize', handles.htxt(1).FontSize);
 handles2.htxt(2) = text(-150, 7e-4, 'Flat shelf', 'Units', 'data', ...
-                        'HorizontalAlignment', 'center');
+                        'HorizontalAlignment', 'center', 'FontSize', 18);
 handles2.htxt(3) = text(-150, 2e-4, 'Sloping shelf', 'Units', 'data', ...
-                        'HorizontalAlignment', 'center');
-handles2.htxt(4) = text(-50, 1e-3, 'Shelf water', 'Units', 'data', ...
-                        'HorizontalAlignment', 'center', 'FontWeight', 'bold');
+                        'HorizontalAlignment', 'center', 'FontSize', 18);
+handles2.htxt(4) = text(-70, 1e-3, 'Shelf water', 'Units', 'data', ...
+                        'HorizontalAlignment', 'center', 'FontSize', 18, 'FontWeight', 'bold');
 handles2.htxt(5) = text(150, 1e-3, 'Eddy water', 'Units', 'data', ...
-                        'HorizontalAlignment', 'center');
+                        'HorizontalAlignment', 'center',  'FontSize', 18);
 linkprop(handles2.htxt(4:5), 'Color');
 handles2.htxt(4).Color = [1 1 1]*0.7;
 

@@ -48,7 +48,7 @@ function [handles] = PlotFluxSummary(runArray, isobath, source, factor)
                   handles.hprofile(ff) handles.henv(ff)], 'Color');
     end
 
-    fs = [16 18 20];
+    fs = [20 22 24];
 
     axes(handles.hax(1))
     handles.htxt(1) = text(0.05,0.85, 'a) Flux (mSv)', ...
