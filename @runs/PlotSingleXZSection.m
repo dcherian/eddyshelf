@@ -4,6 +4,10 @@ function [handles] = PlotSingleXZSection(runs, varname, loc, day, opt, hax)
     if ~isfield(opt, 'rhocontours')
         opt.rhocontours = 0;
     end
+    if ~isfield(opt, 'maskcontour')
+        opt.maskcontour = 1;
+    end
+
     varname = runs.process_varname(varname);
 
     if ~exist('day', 'var'), day = []; end

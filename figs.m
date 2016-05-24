@@ -344,3 +344,80 @@ ylabel('Max. distance of parcels from shelfbreak');
 xlabel('Time (days)');
 beautify([26 24 28]);
 export_fig images/env.png
+
+%%
+if ~exist('xy', 'var')
+    xy = runArray({'xy-64461-9-shallow', 'xy-64361'});
+end
+
+figure;
+hold on;
+handles = xy.array(1).plot_bathy('contour');
+handles{1}.LevelList = [50 100 200 300 400 500 600];
+handles{2}.delete;
+handles{3}.delete;
+for ii=1:2
+    hplt(ii) = plot(xy.array(ii).eddy.mx/1000, xy.array(ii).eddy.my/1000);
+end
+legend(hplt,xy.name);
+beautify
+export_fig images/xy-eddytrack.png
+
+opt.maskcontour = 0;
+xy.array(1).PlotSingleYZSection('rho', '500');
+xy.array(3).PlotSingleYZSection('csdye', '200');
+
+%%
+figure;
+hax(1) = subplot(221);
+handles = xy.array(1).animate_field('csdye', hax(1), '200', 1);
+handles.hbathy{3}.delete;
+handles.hbathy{1}.LevelList = linspace(min(xy.array(1).bathy.h(:))+5, max(xy.array(1).bathy.h(:)), ...
+                                       10);
+
+hax(2) = subplot(222);
+% cla
+% run = xy.array(1);
+% cross = hypot(avg1(run.ubar(:,2:end-1,:),1), avg1(run.vbar(2:end-1,:,:),2));
+% contourf(run.rgrid.xr(2:end-1,2:end-1)/1000, run.rgrid.yr(2:end-1,2:end-1)/1000, ...
+%          cross(:,:,102));
+handles = xy.array(1).animate_field('csdye', hax(2), '300', 1);
+handles.hfield.LevelList = [handles.hfield.LevelList 1e-3];
+handles.hbathy{3}.delete;
+handles.hbathy{1}.LevelList = linspace(min(xy.array(1).bathy.h(:))+5, max(xy.array(1).bathy.h(:)), ...
+                                       10);
+
+hax(3) = subplot(2,2,[3 4]);
+plot(xy.array(1).eddy.t, xy.array(1).eddy.mvx*1000/86400);
+liney(-1*0.004,'ubar on slope');
+ylim([-0.03 0]);
+
+%% shelfbc - sh from figs_paper3
+sh.filter = [5 14:17];
+figure;
+hax = packfig(2,1);
+for ff=1:length(sh.filter)
+    ii = sh.filter(ff);
+    run = sh.array(ii);
+    axes(hax(1)); hold on;
+    hplt1(ff) = plot(run.csflux.time/86400, run.csflux.off.slope(:,1,1), ...
+                    'DisplayName', [run.name ' | r = ' num2str(run.params.misc.rdrg,'%.1e')]);
+
+    axes(hax(2)); hold on;
+    hplt2(ff) = plot(run.shelfbc.time/86400, run.shelfbc.shelf(:,2));
+end
+
+axes(hax(1)); legend(hplt1); beautify;
+axes(hax(2)); beautify;
+
+hplt1(1).Color = 'k';
+hplt2(1).Color = 'k';
+hax(1).YLabel.String = 'Shelf water offshore flux (m^3/s)';
+hax(2).YLabel.String = 'BC_{0.2}';
+hax(2).XLabel.String = 'Time (days)';
+hax(1).YLim(1) = 0;
+hax(2).YLim = [0 1];
+linkaxes(hax, 'x');
+
+insertAnnotation('figs.m');
+export_fig images/bc-shfric.png
