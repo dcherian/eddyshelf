@@ -393,7 +393,9 @@ liney(-1*0.004,'ubar on slope');
 ylim([-0.03 0]);
 
 %% shelfbc - sh from figs_paper3
-sh.filter = [5 14:17];
+sh.sort(sh.print_params('params.misc.rdrg'));
+sh.filter = [5 15:18];
+sh.sorted_colors;
 figure;
 hax = packfig(2,1);
 for ff=1:length(sh.filter)
@@ -420,4 +422,5 @@ hax(2).YLim = [0 1];
 linkaxes(hax, 'x');
 
 insertAnnotation('figs.m');
-export_fig images/bc-shfric.png
+export_fig images/shelfbc-shfric.png
+startup
