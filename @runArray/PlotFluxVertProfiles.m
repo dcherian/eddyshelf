@@ -48,7 +48,7 @@ function [handles] = PlotFluxVertProfiles(runArray)
                         'V0/Lz0/(bathy.S_sl*sqrt(phys.N2))']);
 
     set(handles.hax(2), 'ColorOrder', ...
-                      brighten(cbrewer('seq', 'Blues', runArray.len), -0.5));
+                      brighten(cbrewer('seq', 'Blues', runArray.len), -0.6));
     kk = 1;
     axes(handles.hax(2));
     for ii=1:length(runArray.array)
@@ -60,7 +60,7 @@ function [handles] = PlotFluxVertProfiles(runArray)
 
         hsb = run.bathy.hsb;
 
-        [start, stop] = run.flux_tindices(run.csflux.on.slope(:,1,1), 0.05, 0.5);
+        [start, stop] = run.flux_tindices(run.csflux.on.slope(:,1,1), 0.05, 0.9);
         onflux = run.csflux.on.slopeztneg(:,start:stop,1,1);
         zivec = run.csflux.vertbins(:,isobath);
         profile = trapz(run.csflux.time(start:stop)*86400, ...
@@ -105,8 +105,8 @@ function [handles] = PlotFluxVertProfiles(runArray)
     linkaxes(handles.hax, 'y');
     handles.hax(2).Position(1) = 0.5;
     handles.hleg(2) = columnlegend(2, legstr2, 'FontSize', legfontsize);
-    handles.hleg(2).Position(1) = 0.72;
-    handles.hleg(2).Position(2) = -0.01;
+    handles.hleg(2).Position(1) = 0.7446;
+    handles.hleg(2).Position(2) = 0.0585;
     handles.htxt(2) = text(0.95, -0.5, '(\phi_i, \chi)');
 
     hflat(1).LineWidth = 4;
