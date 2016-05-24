@@ -1045,7 +1045,7 @@ classdef runArray < handle
                         handles.hmaxloc(ff) = plot(ndtime(maxloc), vec(maxloc), 'ko');
                     end
                 catch ME
-                    if length(handles.hplt) < ff
+                    if ~exist('handles', 'var') | length(handles.hplt) < ff
                         handles.hplt(ff) = plot(vec);
                     end
                 end
