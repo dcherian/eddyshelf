@@ -116,6 +116,10 @@ classdef runArray < handle
                 error('need sort_input to sort!');
             end
 
+            if length(sort_input) < runArray.len
+                error('length(sort_input) < runArray.len. DO NOT FILTER!');
+            end
+
             [ss,ind] = sort(sort_input, 'ascend');
             runArray.sort_param = sort_input;
 
