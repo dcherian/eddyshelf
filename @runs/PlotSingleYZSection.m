@@ -21,7 +21,7 @@ function [handles] = PlotSingleYZSection(runs, varname, days, loc, hax)
 
     drho = []; ed = []; axall = [];
 
-    if runs.bathy.axis == 'y'
+    if runs.bathy.axis == 'xy' | runs.bathy.axis == 'y'
         cen = runs.eddy.mx;
         bathyax = 'x';
         yz = repmat(runs.rgrid.y_rho(:,1), [1 runs.rgrid.N]) / 1000;
@@ -40,6 +40,11 @@ function [handles] = PlotSingleYZSection(runs, varname, days, loc, hax)
 
     if ~exist('loc', 'var') || isempty(loc)
         loc = cen(tindices);
+    end
+
+    if runs.bathy.axis == 'xy'
+        iloc = find_approx(runs.rgrid.x_rho(1,:), loc);
+        zmat = runs.rgrid.z_r(:,:,iloc)';
     end
 
     locstr = num2str(loc);
@@ -93,36 +98,37 @@ function handles = common(obj, yz, zmat, drho, ed, days, loc, tindices, handles)
     caxis(clim);
 
     % vertical scale
-    hanldes.hlz = liney(-1 * obj.eddy.Lgauss(tindices), [], 'k');
+    %handles.hlz = liney(-1 * obj.eddy.Lgauss(tindices), [], 'k');
 
     handles.hcen = linex(obj.eddy.my(tindices)/1000, [], 'k');
 
     % patch bathymetry
-    if obj.bathy.loc == 'h'
-        % northern coast
-        patch(([obj.rgrid.y_rho(:,1); max(obj.rgrid.y_rho(:,1))])./1000, ...
-              -1*[obj.rgrid.h(:,1); max(obj.rgrid.h(:))], 'k');
-        textx = 0.15;
-    else
-        if obj.bathy.axis == 'y'
-            % southern coast
-            handles.htopo = ...
-                patch(([obj.rgrid.y_rho(:,1); min(obj.rgrid.y_rho(:,1))])./1000, ...
-                      -1*[min(obj.rgrid.h(:)); obj.rgrid.h(:,1)], 'k');
-            textx = 0.85;
+    if obj.bathy.axis ~= 'xy'
+        if obj.bathy.loc == 'h'
+            % northern coast
+            patch(([obj.rgrid.y_rho(:,1); max(obj.rgrid.y_rho(:,1))])./1000, ...
+                  -1*[obj.rgrid.h(:,1); max(obj.rgrid.h(:))], 'k');
+            textx = 0.15;
         else
-            % western coast
-            handles.htopo = ...
-                patch(([obj.rgrid.x_rho(1,:)'; min(obj.rgrid.x_rho(1,:))])./1000, ...
-                      -1*[min(obj.rgrid.h(:)); obj.rgrid.h(1,:)'], 'k');
-            textx = 0.85;
+            if obj.bathy.axis == 'y'
+                % southern coast
+                handles.htopo = ...
+                    patch(([obj.rgrid.y_rho(:,1); min(obj.rgrid.y_rho(:,1))])./1000, ...
+                          -1*[min(obj.rgrid.h(:)); obj.rgrid.h(:,1)], 'k');
+                textx = 0.85;
+            else
+                % western coast
+                handles.htopo = ...
+                    patch(([obj.rgrid.x_rho(1,:)'; min(obj.rgrid.x_rho(1,:))])./1000, ...
+                          -1*[min(obj.rgrid.h(:)); obj.rgrid.h(1,:)'], 'k');
+                textx = 0.85;
+            end
         end
+
+        handles.hlzlabel = text(textx*limx(2), -1 * obj.eddy.Lgauss(tindices), ...
+                                {'vertical','scale'}, 'VerticalAlignment', 'Bottom', ...
+                                'HorizontalAlignment','Center');
     end
-
-    handles.hlzlabel = text(textx*limx(2), -1 * obj.eddy.Lgauss(tindices), ...
-                            {'vertical','scale'}, 'VerticalAlignment', 'Bottom', ...
-                            'HorizontalAlignment','Center');
-
     handles.htlabel = ....
         text(0.05 , 0.05, {['t = ' num2str(days) ' days']; ...
                         ['x = ' num2str(str2double(loc)/1000, '%3.0f') ' km']}, ...

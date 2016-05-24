@@ -18,33 +18,34 @@ function [handles] = PlotSingleXZSection(runs, varname, loc, day, opt, hax)
         tindex = day;
     end
 
-    if ~exist('loc', 'var')
+    if ~exist('loc', 'var') | isempty(loc)
         loc = runs.eddy.my(tindex);
-    end
-    if ischar(loc)
-        loc = str2double(loc);
     else
-        if loc <= length(runs.csflux.x)
-            % should be integer isobath
-            isobath = loc;
-            if runs.params.flags.flat_bottom * isobath > 1
-                isobath = isobath - 1;
-            end
-            loc = runs.csflux.x(isobath);
-            if isempty(tindex)
-                [~,tindex] = runs.calc_maxflux( ...
-                    runs.recalculateFlux(2*runs.bathy.hsb, isobath, isobath));
-            end
+        if ischar(loc)
+            loc = str2double(loc);
         else
-            if runs.bathy.axis == 'y'
-                loc = runs.rgrid.y_rho(loc,1);
+            if isfield(runs.csflux, 'x') & loc <= length(runs.csflux.x)
+                % should be integer isobath
+                isobath = loc;
+                if runs.params.flags.flat_bottom * isobath > 1
+                    isobath = isobath - 1;
+                end
+                loc = runs.csflux.x(isobath);
+                if isempty(tindex)
+                    [~,tindex] = runs.calc_maxflux( ...
+                        runs.recalculateFlux(2*runs.bathy.hsb, isobath, isobath));
+                end
             else
-                loc = runs.rgrid.x_rho(1,loc);
+                if runs.bathy.axis == 'y'
+                    loc = runs.rgrid.y_rho(loc,1);
+                else
+                    loc = runs.rgrid.x_rho(1,loc);
+                end
             end
         end
     end
 
-    if runs.bathy.axis == 'y'
+    if strfind(runs.bathy.axis, 'y')
         sx1 = runs.spng.sx1;
         sx2 = runs.spng.sx2;
         ix = find_approx(runs.rgrid.y_rho(:,1), loc);
@@ -74,21 +75,27 @@ function [handles] = PlotSingleXZSection(runs, varname, loc, day, opt, hax)
         rhoanomflag = 0;
     end
 
+    if runs.bathy.axis == 'xy'
+        axname = 'y';
+    else
+        axname = runs.bathy.axis;
+    end
+
     if strcmpi(varname, runs.csvelname)
         var = squeeze(avg1( ...
             dc_roms_read_data(runs.dir, runs.csvelname, tindex, ...
-                              {runs.bathy.axis ix-1 ix}, [], runs.rgrid, ...
+                              {axname ix-1 ix}, [], runs.rgrid, ...
                               'his', 'single'), bathyax));
 
     else
         if strcmpi(varname, 'w')
             var = squeeze(avg1( ...
                 dc_roms_read_data(runs.dir, 'w', tindex, ...
-                                  {runs.bathy.axis ix ix}, [], runs.rgrid, ...
+                                  {axname ix ix}, [], runs.rgrid, ...
                                   'his', 'single'), 2));
         else
             var = dc_roms_read_data(runs.dir, varname, ...
-                                    tindex, {runs.bathy.axis ix ix}, ...
+                                    tindex, {axname ix ix}, ...
                                     [], runs.rgrid, 'his', 'single');
         end
     end
@@ -115,15 +122,15 @@ function [handles] = PlotSingleXZSection(runs, varname, loc, day, opt, hax)
     var = var(sx1:sx2,:);
     csdye = csdye(sx1:sx2,:);
 
-    %if isobath ~= 1
-    if runs.sgntamp > 0
+    if opt.maskcontour
+        if runs.sgntamp > 0
             mask = fillnan(bsxfun(@times, csdye < runs.csflux.x(isobath), ...
                                   runs.csflux.offmask(sx1:sx2,tindex,isobath)),0);
         else
             mask = fillnan(bsxfun(@times, csdye > runs.csflux.x(isobath), ...
                                   runs.csflux.offmask(sx1:sx2,tindex,isobath)),0);
         end
-        %end
+    end
 
     if ~exist('hax', 'var')
         figure; hax = gca;
@@ -142,11 +149,11 @@ function [handles] = PlotSingleXZSection(runs, varname, loc, day, opt, hax)
         caxis(clim);
     end
     handles.hfield.EdgeColor = 'none';
-    %if isobath ~= 1
-    [~,handles.hmask] = ...
-        contour(xvec/1000, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
-    caxis(clim);
-        %end
+    if opt.maskcontour
+        [~,handles.hmask] = ...
+            contour(xvec/1000, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
+        caxis(clim);
+    end
     handles.htitle(1) = title([runs.name ' | ' varname]);
     xlabel('X - X_{eddy} (km)'); ylabel('Z (m)');
 
