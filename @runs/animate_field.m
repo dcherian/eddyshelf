@@ -285,6 +285,18 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         runs.read_velsurf(t0, ntimes);
     end
 
+
+    % surface velocities
+    if strcmpi(name, 'ubar')
+        varname = 'ubar';
+        runs.read_velbar;
+    end
+    if strcmpi(name, 'vbar')
+        varname = 'vbar';
+        runs.read_velbar;
+    end
+
+
     if addvelquiver
         runs.read_velsurf(t0, ntimes);
     end
@@ -366,7 +378,11 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     handles.hfield = runs.plot_surf(varname, 'pcolor', ii);
     handles.hfield.YData = handles.hfield.YData - dy;
     handles.hfield.XData = handles.hfield.XData - dx;
-    handles.hfield.CData = handles.hfield.CData / factor;
+    try
+        handles.hfield.CData = handles.hfield.CData / factor;
+    catch ME
+        handles.hfield.ZData = handles.hfield.ZData / factor;
+    end
     hold on;
     handles.hcb = colorbar;
     if AnimateZoom
