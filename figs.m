@@ -396,6 +396,7 @@ ylim([-0.03 0]);
 sh.sort(sh.print_params('params.misc.rdrg'));
 sh.filter = [5 15:18];
 sh.sorted_colors;
+bcind = 2;
 figure;
 hax = packfig(2,1);
 for ff=1:length(sh.filter)
@@ -406,7 +407,7 @@ for ff=1:length(sh.filter)
                     'DisplayName', [run.name ' | r = ' num2str(run.params.misc.rdrg,'%.1e')]);
 
     axes(hax(2)); hold on;
-    hplt2(ff) = plot(run.shelfbc.time/86400, run.shelfbc.shelf(:,2));
+    hplt2(ff) = plot(run.shelfbc.time/86400, run.shelfbc.shelf(:,bcind));
 end
 
 axes(hax(1)); legend(hplt1); beautify;
@@ -415,12 +416,11 @@ axes(hax(2)); beautify;
 hplt1(1).Color = 'k';
 hplt2(1).Color = 'k';
 hax(1).YLabel.String = 'Shelf water offshore flux (m^3/s)';
-hax(2).YLabel.String = 'BC_{0.2}';
+hax(2).YLabel.String = ['BC_{' num2str(run.shelfbc.thresh(bcind), '%0.1f') '}'];
 hax(2).XLabel.String = 'Time (days)';
 hax(1).YLim(1) = 0;
 hax(2).YLim = [0 1];
 linkaxes(hax, 'x');
-
 insertAnnotation('figs.m');
 export_fig images/shelfbc-shfric.png
 startup
