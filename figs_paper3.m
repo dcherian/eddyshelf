@@ -547,7 +547,7 @@ title({'Offshore flux of shelf water (mSv)'})
 ylim([0 10]);
 hleg = legend('r_f = 3e-3', 'r_f = 0');
 hleg.Location = 'NorthWest';
-linex([180 242]);
+linex([190 242]);
 htxt(1) = text(30, 2, 'e)');
 hax(3).Position(1) = 0.68;
 hax(3).Position(3) = 0.3;
@@ -561,7 +561,7 @@ plot(shfric2.array(1).shelfbc.time/86400, shfric2.array(1).shelfbc.shelf(:,2), '
 xlim([0 400]);
 title('BC_{0.2}');
 xlabel('Time (days)');
-linex([180 242]);
+linex([190 242]);
 htxt(2) = text(30, 0.2, 'f)');
 hax(6).Position(1) = hax(3).Position(1);
 hax(6).Position(3) = hax(3).Position(3);
