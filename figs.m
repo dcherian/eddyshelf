@@ -424,3 +424,42 @@ linkaxes(hax, 'x');
 insertAnnotation('figs.m');
 export_fig images/shelfbc-shfric.png
 startup
+
+%%
+run = shfric2.array(5);
+
+run.makeVideo = 0
+opt.addvelquiver = 0;
+opt.addzeta = 1;
+opt.rhocontour = 0;
+opt.commands = 'caxis([-1 1]*1e-3)';
+run.animate_field('ubot', [],  '170', 1, opt);
+
+run.animate_field('zeta', [],  '220', 1, opt);
+
+%% sh bfric
+sh.filter = [5 15:18];
+shfric2.plot_ts(['(run.supply.zeta.zetameanUnmasked-run.supply.zeta.zetameanUnmasked(1))' ...
+                 './(run.supply.zeta.zetameanUnmasked(end)-' ...
+                 'run.supply.zeta.zetameanUnmasked(1))']);
+
+%%
+% for ii=1:5
+%     shfric2.array(ii).read_velbar;
+% end
+
+figure;
+clf; hold on;
+shfric2.sorted_colors;
+for ii=1:5
+    run = shfric2.array(ii);
+    vec = nanmean(run.ubar(400,1:50,170:200),3);
+    %vec = vec - vec(1);
+    plot(vec./min(vec)*-1, [1:50]);
+end
+liney([38 22]);
+title('normalized ubar @ x = 425 km')
+insertAnnotation('figs.m');
+beautify;
+legend(shfric2.name, 'Location', 'southwest');
+export_fig images/shfric-ubar-downstream.png
