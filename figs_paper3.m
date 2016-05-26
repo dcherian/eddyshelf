@@ -420,7 +420,7 @@ if ~exist('shfric2', 'var')
         'runew-583413', 'runew-583411', ...
         'runew-583414', 'runew-583415', ...
               };
-    shfric2 = runArray(folders, names);
+    shfric2 = runArray(folders);
 end
 
 % for ii=1:4
@@ -430,7 +430,7 @@ end
 % end
 
 opt.addvelquiver = 1;
-opt.quivercolor = 'k';
+opt.quivercolor = [0 150 136]/255;
 opt.scale = 5;
 opt.limy = [0 150];
 shfric2.filter = [1 2 3 4];
@@ -441,3 +441,134 @@ sh.filter = [1 2 5:13];
 %sh.plot_avgProfile('vbar');
 figs = [0 0 0 0 1];
 sh.plot_fluxes(1,1,1,figs);
+
+%% friction plot
+shfric2.sort(shfric2.print_params('run.params.misc.rdrg'));
+shfric2.array(1).read_zeta;
+shfric2.array(1).read_velsurf;
+
+shfric2.array(end).read_zeta;
+shfric2.array(end).read_velsurf;
+
+opt.limy = [0 150];
+opt.limx = [200 480];
+opt.quivercolor = [0 150 136]/255; shfric2.array(1).shelfSlopeColor('dark'); %[1 0 0];
+opt.addvelquiver = 1;
+opt.addzeta = 0;
+opt.rhocontourplot = 0;
+opt.csdcontourplot = 0;
+opt.addzeta = 1;
+opt.commands = 'caxis([-1 1]*1e-3)';
+opt.dyi = 8;
+opt.dxi = 8;
+opt.scale = 0;
+opt.uref = 5e-4; opt.vref = opt.uref;
+str = 'acbd';
+trackcolor = 'k';
+zetacolor = [244 67 54]/255; [1 1 1]*0.6;
+var = 'zeta';
+%figure; maximize;
+clf; clear handles;
+hax = packfig(2,3);
+for ii=1:2
+    if ii == 1
+        run = shfric2.array(1);
+    else
+        run = shfric2.array(end);
+    end
+    axes(hax(ii)); %hax(ii) = subplot(2,3,ii);
+    handles(ii,1) = run.animate_field(var, hax(ii),  '190', 1, opt);
+    handles(ii,1).hcb.delete;
+    if ii==1
+        title(['SSH (m) | r_f = 0']);
+    else
+        title(['SSH (m) | r_f = ' num2str(run.params.misc.rdrg, '%1.1e')]);
+    end
+    % handles(ii,1).htlabel.Position(2) = 0.14
+    handles(ii,1).htlabel.String = [str(ii) ') ' handles(ii,1).htlabel.String];
+    handles(ii,1).htrack.Color = trackcolor;
+    xlabel('');
+    handles(ii,1).hfield.Visible = 'off';
+
+    U = handles(ii,1).hquiv.UData;
+    V = handles(ii,1).hquiv.VData;
+    y = handles(ii,1).hquiv.YData;
+    speed = hypot(U,V);
+    %nanmask = speed > 0.175*max(speed(:)) | y > 80;
+    nanmask = y > 38;
+    handles(ii,1).hquiv.UData(nanmask) = NaN;
+    handles(ii,1).hquiv.VData(nanmask) = NaN;
+
+    axes(hax(ii+3)); % = subplot(2,3,ii+3);
+    handles(ii,2) = run.animate_field(var, hax(ii+3),  '230', 1, opt);
+    title('');
+    handles(ii,2).hcb.delete;
+    %handles(ii,2).htlabel.Position(2) = 0.14
+    handles(ii,2).htlabel.String = [str(ii+2) ') ' handles(ii,2).htlabel.String];
+    handles(ii,2).htrack.Color = trackcolor;
+
+    U = handles(ii,2).hquiv.UData;
+    V = handles(ii,2).hquiv.VData;
+    speed = hypot(U,V);
+    %    nanmask = speed > 0.15*max(speed(:)) | y > 80;
+    handles(ii,2).hquiv.UData(nanmask) = NaN;
+    handles(ii,2).hquiv.VData(nanmask) = NaN;
+    handles(ii,2).hfield.Visible = 'off';
+
+    zpos = [2 4 8 12]*1e-3;
+    zneg = [-7 -5 -3 -0.75 -0.5 -0.25 0]*1e-3;
+
+    handles(ii,1).hzeta.Color = zetacolor;
+    handles(ii,1).hzetaneg.Color = zetacolor;
+    handles(ii,2).hzeta.Color = zetacolor;
+    handles(ii,2).hzetaneg.Color = zetacolor;
+    handles(ii,1).hzeta.LevelList = zpos;
+    handles(ii,1).hzetaneg.LevelList = zneg;
+    handles(ii,2).hzeta.LevelList = zpos;
+    handles(ii,2).hzetaneg.LevelList = zneg;
+end
+hax(2).YLabel.String = '';
+hax(2).YTickLabel = {};
+hax(5).YLabel.String = '';
+hax(5).YTickLabel = {};
+
+% hcb = colorbar('northoutside');
+% xlabel('');
+% hcb.Position(1) = 0.3;
+% hcb.Position(2) = 0.46;
+% hcb.Ruler.Exponent = 0;
+
+hax(3) = subplot(233);
+plot(run.csflux.time/86400, run.csflux.off.slope(:,1,1)/1000);
+xlim([0 400]);
+hold on;
+plot(shfric2.array(1).csflux.time/86400, shfric2.array(1).csflux.off.slope(:,1,1)/1000, 'k');
+title({'Offshore flux of shelf water (mSv)'})
+ylim([0 10]);
+hleg = legend('r_f = 3e-3', 'r_f = 0');
+hleg.Location = 'NorthWest';
+linex([180 242]);
+htxt(1) = text(30, 2, 'e)');
+hax(3).Position(1) = 0.68;
+hax(3).Position(3) = 0.3;
+pbaspect([1.618 1 1]);
+beautify;
+
+hax(6) = subplot(236);
+plot(run.shelfbc.time/86400, run.shelfbc.shelf(:,2));
+hold on;
+plot(shfric2.array(1).shelfbc.time/86400, shfric2.array(1).shelfbc.shelf(:,2), 'k');
+xlim([0 400]);
+title('BC_{0.2}');
+xlabel('Time (days)');
+linex([180 242]);
+htxt(2) = text(30, 0.2, 'f)');
+hax(6).Position(1) = hax(3).Position(1);
+hax(6).Position(3) = hax(3).Position(3);
+pbaspect([1.618 1 1]);
+beautify;
+
+correct_ticks('y', [], {'50'; '100'}, hax([1 2]));
+correct_ticks('x', [], {'200'}, hax([3 6]));
+
+export_fig images/paper3/shfric-ssh-flux-bc.png
