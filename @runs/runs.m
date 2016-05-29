@@ -1984,27 +1984,41 @@ methods
     end
 
     % read surface velocities for animate_pt & surf vorticity plot
-    function [] = read_velbot(runs)
-        disp('Reading bottom velocity fields...');
+    function [] = read_velbot(runs, t0, ntimes)
         start = [1 1 1 1];
         count = [Inf Inf 1 Inf];
         stride = [1 1 1 1];
 
-        if runs.givenFile
-            runs.ubot = double(squeeze(ncread(runs.out_file, ....
-                'u',start,count,stride)));
+        if ~exist('t0', 'var'), t0 = 1; end
+        if ~exist('ntimes', 'var'), ntimes = Inf; end
+
+        if ntimes == 1
+            tind = [t0 t0];
         else
-            runs.ubot = dc_roms_read_data(runs.dir,'u', ...
-                [],{'z' 1 1},[],runs.rgrid, ...
-                                           'his', 'single');
+            tind = [1 length(runs.time)];
         end
-        if runs.givenFile
-            runs.vbot = double(squeeze(ncread(runs.out_file, ....
-                'v',start,count,stride)));
-        else
-            runs.vbot = dc_roms_read_data(runs.dir,'v', ...
-                [],{'z' 1 1},[],runs.rgrid, ...
-                                           'his', 'single');
+
+        if isempty(runs.ubot) | (t0 > size(runs.ubot,3)) | ...
+                0 ... %any(isnan(fillnan(runs.usurf(:,:,tind(1):tind(2)),0)))
+            disp('Reading bottom velocity fields...');
+            if runs.givenFile
+                runs.ubot = double(squeeze(ncread(runs.out_file, ....
+                                                   'u',start,count,stride)));
+            else
+                runs.ubot(:,:,tind(1):tind(2)) = ...
+                    dc_roms_read_data(runs.dir,'u', ...
+                                      [tind],{'z' 1 1}, ...
+                                      [],runs.rgrid, 'his', 'single');
+            end
+            if runs.givenFile
+                runs.vbot = double(squeeze(ncread(runs.out_file, ....
+                                               'v',start,count,stride)));
+            else
+                runs.vbot(:,:,tind(1):tind(2)) = ...
+                    dc_roms_read_data(runs.dir,'v', ...
+                                      [tind],{'z' 1 1}, ...
+                                      [],runs.rgrid, 'his', 'single');
+            end
         end
     end
 

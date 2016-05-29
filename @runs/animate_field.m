@@ -61,6 +61,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
                       % isobaths corresponding to csdcontours?
     bathycolor = [1 1 1]*0.45;
     addvelquiver = 0; % velocity vectors?
+    quiverloc = 'surf';
     dxi = 5; dyi = 5; % decimate vectors
     uref = 1; vref = uref; % scale vectors
     scale = 3;
@@ -296,9 +297,18 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         runs.read_velbar;
     end
 
-
     if addvelquiver
-        runs.read_velsurf(t0, ntimes);
+        if strcmpi(quiverloc, 'surf')
+            runs.read_velsurf(t0, ntimes);
+        end
+
+        if strcmpi(quiverloc, 'bot')
+            runs.read_velbot;
+        end
+
+        if strcmpi(quiverloc, 'bar')
+            runs.read_velbar(t0, ntimes);
+        end
     end
 
     if ~strcmpi(name, 'eddye')
@@ -401,7 +411,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     end
     if ~strcmpi(name, 'csdye') && ~strcmpi(name, 'rho') ...
             && ~strcmpi(name, 'dye_01')
-        center_colorbar;
+        handles.hcb = center_colorbar;
     end
     if strcmpi(name, 'pv')
         caxis([min(min(runs.pvsurf(:,:,1))) ...
@@ -420,8 +430,8 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
 
     if addvelquiver
         % get on interior RHO points
-        u = avg1(runs.usurf(:,2:end-1,:),1);
-        v = avg1(runs.vsurf(2:end-1,:,:),2);
+        eval(['u = avg1(runs.u' quiverloc '(:,2:end-1,:),1);']);
+        eval(['v = avg1(runs.v' quiverloc '(2:end-1,:,:),2);']);
 
         if normquiver
             % make all arrows equal length.
