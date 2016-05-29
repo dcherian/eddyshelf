@@ -59,8 +59,9 @@ function [handles] = PlotSingleYZSection(runs, varname, days, loc, hax)
         var = bsxfun(@minus, var, tback);
         varname = '\rho''';
     else
-        var = dc_roms_read_data(runs.dir, varname, tindices, ...
-                                {bathyax locstr locstr}, [], runs.rgrid, 'his');
+        [var,~,yz, zmat] = dc_roms_read_data(runs.dir, varname, tindices, ...
+                                             {bathyax locstr locstr}, [], runs.rgrid, 'his');
+        yz = repmat(yz', [1 size(zmat, 2)])/1000;
     end
 
     if strcmpi(varname, 'rho')
@@ -71,7 +72,7 @@ function [handles] = PlotSingleYZSection(runs, varname, days, loc, hax)
         var = var/1000;
     end
 
-    handles.hvar = contourf(yz, zmat, var, 20, 'EdgeColor', 'none');
+    [~,handles.hvar] = contourf(yz, zmat, var, 20, 'EdgeColor', 'none');
     hold on;
     if strcmpi(varname, runs.eddname)
         colormap(cbrewer('seq', 'Greys', 32));
@@ -103,11 +104,11 @@ function handles = common(obj, yz, zmat, drho, ed, days, loc, tindices, handles)
     handles.hcen = linex(obj.eddy.my(tindices)/1000, [], 'k');
 
     % patch bathymetry
-    if obj.bathy.axis ~= 'xy'
+    if ~strcmpi(obj.bathy.axis, 'xy')
         if obj.bathy.loc == 'h'
             % northern coast
-            patch(([obj.rgrid.y_rho(:,1); max(obj.rgrid.y_rho(:,1))])./1000, ...
-                  -1*[obj.rgrid.h(:,1); max(obj.rgrid.h(:))], 'k');
+            handles.htopo = patch(([obj.rgrid.y_rho(:,1); max(obj.rgrid.y_rho(:,1))])./1000, ...
+                                  -1*[obj.rgrid.h(:,1); max(obj.rgrid.h(:))], 'k');
             textx = 0.15;
         else
             if obj.bathy.axis == 'y'
@@ -134,7 +135,8 @@ function handles = common(obj, yz, zmat, drho, ed, days, loc, tindices, handles)
                         ['x = ' num2str(str2double(loc)/1000, '%3.0f') ' km']}, ...
              'Units', 'normalized', 'Color', 'w');
 
+    uistack(handles.htopo, 'bottom');
     ylabel('Z (m)');
     xlabel([upper(obj.bathy.axis) '(km)']);
-    beautify([26 28 30]);
+    beautify;
 end

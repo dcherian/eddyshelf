@@ -303,7 +303,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         end
 
         if strcmpi(quiverloc, 'bot')
-            runs.read_velbot;
+            runs.read_velbot(t0, ntimes);
         end
 
         if strcmpi(quiverloc, 'bar')

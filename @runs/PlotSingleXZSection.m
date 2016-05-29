@@ -7,6 +7,9 @@ function [handles] = PlotSingleXZSection(runs, varname, loc, day, opt, hax)
     if ~isfield(opt, 'maskcontour')
         opt.maskcontour = 1;
     end
+    if ~isfield(opt, 'eddy0')
+        opt.eddy0 = 1;
+    end
 
     varname = runs.process_varname(varname);
 
@@ -50,14 +53,22 @@ function [handles] = PlotSingleXZSection(runs, varname, loc, day, opt, hax)
         sx2 = runs.spng.sx2;
         ix = find_approx(runs.rgrid.y_rho(:,1), loc);
         bathyax = 2; asax = 1;
-        xvec = runs.rgrid.x_rho(1,2:end-1) - runs.eddy.mx(tindex);
+        if opt.eddy0
+            xvec = runs.rgrid.x_rho(1,2:end-1) - runs.eddy.mx(tindex);
+        else
+            xvec = runs.rgrid.x_rho(1,2:end-1);
+        end
         zvec = runs.rgrid.z_r(:, ix, 1);
     else
         sx1 = runs.spng.sy1;
         sx2 = runs.spng.sy2;
         ix = find_approx(runs.rgrid.x_rho(1,:), loc);
         bathyax = 1; asax = 2;
-        xvec = (runs.rgrid.y_rho(2:end-1,1) - runs.eddy.my(tindex))';
+        if opt.eddy0
+            xvec = (runs.rgrid.y_rho(2:end-1,1) - runs.eddy.my(tindex))';
+        else
+            xvec = (runs.rgrid.y_rho(2:end-1,1))';
+        end
         zvec = runs.rgrid.z_r(:, 1, ix);
     end
 
@@ -159,7 +170,12 @@ function [handles] = PlotSingleXZSection(runs, varname, loc, day, opt, hax)
         caxis(clim);
     end
     handles.htitle(1) = title([runs.name ' | ' varname]);
-    xlabel('X - X_{eddy} (km)'); ylabel('Z (m)');
+    if opt.eddy0
+        xlabel('X - X_{eddy} (km)');
+    else
+        xlabel('X (km)');
+    end
+    ylabel('Z (m)');
 
     if ~runs.params.flags.flat_bottom
         [handles.hline, handles.htext] = ...

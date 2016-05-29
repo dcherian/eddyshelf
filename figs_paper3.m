@@ -572,3 +572,97 @@ correct_ticks('y', [], {'50'; '100'}, hax([1 2]));
 correct_ticks('x', [], {'200'}, hax([3 6]));
 
 export_fig images/paper3/shfric-ssh-flux-bc.png
+
+%%
+if ~exist('ew', 'var') | ~strcmpi(ew.name, 'ew-8342-2')
+    ew = runs('../topoeddy/runew-8342-2/');
+end
+
+figure; maximize;
+
+clf('reset');
+time = '311';
+xloc = '325e3';
+opt.drawtrack = 0;
+opt.addvelquiver = 1;
+opt.quiverloc = 'surf';
+opt.limx = [180 400];
+opt.limy = [0 150];
+opt.nocolorbar = 0;
+
+%surfvar = 'csdye'; clim = [-50 250];
+surfvar = 'rho'; clim = [21.75 21.77];
+
+% surface dye + surface velocity
+hax(1) = subplot(221);
+ew.animate_field(surfvar, hax(1), time, 1, opt);
+caxis(clim);
+linex(str2double(xloc)/1000, [], 'k');
+title('Surface  velocity vectors');
+htxt(1) = text(0.1, 0.1, 'a)', 'Units', 'Normalized');
+
+% below: surface dye bottom vrlocity
+opt.quiverloc = 'bot';
+hax(3) = subplot(223);
+ew.animate_field(surfvar, hax(3), time, 1, opt);
+caxis(clim);
+linex(str2double(xloc)/1000, [], 'k');
+title('Bottom velocity vectors');
+htxt(3) = text(0.1, 0.1, 'b)', 'Units', 'Normalized');
+
+% xz density + v?
+opt = [];
+opt.rhocontours = 1;
+opt.eddy0 = 0;
+hax(2) = subplot(222); cla('reset');
+handlesxz = ew.PlotSingleXZSection('v', 1, time, opt, hax(2));
+for ii=1:2
+    handlesxz.hline{ii}.delete;
+    handlesxz.htext{ii}.delete;
+end
+handlesxz.htime.delete;
+handlesxz.hcb.Label.String = 'Cross-shelf velocity (m/s)';
+linex(str2double(xloc)/1000, [], 'k');
+title('Density contours at shelfbreak');
+hax(2).XLim = hax(1).XLim;
+htxt(2) = text(0.1, 0.1, 'c)', 'Units', 'Normalized');
+
+% yz v
+hax(4) = subplot(224); cla('reset')
+handles = ew.PlotSingleYZSection('v', time, xloc, hax(4));
+hold on
+contour(handles.hvar.XData, handles.hvar.YData, handles.hvar.ZData, ...
+        [1 1]*-1e-4, 'g', 'LineWidth', 2);
+hcb = center_colorbar
+title('');
+hcb.Label.String = 'Cross-shelf velocity (m/s)';
+xlim([0 70]);
+ylim([-450 0]);
+handles.hcen.delete;
+handles.htlabel.Position(2) = 0.3;
+htxt(4) = text(0.1, 0.1, 'd)', 'Units', 'Normalized', 'Color', 'w');
+export_fig -r150 images/paper3/eddy-inflow.png
+
+%% buoyancy arrest
+c6 = 24;
+c2 = 1.6;
+s = 0.05;
+f = 5e-5;
+N = sqrt(1e-5);
+r = 5e-4; 3e-3;
+U = 1e-2;
+Q = 5000;
+alpha = 8e-4;
+
+d = r/U * N/f
+W = c2 * (Q/N/alpha)^(1/3)
+
+c6/c2 * (1+s^2)/(d*s) * W/1000
+
+%%
+chi = sh.print_params(['(2/sqrt(pi)*exp(-(bathy.hsb/Lz0)^2)) *' ...
+                    'V0/Lz0/(bathy.S_sl*sqrt(phys.N2))']);
+phii = sh.print_params('(V0./bathy.S_sl/sqrt(phys.N2))/bathy.hsb');
+sh.print_params('bathy.sl_slope * sqrt(phys.N2)/phys.f0')
+sh.print_params('(1-erf(bathy.hsb/Lz0))');
+phii./ (1-chi)
