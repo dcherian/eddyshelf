@@ -122,6 +122,10 @@ function [handles] = PlotSingleXZSection(runs, varname, loc, day, opt, hax)
     var = var(sx1:sx2,:);
     csdye = csdye(sx1:sx2,:);
 
+    if ~exist('isobath', 'var')
+        opt.maskcontour = 0;
+    end
+
     if opt.maskcontour
         if runs.sgntamp > 0
             mask = fillnan(bsxfun(@times, csdye < runs.csflux.x(isobath), ...
