@@ -14,7 +14,9 @@ function [] = hovmoeller(runs, varname, axname, loc, iz, hax)
         hax = gca;
     end
 
-    handles.hax = hax;
+    handles.hax = hax; maximize;
+
+    insertAnnotation([runs.name '.hovmoeller']);
 
     if strcmpi(loc, 'sb')
         loc = num2str(runs.bathy.xsb);
@@ -73,22 +75,24 @@ function [] = hovmoeller(runs, varname, axname, loc, iz, hax)
     if ~strcmpi(varname, 'rho'), center_colorbar; end
     hold on
     if axname == 'y'
-        plot(runs.eddy.mx/1000 - x0, runs.eddy.t);
-        plot(runs.eddy.vor.ee/1000 - x0, runs.eddy.t);
-        plot(runs.eddy.vor.we/1000 - x0, runs.eddy.t);
+        handles.hedd(1) = plot(runs.eddy.mx/1000 - x0, runs.eddy.t, 'k');
+        handles.hedd(2) = plot(runs.eddy.vor.ee/1000 - x0, runs.eddy.t, 'k--');
+        handles.hedd(3) = plot(runs.eddy.vor.we/1000 - x0, runs.eddy.t, 'k--');
         xlabel(labx);
         if runs.bathy.axis == 'x', linex(0, 'shelfbreak'); end
         ylabel('Time (days)');
     else
-        plot(runs.eddy.t, runs.eddy.my/1000 - x0);
-        plot(runs.eddy.t, runs.eddy.vor.ne/1000 - x0);
-        plot(runs.eddy.t, runs.eddy.vor.se/1000 - x0);
+        handles.hedd(1) = plot(runs.eddy.t, runs.eddy.my/1000 - x0, 'k');
+        handles.hedd(2) = plot(runs.eddy.t, runs.eddy.vor.ne/1000 - x0, 'k--');
+        handles.hedd(3) = plot(runs.eddy.t, runs.eddy.vor.se/1000 - x0, 'k--');
         ylabel(labx);
         xlabel('Time (days)');
         if runs.bathy.axis == 'y', liney(0, 'shelfbreak'); end
     end
     handles.htitle = title([runs.name ' |  ' varname ' | ' axname ' = ' ...
                         num2str(str2double(loc)/1000, '%d') ' km']);
+    legend(handles.hedd, ...
+           {'Eddy center', 'Western, eastern edges'}, 'Location', 'SouthWest');
     beautify;
 
     % wave - estimate
