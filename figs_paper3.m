@@ -165,10 +165,13 @@ hpt.FaceAlpha = 0.2;
 export_fig -r150 -a2 -png images/paper3/flux-diags
 
 %% volume budget
-handles = sh.array(4).VolumeBudget;
+handles = sh.array(5).VolumeBudget;
 xlim([0 450]);
 handles.hax.XLabel.Position(1) = 400;
-handles.hisponge.DisplayName = 'Along-shelf: supply';
+handles.hisponge.DisplayName = 'Along-shelf at eastern boundary';
+handles.hispongesh.DisplayName = 'Along-shelf at eastern boundary: shelf water';
+handles.lowsponge.DisplayName = 'Along-shelf at western boundary';
+title('Volume budget for the shelf');
 
 export_fig -r150 -a2 images/paper3/ew-8341-volume-budget.png
 
