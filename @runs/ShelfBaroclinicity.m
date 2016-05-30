@@ -18,6 +18,10 @@ function [] = ShelfBaroclinicity(runs)
                         'y' 1 runs.bathy.isb; ...
                         'z' zbot zbot});
 
+    % ush = dc_roms_read_data(runs, 'u', [start stop], ...
+    %                         {'x'  runs.spng.sx1 runs.spng.sx2; ...
+    %                     'y' 1 runs.bathy.isb});
+
     vsurf = permute( ...
         dc_roms_read_data(runs, 'v', [start stop], ...
                           {'x'  runs.spng.sx1 runs.spng.sx2; ...
@@ -70,6 +74,14 @@ function [] = ShelfBaroclinicity(runs)
     shelfbc.shelfneg = baroclinicity(usurf, ubot, (nonshelfmask | upos));
     shelfbc.nonshelfneg = baroclinicity(usurf, ubot, ~(nonshelfmask | upos));
 
+    umasked = usurf;
+    umasked(nonshelfmask) = NaN;
+    shelfbc.ushelfsurf = squeeze(nanmean(nanmean(umasked, 1), 2));
+
+    umasked = ubot;
+    umasked(nonshelfmask) = NaN;
+    shelfbc.ushelfbot = squeeze(nanmean(nanmean(umasked, 1), 2));
+
     shelfbc.sbreak.shelf = baroclinicity(vsurf, vbot, nonshelfmask(:,end,:));
     shelfbc.sbreak.nonshelf = baroclinicity(vsurf, vbot, ~nonshelfmask(:,end,:));
 
@@ -92,8 +104,13 @@ function [bcmn, thresh] = baroclinicity(usurf, ubot, nanmask)
 
     uabs = abs(usurf);
     for ii=1:length(thresh)
-        bc = abs(usurf - ubot)./uabs; % (us - ub)/(|us| + |ub|)
-        bc(uabs < thresh(ii) * max(uabs(:))) = NaN; %mask out low velocity points
+        % (us - ub)/|us|
+        bc = abs(usurf - ubot)./uabs;
+
+        % mask out low velocity points
+        %bc(uabs < thresh(ii) * max(uabs(:))) = NaN;
+        bc(bsxfun(@lt, uabs, thresh(ii) * nanmax(nanmax(uabs, [], 1), [], 2))) = NaN;
+
         bcmn(:,ii) = squeeze(nanmedian(nanmedian(bc,1),2));
     end
 end
