@@ -765,12 +765,14 @@ classdef runArray < handle
             end
         end
 
-        function [handles] = plot_avgProfile(runArray, varname, normalize, axname, ix, mask, hax)
+        function [handles] = plot_avgProfile(runArray, varname, normalize, ...
+                                             axname, ix, mask, hax, reference)
 
             if ~exist('normalize', 'var'), normalize = 0; end
             if ~exist('axname', 'var'), axname = 'y'; end
             if ~exist('ix', 'var'), ix = 'sb'; end
             if ~exist('mask', 'var'), mask = 1; end
+            if ~exist('reference', 'var'), reference = 'center'; end
 
             if ~exist('hax', 'var') | isempty(hax)
                 figure; hax = gca;
@@ -814,7 +816,11 @@ classdef runArray < handle
 
             if axname == 'y'
                 ylabel(varname);
-                xlabel('X - X_{front} (km)');
+                if ~strcmpi(reference, 'center')
+                    xlabel('X - X_{front} (km)');
+                else
+                    xlabel('X - X_{eddy} (km)');
+                end
             else
                 ylabel('Y - Y_{sb} (km)');
                 xlabel(varname);
