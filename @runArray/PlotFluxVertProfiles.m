@@ -25,7 +25,7 @@ function [handles] = PlotFluxVertProfiles(runArray)
         end
 
         [start, stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
-        offflux = run.csflux.off.slopeztneg(:,start:stop,1,1);
+        offflux = run.csflux.off.slopezt(:,start:stop,1,1);
         zivec = run.csflux.vertbins(:,isobath);
         profile = trapz(run.csflux.time(start:stop)*86400, ...
                         offflux, 2);
@@ -68,7 +68,7 @@ function [handles] = PlotFluxVertProfiles(runArray)
         hsb = run.bathy.hsb;
 
         [start, stop] = run.flux_tindices(run.csflux.on.slope(:,1,1), 0.2, 0.9);
-        onflux = run.csflux.on.slopezt(:,start:stop,1,1);
+        onflux = run.csflux.on.slopeztneg(:,start:stop,1,1);
         zivec = run.csflux.vertbins(:,isobath);
         profile = trapz(run.csflux.time(start:stop)*86400, ...
                         onflux, 2);
