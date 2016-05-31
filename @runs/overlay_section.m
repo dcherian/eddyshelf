@@ -1,8 +1,10 @@
 function [hplt] = overlay_section(runs, varname1, varname2, tindex, volume, axis, index, ...
                                   commands, hax)
 
-    if ~exist('commands', 'var'), commands = []; end
+    if ~exist('commands', 'var'), commands = ''; end
     if ~exist('hax', 'var'), figure; hax = gca; end
+
+    tindex = runs.process_time(tindex);
 
     hplt = runs.plot_section(varname1, tindex, volume, axis, index, commands, hax);
     hplt.h_plot.EdgeColor = 'none';
@@ -21,19 +23,23 @@ function [hplt] = overlay_section(runs, varname1, varname2, tindex, volume, axis
 
     switch axis
       case 'x'
-        plotx = yax;
+        plotx = yax/1000;
         ploty = zax;
 
       case 'y'
-        plotx = xax;
+        if size(xax,2) == 1
+            plotx = repmat(xax, [1 size(zax,2)])/1000;
+        else
+            plotx = xax/1000;
+        end
         ploty = zax;
 
       case 'z'
-        plotx = xax;
-        ploty = yax;
+        plotx = xax/1000;
+        ploty = yax/1000;
     end
 
-    [~,hplt.h_plot2] = contour(plotx/1000, ploty/1000, v2, 50, 'Color', 'k');
+    [~,hplt.h_plot2] = contour(plotx, ploty, v2, 20, 'Color', 'k');
 
     hplt.h_title.String = titlestr;
 end
