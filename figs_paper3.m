@@ -27,9 +27,12 @@ handles = sh.PlotFluxVertProfiles;
 export_fig -r150 images/paper3/sb-vert-profiles.png
 
 %% fluxes
-sh.filter = [1 2 5:13];
-sh.print_diag('avg flux');
+sh.filter = [1 2 5:8 10:12];
+[diags, plotx, err, norm, color, rmse, P, Perr, handles] = sh.print_diag('avg flux', 1, [], 'no_name_points');
 title('');
+handles.htext.FontSize = 22
+handles.hiso.delete;
+pbaspect([1.618 1 1]);
 export_fig images/paper3/sh-avgflux.png
 
 %% eddy water on shelf scale
