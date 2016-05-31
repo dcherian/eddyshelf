@@ -479,12 +479,23 @@ hax.XTick = [0:10:60];
 export_fig -r150 images/paper3/eddy-leakage-on-shelf.png
 
 %% along-shelf inflow structure
+
+%% friction mosaic
 sh.filter = [1 2 5:13];
 %sh.plot_avgProfile('vbar');
 figs = [0 0 0 0 1];
 sh.plot_fluxes(1,1,1,figs);
 
 %% friction plot
+if ~exist('shfric2', 'var')
+    folders = { ...
+        'runew-8341', ...
+        'runew-583413', 'runew-583411', ...
+        'runew-583414', 'runew-583415', ...
+              };
+    shfric2 = runArray(folders);
+end
+
 shfric2.sort(shfric2.print_params('run.params.misc.rdrg'));
 shfric2.array(1).read_zeta;
 shfric2.array(1).read_velsurf;
@@ -509,7 +520,7 @@ str = 'acbd';
 trackcolor = 'k';
 zetacolor = [244 67 54]/255; [1 1 1]*0.6;
 var = 'zeta';
-%figure; maximize;
+figure; maximize;
 clf; clear handles;
 hax = packfig(2,3);
 for ii=1:2
@@ -610,7 +621,7 @@ hax(6).Position(3) = hax(3).Position(3);
 pbaspect([1.618 1 1]);
 beautify;
 
-correct_ticks('y', [], {'50'; '100'}, hax([1 2]));
+correct_ticks('y', [], {'50'; '100'}, hax([1 4]));
 correct_ticks('x', [], {'200'}, hax([3 6]));
 
 export_fig images/paper3/shfric-ssh-flux-bc.png
