@@ -455,6 +455,24 @@ opt.limy = [0 150];
 shfric2.filter = [1 2 3 4];
 handles = shfric2.mosaic_field('csdye', [350 370 280 280], opt, [-40 150]);
 
+%% leakage on shelf structure
+if ~exist('ew', 'var') | ~strcmpi(ew.name, 'ew-8341')
+    ew = runs('../topoeddy/runew-8341/');
+end
+
+opt.csdfront = 1;
+opt.rhocontours = 1;
+handles = ew.PlotSingleYZSection('u', '298', '350e3', [], opt);
+handles.hrhocont.LevelList = linspace(21.77, 22.3, 60);
+title('Along-shelf velocity (m/s)');
+xlim([0 60]);
+ylim([-400 0]);
+hax = gca;
+hax.XTickLabelMode = 'auto';
+hax.XTick = [0:10:60];
+
+export_fig -r150 images/paper3/eddy-leakage-on-shelf.png
+
 %% along-shelf inflow structure
 sh.filter = [1 2 5:13];
 %sh.plot_avgProfile('vbar');

@@ -1,12 +1,15 @@
 % plot eddye - y-z cross-sections to compare against diagnosed vertical
 % scale
-function [handles] = PlotSingleYZSection(runs, varname, days, loc, hax)
+function [handles] = PlotSingleYZSection(runs, varname, days, loc, hax, opt)
 
-    if ~exist('hax', 'var')
-        hf = figure; hax = gca;
+    if ~exist('hax', 'var') | isempty(hax)
+        hf = figure; hax = gca; maximize;
     else
         axes(hax);
     end
+
+    if ~isfield(opt, 'rhocontours'), opt.rhocontours = 0; end
+    if ~isfield(opt, 'csdfront'), opt.csdfront = 0; end
 
     plot_pbot = 0;
     if plot_pbot
@@ -53,12 +56,18 @@ function [handles] = PlotSingleYZSection(runs, varname, days, loc, hax)
         iloc = find_approx(pb.xvec, str2double(loc),1);
     end
 
-    if strcmpi(varname, 'rhoanom')
-        var = dc_roms_read_data(runs.dir, 'rho', tindices, ...
-                                {bathyax locstr locstr}, [], runs.rgrid, 'his');
-        var = bsxfun(@minus, var, tback);
-        varname = '\rho''';
-    else
+    if strcmpi(varname, 'rhoanom') | opt.rhocontours
+        [rho, ~, rhoyz, rhozmat] = dc_roms_read_data(runs.dir, 'rho', tindices, ...
+                                                     {bathyax locstr locstr}, [], runs.rgrid, 'his');
+        if strcmpi(varname, 'rhoanom')
+            var = bsxfun(@minus, rho, tback);
+            yz = rhoyz/1000;
+            zmat = rhozmat;
+            varname = '\rho''';
+        end
+    end
+
+    if ~strcmpi(varname, 'rhoanom')
         [var,~,yz, zmat] = dc_roms_read_data(runs.dir, varname, tindices, ...
                                              {bathyax locstr locstr}, [], runs.rgrid, 'his');
         yz = repmat(yz', [1 size(zmat, 2)])/1000;
@@ -80,6 +89,22 @@ function [handles] = PlotSingleYZSection(runs, varname, days, loc, hax)
     end
     handles.htitle = title([runs.name ' | ' varname]);
     handles = common(runs, yz, zmat, drho, ed, days, locstr, tindices, handles);
+
+    if strcmpi(varname, 'u') | strcmpi(varname, 'v')
+        center_colorbar;
+    end
+
+    if opt.rhocontours
+        [~,handles.hrhocont] = contour(rhoyz/1000, rhozmat, rho, 40, 'k');
+    end
+
+    if opt.csdfront
+        [csd,~,csdyz, csdzmat] = dc_roms_read_data(runs.dir, runs.csdname, tindices, ...
+                                                   {bathyax locstr locstr}, [], runs.rgrid, ...
+                                                   'his');
+        [~,handles.hcsdcont] = contour(csdyz/1000, csdzmat, csd, [1 1]*runs.bathy.xsb, 'k', ...
+                                       'LineWidth', 3);
+    end
 end
 
 function handles = common(obj, yz, zmat, drho, ed, days, loc, tindices, handles)
