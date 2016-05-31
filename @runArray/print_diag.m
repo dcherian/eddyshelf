@@ -239,6 +239,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         if strcmpi(name, 'supply') | strcmpi(name, 'eddyonshelf')
 
             if isempty(run.supply), continue; end
+            if run.params.misc.rdrg ~= 0, continue; end
 
             sortedflag = 0;
 
@@ -317,11 +318,15 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             % vfactor = sqrt(trapz(zvec, vel)./hsb/vel(1));
 
             if strcmpi(name, 'supply')
-                if phi >= 0.35
+                if lambda >= 0.35
                     continue;
                 end
                 diags(ff) = supply;
                 err(1,ff) = errsupp;
+
+                if strcmpi(run.name, 'ew-8342-2')
+                    exceptions = ff;
+                end
 
                 errorbarflag = 1;
                 %diags(ff) = max(smooth(env,10))/1000;
@@ -1519,6 +1524,12 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         %     diags(isnan(err)) = NaN;
         %     plotx(isnan(err)) = NaN;
         % end
+
+        if exist('exceptions', 'var')
+            diags(exceptions) = NaN;
+            plotx(exceptions) = NaN;
+            err(exceptions) = NaN;
+        end
 
         if ~force_0intercept
             E = [cut_nan(plotx') ones(size(cut_nan(plotx')))];
