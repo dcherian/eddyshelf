@@ -3,20 +3,25 @@ folders = { ...
     'ew-8041', 'ew-8042', ...
     ... %'ew-8150', 'ew-8151', ...
     'ew-82342', 'ew-82343', ... %'ew-82344' ...
-    'ew-8341', 'ew-8361', ...
+    'ew-8341', ...%'ew-8361', ...
     'ew-8352', 'ew-8352-2', 'ew-8342-2', ...
     'ew-8383', 'ew-8384', 'ew-8385', ...
     'ew-8392'... %, 'ew-8346', ...
     'ew-583411', 'ew-583413', ...
     'ew-583414', 'ew-583415', ...
+    'ew-34';
           };
 sh = runArray(folders);
 
 for ii=1:sh.len
-    sh.name{ii} = sh.name{ii}(4:end);
+    %    sh.array(ii).csfluxes;
+    %    sh.array(ii).avgStreamerVelSection(1);
+            %sh.array(ii).VolumeBudget;
+            %    sh.array(ii).ShelfBaroclinicity;
 end
 
 %% inflow/outflow vertical profiles
+sh.filter = [1:sh.len];
 handles = sh.PlotFluxVertProfiles;
 
 export_fig -r150 images/paper3/sb-vert-profiles.png
@@ -691,7 +696,7 @@ title('Depth averaged cross-isobath velocity at shelfbreak');
 liney(ew.eddy.t([start stop]));
 hax = gca;
 hax.YTickLabel{find_approx(hax.YTick, 240)} = 't_{start}';
-hax.YTickLabel{find_approx(hax.YTick, 491)} = 't_{end}';
+hax.YTickLabel{find_approx(hax.YTick, 491)} = 't_{stop}';
 correct_ticks('y', [], {'500'});
 xlim([50 500]);
 
@@ -712,19 +717,28 @@ export_fig -r150 images/paper3/ew-8342-2-vbar-hov.png
 
 %% buoyancy arrest
 c6 = 24;
+c5 = 39;
 c2 = 1.6;
+c1 = 0.6;
+
 s = 0.05;
 f = 5e-5;
 N = sqrt(1e-5);
-r = 5e-4; 3e-3;
-U = 1e-2;
+r = 3e-3;
 Q = 5000;
 alpha = 8e-4;
+h0 = 50;
+U = Q/h0/12e3
 
 d = r/U * N/f
-W = c2 * (Q/N/alpha)^(1/3)
+WT = c2 * (Q/N/alpha^2)^(1/3)
+WB = c1/s * sqrt(Q/f/h0)
 
-c6/c2 * (1+s^2)/(d*s) * W/1000
+lt = c6/c2 * (1+s^2)/(d*s) * WT/1000
+lb = c5/c1 * (1+s^2)/(d*s) * WB/1000
+
+Lbeta = 12e3
+f*Lbeta/N/r/86400
 
 %%
 chi = sh.print_params(['(2/sqrt(pi)*exp(-(bathy.hsb/Lz0)^2)) *' ...
