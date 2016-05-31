@@ -106,10 +106,24 @@ icons(end).Children.Children(3).LineWidth = 1;
 export_fig -r150 -a2 -opengl images/paper3/ew-8341-surface-csdye.png
 
 %% shelf baroclinicity
-sh.print_diag('shelfbc');
-title('');
+thresh = 2;
+
+figure;
+hax(1) = subplot(121);
+sh.print_diag('shelfbc', thresh, hax(1), 'no_name_points');
+title('Supply jet on shelf');
 axis square;
 xlim([0 1]);
+ylim([0 1]);
+linex(0.3);
+
+hax(2) = subplot(122);
+sh.print_diag('sbreakbc', thresh, hax(2), 'no_name_points');
+title('Outflow at shelfbreak');
+axis square;
+xlim([0 1]);
+ylim([0 1]);
+linex(0.3);
 
 export_fig -r150 -a2 images/paper3/shelfbc.png
 
