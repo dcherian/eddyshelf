@@ -505,7 +505,7 @@ shfric2.array(end).read_velsurf;
 
 opt.limy = [0 150];
 opt.limx = [200 480];
-opt.quivercolor = [0 150 136]/255; shfric2.array(1).shelfSlopeColor('dark'); %[1 0 0];
+opt.quivercolor = [136 34 85]/255; [0 150 136]/255; shfric2.array(1).shelfSlopeColor('dark'); %[1 0 0];
 opt.addvelquiver = 1;
 opt.addzeta = 0;
 opt.rhocontourplot = 0;
@@ -518,7 +518,7 @@ opt.scale = 0;
 opt.uref = 5e-4; opt.vref = opt.uref;
 str = 'acbd';
 trackcolor = 'k';
-zetacolor = [244 67 54]/255; [1 1 1]*0.6;
+zetacolor = [68 70 153]/255; [136 204 238]/255;[244 67 54]/255; [1 1 1]*0.6;
 var = 'zeta';
 figure; maximize;
 clf; clear handles;
