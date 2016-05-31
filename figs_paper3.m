@@ -430,7 +430,21 @@ hax.XTick = [0:10:60];
 
 export_fig -r150 images/paper3/eddy-leakage-on-shelf.png
 
-%% along-shelf inflow structure
+%% bottom density anomaly
+if ~exist('ew', 'var') | ~strcmpi(ew.name, 'ew-8342-2')
+    ew = runs('../topoeddy/runew-8342-2/');
+end
+
+handles = ew.overlay_section('v', 'rho', '311', {'y' 1 60}, 's', 1);
+handles.h_plot2.LevelList = [linspace(21.78, 21.82, 30) 21.84 21.86 linspace(21.88, 22.5, 10)];
+center_colorbar;
+xlim([230 400]);
+title('Bottom cross-isobath velocity (color) & Bottom \rho contours (black)');
+xlabel('X (km)');
+ylabel('Y (km)');
+beautify;
+
+export_fig -r150 images/paper3/vbot-rhobot.png
 
 %% friction mosaic
 sh.filter = [1 2 5:13];
