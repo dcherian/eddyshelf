@@ -49,7 +49,7 @@ function [handles] = PlotCrossSBVelocity(runs, surfvar, time)
 
     hax(4) = subplot(2,5,[8 9]);
     handles.on = pcolorcen(runs.csflux.time/86400, runs.csflux.vertbins(:,1), ...
-                           runs.csflux.on.slopezt(:,:,1,1));
+                           runs.csflux.on.slopeztneg(:,:,1,1));
     linex(runs.csflux.time(time)/86400, [], 'k');
     xlabel('Time (days)');
     ylabel('');
