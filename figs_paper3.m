@@ -389,6 +389,34 @@ export_fig -r150 -a2 images/paper3/sb-flux-summary.png
 %%
 sh.print_diag('params table', 'images/paper3/sh-params-table.org')
 
+%% ubar scale
+if ~exist('shfric2', 'var')
+    folders = { ...
+        'runew-8341', ...
+        'runew-583413', 'runew-583411', ...
+        'runew-583414', 'runew-583415', ...
+              };
+    shfric2 = runArray(folders);
+end
+
+shfric2.sort('run.params.misc.rdrg');
+shfric2.name = cellstr(num2str(shfric2.sort_param', '%1.1e'));
+shfric2.name{1} = '0';
+shfric2.plot_ts('-run.ubarscale.scale/1000');
+title('');
+ylabel('Distance from shelfbreak (km)');
+xlabel('Time (days)');
+set(gcf, 'Position', [190 128 1126 810]);
+hleg = legend;
+hleg.Location = 'SouthEast';
+ylim([-40 0]);
+htxt = text(0.85, 0.35, 'r_f (m/s)', 'Units', 'normalized');
+title('Cross-isobath scale of along-shelf depth-averaged velocity');
+linex([190 230]);
+correct_ticks('x', [], {'200'});
+
+export_fig -r150 images/paper3/shfric-ubarscale.png
+
 %% friction mosaic
 if ~exist('shfric2', 'var')
     folders = { ...
