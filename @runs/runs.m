@@ -41,6 +41,8 @@ properties
     sbssh;
     % shelf baroclinicity
     shelfbc;
+    % ubar scale
+    ubarscale;
     % along-shore slope jet properties
     jet;
     % threshold values
@@ -585,6 +587,14 @@ methods
             runs.sbssh = data.sbssh;
             clear data
         end
+
+        if exist([dir '/ubarscale.mat'],'file') && reset ~= 1 & ~reduced
+            disp('Loading ubar cross isobath scale');
+            data = load([dir '/ubarscale.mat']);
+            runs.ubarscale = data.ubarscale;
+            clear data
+        end
+
 
         % load average supply jet diagnostics
         if exist([dir '/supplyjet.mat'],'file') && reset ~= 1 & ~reduced
@@ -2081,6 +2091,53 @@ methods
         plot(bsxfun(@minus,atemp, mean(atemp,1)));
         legend(gca,'show');
         xlabel('Time (days)'); ylabel('Depth averaged temperature (without mean)');
+    end
+
+    % ubar cross-isobath scale
+    function [] = CalcUbarCrossIsobathScale(runs)
+        runs.read_velbar;
+
+        ix = runs.spng.sx2-40;
+        isb = runs.bathy.isb;
+
+        [start,stop] = runs.flux_tindices(runs.csflux.off.slope(:,1,1));
+
+        ubarscale.time = runs.time;
+        ubarscale.scale = nan(size(runs.time));
+        ubarscale.i0 = nan(size(runs.time));
+        ubarscale.ind = nan(size(runs.time));
+        ubarscale.minind = nan(size(runs.time));
+
+        profiles = nan([isb+10 length(runs.time)]);
+
+        yvec = runs.rgrid.y_rho(:,1);
+
+        for tt=start:stop
+            prof = runs.ubar(ix,1:isb+10,tt);
+
+            [minval,minind] = min(prof);
+            i0 = find(prof(1:minind) > 0, 1, 'last');
+            ind = i0-1 + find(prof(i0:minind) > 0.33*minval, 1, 'last');
+            %ind = find_approx(prof(1:minind), 0.33*minval, 1);
+
+            try
+                ubarscale.scale(tt) = runs.bathy.xsb - yvec(ind);
+                ubarscale.i0(tt) = i0;
+                ubarscale.ind(tt) = ind;
+                ubarscale.minind(tt) = minind;
+            catch ME
+            end
+            profiles(:,tt) = prof;
+        end
+
+        hash = githash([mfilename('fullpath') '.m']);
+        ubarscale.hash = hash;
+        ubarscale.ix = ix;
+        ubarscale.profiles = profiles;
+
+        runs.ubarscale = ubarscale;
+
+        save([runs.dir '/ubarscale.mat'], 'ubarscale');
     end
 
     % this is incomplete
