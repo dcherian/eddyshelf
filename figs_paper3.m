@@ -465,16 +465,23 @@ if ~exist('ew', 'var') | ~strcmpi(ew.name, 'ew-8342-2')
     ew = runs('../topoeddy/runew-8342-2/');
 end
 
-handles = ew.overlay_section('v', 'rho', '311', {'y' 1 60}, 's', 1);
+tindex = find_approx(ew.time, 311*86400,1);
+handles = ew.overlay_section('v', 'rho', tindex, {'y' 1 60}, 's', 1);
 handles.h_plot2.LevelList = linspace(21.78, 21.84, 26);
 center_colorbar;
+[csdbot,xx,yy,~] = dc_roms_read_data(ew, ew.csdname, ...
+                                     tindex, {'y' 1 60; 'z' 1 1});
+hold on;
+[~,h2] = contour(xx/1000,yy/1000,csdbot < ew.bathy.xsb, [1 1], ...
+                 'Color', ew.shelfSlopeColor, 'LineWidth', 3);
 xlim([230 400]);
-title('Bottom cross-isobath velocity (color) & Bottom \rho contours (black)');
+title({'Cross-isobath velocity (color, m/s), \rho contours (black) and';  ...
+       'shelf-water front (blue contour) at the bottom'});
 xlabel('X (km)');
 ylabel('Y (km)');
 beautify;
 
-export_fig -r150 images/paper3/vbot-rhobot.png
+export_fig -opengl -r150 -a4 images/paper3/vbot-rhobot.png
 
 %% friction mosaic
 sh.filter = [1 2 5:13];
