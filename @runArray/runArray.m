@@ -120,6 +120,10 @@ classdef runArray < handle
                 error('length(sort_input) < runArray.len. DO NOT FILTER!');
             end
 
+            if ischar(sort_input)
+                sort_input = runArray.print_params(sort_input);
+            end
+
             [ss,ind] = sort(sort_input, 'ascend');
             runArray.sort_param = sort_input;
 
@@ -1031,7 +1035,7 @@ classdef runArray < handle
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
                 names{ff} = runArray.name{ii};
-                ndtime = run.eddy.t*86400 / run.eddy.turnover;
+                ndtime = run.eddy.t; %*86400 / run.eddy.turnover;
 
                 use run.params;
                 bathy = run.bathy;
