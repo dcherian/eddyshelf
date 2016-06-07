@@ -777,3 +777,19 @@ phii = sh.print_params('(V0./bathy.S_sl/sqrt(phys.N2))/bathy.hsb');
 sh.print_params('bathy.sl_slope * sqrt(phys.N2)/phys.f0')
 sh.print_params('(1-erf(bathy.hsb/Lz0))');
 phii./ (1-chi)
+
+%% ew-82343
+ew = runs('../topoeddy/runew-82343/');
+
+opt = [];
+opt.addvelquiver = 1;
+
+handles = ew.animate_field('csdye', [], '414', 1, opt);
+caxis([-50 350]);
+ylim([0 150]);
+xlim([150 580]);
+title('Cross-shelf dye | \lambda = 0.5');
+colorbar('off');
+handles.htlabel.Position(2) = 0.1
+
+export_fig -r150 -a2 -opengl images/paper3/ew-82343-on-shelf.png
