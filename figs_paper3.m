@@ -322,7 +322,7 @@ hanno.Head1Width = 7;
 hanno.Head2Width = 7;
 htxt = text(185, 30, '1.37L_\beta', 'Color', 'k', 'FontSize', 20);
 
-export_fig -opengl -r150 -a2 images/paper3/sbsnapshot.png
+export_fig -opengl -r150 -a2 images/paper3/sbsnapshot-flat-sloping.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% flux summary
