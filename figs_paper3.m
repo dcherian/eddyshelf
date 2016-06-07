@@ -12,7 +12,8 @@ folders = { ...
     'ew-34';
           };
 sh = runArray(folders);
-
+% 8361 is bad because it seems to be undergoing a different type of instability. more like
+% the really deep eddies. things are weird!
 for ii=1:sh.len
     %    sh.array(ii).csfluxes;
     %    sh.array(ii).avgStreamerVelSection(1);
@@ -429,11 +430,12 @@ if ~exist('shfric2', 'var')
     shfric2 = runArray(folders);
 end
 
-% for ii=1:4
+for ii=1:5
+    shfric2.array(ii).CalcUbarCrossIsobathScale;
 %     shfric2.array(ii).usurf = [];
 %     shfric2.array(ii).vsurf = [];
 %     shfric2.array(ii).read_velsurf;
-% end
+end
 
 opt.addvelquiver = 1;
 opt.quivercolor = [0 150 136]/255;
@@ -758,6 +760,15 @@ lb = c5/c1 * (1+s^2)/(d*s) * WB/1000
 
 Lbeta = 12e3
 f*Lbeta/N/r/86400
+
+%% arrested topographic wave
+% along-shelf scale (km) required for flow to spread across entire shelf
+shfric2.print_params('phys.f0/misc.rdrg * bathy.sl_shelf  * (bathy.L_shelf)^2/1e3')
+
+%shfric2.print_params('bathy.hsb/misc.rdrg');
+
+kappa = shfric2.print_params('misc.rdrg/(phys.f0 * bathy.sl_shelf)')
+sqrt(kappa*33e3)/1e3
 
 %%
 chi = sh.print_params(['(2/sqrt(pi)*exp(-(bathy.hsb/Lz0)^2)) *' ...
