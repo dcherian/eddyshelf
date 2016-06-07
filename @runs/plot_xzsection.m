@@ -108,7 +108,7 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
         w = w(sx1:sx2,:);
     end
 
-    if isobath == 1
+    if ~exist('isobath', 'var') | isobath == 1
         mask = ones(size(csvel));
     else
         mask = fillnan(bsxfun(@times, csdye < runs.csflux.x(isobath), ...
@@ -294,6 +294,10 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
 
     if ~opt.onlyvel
         handles.hrho = hrho;
+    end
+
+    if exist('hw','var')
+        handles.hw = hw;
     end
 end
 
