@@ -97,6 +97,8 @@ icons(end).Children.Children(1).LineWidth = 1;
 icons(end).Children.Children(2).LineWidth = 1;
 icons(end).Children.Children(3).LineWidth = 1;
 
+axes(handles.hax(5))
+hline = linex(350, [], 'k');
 % annofs = 14;
 % hanno(1) = annotation('textarrow', [0.54 0.57], [1 1]*0.733, ...
 %                       'String', 'wake cyclone','LineWidth', 1, 'FontSize', annofs, ...
