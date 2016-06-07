@@ -2,7 +2,6 @@ function [] = PredictFlux()
 % Predict flux based on provided parameters
 
     % physical properties
-    phys.ShelfSlope = 8e-3; % shelf slope (m/m)
     phys.f0 = 2*(2*pi/86400)*sind(38); % Coriolis parameter (1/s)
     phys.hsb = 100; % Shelfbreak depth (m)
     phys.ShelfDensity = []; % densest shelf water
@@ -27,8 +26,8 @@ function [] = PredictFlux()
     Flux = trapz(xvec, trapz(zvec(zind:end), v(:,zind:end) .* mask(:,zind:end), 2), 1);
 
     yoR = [0 0.17 0.33 0.5 0.67 0.83 1 1.17];
-    RegressionSlopes = [0.08 0.08 0.13 0.16 0.18 0.21 0.23 0.25];
-    Uncertainty = [0.01 0.01 0.02 0.03 0.03 0.03 0.03 0.03];
+    RegressionSlopes = [0.02 0.12 0.16 0.2 0.24 0.26 0.28 0.3];
+    Uncertainty = [0.0 0.01 0.02 0.03 0.03 0.03 0.03 0.03];
 
     Slope = interp1(yoR, RegressionSlopes, flux.IsobathLocation./eddy.L0);
     Error = interp1(yoR, Uncertainty, flux.IsobathLocation./eddy.L0);
@@ -57,30 +56,7 @@ function [v, mask, rho, xvec, zvec] = makeEddyStreamerSection(phys, eddy, flux, 
     xline = 0;
 
     if flux.IsobathLocation < 2000
-        % if close to shelfbreak use barotropic mask
-        % account for sloping shelf by integrating only
-        % to Rhines length scale (L_β). This needs to be
-        % normalized by L0, of course.
-        % I use x/L = -1 as a reference for where there is almost
-        % no velocity. So, starting at -1, integrate a distance of L_β.
-        % So, mask is x/L < -(1-L_β)
-        % If no shelf slope, L_β is set to 1, so that I integrate over all
-        % offshore flow.
-        if phys.ShelfSlope ~= 0
-            betash = phys.f0/phys.hsb * phys.ShelfSlope;
-            Lbeta = sqrt(eddy.V0/betash) / eddy.L0;
-
-            disp(['Rhines scale, L_beta = ' num2str(Lbeta * eddy.L0/1000, '%.1f') 'km']);
-
-            if Lbeta > 1
-                % for gentle slopes, I shouldn't do anything.
-                Lbeta = 1;
-            end
-        else
-            Lbeta = 1;
-        end
-
-        mask = xmat < -(1-Lbeta);
+        mask = xmat < 0;
     else
         eddymask = ((xmat.^2 + zmat.^2) > 1.0^2) .* (zmat < -width);
         kinkmask = ((xmat.^2 + zmat.^2) > 0.5) .* (zmat >= -width);
