@@ -324,9 +324,9 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 diags(ff) = supply;
                 err(1,ff) = errsupp;
 
-                if strcmpi(run.name, 'ew-8342-2')
-                    exceptions = ff;
-                end
+                % if strcmpi(run.name, 'ew-8342-2')
+                %     exceptions = ff;
+                % end
 
                 errorbarflag = 1;
                 %diags(ff) = max(smooth(env,10))/1000;
