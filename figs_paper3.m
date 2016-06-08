@@ -455,7 +455,7 @@ tindex = find_approx(ew.time, 298*86400, 1);
 handles = ew.PlotSingleYZSection('u', tindex, '350e3', [], opt);
 [eddye, ~,yy, zz] = dc_roms_read_data(ew, ew.eddname, tindex, ...
                                        {'x' '350e3' '350e3'});
-hedd = contour(yy/1000, zz, eddye, [1 1]*0.7, 'g', 'LineWidth', 2);
+[~, hedd] = contour(yy/1000, zz, eddye, [1 1]*0.7, 'g', 'LineWidth', 2);
 handles.hrhocont.LevelList = linspace(21.77, 22.3, 60);
 title('Along-shelf velocity (m/s)');
 xlim([0 60]);
@@ -464,6 +464,13 @@ hax = gca;
 hax.XTickLabelMode = 'auto';
 hax.XTick = [0:10:60];
 pbaspect([1.618 1 1])
+handles.hcsdcont.Color = ew.shelfSlopeColor;
+hleg = legend([handles.hcsdcont hedd], 'Shelf-water front', 'Eddy water front', ...
+              'Location', 'SouthWest');
+hleg.Position(2) = 0.26;
+handles.htlabel.Position(2) = 0.1;
+hleg.Box = 'off';
+hleg.TextColor = [1 1 1];
 
 export_fig -opengl -r150 -a4 images/paper3/eddy-leakage-on-shelf.png
 
