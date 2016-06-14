@@ -788,7 +788,10 @@ opt.csdcontourplot = 0;
 opt.rhocontourplot = 0;
 handles = ew2360.secondary_vortices(95, [xx yy], opt);
 handles.hax(3).YLabel.String = 'Depth, Z (m)';
+handles.hax(3).XLabel.String = handles.hax(3).XLabel.String(4:end);
 handles.htxt(2,3).VerticalAlignment = 'top';
+handles.hl(2,1).XData = handles.hax(3).XLim;
+
 export_fig(handles.hax(3), '-r300', '-a2', ...
            'images/paper2/ew-2360-secondary-cyclone-rho.png');
 
