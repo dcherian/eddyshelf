@@ -387,11 +387,13 @@ if ~exist('ew34', 'var')
     ew34 = runs('../topoeddy/runew-34/');
 end
 
+opt = [];
+opt.drawtrack = 0;
+opt.drawcen = 0;
 opt.addvelquiver = 1;
 opt.rhocontourplot = 0;
 opt.csdcontourplot = 0;
 opt.dxi = 8; opt.dyi = 5;
-opt.normquiver = 1;
 
 tindex = 295;
 
@@ -407,27 +409,27 @@ hline.LineWidth = 2;
 uistack(handles.hcen, 'top');
 
 handles.hbathy{1}.ShowText = 'off';
-handles.hquiv.Color = [1 1 1]*1;
+%handles.hquiv.Color = [1 1 1]*1;
 handles.hquiv.LineWidth = 1.5;
-handles.hquiv.AutoScaleFactor = 0.5;
-handles.htlabel.Position(2) = 0.9;
-handles.htlabel.Position(1) = 0.75;
-handles.htlabel.Color = 'k';
+handles.hquiv.AutoScaleFactor = 6;
+handles.htlabel.Position(2) = 0.1;
+handles.htlabel.Position(1) = 0.04;
+handles.htlabel.Color = 'w';
 handles.htlabel.FontSize = 20;
-handles.htrack.delete;
 handles.hbathy{3}.Color = [1 1 1]*0;
 handles.hbathy{2}.Color = [1 1 1]*0;
 handles.hbathy{1}.Color = [1 1 1]*0;
-htitle = title('Cross shelf dye and velocity direction');
+htitle = title('Cross shelf dye and surface velocity vectors');
 htitle.FontSize = 26;
 ax(1).XTickLabel = {};
 ax(1).XLabel.String = '';
-handles.hcb.Position(1) = 0.82;
+handles.hcb.Position(1) = 0.83;
 handles.hcb.Position(2) = 0.55;
 handles.hcb.Position(4) = 0.34;
+caxis([-50 250])
 
 htxt = text(ew34.eddy.mx(tindex)/1000, ew34.eddy.my(tindex)/1000 - 5, ...
-            '  eddy center', 'Color', 'k', 'FontSize', 18, ...
+            '  eddy center', 'Color', 'w', 'FontSize', 18, ...
             'HorizontalAlignment', 'center');
 
 axes(ax(2));
