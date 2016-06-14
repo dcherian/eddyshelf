@@ -611,4 +611,16 @@ end
 axes(handles.hax(3));
 colorbar('off');
 
-export_fig -r150 images/thesis/cyclone-xzsections.png
+handles.hax(2).YLim = handles.hax(1).YLim;
+handles.hax(2).YTick = handles.hax(1).YTick;
+
+correct_ticks('y', [], {'-103'}, handles.hax([1 3]));
+handles.hax(2).YTickLabelMode = 'auto';
+correct_ticks('y', [], {'-103'}, handles.hax(2));
+handles.hax(4).YTick(4) = [];
+
+handles.hcb(4).Ticks = sort(handles.hcb(4).Ticks * -1);
+handles.hcb(4).TickLabels{2} = 'Slope Water';
+handles.hcb(4).TickLabels{3} = 'Eddy Water';
+
+export_fig -r300 -a4 -opengl images/thesis/cyclone-xzsections.png
