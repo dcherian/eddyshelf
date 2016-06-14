@@ -653,7 +653,9 @@ figure; maximize;
 clf('reset');
 time = '311';
 xloc = '325e3';
+opt = [];
 opt.drawtrack = 0;
+opt.rhocontourplot = 0;
 opt.addvelquiver = 1;
 opt.quiverloc = 'surf';
 opt.limx = [180 400];
@@ -703,14 +705,18 @@ handles = ew.PlotSingleYZSection('v', time, xloc, hax(4));
 hold on
 contour(handles.hvar.XData, handles.hvar.YData, handles.hvar.ZData, ...
         [1 1]*-1e-4, 'g', 'LineWidth', 2);
-hcb = center_colorbar
+hcb = center_colorbar;
+caxis([-1 1]*0.015);
 title('');
 hcb.Label.String = 'Cross-shelf velocity (m/s)';
 xlim([0 70]);
+hax(4).YTickMode = 'auto';
+hax(4).XTickMode = 'auto';
 ylim([-450 0]);
 handles.hcen.delete;
 handles.htlabel.Position(2) = 0.3;
 htxt(4) = text(0.1, 0.1, 'd)', 'Units', 'Normalized', 'Color', 'w');
+handles.hlz.delete;
 export_fig -r150 images/paper3/eddy-inflow.png
 
 %% cross-shelfbreak hovmoeller
