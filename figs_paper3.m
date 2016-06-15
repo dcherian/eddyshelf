@@ -522,7 +522,8 @@ shfric2.array(end).read_velsurf;
 
 opt.limy = [0 150];
 opt.limx = [200 480];
-opt.quivercolor = [136 34 85]/255; [0 150 136]/255; shfric2.array(1).shelfSlopeColor('dark'); %[1 0 0];
+opt.quivercolor = [217 33 32]/255;
+%[136 34 85]/255; [0 150 136]/255; shfric2.array(1).shelfSlopeColor('dark'); %[1 0 0];
 opt.addvelquiver = 1;
 opt.addzeta = 0;
 opt.rhocontourplot = 0;
@@ -569,6 +570,8 @@ for ii=1:2
     handles(ii,1).hquiv.UData(nanmask) = NaN;
     handles(ii,1).hquiv.VData(nanmask) = NaN;
 
+    uistack(handles(ii,1).hquiv, 'top');
+
     axes(hax(ii+3)); % = subplot(2,3,ii+3);
     handles(ii,2) = run.animate_field(var, hax(ii+3),  '230', 1, opt);
     title('');
@@ -602,6 +605,9 @@ hax(2).YTickLabel = {};
 hax(5).YLabel.String = '';
 hax(5).YTickLabel = {};
 
+hax(1).XTickLabel = {};
+hax(2).XTickLabel = {};
+
 % hcb = colorbar('northoutside');
 % xlabel('');
 % hcb.Position(1) = 0.3;
@@ -619,8 +625,11 @@ hleg = legend('r_f = 3e-3', 'r_f = 0');
 hleg.Location = 'NorthWest';
 linex([190 242]);
 htxt(1) = text(30, 2, 'e)');
-hax(3).Position(1) = 0.68;
+hax(3).Position(1) = 0.64;
+hax(3).Position(2) = 0.61;
 hax(3).Position(3) = 0.3;
+hax(3).Position(4) = 0.23;
+hax(3).Title.Position(2) = 11;
 pbaspect([1.618 1 1]);
 beautify;
 
@@ -635,8 +644,14 @@ linex([190 242]);
 htxt(2) = text(30, 0.2, 'f)');
 hax(6).Position(1) = hax(3).Position(1);
 hax(6).Position(3) = hax(3).Position(3);
+hax(6).Position(4) = hax(3).Position(4);
+hax(6).Title.Position(2) = 0.9;
 pbaspect([1.618 1 1]);
 beautify;
+
+hax(6).Position(2) = 0.29;
+hax(4).Position(2) = 0.2;
+hax(5).Position(2) = hax(4).Position(2);
 
 correct_ticks('y', [], {'50'; '100'}, hax([1 4]));
 correct_ticks('x', [], {'200'}, hax([3 6]));
