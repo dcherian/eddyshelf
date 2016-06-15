@@ -623,4 +623,21 @@ handles.hcb(4).Ticks = sort(handles.hcb(4).Ticks * -1);
 handles.hcb(4).TickLabels{2} = 'Slope Water';
 handles.hcb(4).TickLabels{3} = 'Eddy Water';
 
-export_fig -r300 -a4 -opengl images/thesis/cyclone-xzsections.png
+export_fig -r150 -a4 -opengl images/thesis/cyclone-xzsections.png
+
+%% ew-4341 evolution
+if ~exist('ew', 'var') | ~strcmpi(ew.name, 'ew-4341')
+    ew = runs('../topoeddy/runew-4341/');
+end
+
+opt = [];
+opt.rhocontourplot = 0;
+handles = ew.animate_field('rho', [], '205', 1, opt);
+handles.hbathy{2}.Color = 'w';
+handles.hbathy{3}.Color = 'w';
+ylim([0 400]);
+xlim([50 600]);
+correct_ticks('y', [], {'100'});
+title('Surface \rho | \lambda \approx 0.1');
+
+export_fig -r150 -a2 images/thesis/ew-4341-waves.png
