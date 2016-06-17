@@ -56,7 +56,14 @@ function [] = hovmoeller(runs, varname, axname, loc, iz, hax)
     if axname ~= runs.bathy.axis
         x0 = runs.bathy.xsb/1000;
     else
-        x0 = 0; %runs.eddy.mx/
+        x0 = runs.eddy.mx/1000;
+        if x0 ~= 0
+            if runs.bathy.axis == 'x'
+                labx = 'Y - Y_{eddy} (km)';
+            else
+                labx = 'X - X_{eddy} (km)';
+            end
+        end
     end
     xmat = bsxfun(@minus, xmat, x0);
 

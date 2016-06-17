@@ -641,3 +641,19 @@ correct_ticks('y', [], {'100'});
 title('Surface \rho | \lambda \approx 0.1');
 
 export_fig -r150 -a2 images/thesis/ew-4341-waves.png
+
+%% hovmoeller 04, 8041
+ew = runArray({'ew-04', 'ew-8041'});
+
+figure;
+hax = packfig(1,2);
+ew.array(1).hovmoeller('zeta', 'y', 'sb', [], hax(1));
+ew.array(2).hovmoeller('zeta', 'y', 'sb', [], hax(2));
+linkaxes(hax, 'xy');
+ylim([0 350]);
+axes(hax(1)); caxis([-1 1]*2.5e-3); colorbar('off');
+axes(hax(2)); caxis([-1 1]*2.5e-3); legend('off');
+hax(2).YTickLabel = {};
+hax(2).YLabel.String = '';
+
+export_fig images/ew-04-8041-sbssh-hov.png
