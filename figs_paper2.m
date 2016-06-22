@@ -442,7 +442,7 @@ ax(2).Position(4) = ax(2).Position(4) - dy;
 linkaxes([ax yyax], 'x');
 xlim([150 450]);
 ylabel('SSH (cm)');
-xlabel('X (km)');
+xlabel('Along-isobath, X (km)');
 ax(2).YTick(end) = [];
 
 hline2 = linex(ew34.eddy.mx(tindex)/1000, [], 'k');
