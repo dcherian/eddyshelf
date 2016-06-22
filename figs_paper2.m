@@ -262,8 +262,8 @@ export_fig -r300 -opengl -png -pdf -a2 images/paper2/ew-34-xzsection
 if ~exist('ew34', 'var')
     ew34 = runs('../topoeddy/runew-34/');
 end
-xx = [394 371 297 282 219 204]';
-yy = [70.5 70.5 46.5 66 91 108]';
+xx = [392 371 297 282 219 204]';
+yy = [68.5 70.5 46.5 66 91 108]';
 clear opt handles;
 opt.addvelquiver = 0;
 opt.csdcontourplot = 0;
