@@ -503,22 +503,27 @@ commands = 'no_sloping_shelf; no_name_points';
 
 figure; maximize;
 hax(1) = subplot(3,1,1);
+cla('reset');
 csf.print_diag('avg flux', [1 1], hax(1), commands);
 %ggplot;
 title(''); ylabel(''); xlabel('');
-xlim([0 1000]);
+ylim([0 100]);
+xlim([0 500]);
 
 hax(2) = subplot(3,1,2);
+cla('reset');
 csf.print_diag('avg flux', [5 1], hax(2), commands);
 %ggplot;
 title('');
+xlim([0 500]);
+ylim([0 150]);
 hax(2).YLabel.Position(2) = 200;
-xlim([0 450]);
+hax(2).XLabel.String = 'Flux at eddy center, Q (mSv)';
 
 hax(3) = subplot(3,1,3);
 param = load('./params/param_avg flux.mat');
 cmagn = 10^(orderofmagn(param.intercept(1)));
-cmagn = 1/(cmagn)^2;
+cmagn = 100; 1/(cmagn)^2;
 mlegstr = 'Slope';
 if cmagn == 1
     clegstr = 'c';
@@ -541,15 +546,16 @@ legstr = {mlegstr; clegstr};
 hax(3).YTick(end-1) = [];
 %hax(3).Position(1) = 0.68;
 htxt.delete;
-htxt(1) = text(1.5,0.30,'Slope (m)', 'FontSize', 16, 'HorizontalAlignment', 'center');
-htxt(2) = text(1.5,0.06,{'y-intercept'; '(c/100)'}, 'FontSize', 16, ...
+htxt(1) = text(1.5,0.40,'Slope (m)', 'FontSize', 18, 'HorizontalAlignment', 'center');
+htxt(2) = text(1.5,0.08,{'y-intercept'; '(c/100)'}, 'FontSize', 18, ...
                'Color', [1 1 1]*0.55, 'HorizontalAlignment', 'center');
-ylim([-0.1 0.35]);
+ylim([-0.1 0.5]);
 xlim([0 2]);
-beautify([18 20 22]); pbaspect([1.615 1 1]);
+beautify; pbaspect([1.615 1 1]);
 
 hax(1).Title.String = 'Integrated to shelfbreak depth';
 hax(2).Position(2) = 0.45;
+hax(1).XTickLabel = {};
 
 export_fig -a2 -r300 images/paper2/avgflux-summary.png
 

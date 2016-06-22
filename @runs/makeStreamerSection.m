@@ -73,7 +73,7 @@ function [v, mask, rho, xvec, zvec] = ...
 
     xline = 0;
 
-    if isobath == 1
+    if isobath == 0
         % if close to shelfbreak use barotropic mask
         % account for sloping shelf by integrating only
         % to Rhines length scale (L_β). This needs to be

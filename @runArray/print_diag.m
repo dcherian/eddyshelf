@@ -56,7 +56,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         force_0intercept = 0;
         kozak = 0; % fancy Kozak scatterplot
         labx = ' '; laby = ' ';
-        clr = 'k';
+        clr = [0 0 0];
         mark_outliers = 0;
         titlestr = name;
         if ~isempty(args), titlestr = [titlestr ' | args = ' num2str(args)]; end
@@ -71,7 +71,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         runName = runArray.getname(ii);
 
         ptName = runName;
-        clr = 'k'; % reset color
+        clr = [0 0 0]; % reset color
         marker = '.'; % reset marker
 
         % some commonly used variables
@@ -1022,7 +1022,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         end
 
         if strcmpi(name, 'max flux') | strcmpi(name, 'avg flux')
-            default_factor = 2; % integrate to 2xHsb
+            default_factor = 1; % integrate to 2xHsb
 
             if isempty(args)
                 isobath = 1;
@@ -1043,7 +1043,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 end
             end
 
-            if ~isfield(run.csflux, 'off') | (isobath > size(run.csflux.off.slope, 3))
+            if ~isfield(run.csflux, 'off') | (isobath > size(run.csflux.vertbins, 2))
                 disp(['Skipping ' run.name]);
                 continue;
             end
@@ -1074,7 +1074,12 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
             [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
 
-            if hsb/Lz0 > 0.5 & run.bathy.sl_shelf == 0 ...
+            %if strcmpi(run.name, 'ew-8361')
+            %V0 = run.eddy.V(1);
+            L0 = run.eddy.fitx.Lrho(1)/sqrt(2);
+            %end
+
+            if hsb/Lz0 > 0.5  ...
                     | (strcmpi(run.name, 'ew-2041') & (isobath > 3)) ...
                     | strcmpi(run.name, 'ew-2043')
                 warning('skipping because splitting is probably happening.');
@@ -1092,7 +1097,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
             fluxscl = trapz(zvec(zind:end), trapz(xvec, vmask(:,zind:end), 1), 2);
 
-            debug_fluxes = 0;
+            debug_fluxes = 1;
             if debug_fluxes
                 disp(sprintf([name ' = %.2f mSv, fluxscl = %.2f mSv | ' ...
                              'V0 = %.2f m/s, L0 = %.2f km, Lz0 = %.2f m'], ...
@@ -1551,7 +1556,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             disp(['% error: ' num2str(round(100*err./diags))]);
 
             [P,stderror,MSE] = lscov(E, cut_nan(diags'), 1./cut_nan(err));
-            stderror = stderror * sqrt(1/MSE);
+            %stderror = stderror * sqrt(1/MSE);
             tval = abs(conft(0.05,length(diags)));
             Perr = tval * stderror;
 
@@ -1731,7 +1736,7 @@ end
 
 % colorize points
 function [clr, ptName, marker] = colorize(run, ptName)
-    clr = 'k'; %[96 125 139]/255;
+    clr = [0 0 0]; %[96 125 139]/255;
     marker = '.';
 
     try
