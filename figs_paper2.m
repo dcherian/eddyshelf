@@ -541,18 +541,15 @@ errorbar(csf.array(1).csflux.ndloc(param.isobath), ...
          'Color', [1 1 1]*0.55, 'LineWidth', 2, 'MarkerSize', 20);
 xlabel('Location (y/R)');
 xlim([-0.05 2]);
-hax(3).YTick = sort([hax(3).YTick min(param.slope) max(param.slope)]);
+ylim([-0.1 0.5]);
 correct_ticks('y', '%.2f', []);
 liney(0);
 legstr = {mlegstr; clegstr};
-hax(3).YTick(end-1) = [];
-%hax(3).Position(1) = 0.68;
-htxt.delete;
-htxt(1) = text(1.5,0.40,'Slope (m)', 'FontSize', 18, 'HorizontalAlignment', 'center');
-htxt(2) = text(1.5,0.08,{'y-intercept'; '(c/100)'}, 'FontSize', 18, ...
+htxt(1) = text(1.52,0.30,'Slope (m)', 'FontSize', 18, 'HorizontalAlignment', 'center');
+htxt(2) = text(1.52,0.08,{'y-intercept'; '(c/100)'}, 'FontSize', 18, ...
                'Color', [1 1 1]*0.55, 'HorizontalAlignment', 'center');
-ylim([-0.1 0.5]);
-xlim([0 2]);
+%hax(3).YTick = sort([hax(3).YTick min(param.slope) max(param.slope)]);
+%hax(3).YTick(end-1) = [];
 beautify; pbaspect([1.615 1 1]);
 
 hax(1).Title.String = 'Integrated to shelfbreak depth';
