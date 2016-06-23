@@ -1076,11 +1076,6 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
             [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
 
-            %if strcmpi(run.name, 'ew-8361')
-            %V0 = run.eddy.V(1);
-            L0 = run.eddy.fitx.Lrho(1)/sqrt(2);
-            %end
-
             if hsb/Lz0 > 0.5  ...
                     | (strcmpi(run.name, 'ew-2041') & (isobath > 3)) ...
                     | strcmpi(run.name, 'ew-2043')
