@@ -25,8 +25,8 @@ function [] = PredictFlux()
     yoR = [0 0.17 0.33 0.5 0.67 0.83 1 1.17];
     %RegressionSlopes = [0.02 0.12 0.16 0.2 0.24 0.26 0.28 0.3];
     %Uncertainty = [0.0 0.01 0.02 0.03 0.03 0.03 0.03 0.03];
-    RegressionSlopes = [0.1893 0.1493 0.2101 0.2567 0.3021 0.3276 0.3572 0.3853];
-    Uncertainty = [0.0263 0.0247 0.0339 0.0394 0.0406 0.0374 0.0383 0.0413];
+    RegressionSlopes = [0.1394 0.1161 0.1628 0.2026 0.2409 0.2600 0.2830 0.3054];
+    Uncertainty = [0.0225 0.0213 0.0298 0.0354 0.0369 0.0338 0.0338 0.0359];
 
     Slope = interp1(yoR, RegressionSlopes, flux.IsobathLocation./eddy.L0);
     Error = interp1(yoR, Uncertainty, flux.IsobathLocation./eddy.L0);
