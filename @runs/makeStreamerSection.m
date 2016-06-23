@@ -33,43 +33,43 @@ function [v, mask, rho, xvec, zvec] = ...
 
     R = runs.csflux.R;
     yoR = runs.csflux.ndloc(isobath); % y/R - used in csflux
-    y0oL =  R/L0 * (1 - yoR); % y0/L - used in derivation
+                                      %y0oL =  R/L0 * (1 - yoR); % y0/L - used in derivation
                               %xfrac = sqrt(1 - y0oL^2);
     %y0oL = (runs.eddy.my(maxloc) - runs.csflux.x(isobath))/L0;
 
     % this works - compares ok with runs.eddy.fity.rho0(1)
-    RhoAmp = -1 * runs.sgntamp * V0 * phys.f0 * phys.R0/phys.g * L0/Lz0;
+    % RhoAmp = -1 * runs.sgntamp * V0 * phys.f0 * phys.R0/phys.g * L0/Lz0;
 
     % eddy fields
     a = 2;
     v = -2.3 * runs.sgntamp * V0 * xmat.^(a-1) .* exp(-xmat.^a) .* (1-erf(-zmat));
-    rho = RhoAmp .* exp(-xmat.^2 - y0oL^a) .* exp(-zmat.^2);
+    % rho = RhoAmp .* exp(-xmat.^2 - y0oL^a) .* exp(-zmat.^2);
 
-    % calculate background density profiles
-    [rhoshelf, zshelf] = runs.getDensityProfile(runs.bathy.isb);
-    [rhoslope, zslope] = runs.getDensityProfile(runs.csflux.ix(isobath));
+    % % calculate background density profiles
+    % [rhoshelf, zshelf] = runs.getDensityProfile(runs.bathy.isb);
+    % [rhoslope, zslope] = runs.getDensityProfile(runs.csflux.ix(isobath));
 
-    rhobot = rhoshelf(1);
-    rhoedge = RhoAmp * exp(-y0oL^a) * exp(-1/2) * exp(-(zslope/Lz0).^2);
-    zind = find_approx(rhoslope + rhoedge, rhobot, 1);
-    width = zvec(zind);
+    % rhobot = rhoshelf(1);
+    % rhoedge = RhoAmp * exp(-y0oL^a) * exp(-1/2) * exp(-(zslope/Lz0).^2);
+    % zind = find_approx(rhoslope + rhoedge, rhobot, 1);
+    % width = zvec(zind);
 
     % [width, zpeak] = runs.predict_zpeak(isobath, 'use', maxloc);
-    width = abs(width/Lz0); % zpeak = abs(zpeak/Lz0);
+    % width = abs(width/Lz0); % zpeak = abs(zpeak/Lz0);
 
-    if circle_kink
-        kzrad = width/2; % kink radius - z
-        kxrad = kzrad; % kink radius - x
-        x0 = -xfrac-kxrad; -xfrac-kxrad;
-        z0 = -1 * width/3;
-        if ~isreal(xfrac)
-            % complex xfrac -- cannot be trusted
-            % make the kink (semi-circle) intersect the eddy contour
-            xfrac = sqrt(1 - (width)^2);
-            x0 = -xfrac;
-            xline = 0;
-        end
-    end
+    % if circle_kink
+    %     kzrad = width/2; % kink radius - z
+    %     kxrad = kzrad; % kink radius - x
+    %     x0 = -xfrac-kxrad; -xfrac-kxrad;
+    %     z0 = -1 * width/3;
+    %     if ~isreal(xfrac)
+    %         % complex xfrac -- cannot be trusted
+    %         % make the kink (semi-circle) intersect the eddy contour
+    %         xfrac = sqrt(1 - (width)^2);
+    %         x0 = -xfrac;
+    %         xline = 0;
+    %     end
+    % end
 
     xline = 0;
 
@@ -101,13 +101,13 @@ function [v, mask, rho, xvec, zvec] = ...
         Lcorr = 1;
         mask = xmat < -(1-Lcorr);
     else
-        eddymask = ((xmat.^a + zmat.^a) > 1.0^a) .* (zmat < -width);
-        if circle_kink
-            kinkmask = (((xmat-x0)/kxrad).^2 + ((zmat-z0)/kzrad).^2) <= 1;
-        else
-            kinkmask = ((xmat.^a + zmat.^a) > (1)^a) .* (zmat >= -width);
-        end
-        mask = (xmat < xline) & (eddymask | kinkmask);
+        eddymask = ((xmat.^a + zmat.^a) > 1.0^a);
+        % if circle_kink
+        %     kinkmask = (((xmat-x0)/kxrad).^2 + ((zmat-z0)/kzrad).^2) <= 1;
+        % else
+        %     kinkmask = ((xmat.^a + zmat.^a) > (1)^a) .* (zmat >= -width);
+        % end
+        mask = (xmat < xline) & (eddymask);
     end
 
     if debug

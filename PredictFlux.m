@@ -3,9 +3,6 @@ function [] = PredictFlux()
 
     % physical properties
     phys.f0 = 2*(2*pi/86400)*sind(38); % Coriolis parameter (1/s)
-    phys.hsb = 100; % Shelfbreak depth (m)
-    phys.ShelfDensity = []; % densest shelf water
-    phys.RhoBackground = []; % Background density in slope water
 
     % eddy properties
     eddy.V0 = 2; % maximum velocity in eddy (m/s)
@@ -14,20 +11,22 @@ function [] = PredictFlux()
     eddy.sign = -1; % Anticyclone = -1, cyclone = +1
 
     % flux properties
-    flux.IntegrationDepth = 200; % depth to which to integrate (m)
+    flux.IntegrationDepth = 100; % depth to which to integrate (m)
     flux.IsobathLocation = 0e3; % from shelfbreak (m)
     flux.IsobathDepth = 100; % (m)
 
     plot_mask = 0; % plot mask?
 
-    [v,mask,rho,xvec, zvec] = makeEddyStreamerSection(phys, eddy, flux, plot_mask);
+    [v,mask,xvec, zvec] = makeEddyStreamerSection(phys, eddy, flux, plot_mask);
 
     zind = find_approx(zvec, -1 * abs(flux.IntegrationDepth));
     Flux = trapz(xvec, trapz(zvec(zind:end), v(:,zind:end) .* mask(:,zind:end), 2), 1);
 
     yoR = [0 0.17 0.33 0.5 0.67 0.83 1 1.17];
-    RegressionSlopes = [0.02 0.12 0.16 0.2 0.24 0.26 0.28 0.3];
-    Uncertainty = [0.0 0.01 0.02 0.03 0.03 0.03 0.03 0.03];
+    %RegressionSlopes = [0.02 0.12 0.16 0.2 0.24 0.26 0.28 0.3];
+    %Uncertainty = [0.0 0.01 0.02 0.03 0.03 0.03 0.03 0.03];
+    RegressionSlopes = [0.1893 0.1493 0.2101 0.2567 0.3021 0.3276 0.3572 0.3853];
+    Uncertainty = [0.0263 0.0247 0.0339 0.0394 0.0406 0.0374 0.0383 0.0413];
 
     Slope = interp1(yoR, RegressionSlopes, flux.IsobathLocation./eddy.L0);
     Error = interp1(yoR, Uncertainty, flux.IsobathLocation./eddy.L0);
@@ -35,34 +34,20 @@ function [] = PredictFlux()
     fprintf('Flux is %0.2f ± %0.2f Sv\n', Flux * Slope/1e6, Flux * Error/1e6);
 end
 
-function [v, mask, rho, xvec, zvec] = makeEddyStreamerSection(phys, eddy, flux, plot_mask)
+function [v, mask, xvec, zvec] = makeEddyStreamerSection(phys, eddy, flux, plot_mask)
 
-    zvec = linspace(-1*abs(flux.IsobathDepth), 0, 50);
+    zvec = linspace(-1*abs(flux.IsobathDepth), 0, 80);
     xvec = linspace(-5*eddy.L0,0,100);
 
     % normalized grid matrices to create mask
     [xmat, zmat] = ndgrid(xvec/eddy.L0, zvec/eddy.Lz0);
 
-    RhoAmp = eddy.sign * eddy.V0 * phys.f0 * 1025/9.81 * eddy.L0/eddy.Lz0;
-    y0oL = (eddy.L0 - flux.IsobathLocation)/eddy.L0;
-
-    % eddy fields
+    % eddy velocity field at latitude (cross-isobath location) of eddy center
     v = 2.3 * eddy.sign * eddy.V0 * xmat .* exp(-xmat.^2) .* (1-erf(-zmat));
-    rho = RhoAmp .* exp(-xmat.^2 - y0oL^2) .* exp(-zmat.^2);
 
-    if isempty(phys.RhoBackground)
-        width = phys.hsb;
-    end
-    xline = 0;
+    eddymask = ((xmat.^2 + zmat.^2) > 1.0^2);
 
-    if flux.IsobathLocation < 2000
-        mask = xmat < 0;
-    else
-        eddymask = ((xmat.^2 + zmat.^2) > 1.0^2) .* (zmat < -width);
-        kinkmask = ((xmat.^2 + zmat.^2) > 0.5) .* (zmat >= -width);
-
-        mask = (xmat < xline) & (eddymask | kinkmask);
-    end
+    mask = (xmat < 0) & (eddymask);
 
     if plot_mask
         figure;
