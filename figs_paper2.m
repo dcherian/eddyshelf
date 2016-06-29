@@ -131,6 +131,7 @@ folders = {'ew-4341', 'ew-34', 'ew-2341_wider'};
 if ~exist('ewflux', 'var'), ewflux = runArray(folders); end
 N = length(folders);
 times = [180 300 275];
+opt = [];
 opt.rhocontourplot = 0;
 opt.csfluxplot = 1;
 opt.nocolorbar = 1;
@@ -138,7 +139,7 @@ opt.csdcontourplot = 0;
 opt.addvelquiver = 0;
 opt.csfluxIsobath = 1;
 clear handles
-lab = 'abc';
+lab = 'abcdef';
 
 figure;
 for ii=1:3
@@ -160,6 +161,7 @@ for ii=1:3
     axes(hax(ii)); caxis([-30 200]);
     handles(ii).htitle.String = ['(' lab(ii) ') \lambda = H_{sb}/L_z = ', ...
                         num2str(run.bathy.hsb/run.eddy.Lgauss(tres), '%.2f')];
+    handles(ii).htitle.FontSize = 22;
     handles(ii).hbathy{1}.ShowText = 'off';
     handles(ii).hbathy{2}.Color = 'w';
     handles(ii).hbathy{3}.Color = 'w';
@@ -170,6 +172,7 @@ for ii=1:3
     xlabel(''); hax(ii).XTickLabel = []; colorbar('off');
     axes(hax(N+ii));
     title(''); pbaspect([1 0.5 0.5]); hax(N+ii).Position(2) = 0.18;
+    htxtlabels(N+ii) = text(0.1, 0.1, ['(' lab(N+ii) ')'], 'Units', 'normalized');
 
     if ii ~= 1
         axes(hax(ii)); ylabel('');
@@ -212,6 +215,7 @@ hcb.Position(2) = 0.59; 0.5 + pos(4)/2;
 
 supax = suplabel('Along-shelf profile of cross-isobath transport at shelfbreak', 't');
 supax.Position(end) = 0.77;
+supax.Title.FontSize = 24;
 
 for ii=4:6
     hax(ii).Position(2) = 0.26;
