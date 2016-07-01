@@ -1297,8 +1297,8 @@ methods
         L0 = nanmedian(addnan(L(tstart:tend), 5e5));
         Lz0 = nanmedian(addnan(Lz(tstart:tend), 1000));
 
-        if strcmpi(runs.name, 'ew-8352-2')
-            L0 = runs.eddy.fitx.Lrho(tstart);
+        if strcmpi(runs.name, 'ew-8352-2') | strcmpi(runs.name, 'ew-8392')
+            L0 = runs.eddy.fitx.Lrho(tstart)/sqrt(2);
         end
     end
 
