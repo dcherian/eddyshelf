@@ -367,6 +367,31 @@ opt.maskcontour = 0;
 xy.array(1).PlotSingleYZSection('rho', '500');
 xy.array(3).PlotSingleYZSection('csdye', '200');
 
+
+%% f/h contours
+
+clim = [0 1e-6];
+figure;
+run = xy.array(1);
+contour(run.rgrid.xr(:,1)/1000, run.rgrid.yr(1,:)/1000, ...
+          (run.rgrid.f'./run.bathy.h)', 'b');
+hold on;
+contour(run.rgrid.xr(:,1)/1000, run.rgrid.yr(1,:)/1000, run.bathy.h', 'k');
+plot(run.eddy.mx/1000, run.eddy.my/1000);
+legend('f/h', 'h', 'eddy track');
+export_fig -a4 -r150 images/xy-shallow-f-h.png
+
+% figure;
+% run = xy.array(3);
+% pcolorcen(run.rgrid.xr(:,1), run.rgrid.yr(1,:), ...
+%           (run.rgrid.f'./run.bathy.h)');
+% colorbar;
+% caxis(clim);
+
+xy.filter = [1 3];
+xy.plot_ts('run.eddy.fcen/run.eddy.hcen''');
+
+
 %%
 figure;
 hax(1) = subplot(221);

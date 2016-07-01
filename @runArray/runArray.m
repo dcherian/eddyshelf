@@ -260,6 +260,7 @@ classdef runArray < handle
                     else
                         out(ii) = temp;
                     end
+
                 end
 
                 if ~iscell(out) && (~ischar(out(ii)))

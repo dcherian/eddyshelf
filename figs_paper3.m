@@ -9,7 +9,7 @@ folders = { ...
     'ew-8392'... %, 'ew-8346', ...
     'ew-583411', 'ew-583413', ...
     'ew-583414', 'ew-583415', ...
-    'ew-34';
+    ... %'ew-34';
           };
 sh = runArray(folders);
 % 8361 is bad because it seems to be undergoing a different type of instability. more like
@@ -29,7 +29,8 @@ export_fig -r150 images/paper3/sb-vert-profiles.png
 
 %% fluxes
 sh.filter = [1 2 5:8 10:12];
-[diags, plotx, err, norm, color, rmse, P, Perr, handles] = sh.print_diag('avg flux', 1, [], 'no_name_points');
+[diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
+    sh.print_diag('avg flux', 1, [], 'no_name_points');
 title('');
 handles.htext.FontSize = 22
 handles.hiso.delete;
