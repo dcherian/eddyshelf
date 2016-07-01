@@ -1,19 +1,24 @@
-function [] = PredictFlux()
+function [Flux, FluxError] = PredictFlux(phys,eddy,flux)
 % Predict flux based on provided parameters
 
-    % physical properties
-    phys.f0 = 2*(2*pi/86400)*sind(38); % Coriolis parameter (1/s)
+    if ~exist('phys', 'var')
+        % physical properties
+        phys.f0 = 2*(2*pi/86400)*sind(38); % Coriolis parameter (1/s)
+    end
 
-    % eddy properties
-    eddy.V0 = 2; % maximum velocity in eddy (m/s)
-    eddy.L0 = 70e3; % horizontal scale (m)
-    eddy.Lz0 = 700; % vertical scale (m)
-    eddy.sign = -1; % Anticyclone = -1, cyclone = +1
+    if ~exist('eddy', 'var')
+        % eddy properties
+        eddy.V0 = 2; % maximum velocity in eddy (m/s)
+        eddy.L0 = 70e3; % horizontal scale (m)
+        eddy.Lz0 = 700; % vertical scale (m)
+    end
 
-    % flux properties
-    flux.IntegrationDepth = 100; % depth to which to integrate (m)
-    flux.IsobathLocation = 0e3; % from shelfbreak (m)
-    flux.IsobathDepth = 100; % (m)
+    if ~exist('flux', 'var')
+        % flux properties
+        flux.IntegrationDepth = 100; % depth to which to integrate (m)
+        flux.IsobathLocation = 0e3; % from shelfbreak (m)
+        flux.IsobathDepth = 100; % (m)
+    end
 
     plot_mask = 0; % plot mask?
 
@@ -25,13 +30,17 @@ function [] = PredictFlux()
     yoR = [0 0.17 0.33 0.5 0.67 0.83 1 1.17];
     %RegressionSlopes = [0.02 0.12 0.16 0.2 0.24 0.26 0.28 0.3];
     %Uncertainty = [0.0 0.01 0.02 0.03 0.03 0.03 0.03 0.03];
-    RegressionSlopes = [0.1394 0.1161 0.1628 0.2026 0.2409 0.2600 0.2830 0.3054];
-    Uncertainty = [0.0225 0.0213 0.0298 0.0354 0.0369 0.0338 0.0338 0.0359];
+    RegressionSlopes = [0.11  0.1161 0.1628 0.2026 0.2409 0.2600 0.2830 0.3054];
+    Uncertainty = [0.03 0.0213 0.0298 0.0354 0.0369 0.0338 0.0338 0.0359];
+    % flat shelf: 0.1394 ± 0.0225
 
     Slope = interp1(yoR, RegressionSlopes, flux.IsobathLocation./eddy.L0);
     Error = interp1(yoR, Uncertainty, flux.IsobathLocation./eddy.L0);
 
-    fprintf('Flux is %0.2f ± %0.2f Sv\n', Flux * Slope/1e6, Flux * Error/1e6);
+    Flux = Flux * Slope;
+    FluxError = Flux * Error;
+
+    fprintf('Flux is %0.2f ± %0.2f Sv\n', Flux/1e6, FluxError/1e6);
 end
 
 function [v, mask, xvec, zvec] = makeEddyStreamerSection(phys, eddy, flux, plot_mask)
@@ -43,7 +52,7 @@ function [v, mask, xvec, zvec] = makeEddyStreamerSection(phys, eddy, flux, plot_
     [xmat, zmat] = ndgrid(xvec/eddy.L0, zvec/eddy.Lz0);
 
     % eddy velocity field at latitude (cross-isobath location) of eddy center
-    v = 2.3 * eddy.sign * eddy.V0 * xmat .* exp(-xmat.^2) .* (1-erf(-zmat));
+    v = -2.3 * eddy.V0 * xmat .* exp(-xmat.^2) .* (1-erf(-zmat));
 
     eddymask = ((xmat.^2 + zmat.^2) > 1.0^2);
 
