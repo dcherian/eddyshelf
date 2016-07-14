@@ -200,10 +200,10 @@ bfrics = runArray(folders);
 for ii=1:bfrics.len
     run = bfrics.array(ii);
     tind = find_approx(run.eddy.t/run.eddy.tscale*86400, 1);
-    bfrics.name{ii} = ['r = ' ...
+    bfrics.name{ii} = ['r_f = ' ...
                        num2str(bfrics.array(ii).params.misc.rdrg, '%1.0e') ' m/s'];
 end
-bfrics.name{1} = 'r = 0 m/s';
+bfrics.name{1} = 'r_f = 0 m/s';
 
 folders = { ...
     'runew-64361-shallow', 'runew-564361', 'runew-564361-2', ...
@@ -213,10 +213,10 @@ bfrics60 = runArray(folders);
 for ii=1:bfrics60.len
     run = bfrics60.array(ii);
     tind = find_approx(run.eddy.t/run.eddy.tscale*86400, 1);
-    bfrics60.name{ii} = ['r = ' ...
+    bfrics60.name{ii} = ['r_f = ' ...
                        num2str(run.params.misc.rdrg, '%1.0e') ' m/s'];
 end
-bfrics60.name{1} = 'r = 0 m/s';
+bfrics60.name{1} = 'r_f = 0 m/s';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% y-z cross section
