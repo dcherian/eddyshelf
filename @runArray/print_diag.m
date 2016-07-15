@@ -721,7 +721,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 plotx(ff) = beta/beta_z;
 
                 parameterize = 0;
-                laby = '$$\frac{H_{arr}}{L_z^0}$$';
+                laby = '$$\frac{H_{arr}}{L_z}$$';
                 labx = '$$\frac{\beta}{\beta_z}$$';
             end
 
@@ -1605,15 +1605,15 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         rmse = sqrt(nanmean((diags - c*plotx - P(2)).^2));
 
         hparam = plot(xvec, c*xvec + P(2), '--', ...
-                      'Color', [1 1 1]*0.65);
+                      'Color', [1 1 1]*0.5);
         slopestr = num2str(c, '%.2f');
         intstr = num2str(P(2), '%.2f');
 
         if exist('Pint', 'var')
             hparam(2) = plot(xvec, Pint(1,1) * xvec + Pint(2,1), ...
-                             'Color', [1 1 1]*0.65, 'LineStyle', '--');
+                             'Color', [1 1 1]*0.5, 'LineStyle', '--');
             hparam(3) = plot(xvec, Pint(1,2) * xvec + Pint(2,2), ...
-                             'Color', [1 1 1]*0.65, 'LineStyle', '--');
+                             'Color', [1 1 1]*0.5, 'LineStyle', '--');
 
             slopestr = [slopestr '\pm' ...
                         num2str(abs(Pint(1,1)-P(1)), '%.2f')];
@@ -1664,14 +1664,15 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             y0 = erfinv(1 - (1.84-0.18)*(x./(1+x)) - 0.0);
             y1 = erfinv(1 - (1.84+0.18)*(x./(1+x)) - 0.02);
             hold on;
-            hparam(1) = plot(x, y, '--','Color', [1 1 1]*0.75);
-            hparam(2) = plot(x, y0, '--', 'Color', [1 1 1]*0.75);
-            hparam(3) = plot(x, y1, '--', 'Color', [1 1 1]*0.75);
+            hparam(1) = plot(x, y, '--','Color', [1 1 1]*0.3);
+            hparam(2) = plot(x, y0, '--', 'Color', [1 1 1]*0.3);
+            hparam(3) = plot(x, y1, '--', 'Color', [1 1 1]*0.3);
 
+            uistack(hparam, 'bottom');
             hleg = legend(hparam, ['$$1 - \mathrm{erf}(\frac{H}{L_z^0}) ' ...
                                 '= (1.84 \pm 0.18)  \frac{\beta}{\beta + \beta_z}' ...
                                 '+ (0.01\pm0.01)$$'], ...
-                          'Location', 'SouthEast');
+                          'Location', 'NorthEast', 'FontSize', 28);
             set(hleg, 'interpreter', 'latex');
         end
 
