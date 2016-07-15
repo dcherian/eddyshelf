@@ -1096,12 +1096,12 @@ classdef runArray < handle
                 subplot(121)
                 vec = run.eddy.KE(:,loc);
                 handles.hke(kk) = plot(tvec, vec./vec(1)); %, 'Color', [1 1 1]*0.5);
-                plot(tvec(tind), vec(tind)./vec(1), 'kx');
+                plot(tvec(tind), vec(tind)./vec(1), 'kx', 'MarkerSize', 18);
 
                 subplot(122)
                 vec = run.eddy.PE(:,loc);
                 handles.hpe(kk) = plot(tvec, vec./vec(1)); %, 'Color', [1 1 1]*0.5);
-                plot(tvec(tind), vec(tind)./vec(1), 'kx');
+                plot(tvec(tind), vec(tind)./vec(1), 'kx', 'MarkerSize', 18);
 
                 kk = kk+1;
             end
