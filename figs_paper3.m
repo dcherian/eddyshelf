@@ -124,18 +124,22 @@ figure;
 hax(1) = subplot(121);
 sh.print_diag('shelfbc', thresh, hax(1), 'no_name_points');
 title('Supply jet on shelf');
+ylabel('BC');
 axis square;
 xlim([0 1]);
 ylim([0 1]);
 linex(0.3);
+beautify([26 28 30]+2);
 
 hax(2) = subplot(122);
 sh.print_diag('sbreakbc', thresh, hax(2), 'no_name_points');
 title('Outflow at shelfbreak');
+ylabel('BC');
 axis square;
 xlim([0 1]);
 ylim([0 1]);
 linex(0.3);
+beautify([26 28 30]+2);
 
 export_fig -r150 -a2 images/paper3/shelfbc.png
 

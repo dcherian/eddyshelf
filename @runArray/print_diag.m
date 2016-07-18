@@ -170,7 +170,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             name_points = 1;
             strip_ew = 1;
             % x,y axes labels
-            labx = '\phi';
+            labx = '$$\phi_o$$';
             laby = ['BC_{' num2str(run.shelfbc.thresh(args)) '}'];
         end
 
@@ -208,7 +208,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             % label points with run-name?
             name_points = 1;
             % x,y axes labels
-            labx = '\phi';
+            labx = '$$\phi_o$$';
             laby = ['BC_{' num2str(run.shelfbc.thresh(args)) '}'];
         end
 
@@ -1494,12 +1494,12 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                      'VerticalAlignment','Bottom');
             end
             if ff == 1 | isnan(diags(1))
-                if strfind(labx, '$') | strfind(laby, '$')
+                if strfind(labx, '$')
                     xlabel(labx, 'interpreter', 'latex');
                 else
                     xlabel(labx);
                 end
-                if strfind(labx, '$') | strfind(laby, '$')
+                if strfind(laby, '$')
                     ylabel(laby, 'interpreter', 'latex')
                 else
                     ylabel(laby);
