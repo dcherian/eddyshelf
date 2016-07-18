@@ -411,7 +411,7 @@ end
 shfric2.sort('run.params.misc.rdrg');
 shfric2.name = cellstr(num2str(shfric2.sort_param', '%1.1e'));
 shfric2.name{1} = '0';
-shfric2.plot_ts('-run.ubarscale.scale/1000');
+shfric2.plot_ts('-run.ubarscale.scale/1000', [], 'run.ubarscale.time/86400');
 title('');
 ylabel('Distance from shelfbreak (km)');
 xlabel('Time (days)');
@@ -420,7 +420,7 @@ hleg = legend;
 hleg.Location = 'SouthEast';
 ylim([-40 0]);
 htxt = text(0.85, 0.35, 'r_f (m/s)', 'Units', 'normalized');
-title('Cross-isobath scale of along-shelf depth-averaged velocity');
+title('Cross-isobath extent of along-shelf supply jet');
 linex([190 230]);
 correct_ticks('x', [], {'200'});
 
