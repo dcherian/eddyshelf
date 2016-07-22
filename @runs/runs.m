@@ -1290,11 +1290,14 @@ methods
         if ~exist('tend', 'var'), tend = tstart; end
         if ~exist('nsmth', 'var'), nsmth = 10; end
 
-        % peak velocity in eddy
-        V = smooth(hypot(runs.eddy.fitx.V0, runs.eddy.fity.V0), nsmth) / 2.3;
-        %V = smooth(runs.eddy.rhovor.Vke, nsmth) / 2.3;
+        % peak velocity in eddy - downscale fit by 2.3
+        %V = smooth(hypot(runs.eddy.fitx.V0, runs.eddy.fity.V0), nsmth) / 2.3 / sqrt(2);
+        V = smooth(runs.eddy.fitx.V0, nsmth) / sqrt(2*exp(1));
+        %V = smooth(runs.eddy.rhovor.Vke, nsmth) / 2.3 / sqrt(2);
         % radius to maximum velocity
-        L = smooth(hypot(runs.eddy.fitx.Lrho, runs.eddy.fity.Lrho), nsmth) / sqrt(2);
+        %L = smooth(hypot(runs.eddy.fitx.Lrho, runs.eddy.fity.Lrho), nsmth) / sqrt(2);
+        L = smooth(runs.eddy.fitx.L, nsmth);
+        %L = smooth(runs.eddy.rhovor.dia, nsmth) / 2;
         % gaussian decay scale in vertical
         Lz = smooth(runs.eddy.Lgauss, nsmth);
 
@@ -1302,9 +1305,9 @@ methods
         L0 = nanmedian(addnan(L(tstart:tend), 5e5));
         Lz0 = nanmedian(addnan(Lz(tstart:tend), 1000));
 
-        if strcmpi(runs.name, 'ew-8352-2') | strcmpi(runs.name, 'ew-8392')
-            L0 = runs.eddy.fitx.Lrho(tstart)/sqrt(2);
-        end
+        %if strcmpi(runs.name, 'ew-8352-2') | strcmpi(runs.name, 'ew-8392')
+        %    L0 = runs.eddy.fitx.Lrho(tstart);
+        %end
     end
 
     function [fluxscl] = eddyfluxscale(runs)
