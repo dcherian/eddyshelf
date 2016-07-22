@@ -281,6 +281,11 @@ methods
                 runs.eddy.turnover = (runs.eddy.vor.dia(1)/2) ./ runs.eddy.V(1);
             end
 
+            if ~isfield('imx', runs.eddy)
+                runs.eddy.imx = vecfind(runs.rgrid.xr(:,1), runs.eddy.mx);
+                runs.eddy.imy = vecfind(runs.rgrid.yr(1,:), runs.eddy.my);
+            end
+
             try
                 runs.eddy.fitx.L = addnan(runs.eddy.fitx.L, 1e10);
                 runs.eddy.fitx.Lrho = addnan(runs.eddy.fitx.Lrho, 1e10);
@@ -3634,6 +3639,7 @@ methods
                       '(runs.rgrid.xr(' range ')/1000,' ...
                       'runs.rgrid.yr(' range ')/1000,'...
                       'double(runs.' varname '(' range ',tt)));']);
+
                 hplot.LevelList = linspace(crange(1),crange(2), 10);
             end
         end

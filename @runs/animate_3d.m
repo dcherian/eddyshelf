@@ -14,7 +14,7 @@ function [handles] = animate_3d(runs, tind, opt, hax)
         opt.linefilter = 0;
     end
     if ~isfield(opt, 'csdcontours')
-        opt.csdcontours = [runs.bathy.xsb+5]*1000;
+        opt.csdcontours = [runs.bathy.xsb + runs.sgntamp*5]*1000;
     end
     if ~isfield(opt, 'eddthresh')
         opt.eddthresh = 0.8;
@@ -30,16 +30,18 @@ function [handles] = animate_3d(runs, tind, opt, hax)
     end
 
     tind = runs.process_time(tind);
+
     imx = runs.eddy.imx;
     imy = runs.eddy.imy;
 
     if length(tind) == 1
         xrange = imx(tind)-100:stride(1):imx(tind)+100;
-        yrange = 1:stride(2):imy(tind)+100;
+        yrange = 1:stride(2):min(imy(tind)+100, size(runs.rgrid.xr,2));
     else
         xrange = 1:stride(1):size(runs.rgrid.xr,1);
         yrange = 1:stride(2):size(runs.rgrid.xr,2);
     end
+
     clear imx imy
     volume = {'x' xrange(1) xrange(end);
               'y' yrange(1) yrange(end)};
