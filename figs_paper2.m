@@ -510,20 +510,28 @@ commands = 'no_sloping_shelf; no_name_points';
 figure; maximize;
 hax(1) = subplot(1,3,1);
 cla('reset');
-csf.print_diag('avg flux', [1 1], hax(1), commands);
-title(''); xlabel('');
+[~, ~, ~, ~,~,~,~,~, handles1] = ...
+    csf.print_diag('avg flux', [1 1], hax(1), commands);
+title('(a)'); xlabel('');
 ylim([0 100]);
 xlim([0 400]);
+handles1.htext.delete;
+handles1.hiso.FontSize = 20;
+pbaspect([1 1 1]);
 
 hax(2) = subplot(1,3,2);
 cla('reset');
-csf.print_diag('avg flux', [5 1], hax(2), commands);
-title(''); ylabel('');
+[~, ~, ~, ~,~,~,~,~, handles2] = ...
+    csf.print_diag('avg flux', [5 1], hax(2), commands);
+title('(b)'); ylabel('');
 xlim([0 400]);
 ylim([0 150]);
 %hax(2).YLabel.Position(2) = 200;
 hax(2).XLabel.String = 'Flux at eddy center, Q (mSv)';
 hax(2).XLabel.Position(1) = 0;
+handles2.htext.delete;
+handles2.hiso.FontSize = 20;
+pbaspect([1 1 1]);
 
 hax(3) = subplot(1,3,3);
 cla('reset');
@@ -543,8 +551,6 @@ hold on;
 errorbar(ndloc, param.intercept/cmagn, param.cerr/cmagn, '.-', ...
          'Color', [1 1 1]*0.55, 'LineWidth', 2, 'MarkerSize', 20);
 xlabel('Location (y/R)');
-xlim([-0.05 2]);
-ylim([-0.1 0.5]);
 %correct_ticks('y', '%.2f', []);
 liney(0);
 legstr = {mlegstr; clegstr};
@@ -554,10 +560,12 @@ htxt(2) = text(1.52,0.08,{'y-intercept'; '(c/100)'}, 'FontSize', 18, ...
 
 hgauss = plot(ndloc, param.slope(end) * exp(-(ndloc-1).^2), 'r--');
 uistack(hgauss, 'bottom');
-beautify; pbaspect([1.615 1 1]);
+title('(c)');
+beautify; pbaspect([1.5 1 1]);
+xlim([-0.05 2]);
+ylim([-0.1 0.4]);
 
-%hax(2).Position(2) = 0.45;
-%hax(1).XTickLabel = {};
+hax(2).Position(1) = 0.38
 
 export_fig -a2 -r300 images/paper2/avgflux-summary.png
 
