@@ -818,3 +818,69 @@ export_fig(handles.hax(3), '-r300', '-a2', ...
 csf.name{11} = 'ew-2360';
 csf.name{12} = 'ew-2365';
 csf.print_diag('params table', 'images/paper2/csf-params-table.org');
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% cyclone
+cyc = runs('../topoeddy/runew-34-cyc/');
+
+opt.addvelquiver = 0;
+opt.quiverloc = 'bot';
+
+%cyc.animate_field('csdye', [], '300', 1, opt);
+
+clf;
+clear handles
+hax = packfig(2,2);
+depth = -[30 100];
+labels = 'ab';
+for ii=1:2
+    handles{ii} = cyc.animate_zslice('eddye', depth(ii), '300', hax(ii), opt);
+    colorbar('off');
+    ylim([150 300]);
+    xlim([100 510]);
+    handles{ii}.htime.String = [labels(ii) ') z = ' num2str(depth(ii)) ' m'];
+    handles{ii}.htime.Position(2) = 0.1;
+    title('');
+    hl(ii) = linex(320);
+end
+
+hax(2).YTickLabels = {};
+hax(2).YLabel.String = '';
+hax(2).XLabel.String = '';
+correct_ticks('x', [], {'300'; '500'}, hax(1));
+correct_ticks('x', [], {'300'}, hax(2));
+correct_ticks('y', [], {'200'}, hax(1));
+
+handles{3} = mod_movie(cyc.dir, 'dye_03', 301, {}, 's', 1, '', hax(3));
+handles{3}.h_plot.EdgeColor = 'none';
+cyc.plot_bathy('contour');
+ylim([150 300]);
+xlim([100 510]);
+colorbar('off');
+ylabel('Y (km)');
+xlabel('X (km)');
+htxt = text(0.05, 0.1, 'c) at the bottom', 'Units', 'normalized');
+title('');
+linex(320);
+correct_ticks('x', [], {'300'}, hax(3));
+hax(3).YTickLabelMode = 'auto';
+correct_ticks('y', [], {'200'; '250'}, hax(3));
+
+handles{4} = cyc.PlotSingleYZSection('eddye', '300', '320e3', hax(4));
+xlim([150 300]);
+colorbar('off');
+pbaspect([1.4 1 1]);
+hax(4).Position(1) = 0.59;
+title('');
+handles{4}.hlzlabel.delete;
+handles{4}.htlabel.Position(1) = 0.6;
+handles{4}.htlabel.Position(2) = 0.4;
+correct_ticks('y', [], {'-312'}, hax(4));
+correct_ticks('x', [], {'231'}, hax(4));
+htxt(2) = text(0.055, 0.1, 'd)', 'Units', 'normalized');
+
+htitle = suplabel('Eddy dye sections at t = 300 days for a cyclone', 't');
+htitle.Position(4) = 0.8;
+htitle.FontSize = 28;
+
+export_fig -a2 -r150 images/paper2/cyclone-sections.png
