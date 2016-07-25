@@ -905,8 +905,9 @@ htxt(1) = text(0.05, 0.1, 'a) Cross-shelf dye', 'Units', 'Normalized', 'Color', 
 
 handles(2) = ew.animate_field('pv', hax(2), 300, 1, opt);
 xlabel(''); title('');
-htxt(2) = text(0.05, 0.1, 'b) -log_{10}(PV)', 'Units', 'Normalized', 'Color', 'white');
-caxis([0.4e-11 9.4e-11]);
+htxt(2) = text(0.05, 0.1, 'b) Surface PV (x 10^{-11})', 'Units', 'Normalized', 'Color', 'white');
+caxis([0.4e-11 9.4e-11]/1e-11);
+handles(2).hfield.CData = handles(2).hfield.CData/1e-11;
 
 handles(3) = ew.animate_field('rv', hax(3), 300, 1, opt);
 htxt(3) = text(0.05, 0.1, 'c) Vorticity/f_0', 'Units', 'Normalized');
@@ -915,6 +916,9 @@ caxis([-1 1]*0.4);
 
 for ii=1:2
     hax(ii).XTickLabel = {};
+    correct_ticks('y', [], {'0'}, hax(ii));
 end
+
+linkaxes(hax, 'xy');
 
 export_fig -r150 -a2 images/paper2/ew-34-csdye-pv-rv.png
