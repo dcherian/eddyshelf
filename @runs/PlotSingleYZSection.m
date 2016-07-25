@@ -89,7 +89,7 @@ function [handles] = PlotSingleYZSection(runs, varname, days, loc, hax, opt)
     [~,handles.hvar] = contourf(yz, zmat, var, 20, 'EdgeColor', 'none');
     hold on;
     if strcmpi(varname, runs.eddname)
-        colormap(cbrewer('seq', 'Greys', 32));
+        colormap(cbrewer('seq', 'Reds', 32));
         caxis([0 1]);
     end
     handles.htitle = title([runs.name ' | ' varname]);

@@ -215,7 +215,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         addcsdye = 0;
     end
 
-    if strcmpi(name, 'vor')
+    if strcmpi(name, 'vor') | strcmpi(name, 'rv')
         if isempty(runs.vorsurf)
             runs.calc_vorsurf;
         end

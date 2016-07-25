@@ -1769,7 +1769,7 @@ methods
                                   [], runs.rgrid, 'his', 'single');
         end
 
-        runs.pvsurf = real(log(runs.pvsurf));
+        runs.pvsurf = real((runs.pvsurf));
     end
 
     function [] = read_csdsurf(runs, t0, ntimes)
