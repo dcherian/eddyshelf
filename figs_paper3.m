@@ -409,7 +409,7 @@ if ~exist('shfric2', 'var')
 end
 
 shfric2.sort('run.params.misc.rdrg');
-shfric2.name = cellstr(num2str(shfric2.sort_param', '%1.1e'));
+shfric2.name = cellstr(num2str(shfric2.print_params('run.params.misc.rdrg')', '%1.0e'));
 shfric2.name{1} = '0';
 shfric2.plot_ts('-run.ubarscale.scale/1000', [], 'run.ubarscale.time/86400');
 title('');
