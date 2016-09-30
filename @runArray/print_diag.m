@@ -79,8 +79,8 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         [itsl, itse, tsl, tse] = run.getEddyCenterTimeScales;
         [~,uind,~] = unique(run.time, 'stable');
         ndtime = run.eddy.t * 86400 / run.eddy.turnover;
-        Lx = run.eddy.vor.lmaj;
-        Ly = run.eddy.vor.lmin;
+        Lx = run.eddy.vor.lmaj/2;
+        Ly = run.eddy.vor.lmin/2;
         Lz = run.eddy.Lgauss;
         Ls = run.eddy.Ls;
         if isfield(run.eddy, 'rhovor')

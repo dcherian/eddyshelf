@@ -12,7 +12,7 @@ function [handles] = EddyDiags(runs, hfig)
     [itfit,~,~,~,FitTimeSeries] = runs.FitCenterVelocity; itfit = itfit(1);
     [itsl, itse, tsl, tse] = runs.getEddyCenterTimeScales;
 
-    L = hypot(eddy.fitx.L, eddy.fity.L);
+    L = eddy.fitx.L;
     figure(hfig); maximize;
     hax = packfig(2,1);
     axes(hax(1));
