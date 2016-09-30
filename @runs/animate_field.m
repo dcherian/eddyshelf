@@ -29,6 +29,8 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         asindex = [1 2];
     end
 
+    plottype = 'pcolor';
+
     % time series?
     enfluxplot = 0; % plot AS energy flux ?
     vecplot = 0; % plot some time vector (assign tvec and vec);
@@ -213,7 +215,7 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         addcsdye = 0;
     end
 
-    if strcmpi(name, 'vor')
+    if strcmpi(name, 'vor') | strcmpi(name, 'rv')
         if isempty(runs.vorsurf)
             runs.calc_vorsurf;
         end
@@ -385,13 +387,14 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
 
     % plot field
     axes(handles.subax(1));
-    handles.hfield = runs.plot_surf(varname, 'pcolor', ii);
+    handles.hfield = runs.plot_surf(varname, plottype, ii);
     handles.hfield.YData = handles.hfield.YData - dy;
     handles.hfield.XData = handles.hfield.XData - dx;
     try
         handles.hfield.CData = handles.hfield.CData / factor;
     catch ME
         handles.hfield.ZData = handles.hfield.ZData / factor;
+        handles.hfield.LevelList = handles.hfield.LevelList / factor;
     end
     hold on;
     handles.hcb = colorbar;

@@ -42,7 +42,7 @@ function [v, mask, rho, xvec, zvec] = ...
 
     % eddy fields
     a = 2;
-    v = -2.3 * runs.sgntamp * V0 * xmat.^(a-1) .* exp(-xmat.^a) .* (1-erf(-zmat));
+    v = -sqrt(2*exp(1)) * runs.sgntamp * V0 * xmat.^(a-1) .* exp(-xmat.^a) .* (1-erf(-zmat));
     % rho = RhoAmp .* exp(-xmat.^2 - y0oL^a) .* exp(-zmat.^2);
 
     % % calculate background density profiles

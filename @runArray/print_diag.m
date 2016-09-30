@@ -170,7 +170,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             name_points = 1;
             strip_ew = 1;
             % x,y axes labels
-            labx = '\phi';
+            labx = '$$\phi_o$$';
             laby = ['BC_{' num2str(run.shelfbc.thresh(args)) '}'];
         end
 
@@ -208,7 +208,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             % label points with run-name?
             name_points = 1;
             % x,y axes labels
-            labx = '\phi';
+            labx = '$$\phi_o$$';
             laby = ['BC_{' num2str(run.shelfbc.thresh(args)) '}'];
         end
 
@@ -709,11 +709,11 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             zz = (H(1) - z0)./Lz0;
             if strcmpi(args, 'regression') | isempty(args)
                 diags(ff) = (1 - erf(zz))./(1-erf(-z0/Lz0));
-                plotx(ff) = beta/beta_z ./ (2 - beta/beta_z)
+                plotx(ff) = beta ./ (beta_z - beta);
 
                 parameterize = 1;
                 laby = '$$\frac{U_b}{U_s} = 1 - \mathrm{erf}(\frac{H}{L_z^0})$$';
-                labx = '$$\frac{\beta}{2\beta_z - \beta}$$';
+                labx = '$$\frac{\beta}{\beta_z - \beta}$$';
             end
 
             if strcmpi(args, 'functional')
@@ -721,7 +721,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 plotx(ff) = beta/beta_z;
 
                 parameterize = 0;
-                laby = '$$\frac{H_{arr}}{L_z^0}$$';
+                laby = '$$\frac{H_{arr}}{L_z}$$';
                 labx = '$$\frac{\beta}{\beta_z}$$';
             end
 
@@ -1494,12 +1494,12 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                      'VerticalAlignment','Bottom');
             end
             if ff == 1 | isnan(diags(1))
-                if strfind(labx, '$') | strfind(laby, '$')
+                if strfind(labx, '$')
                     xlabel(labx, 'interpreter', 'latex');
                 else
                     xlabel(labx);
                 end
-                if strfind(labx, '$') | strfind(laby, '$')
+                if strfind(laby, '$')
                     ylabel(laby, 'interpreter', 'latex')
                 else
                     ylabel(laby);
@@ -1605,15 +1605,15 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         rmse = sqrt(nanmean((diags - c*plotx - P(2)).^2));
 
         hparam = plot(xvec, c*xvec + P(2), '--', ...
-                      'Color', [1 1 1]*0.65);
+                      'Color', [1 1 1]*0.5);
         slopestr = num2str(c, '%.2f');
         intstr = num2str(P(2), '%.2f');
 
         if exist('Pint', 'var')
             hparam(2) = plot(xvec, Pint(1,1) * xvec + Pint(2,1), ...
-                             'Color', [1 1 1]*0.65, 'LineStyle', '--');
+                             'Color', [1 1 1]*0.5, 'LineStyle', '--');
             hparam(3) = plot(xvec, Pint(1,2) * xvec + Pint(2,2), ...
-                             'Color', [1 1 1]*0.65, 'LineStyle', '--');
+                             'Color', [1 1 1]*0.5, 'LineStyle', '--');
 
             slopestr = [slopestr '\pm' ...
                         num2str(abs(Pint(1,1)-P(1)), '%.2f')];
@@ -1660,18 +1660,20 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         if strcmpi(name, 'bottom torque') & strcmpi(args, 'functional')
             c = 0.01;
             x = linspace(4e-3, 0.15, 100);
-            y = erfinv(1 - 1.84* (x./(1+x)) - 0.01);
-            y0 = erfinv(1 - (1.84-0.18)*(x./(1+x)) - 0.0);
-            y1 = erfinv(1 - (1.84+0.18)*(x./(1+x)) - 0.02);
+            y = erfinv(1 - 1.47* (x./(1-x)) - 0.02);
+            y0 = erfinv(1 - (1.47-0.14)*(x./(1-x)) - 0.01);
+            y1 = erfinv(1 - (1.47+0.14)*(x./(1-x)) - 0.03);
             hold on;
-            hparam(1) = plot(x, y, '--','Color', [1 1 1]*0.75);
-            hparam(2) = plot(x, y0, '--', 'Color', [1 1 1]*0.75);
-            hparam(3) = plot(x, y1, '--', 'Color', [1 1 1]*0.75);
+            hparam(1) = plot(x, y, '--','Color', [1 1 1]*0.3);
+            hparam(2) = plot(x, y0, '--', 'Color', [1 1 1]*0.3);
+            hparam(3) = plot(x, y1, '--', 'Color', [1 1 1]*0.3);
 
+            uistack(hparam, 'bottom');
             hleg = legend(hparam, ['$$1 - \mathrm{erf}(\frac{H}{L_z^0}) ' ...
-                                '= (1.84 \pm 0.18)  \frac{\beta}{\beta + \beta_z}' ...
-                                '+ (0.01\pm0.01)$$'], ...
-                          'Location', 'SouthEast');
+                                '= (1.47 \pm 0.14)  \frac{\beta}{\beta_z - \beta}' ...
+                                '+ (0.02\pm0.01)$$'], ...
+                          'Location', 'NorthEast');
+            hleg.FontSize = 28;
             set(hleg, 'interpreter', 'latex');
         end
 
@@ -1679,7 +1681,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 & (strcmpi(args, 'regression') | isempty(args))
             hleg = legend(hparam, ['$$ \frac{U_b}{U_s} = ' ...
                             '1 - \mathrm{erf}(\frac{H}{L_z^0}) ' ...
-                                '= ' num2str(c,3) ' \frac{\beta}{\beta + \beta_z}' ...
+                                '= ' num2str(c,3) ' \frac{\beta}{\beta_z - \beta}' ...
                                 '+ ' num2str(P(2),2) '$$'], ...
                       'Location', 'SouthEast');
             set(hleg, 'interpreter', 'latex');

@@ -281,6 +281,11 @@ methods
                 runs.eddy.turnover = (runs.eddy.vor.dia(1)/2) ./ runs.eddy.V(1);
             end
 
+            if ~isfield('imx', runs.eddy)
+                runs.eddy.imx = vecfind(runs.rgrid.xr(:,1), runs.eddy.mx);
+                runs.eddy.imy = vecfind(runs.rgrid.yr(1,:), runs.eddy.my);
+            end
+
             try
                 runs.eddy.fitx.L = addnan(runs.eddy.fitx.L, 1e10);
                 runs.eddy.fitx.Lrho = addnan(runs.eddy.fitx.Lrho, 1e10);
@@ -1285,11 +1290,14 @@ methods
         if ~exist('tend', 'var'), tend = tstart; end
         if ~exist('nsmth', 'var'), nsmth = 10; end
 
-        % peak velocity in eddy
-        V = smooth(hypot(runs.eddy.fitx.V0, runs.eddy.fity.V0), nsmth) / 2.3;
-        %V = smooth(runs.eddy.rhovor.Vke, nsmth) / 2.3;
+        % peak velocity in eddy - downscale fit by 2.3
+        %V = smooth(hypot(runs.eddy.fitx.V0, runs.eddy.fity.V0), nsmth) / 2.3 / sqrt(2);
+        V = smooth(runs.eddy.fitx.V0, nsmth) / sqrt(2*exp(1));
+        %V = smooth(runs.eddy.rhovor.Vke, nsmth) / 2.3 / sqrt(2);
         % radius to maximum velocity
-        L = smooth(hypot(runs.eddy.fitx.Lrho, runs.eddy.fity.Lrho), nsmth) / sqrt(2);
+        %L = smooth(hypot(runs.eddy.fitx.Lrho, runs.eddy.fity.Lrho), nsmth) / sqrt(2);
+        L = smooth(runs.eddy.fitx.L, nsmth);
+        %L = smooth(runs.eddy.rhovor.dia, nsmth) / 2;
         % gaussian decay scale in vertical
         Lz = smooth(runs.eddy.Lgauss, nsmth);
 
@@ -1297,9 +1305,9 @@ methods
         L0 = nanmedian(addnan(L(tstart:tend), 5e5));
         Lz0 = nanmedian(addnan(Lz(tstart:tend), 1000));
 
-        if strcmpi(runs.name, 'ew-8352-2') | strcmpi(runs.name, 'ew-8392')
-            L0 = runs.eddy.fitx.Lrho(tstart)/sqrt(2);
-        end
+        %if strcmpi(runs.name, 'ew-8352-2') | strcmpi(runs.name, 'ew-8392')
+        %    L0 = runs.eddy.fitx.Lrho(tstart);
+        %end
     end
 
     function [fluxscl] = eddyfluxscale(runs)
@@ -1761,7 +1769,7 @@ methods
                                   [], runs.rgrid, 'his', 'single');
         end
 
-        runs.pvsurf = real(log(runs.pvsurf));
+        runs.pvsurf = real((runs.pvsurf));
     end
 
     function [] = read_csdsurf(runs, t0, ntimes)
@@ -3634,6 +3642,7 @@ methods
                       '(runs.rgrid.xr(' range ')/1000,' ...
                       'runs.rgrid.yr(' range ')/1000,'...
                       'double(runs.' varname '(' range ',tt)));']);
+
                 hplot.LevelList = linspace(crange(1),crange(2), 10);
             end
         end

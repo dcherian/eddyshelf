@@ -1018,7 +1018,7 @@ classdef runArray < handle
             runArray.filter = fold;
         end
 
-        function [handles] = plot_ts(runArray, tsname, ax)
+        function [handles] = plot_ts(runArray, tsname, ax, tname)
         % plot time series
             corder_backup = runArray.sorted_colors;
 
@@ -1031,18 +1031,29 @@ classdef runArray < handle
             else
                 axes(ax); hold all;
             end
+
+            if ~exist('tname', 'var')
+                tname = [];
+            end
+
             insertAnnotation(['runArray.plot_ts(' tsname ')']);
             for ff=1:length(runArray.filter)
                 ii = runArray.filter(ff);
                 run = runArray.array(ii);
                 names{ff} = runArray.name{ii};
-                ndtime = run.eddy.t*86400 / run.eddy.turnover;
 
                 use run.params;
                 bathy = run.bathy;
                 eddy = run.eddy;
 
                 eval(['vec = ' tsname ';']);
+
+                if isempty(tname)
+                    ndtime = run.eddy.t*86400 / run.eddy.turnover;
+                else
+                    eval(['ndtime = ' tname ';']);
+                end
+
                 try
                     tind = run.FitCenterVelocity; tind = tind(1);
                     if isfield(run.csflux, 'off')
@@ -1096,12 +1107,12 @@ classdef runArray < handle
                 subplot(121)
                 vec = run.eddy.KE(:,loc);
                 handles.hke(kk) = plot(tvec, vec./vec(1)); %, 'Color', [1 1 1]*0.5);
-                plot(tvec(tind), vec(tind)./vec(1), 'kx');
+                plot(tvec(tind), vec(tind)./vec(1), 'kx', 'MarkerSize', 18);
 
                 subplot(122)
                 vec = run.eddy.PE(:,loc);
                 handles.hpe(kk) = plot(tvec, vec./vec(1)); %, 'Color', [1 1 1]*0.5);
-                plot(tvec(tind), vec(tind)./vec(1), 'kx');
+                plot(tvec(tind), vec(tind)./vec(1), 'kx', 'MarkerSize', 18);
 
                 kk = kk+1;
             end

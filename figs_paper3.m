@@ -48,6 +48,7 @@ sh.print_diag('eddyonshelf', [], hax(2), 'no_name_points');
 hax(1).Title.String = '(a)';
 hax(2).Title.String = '(b)';
 
+hax(1).XLim(1) = 0;
 hax(2).YLim(1) = 0;
 
 export_fig -r150 images/paper3/parameterizations.png
@@ -124,18 +125,22 @@ figure;
 hax(1) = subplot(121);
 sh.print_diag('shelfbc', thresh, hax(1), 'no_name_points');
 title('Supply jet on shelf');
+ylabel('BC');
 axis square;
 xlim([0 1]);
 ylim([0 1]);
 linex(0.3);
+beautify([26 28 30]+2);
 
 hax(2) = subplot(122);
 sh.print_diag('sbreakbc', thresh, hax(2), 'no_name_points');
 title('Outflow at shelfbreak');
+ylabel('BC');
 axis square;
 xlim([0 1]);
 ylim([0 1]);
 linex(0.3);
+beautify([26 28 30]+2);
 
 export_fig -r150 -a2 images/paper3/shelfbc.png
 
@@ -404,9 +409,9 @@ if ~exist('shfric2', 'var')
 end
 
 shfric2.sort('run.params.misc.rdrg');
-shfric2.name = cellstr(num2str(shfric2.sort_param', '%1.1e'));
+shfric2.name = cellstr(num2str(shfric2.print_params('run.params.misc.rdrg')', '%1.0e'));
 shfric2.name{1} = '0';
-shfric2.plot_ts('-run.ubarscale.scale/1000');
+shfric2.plot_ts('-run.ubarscale.scale/1000', [], 'run.ubarscale.time/86400');
 title('');
 ylabel('Distance from shelfbreak (km)');
 xlabel('Time (days)');
@@ -415,7 +420,7 @@ hleg = legend;
 hleg.Location = 'SouthEast';
 ylim([-40 0]);
 htxt = text(0.85, 0.35, 'r_f (m/s)', 'Units', 'normalized');
-title('Cross-isobath scale of along-shelf depth-averaged velocity');
+title('Cross-isobath extent of along-shelf supply jet');
 linex([190 230]);
 correct_ticks('x', [], {'200'});
 

@@ -64,7 +64,7 @@ function [handles] = PlotSingleYZSection(runs, varname, days, loc, hax, opt)
             var = bsxfun(@minus, rho, tback);
             yz = rhoyz/1000;
             zmat = rhozmat;
-            varname = '\rho''';
+            %varname = '\rho''';
         end
     end
 
@@ -89,13 +89,13 @@ function [handles] = PlotSingleYZSection(runs, varname, days, loc, hax, opt)
     [~,handles.hvar] = contourf(yz, zmat, var, 20, 'EdgeColor', 'none');
     hold on;
     if strcmpi(varname, runs.eddname)
-        colormap(cbrewer('seq', 'Greys', 32));
+        colormap(cbrewer('seq', 'Reds', 32));
         caxis([0 1]);
     end
     handles.htitle = title([runs.name ' | ' varname]);
     handles = common(runs, yz, zmat, drho, ed, days, locstr, tindices, handles);
 
-    if strcmpi(varname, 'u') | strcmpi(varname, 'v')
+    if strcmpi(varname, 'u') | strcmpi(varname, 'v') | strcmpi(varname, 'rhoanom')
         center_colorbar;
     end
 
