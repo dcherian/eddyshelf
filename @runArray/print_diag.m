@@ -709,11 +709,11 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             zz = (H(1) - z0)./Lz0;
             if strcmpi(args, 'regression') | isempty(args)
                 diags(ff) = (1 - erf(zz))./(1-erf(-z0/Lz0));
-                plotx(ff) = beta/beta_z ./ (1 + beta/beta_z)
+                plotx(ff) = beta/beta_z ./ (2 - beta/beta_z)
 
                 parameterize = 1;
                 laby = '$$\frac{U_b}{U_s} = 1 - \mathrm{erf}(\frac{H}{L_z^0})$$';
-                labx = '$$\frac{\beta}{\beta + \beta_z}$$';
+                labx = '$$\frac{\beta}{2\beta_z - \beta}$$';
             end
 
             if strcmpi(args, 'functional')
