@@ -1660,9 +1660,9 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         if strcmpi(name, 'bottom torque') & strcmpi(args, 'functional')
             c = 0.01;
             x = linspace(4e-3, 0.15, 100);
-            y = erfinv(1 - 1.47* (x./(1-x)) - 0.02);
-            y0 = erfinv(1 - (1.47-0.14)*(x./(1-x)) - 0.01);
-            y1 = erfinv(1 - (1.47+0.14)*(x./(1-x)) - 0.03);
+            y = erfinv(1 - 1.45* (x./(1-x)) - 0.02);
+            y0 = erfinv(1 - (1.45-0.15)*(x./(1-x)) - 0.01);
+            y1 = erfinv(1 - (1.45+0.15)*(x./(1-x)) - 0.03);
             hold on;
             hparam(1) = plot(x, y, '--','Color', [1 1 1]*0.3);
             hparam(2) = plot(x, y0, '--', 'Color', [1 1 1]*0.3);
@@ -1670,7 +1670,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
             uistack(hparam, 'bottom');
             hleg = legend(hparam, ['$$1 - \mathrm{erf}(\frac{H}{L_z^0}) ' ...
-                                '= (1.47 \pm 0.14)  \frac{\beta}{\beta_z - \beta}' ...
+                                '= (1.45 \pm 0.15)  \frac{\beta}{\beta_z - \beta}' ...
                                 '+ (0.02\pm0.01)$$'], ...
                           'Location', 'NorthEast');
             hleg.FontSize = 28;
