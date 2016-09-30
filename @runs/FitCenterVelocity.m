@@ -52,7 +52,7 @@ function [itfit, tfit, T, BadFitFlag, FitTimeSeries] = FitCenterVelocity(runs, d
 
     % I want to use a few values before the peak as a constraint.
     % Sometimes this won't work if you don't average the velocity enough.
-    dimin = ceil(15/diff(tvec(1:2))*86400);
+    dimin = 10; ceil(20/diff(tvec(1:2))*86400);
     if imin-dimin < 1, imin = dimin + 1; end
 
     %if strcmpi(runs.name, 'ew-56341-2'), cvy0 = 0; end
