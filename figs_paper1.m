@@ -338,10 +338,13 @@ sl.print_diag('params table', 'images/paper1/sl-params-table.org');
 title([]);
 
 hax = gca; hleg = legend;
-hax.FontSize = 30
+hleg.Location = 'SouthWest'
+hleg.FontSize = 24;
+hax.XLabel.FontSize = 28;
+hax.YLabel.FontSize = 28;
 hax.XTick(1) = 5e-3;
 hax.YTick(1) = [];
-hax.YTick(end) = 1.92;
+hax.YTick(end) = 1.7;
 %hax.XAxis.Axle.VertexData(1,:) = single([0.0051 0.1139]);
 %hax.YAxis.Axle.VertexData(2,:) = single([0.0132 0.1768]);
 
