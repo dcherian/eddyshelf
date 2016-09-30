@@ -709,11 +709,11 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             zz = (H(1) - z0)./Lz0;
             if strcmpi(args, 'regression') | isempty(args)
                 diags(ff) = (1 - erf(zz))./(1-erf(-z0/Lz0));
-                plotx(ff) = beta/beta_z ./ (1 + beta/beta_z)
+                plotx(ff) = beta ./ (beta_z - beta);
 
                 parameterize = 1;
                 laby = '$$\frac{U_b}{U_s} = 1 - \mathrm{erf}(\frac{H}{L_z^0})$$';
-                labx = '$$\frac{\beta}{\beta + \beta_z}$$';
+                labx = '$$\frac{\beta}{\beta_z - \beta}$$';
             end
 
             if strcmpi(args, 'functional')
@@ -1660,9 +1660,9 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         if strcmpi(name, 'bottom torque') & strcmpi(args, 'functional')
             c = 0.01;
             x = linspace(4e-3, 0.15, 100);
-            y = erfinv(1 - 1.84* (x./(1+x)) - 0.01);
-            y0 = erfinv(1 - (1.84-0.18)*(x./(1+x)) - 0.0);
-            y1 = erfinv(1 - (1.84+0.18)*(x./(1+x)) - 0.02);
+            y = erfinv(1 - 1.47* (x./(1-x)) - 0.02);
+            y0 = erfinv(1 - (1.47-0.14)*(x./(1-x)) - 0.01);
+            y1 = erfinv(1 - (1.47+0.14)*(x./(1-x)) - 0.03);
             hold on;
             hparam(1) = plot(x, y, '--','Color', [1 1 1]*0.3);
             hparam(2) = plot(x, y0, '--', 'Color', [1 1 1]*0.3);
@@ -1670,9 +1670,10 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
             uistack(hparam, 'bottom');
             hleg = legend(hparam, ['$$1 - \mathrm{erf}(\frac{H}{L_z^0}) ' ...
-                                '= (1.84 \pm 0.18)  \frac{\beta}{\beta + \beta_z}' ...
-                                '+ (0.01\pm0.01)$$'], ...
-                          'Location', 'NorthEast', 'FontSize', 28);
+                                '= (1.47 \pm 0.14)  \frac{\beta}{\beta_z - \beta}' ...
+                                '+ (0.02\pm0.01)$$'], ...
+                          'Location', 'NorthEast');
+            hleg.FontSize = 28;
             set(hleg, 'interpreter', 'latex');
         end
 
@@ -1680,7 +1681,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 & (strcmpi(args, 'regression') | isempty(args))
             hleg = legend(hparam, ['$$ \frac{U_b}{U_s} = ' ...
                             '1 - \mathrm{erf}(\frac{H}{L_z^0}) ' ...
-                                '= ' num2str(c,3) ' \frac{\beta}{\beta + \beta_z}' ...
+                                '= ' num2str(c,3) ' \frac{\beta}{\beta_z - \beta}' ...
                                 '+ ' num2str(P(2),2) '$$'], ...
                       'Location', 'SouthEast');
             set(hleg, 'interpreter', 'latex');
