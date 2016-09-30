@@ -8,6 +8,7 @@ function [handles] = PlotSingleYZSection(runs, varname, days, loc, hax, opt)
         axes(hax);
     end
 
+    if ~exist('opt', 'var'), opt = []; end
     if ~isfield(opt, 'rhocontours'), opt.rhocontours = 0; end
     if ~isfield(opt, 'csdfront'), opt.csdfront = 0; end
 
@@ -70,7 +71,11 @@ function [handles] = PlotSingleYZSection(runs, varname, days, loc, hax, opt)
     if ~strcmpi(varname, 'rhoanom')
         [var,~,yz, zmat] = dc_roms_read_data(runs.dir, varname, tindices, ...
                                              {bathyax locstr locstr}, [], runs.rgrid, 'his');
-        yz = repmat(yz', [1 size(zmat, 2)])/1000;
+        if size(yz,1) == 1
+            yz = repmat(yz', [1 size(zmat, 2)])/1000;
+        else
+            yz = yz/1000;
+        end
     end
 
     if strcmpi(varname, 'rho')
@@ -124,8 +129,7 @@ function handles = common(obj, yz, zmat, drho, ed, days, loc, tindices, handles)
     caxis(clim);
 
     % vertical scale
-    %handles.hlz = liney(-1 * obj.eddy.Lgauss(tindices), [], 'k');
-
+    handles.hlz = liney(-1 * obj.eddy.Lgauss(tindices), [], 'k');
     handles.hcen = linex(obj.eddy.my(tindices)/1000, [], 'k');
 
     % patch bathymetry

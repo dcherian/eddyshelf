@@ -116,6 +116,10 @@ classdef runArray < handle
                 error('need sort_input to sort!');
             end
 
+            if ischar(sort_input)
+                sort_input = runArray.print_params(sort_input);
+            end
+
             if length(sort_input) < runArray.len
                 error('length(sort_input) < runArray.len. DO NOT FILTER!');
             end
@@ -256,6 +260,7 @@ classdef runArray < handle
                     else
                         out(ii) = temp;
                     end
+
                 end
 
                 if ~iscell(out) && (~ischar(out(ii)))

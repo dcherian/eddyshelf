@@ -9,10 +9,11 @@ folders = { ...
     'ew-8392'... %, 'ew-8346', ...
     'ew-583411', 'ew-583413', ...
     'ew-583414', 'ew-583415', ...
-    'ew-34';
+    ... %'ew-34';
           };
 sh = runArray(folders);
-
+% 8361 is bad because it seems to be undergoing a different type of instability. more like
+% the really deep eddies. things are weird!
 for ii=1:sh.len
     %    sh.array(ii).csfluxes;
     %    sh.array(ii).avgStreamerVelSection(1);
@@ -28,7 +29,8 @@ export_fig -r150 images/paper3/sb-vert-profiles.png
 
 %% fluxes
 sh.filter = [1 2 5:8 10:12];
-[diags, plotx, err, norm, color, rmse, P, Perr, handles] = sh.print_diag('avg flux', 1, [], 'no_name_points');
+[diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
+    sh.print_diag('avg flux', 1, [], 'no_name_points');
 title('');
 handles.htext.FontSize = 22
 handles.hiso.delete;
@@ -429,11 +431,12 @@ if ~exist('shfric2', 'var')
     shfric2 = runArray(folders);
 end
 
-% for ii=1:4
+for ii=1:5
+    shfric2.array(ii).CalcUbarCrossIsobathScale;
 %     shfric2.array(ii).usurf = [];
 %     shfric2.array(ii).vsurf = [];
 %     shfric2.array(ii).read_velsurf;
-% end
+end
 
 opt.addvelquiver = 1;
 opt.quivercolor = [0 150 136]/255;
@@ -453,7 +456,7 @@ tindex = find_approx(ew.time, 298*86400, 1);
 handles = ew.PlotSingleYZSection('u', tindex, '350e3', [], opt);
 [eddye, ~,yy, zz] = dc_roms_read_data(ew, ew.eddname, tindex, ...
                                        {'x' '350e3' '350e3'});
-hedd = contour(yy/1000, zz, eddye, [1 1]*0.7, 'g', 'LineWidth', 2);
+[~, hedd] = contour(yy/1000, zz, eddye, [1 1]*0.7, 'g', 'LineWidth', 2);
 handles.hrhocont.LevelList = linspace(21.77, 22.3, 60);
 title('Along-shelf velocity (m/s)');
 xlim([0 60]);
@@ -462,6 +465,13 @@ hax = gca;
 hax.XTickLabelMode = 'auto';
 hax.XTick = [0:10:60];
 pbaspect([1.618 1 1])
+handles.hcsdcont.Color = ew.shelfSlopeColor;
+hleg = legend([handles.hcsdcont hedd], 'Shelf-water front', 'Eddy water front', ...
+              'Location', 'SouthWest');
+hleg.Position(2) = 0.26;
+handles.htlabel.Position(2) = 0.1;
+hleg.Box = 'off';
+hleg.TextColor = [1 1 1];
 
 export_fig -opengl -r150 -a4 images/paper3/eddy-leakage-on-shelf.png
 
@@ -513,7 +523,8 @@ shfric2.array(end).read_velsurf;
 
 opt.limy = [0 150];
 opt.limx = [200 480];
-opt.quivercolor = [136 34 85]/255; [0 150 136]/255; shfric2.array(1).shelfSlopeColor('dark'); %[1 0 0];
+opt.quivercolor = [217 33 32]/255;
+%[136 34 85]/255; [0 150 136]/255; shfric2.array(1).shelfSlopeColor('dark'); %[1 0 0];
 opt.addvelquiver = 1;
 opt.addzeta = 0;
 opt.rhocontourplot = 0;
@@ -560,6 +571,8 @@ for ii=1:2
     handles(ii,1).hquiv.UData(nanmask) = NaN;
     handles(ii,1).hquiv.VData(nanmask) = NaN;
 
+    uistack(handles(ii,1).hquiv, 'top');
+
     axes(hax(ii+3)); % = subplot(2,3,ii+3);
     handles(ii,2) = run.animate_field(var, hax(ii+3),  '230', 1, opt);
     title('');
@@ -593,6 +606,9 @@ hax(2).YTickLabel = {};
 hax(5).YLabel.String = '';
 hax(5).YTickLabel = {};
 
+hax(1).XTickLabel = {};
+hax(2).XTickLabel = {};
+
 % hcb = colorbar('northoutside');
 % xlabel('');
 % hcb.Position(1) = 0.3;
@@ -610,8 +626,11 @@ hleg = legend('r_f = 3e-3', 'r_f = 0');
 hleg.Location = 'NorthWest';
 linex([190 242]);
 htxt(1) = text(30, 2, 'e)');
-hax(3).Position(1) = 0.68;
+hax(3).Position(1) = 0.64;
+hax(3).Position(2) = 0.61;
 hax(3).Position(3) = 0.3;
+hax(3).Position(4) = 0.23;
+hax(3).Title.Position(2) = 11;
 pbaspect([1.618 1 1]);
 beautify;
 
@@ -626,8 +645,14 @@ linex([190 242]);
 htxt(2) = text(30, 0.2, 'f)');
 hax(6).Position(1) = hax(3).Position(1);
 hax(6).Position(3) = hax(3).Position(3);
+hax(6).Position(4) = hax(3).Position(4);
+hax(6).Title.Position(2) = 0.9;
 pbaspect([1.618 1 1]);
 beautify;
+
+hax(6).Position(2) = 0.29;
+hax(4).Position(2) = 0.2;
+hax(5).Position(2) = hax(4).Position(2);
 
 correct_ticks('y', [], {'50'; '100'}, hax([1 4]));
 correct_ticks('x', [], {'200'}, hax([3 6]));
@@ -644,7 +669,9 @@ figure; maximize;
 clf('reset');
 time = '311';
 xloc = '325e3';
+opt = [];
 opt.drawtrack = 0;
+opt.rhocontourplot = 0;
 opt.addvelquiver = 1;
 opt.quiverloc = 'surf';
 opt.limx = [180 400];
@@ -694,14 +721,18 @@ handles = ew.PlotSingleYZSection('v', time, xloc, hax(4));
 hold on
 contour(handles.hvar.XData, handles.hvar.YData, handles.hvar.ZData, ...
         [1 1]*-1e-4, 'g', 'LineWidth', 2);
-hcb = center_colorbar
+hcb = center_colorbar;
+caxis([-1 1]*0.015);
 title('');
 hcb.Label.String = 'Cross-shelf velocity (m/s)';
 xlim([0 70]);
+hax(4).YTickMode = 'auto';
+hax(4).XTickMode = 'auto';
 ylim([-450 0]);
 handles.hcen.delete;
 handles.htlabel.Position(2) = 0.3;
 htxt(4) = text(0.1, 0.1, 'd)', 'Units', 'Normalized', 'Color', 'w');
+handles.hlz.delete;
 export_fig -r150 images/paper3/eddy-inflow.png
 
 %% cross-shelfbreak hovmoeller
@@ -759,6 +790,15 @@ lb = c5/c1 * (1+s^2)/(d*s) * WB/1000
 Lbeta = 12e3
 f*Lbeta/N/r/86400
 
+%% arrested topographic wave
+% along-shelf scale (km) required for flow to spread across entire shelf
+shfric2.print_params('phys.f0/misc.rdrg * bathy.sl_shelf  * (bathy.L_shelf)^2/1e3')
+
+%shfric2.print_params('bathy.hsb/misc.rdrg');
+
+kappa = shfric2.print_params('misc.rdrg/(phys.f0 * bathy.sl_shelf)')
+sqrt(kappa*33e3)/1e3
+
 %%
 chi = sh.print_params(['(2/sqrt(pi)*exp(-(bathy.hsb/Lz0)^2)) *' ...
                     'V0/Lz0/(bathy.S_sl*sqrt(phys.N2))']);
@@ -766,3 +806,19 @@ phii = sh.print_params('(V0./bathy.S_sl/sqrt(phys.N2))/bathy.hsb');
 sh.print_params('bathy.sl_slope * sqrt(phys.N2)/phys.f0')
 sh.print_params('(1-erf(bathy.hsb/Lz0))');
 phii./ (1-chi)
+
+%% ew-82343
+ew = runs('../topoeddy/runew-82343/');
+
+opt = [];
+opt.addvelquiver = 1;
+
+handles = ew.animate_field('csdye', [], '414', 1, opt);
+caxis([-50 350]);
+ylim([0 150]);
+xlim([150 580]);
+title('Cross-shelf dye | \lambda = 0.5');
+colorbar('off');
+handles.htlabel.Position(2) = 0.1
+
+export_fig -r150 -a2 -opengl images/paper3/ew-82343-on-shelf.png

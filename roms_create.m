@@ -818,6 +818,7 @@ if flags.eddy
         % find zero-crossing of first-mode
         zeroind = find_approx(Hmode, 0, 1);
         eddy.depth = abs(zvec(zeroind)) * 1./sqrt(eddy.Bu);
+        %eddy.depth = phys.f0/sqrt(phys.N2) * eddy.dia/2;
 
         % print information
         fprintf(['\n\n Non-constant stratification:' ...

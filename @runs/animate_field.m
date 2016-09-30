@@ -511,7 +511,8 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
     if drawarrest
         [tfit,~,~,BadFitFlag] = runs.FitCenterVelocity;
         handles.hfit = plot(runs.eddy.mx(tfit(1))/1000 - dx, ...
-                            runs.eddy.my(tfit(1))/1000 - dy, 'kx');
+                            runs.eddy.my(tfit(1))/1000 - dy, 'kx', ...
+                            'MarkerSize', 10);
     end
 
     % zeta too?

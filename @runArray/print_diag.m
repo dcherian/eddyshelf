@@ -56,7 +56,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         force_0intercept = 0;
         kozak = 0; % fancy Kozak scatterplot
         labx = ' '; laby = ' ';
-        clr = 'k';
+        clr = [0 0 0];
         mark_outliers = 0;
         titlestr = name;
         if ~isempty(args), titlestr = [titlestr ' | args = ' num2str(args)]; end
@@ -71,7 +71,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         runName = runArray.getname(ii);
 
         ptName = runName;
-        clr = 'k'; % reset color
+        clr = [0 0 0]; % reset color
         marker = '.'; % reset marker
 
         % some commonly used variables
@@ -324,9 +324,9 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 diags(ff) = supply;
                 err(1,ff) = errsupp;
 
-                if strcmpi(run.name, 'ew-8342-2')
-                    exceptions = ff;
-                end
+                % if strcmpi(run.name, 'ew-8342-2')
+                %     exceptions = ff;
+                % end
 
                 errorbarflag = 1;
                 %diags(ff) = max(smooth(env,10))/1000;
@@ -874,18 +874,26 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
             phi = hsb./(V0./bathy.S_sh/N);
             chi = (2/sqrt(pi)*exp(-(hsb/Lz0)^2) * V0/Lz0)/(bathy.S_sl*N);
+
+            rdrg = run.params.misc.rdrg;
+            Lf = sqrt(rdrg/fsb/bathy.sl_shelf * 50e3);
+            Lf = bathy.L_shelf.^2 / (rdrg/fsb/bathy.sl_shelf);
+
+            F = rdrg /2/betash/hsb/1000;
+            dL = F * (1+F/2/Lbetash);
             if ff == 1
                 close;
                 disp(sprintf('| %10s | %5s | %4s | %4s | %8s | %8s | %5s | %6s | %6s | %4s | %5s | %5s |', ...
                              '', 'Rh', 'Ro', 'bl/f', 'beta_sh', ...
-                             'L_rh/Lsh', 'phi', 'xi', 'lambda', 'S_sh', 'L_rh', 'L_def/L_rh'));
+                             'L_rh/Lsh', 'phi', 'xi', 'lambda', 'S_sh', 'L_rh', 'L_def/L_rh', ...
+                             'Latw'));
                 disp(repmat('-', [1 100]));
             end
-            disp(sprintf('| %10s | %5.2f | %4.2f | %4.2f | %.2e | %8.2f | %5.2f | %7.2f |  %5.2f | %0.2f | %5.2f | %5.2f |' , ...
+            disp(sprintf('| %10s | %5.2f | %4.2f | %4.2f | %.2e | %8.2f | %5.2f | %7.2f |  %5.2f | %0.2f | %5.2f | %5.2f | %5.2f |' , ...
                          run.name, run.params.nondim.eddy.Rh, ...
                          Ro(1), beta*Lx(1)/f0, betash, ...
                          Lbetash./run.bathy.L_shelf, ...
-                         phi, chi, hsb./Lz(itsl), bathy.S_sh, Lbetash/1000, Ldefsh/Lbetash));
+                         phi, chi, hsb./Lz(itsl), bathy.S_sh, Lbetash/1000, Ldefsh/Lbetash, Lf/1000));
             continue;
         end
 
@@ -898,7 +906,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                     fid = fopen(args, 'w');
                     fprintf(fid, ['|- \n | Name | $L$ (km) | $L_z$ (m) | $\\Ro$ | $\\lambda$ | $L\\sh$ (km) | ' ...
                                   '$L\\sl$ (km) | $S\\sh$ | $S\\sl$ | $N^2$ | $f_0$ | $\\beta$' ...
-                                  '| $r$ (m/s) | \n |- \n']);
+                                  '| $r_f$ (m/s) | \n |- \n']);
                     fclose(fid);
                 end
                 fid = fopen(args, 'a');
@@ -925,7 +933,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                                   '|  | $L$ (km) | $L\\slo$ | $L_z$ (m) | $H_\\text{max}$ (m)| $H$ (m)| ' ...
                                   ' $\\Ro$ | $\\Rh$ | ' ...
                                   '$L\\slo$ (km) | $N^2$ | $f_0$ | $\\beta$ | $\\alpha_\\text{sl}$ ' ...
-                                  '| $r$ (m/s) | \n |- \n']);
+                                  '| $r_f$ (m/s) | \n |- \n']);
                     fclose(fid);
                 end
                 fid = fopen(args, 'a');
@@ -940,6 +948,8 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             % sloping shelf runs
             if strfind(args, 'sh')
 
+                Lf = bathy.L_shelf.^2 / (run.params.misc.rdrg/fsb/bathy.sl_shelf);
+
                 [start,stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
                 t0 = start;
                 tend = stop;
@@ -950,24 +960,25 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 Lbetash = sqrt(V(1)/(betash-beta));
 
                 phi = hsb./(V0./bathy.S_sh/N);
-                chi = (2/sqrt(pi)*exp(-(hsb/Lz0)^2) * V0/Lz0)/(bathy.S_sl*N);
+                %chi = (2/sqrt(pi)*exp(-(hsb/Lz0)^2) * V0/Lz0)/(bathy.S_sl*N);
                 if ff == 1
                     fid = fopen(args, 'w');
                     fprintf(fid, ['|-\n| %10s | %5s | %4s | %4s | %8s | %5s |' ...
-                                  '%6s | %6s | %4s | %5s | %5s | %3s |\n|-\n'], ...
-                            '', '$\\Rh$', '$\\Ro$', '$\\beta$', '$\\beta\\shl$', ...
-                            '$\\phi$', '$\\chi$', '$\\lambda$', '$\\Ssh$', '$L_\\text{rh}$', ...
-                            '$L_\\text{def}$', '$r$');
+                                  '%6s | %6s | %4s | %5s | %5s | %3s | %5s | \n|-\n'], ...
+                            '', '$\Rh$', '$\Ro$', '$\beta$', '$\beta\shl$', ...
+                            '$\phi_o$', '$\lambda$','$\Ssl$', '$\Ssh$', '$L_\text{rh}$', ...
+                            '$L_\text{def}$', '$r_f$', '$L\atw$');
                     fclose(fid);
                 end
                 fid = fopen(args, 'a');
                 fprintf(fid, ['| %10s | %5.2f | %4.2f | %1.1e |' ...
-                              '%.2e | %5.2f | %7.2f |  %5.2f | %0.2f | %5.2f |' ...
-                              '%5.2f | %1.1e |\n'], ...
+                              '%.2e | %5.2f | %7.2f |  %5.2f | %0.2f | %5.0f |' ...
+                              '%5.0f | %1.1e | %5.0f | \n'], ...
                         run.name, run.params.nondim.eddy.Rh, ...
                         Ro(1), beta, betash, ...
-                        phi, chi, hsb./Lz(itsl), bathy.S_sh, Lbetash/1000, Ldefsh/1000, ...
-                        run.params.misc.rdrg);
+                        phi, hsb./Lz(itsl), bathy.S_sl, bathy.S_sh, ...
+                        Lbetash/1000, Ldefsh/1000, ...
+                        run.params.misc.rdrg, Lf/1000);
             end
 
             fclose(fid);
@@ -1013,7 +1024,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         end
 
         if strcmpi(name, 'max flux') | strcmpi(name, 'avg flux')
-            default_factor = 2; % integrate to 2xHsb
+            default_factor = 1; % integrate to 2xHsb
 
             if isempty(args)
                 isobath = 1;
@@ -1034,7 +1045,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 end
             end
 
-            if ~isfield(run.csflux, 'off') | (isobath > size(run.csflux.off.slope, 3))
+            if ~isfield(run.csflux, 'off') | (isobath > size(run.csflux.vertbins, 2))
                 disp(['Skipping ' run.name]);
                 continue;
             end
@@ -1065,7 +1076,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
             [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
 
-            if hsb/Lz0 > 0.5 & run.bathy.sl_shelf == 0 ...
+            if hsb/Lz0 > 0.5  ...
                     | (strcmpi(run.name, 'ew-2041') & (isobath > 3)) ...
                     | strcmpi(run.name, 'ew-2043')
                 warning('skipping because splitting is probably happening.');
@@ -1083,7 +1094,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
             fluxscl = trapz(zvec(zind:end), trapz(xvec, vmask(:,zind:end), 1), 2);
 
-            debug_fluxes = 0;
+            debug_fluxes = 1;
             if debug_fluxes
                 disp(sprintf([name ' = %.2f mSv, fluxscl = %.2f mSv | ' ...
                              'V0 = %.2f m/s, L0 = %.2f km, Lz0 = %.2f m'], ...
@@ -1542,7 +1553,8 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             disp(['% error: ' num2str(round(100*err./diags))]);
 
             [P,stderror,MSE] = lscov(E, cut_nan(diags'), 1./cut_nan(err));
-            stderror = stderror * sqrt(1/MSE);
+            % The weights are *not* the exact covariance matric of B
+            %stderror = stderror * sqrt(1/MSE);
             tval = abs(conft(0.05,length(diags)));
             Perr = tval * stderror;
 
@@ -1722,7 +1734,7 @@ end
 
 % colorize points
 function [clr, ptName, marker] = colorize(run, ptName)
-    clr = 'k'; %[96 125 139]/255;
+    clr = [0 0 0]; %[96 125 139]/255;
     marker = '.';
 
     try

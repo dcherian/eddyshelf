@@ -131,6 +131,7 @@ folders = {'ew-4341', 'ew-34', 'ew-2341_wider'};
 if ~exist('ewflux', 'var'), ewflux = runArray(folders); end
 N = length(folders);
 times = [180 300 275];
+opt = [];
 opt.rhocontourplot = 0;
 opt.csfluxplot = 1;
 opt.nocolorbar = 1;
@@ -138,7 +139,7 @@ opt.csdcontourplot = 0;
 opt.addvelquiver = 0;
 opt.csfluxIsobath = 1;
 clear handles
-lab = 'abc';
+lab = 'abcdef';
 
 figure;
 for ii=1:3
@@ -160,6 +161,7 @@ for ii=1:3
     axes(hax(ii)); caxis([-30 200]);
     handles(ii).htitle.String = ['(' lab(ii) ') \lambda = H_{sb}/L_z = ', ...
                         num2str(run.bathy.hsb/run.eddy.Lgauss(tres), '%.2f')];
+    handles(ii).htitle.FontSize = 22;
     handles(ii).hbathy{1}.ShowText = 'off';
     handles(ii).hbathy{2}.Color = 'w';
     handles(ii).hbathy{3}.Color = 'w';
@@ -170,6 +172,7 @@ for ii=1:3
     xlabel(''); hax(ii).XTickLabel = []; colorbar('off');
     axes(hax(N+ii));
     title(''); pbaspect([1 0.5 0.5]); hax(N+ii).Position(2) = 0.18;
+    htxtlabels(N+ii) = text(0.1, 0.1, ['(' lab(N+ii) ')'], 'Units', 'normalized');
 
     if ii ~= 1
         axes(hax(ii)); ylabel('');
@@ -212,6 +215,7 @@ hcb.Position(2) = 0.59; 0.5 + pos(4)/2;
 
 supax = suplabel('Along-shelf profile of cross-isobath transport at shelfbreak', 't');
 supax.Position(end) = 0.77;
+supax.Title.FontSize = 24;
 
 for ii=4:6
     hax(ii).Position(2) = 0.26;
@@ -262,8 +266,8 @@ export_fig -r300 -opengl -png -pdf -a2 images/paper2/ew-34-xzsection
 if ~exist('ew34', 'var')
     ew34 = runs('../topoeddy/runew-34/');
 end
-xx = [394 371 297 282 219 204]';
-yy = [70.5 70.5 46.5 66 91 108]';
+xx = [392 371 297 282 219 204]';
+yy = [68.5 70.5 46.5 66 91 108]';
 clear opt handles;
 opt.addvelquiver = 0;
 opt.csdcontourplot = 0;
@@ -387,11 +391,13 @@ if ~exist('ew34', 'var')
     ew34 = runs('../topoeddy/runew-34/');
 end
 
+opt = [];
+opt.drawtrack = 0;
+opt.drawcen = 0;
 opt.addvelquiver = 1;
 opt.rhocontourplot = 0;
 opt.csdcontourplot = 0;
 opt.dxi = 8; opt.dyi = 5;
-opt.normquiver = 1;
 
 tindex = 295;
 
@@ -407,27 +413,27 @@ hline.LineWidth = 2;
 uistack(handles.hcen, 'top');
 
 handles.hbathy{1}.ShowText = 'off';
-handles.hquiv.Color = [1 1 1]*1;
+%handles.hquiv.Color = [1 1 1]*1;
 handles.hquiv.LineWidth = 1.5;
-handles.hquiv.AutoScaleFactor = 0.5;
-handles.htlabel.Position(2) = 0.9;
-handles.htlabel.Position(1) = 0.75;
-handles.htlabel.Color = 'k';
+handles.hquiv.AutoScaleFactor = 6;
+handles.htlabel.Position(2) = 0.1;
+handles.htlabel.Position(1) = 0.04;
+handles.htlabel.Color = 'w';
 handles.htlabel.FontSize = 20;
-handles.htrack.delete;
 handles.hbathy{3}.Color = [1 1 1]*0;
 handles.hbathy{2}.Color = [1 1 1]*0;
 handles.hbathy{1}.Color = [1 1 1]*0;
-htitle = title('Cross shelf dye and velocity direction');
+htitle = title('Cross shelf dye and surface velocity vectors');
 htitle.FontSize = 26;
 ax(1).XTickLabel = {};
 ax(1).XLabel.String = '';
-handles.hcb.Position(1) = 0.82;
+handles.hcb.Position(1) = 0.83;
 handles.hcb.Position(2) = 0.55;
 handles.hcb.Position(4) = 0.34;
+caxis([-50 250])
 
 htxt = text(ew34.eddy.mx(tindex)/1000, ew34.eddy.my(tindex)/1000 - 5, ...
-            '  eddy center', 'Color', 'k', 'FontSize', 18, ...
+            '  eddy center', 'Color', 'w', 'FontSize', 18, ...
             'HorizontalAlignment', 'center');
 
 axes(ax(2));
@@ -440,7 +446,7 @@ ax(2).Position(4) = ax(2).Position(4) - dy;
 linkaxes([ax yyax], 'x');
 xlim([150 450]);
 ylabel('SSH (cm)');
-xlabel('X (km)');
+xlabel('Along-isobath, X (km)');
 ax(2).YTick(end) = [];
 
 hline2 = linex(ew34.eddy.mx(tindex)/1000, [], 'k');
@@ -491,6 +497,8 @@ folders = { ...
     'runew-8041', 'runew-8042',' runew-8150', 'runew-8151', ...
     ... %'runew-82342', 'runew-82343', 'runew-82344' ...
     'runew-8341', 'runew-8352', ...
+    'runew-8342-2', 'runew-8352-2', ...
+    ... %'runew-8384', 'runew-8385', ...
     'runew-583411', 'runew-583413', ...
     'runew-8383', ...
           };
@@ -501,22 +509,27 @@ commands = 'no_sloping_shelf; no_name_points';
 
 figure; maximize;
 hax(1) = subplot(3,1,1);
+cla('reset');
 csf.print_diag('avg flux', [1 1], hax(1), commands);
 %ggplot;
 title(''); ylabel(''); xlabel('');
-xlim([0 1000]);
+ylim([0 100]);
+xlim([0 500]);
 
 hax(2) = subplot(3,1,2);
+cla('reset');
 csf.print_diag('avg flux', [5 1], hax(2), commands);
 %ggplot;
 title('');
+xlim([0 500]);
+ylim([0 150]);
 hax(2).YLabel.Position(2) = 200;
-xlim([0 450]);
+hax(2).XLabel.String = 'Flux at eddy center, Q (mSv)';
 
 hax(3) = subplot(3,1,3);
 param = load('./params/param_avg flux.mat');
 cmagn = 10^(orderofmagn(param.intercept(1)));
-cmagn = 1/(cmagn)^2;
+cmagn = 100; 1/(cmagn)^2;
 mlegstr = 'Slope';
 if cmagn == 1
     clegstr = 'c';
@@ -532,22 +545,20 @@ errorbar(csf.array(1).csflux.ndloc(param.isobath), ...
          'Color', [1 1 1]*0.55, 'LineWidth', 2, 'MarkerSize', 20);
 xlabel('Location (y/R)');
 xlim([-0.05 2]);
-hax(3).YTick = sort([hax(3).YTick min(param.slope) max(param.slope)]);
+ylim([-0.1 0.5]);
 correct_ticks('y', '%.2f', []);
 liney(0);
 legstr = {mlegstr; clegstr};
-hax(3).YTick(end-1) = [];
-%hax(3).Position(1) = 0.68;
-htxt.delete;
-htxt(1) = text(1.5,0.30,'Slope (m)', 'FontSize', 16, 'HorizontalAlignment', 'center');
-htxt(2) = text(1.5,0.06,{'y-intercept'; '(c/100)'}, 'FontSize', 16, ...
+htxt(1) = text(1.52,0.30,'Slope (m)', 'FontSize', 18, 'HorizontalAlignment', 'center');
+htxt(2) = text(1.52,0.08,{'y-intercept'; '(c/100)'}, 'FontSize', 18, ...
                'Color', [1 1 1]*0.55, 'HorizontalAlignment', 'center');
-ylim([-0.1 0.35]);
-xlim([0 2]);
-beautify([18 20 22]); pbaspect([1.615 1 1]);
+%hax(3).YTick = sort([hax(3).YTick min(param.slope) max(param.slope)]);
+%hax(3).YTick(end-1) = [];
+beautify; pbaspect([1.615 1 1]);
 
 hax(1).Title.String = 'Integrated to shelfbreak depth';
 hax(2).Position(2) = 0.45;
+hax(1).XTickLabel = {};
 
 export_fig -a2 -r300 images/paper2/avgflux-summary.png
 
@@ -788,7 +799,10 @@ opt.csdcontourplot = 0;
 opt.rhocontourplot = 0;
 handles = ew2360.secondary_vortices(95, [xx yy], opt);
 handles.hax(3).YLabel.String = 'Depth, Z (m)';
+handles.hax(3).XLabel.String = handles.hax(3).XLabel.String(4:end);
 handles.htxt(2,3).VerticalAlignment = 'top';
+handles.hl(2,1).XData = handles.hax(3).XLim;
+
 export_fig(handles.hax(3), '-r300', '-a2', ...
            'images/paper2/ew-2360-secondary-cyclone-rho.png');
 

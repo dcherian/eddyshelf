@@ -225,7 +225,7 @@ function [] = csfluxes(runs, ftype)
     end
 
     % loop over all isobaths
-    for kk=1:1 %length(indices)
+    for kk=1:length(indices)
         disp(['Doing isobath ' num2str(kk) '/', ...
               num2str(length(indices))]);
 

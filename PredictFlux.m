@@ -1,92 +1,62 @@
-function [] = PredictFlux()
+function [Flux, FluxError] = PredictFlux(phys,eddy,flux)
 % Predict flux based on provided parameters
 
-    % physical properties
-    phys.ShelfSlope = 8e-3; % shelf slope (m/m)
-    phys.f0 = 2*(2*pi/86400)*sind(38); % Coriolis parameter (1/s)
-    phys.hsb = 100; % Shelfbreak depth (m)
-    phys.ShelfDensity = []; % densest shelf water
-    phys.RhoBackground = []; % Background density in slope water
+    if ~exist('phys', 'var')
+        % physical properties
+        phys.f0 = 2*(2*pi/86400)*sind(38); % Coriolis parameter (1/s)
+    end
 
-    % eddy properties
-    eddy.V0 = 2; % maximum velocity in eddy (m/s)
-    eddy.L0 = 70e3; % horizontal scale (m)
-    eddy.Lz0 = 700; % vertical scale (m)
-    eddy.sign = -1; % Anticyclone = -1, cyclone = +1
+    if ~exist('eddy', 'var')
+        % eddy properties
+        eddy.V0 = 2; % maximum velocity in eddy (m/s)
+        eddy.L0 = 70e3; % horizontal scale (m)
+        eddy.Lz0 = 700; % vertical scale (m)
+    end
 
-    % flux properties
-    flux.IntegrationDepth = 200; % depth to which to integrate (m)
-    flux.IsobathLocation = 0e3; % from shelfbreak (m)
-    flux.IsobathDepth = 100; % (m)
+    if ~exist('flux', 'var')
+        % flux properties
+        flux.IntegrationDepth = 100; % depth to which to integrate (m)
+        flux.IsobathLocation = 0e3; % from shelfbreak (m)
+        flux.IsobathDepth = 100; % (m)
+    end
 
     plot_mask = 0; % plot mask?
 
-    [v,mask,rho,xvec, zvec] = makeEddyStreamerSection(phys, eddy, flux, plot_mask);
+    [v,mask,xvec, zvec] = makeEddyStreamerSection(phys, eddy, flux, plot_mask);
 
     zind = find_approx(zvec, -1 * abs(flux.IntegrationDepth));
     Flux = trapz(xvec, trapz(zvec(zind:end), v(:,zind:end) .* mask(:,zind:end), 2), 1);
 
     yoR = [0 0.17 0.33 0.5 0.67 0.83 1 1.17];
-    RegressionSlopes = [0.08 0.08 0.13 0.16 0.18 0.21 0.23 0.25];
-    Uncertainty = [0.01 0.01 0.02 0.03 0.03 0.03 0.03 0.03];
+    %RegressionSlopes = [0.02 0.12 0.16 0.2 0.24 0.26 0.28 0.3];
+    %Uncertainty = [0.0 0.01 0.02 0.03 0.03 0.03 0.03 0.03];
+    RegressionSlopes = [0.11  0.1161 0.1628 0.2026 0.2409 0.2600 0.2830 0.3054];
+    Uncertainty = [0.03 0.0213 0.0298 0.0354 0.0369 0.0338 0.0338 0.0359];
+    % flat shelf: 0.1394 ± 0.0225
 
     Slope = interp1(yoR, RegressionSlopes, flux.IsobathLocation./eddy.L0);
     Error = interp1(yoR, Uncertainty, flux.IsobathLocation./eddy.L0);
 
-    fprintf('Flux is %0.2f ± %0.2f Sv\n', Flux * Slope/1e6, Flux * Error/1e6);
+    Flux = Flux * Slope;
+    FluxError = Flux * Error;
+
+    fprintf('Flux is %0.2f ± %0.2f Sv\n', Flux/1e6, FluxError/1e6);
 end
 
-function [v, mask, rho, xvec, zvec] = makeEddyStreamerSection(phys, eddy, flux, plot_mask)
+function [v, mask, xvec, zvec] = makeEddyStreamerSection(phys, eddy, flux, plot_mask)
 
-    zvec = linspace(-1*abs(flux.IsobathDepth), 0, 50);
+    zvec = linspace(-1*abs(flux.IsobathDepth), 0, 80);
     xvec = linspace(-5*eddy.L0,0,100);
 
     % normalized grid matrices to create mask
     [xmat, zmat] = ndgrid(xvec/eddy.L0, zvec/eddy.Lz0);
 
-    RhoAmp = eddy.sign * eddy.V0 * phys.f0 * 1025/9.81 * eddy.L0/eddy.Lz0;
-    y0oL = (eddy.L0 - flux.IsobathLocation)/eddy.L0;
+    % eddy velocity field at latitude (cross-isobath location) of eddy center
+    v = -2.3 * eddy.V0 * xmat .* exp(-xmat.^2) .* (1-erf(-zmat));
 
-    % eddy fields
-    v = 2.3 * eddy.sign * eddy.V0 * xmat .* exp(-xmat.^2) .* (1-erf(-zmat));
-    rho = RhoAmp .* exp(-xmat.^2 - y0oL^2) .* exp(-zmat.^2);
+    eddymask = ((xmat.^2 + zmat.^2) > 1.0^2);
 
-    if isempty(phys.RhoBackground)
-        width = phys.hsb;
-    end
-    xline = 0;
-
-    if flux.IsobathLocation < 2000
-        % if close to shelfbreak use barotropic mask
-        % account for sloping shelf by integrating only
-        % to Rhines length scale (L_β). This needs to be
-        % normalized by L0, of course.
-        % I use x/L = -1 as a reference for where there is almost
-        % no velocity. So, starting at -1, integrate a distance of L_β.
-        % So, mask is x/L < -(1-L_β)
-        % If no shelf slope, L_β is set to 1, so that I integrate over all
-        % offshore flow.
-        if phys.ShelfSlope ~= 0
-            betash = phys.f0/phys.hsb * phys.ShelfSlope;
-            Lbeta = sqrt(eddy.V0/betash) / eddy.L0;
-
-            disp(['Rhines scale, L_beta = ' num2str(Lbeta * eddy.L0/1000, '%.1f') 'km']);
-
-            if Lbeta > 1
-                % for gentle slopes, I shouldn't do anything.
-                Lbeta = 1;
-            end
-        else
-            Lbeta = 1;
-        end
-
-        mask = xmat < -(1-Lbeta);
-    else
-        eddymask = ((xmat.^2 + zmat.^2) > 1.0^2) .* (zmat < -width);
-        kinkmask = ((xmat.^2 + zmat.^2) > 0.5) .* (zmat >= -width);
-
-        mask = (xmat < xline) & (eddymask | kinkmask);
-    end
+    mask = (xmat < 0) & (eddymask);
 
     if plot_mask
         figure;

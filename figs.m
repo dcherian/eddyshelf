@@ -367,6 +367,31 @@ opt.maskcontour = 0;
 xy.array(1).PlotSingleYZSection('rho', '500');
 xy.array(3).PlotSingleYZSection('csdye', '200');
 
+
+%% f/h contours
+
+clim = [0 1e-6];
+figure;
+run = xy.array(1);
+contour(run.rgrid.xr(:,1)/1000, run.rgrid.yr(1,:)/1000, ...
+          (run.rgrid.f'./run.bathy.h)', 'b');
+hold on;
+contour(run.rgrid.xr(:,1)/1000, run.rgrid.yr(1,:)/1000, run.bathy.h', 'k');
+plot(run.eddy.mx/1000, run.eddy.my/1000);
+legend('f/h', 'h', 'eddy track');
+export_fig -a4 -r150 images/xy-shallow-f-h.png
+
+% figure;
+% run = xy.array(3);
+% pcolorcen(run.rgrid.xr(:,1), run.rgrid.yr(1,:), ...
+%           (run.rgrid.f'./run.bathy.h)');
+% colorbar;
+% caxis(clim);
+
+xy.filter = [1 3];
+xy.plot_ts('run.eddy.fcen/run.eddy.hcen''');
+
+
 %%
 figure;
 hax(1) = subplot(221);
@@ -611,4 +636,49 @@ end
 axes(handles.hax(3));
 colorbar('off');
 
-export_fig -r150 images/thesis/cyclone-xzsections.png
+handles.hax(2).YLim = handles.hax(1).YLim;
+handles.hax(2).YTick = handles.hax(1).YTick;
+
+correct_ticks('y', [], {'-103'}, handles.hax([1 3]));
+handles.hax(2).YTickLabelMode = 'auto';
+correct_ticks('y', [], {'-103'}, handles.hax(2));
+handles.hax(4).YTick(4) = [];
+
+handles.hcb(4).Ticks = sort(handles.hcb(4).Ticks * -1);
+handles.hcb(4).TickLabels{2} = 'Slope Water';
+handles.hcb(4).TickLabels{3} = 'Eddy Water';
+
+export_fig -r150 -a4 -opengl images/thesis/cyclone-xzsections.png
+
+%% ew-4341 evolution
+if ~exist('ew', 'var') | ~strcmpi(ew.name, 'ew-4341')
+    ew = runs('../topoeddy/runew-4341/');
+end
+
+opt = [];
+opt.rhocontourplot = 0;
+handles = ew.animate_field('rho', [], '205', 1, opt);
+handles.hbathy{2}.Color = 'w';
+handles.hbathy{3}.Color = 'w';
+ylim([0 400]);
+xlim([50 600]);
+correct_ticks('y', [], {'100'});
+title('Surface \rho | \lambda \approx 0.1');
+
+export_fig -r150 -a2 images/thesis/ew-4341-waves.png
+
+%% hovmoeller 04, 8041
+ew = runArray({'ew-04', 'ew-8041'});
+
+figure;
+hax = packfig(1,2);
+ew.array(1).hovmoeller('zeta', 'y', 'sb', [], hax(1));
+ew.array(2).hovmoeller('zeta', 'y', 'sb', [], hax(2));
+linkaxes(hax, 'xy');
+ylim([0 350]);
+axes(hax(1)); caxis([-1 1]*2.5e-3); colorbar('off');
+axes(hax(2)); caxis([-1 1]*2.5e-3); legend('off');
+hax(2).YTickLabel = {};
+hax(2).YLabel.String = '';
+
+export_fig images/ew-04-8041-sbssh-hov.png

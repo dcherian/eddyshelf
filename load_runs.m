@@ -146,8 +146,10 @@ folders = { ...
           };
 sh = runArray(folders);
 
+figure; hold on;
 for ii=1:sh.len
-    sh.array(ii).avgSupplyJet;
+    %sh.array(ii).avgSupplyJet;
+    plot(sh.array(ii).supply.xscale, sh.array(ii).supply.xscaleZeta, 'x');
 end
 
 %% csflux
@@ -242,6 +244,7 @@ folders = { ...
           };
 sl = runArray(folders);
 
+
 for ii=1:sl.len
     tind = sl.array(ii).eddy.tscaleind;
     run = sl.array(ii);
@@ -268,8 +271,10 @@ for ii=1:sl.len
 end
 sl.sort(blf);
 
-for ii=1:3
-    sl.array(ii).asfluxes;
+for ii=1:sl.len
+    ii
+    sl.array(ii).name
+    sl.array(ii).CalculateLzUncertainty;
 end
 
 %%
