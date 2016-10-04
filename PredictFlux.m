@@ -1,19 +1,25 @@
 function [Flux, FluxError] = PredictFlux(phys,eddy,flux)
 % Predict flux based on provided parameters
 
-    if ~exist('phys', 'var')
+    if ~exist('phys', 'var') | isempty(phys)
         % physical properties
         phys.f0 = 2*(2*pi/86400)*sind(38); % Coriolis parameter (1/s)
     end
 
-    if ~exist('eddy', 'var')
+    if ~exist('eddy', 'var') | isempty(eddy)
         % eddy properties
-        eddy.V0 = 2; 1.2; % maximum velocity in eddy (m/s)
-        eddy.L0 = 70*sqrt(2)*1e3; 70e3; % horizontal scale (m)
+        % Wei et al. (2008)
+        eddy.V0 = 1.2; % maximum velocity in eddy (m/s)
+        eddy.L0 = 65e3; % horizontal scale (m)
         eddy.Lz0 = 1000; % vertical scale (m)
+
+        % Joyce et al. (1992)
+        % eddy.V0 = 1.8; % maximum velocity in eddy (m/s)
+        % eddy.L0 = 100e3; % horizontal scale (m)
+        % eddy.Lz0 = 1000; % vertical scale (m)
     end
 
-    if ~exist('flux', 'var')
+    if ~exist('flux', 'var') | isempty(flux)
         % flux properties
         flux.IntegrationDepth = 100; % depth to which to integrate (m)
         flux.IsobathLocation = 0e3; % from shelfbreak (m)
@@ -28,16 +34,6 @@ function [Flux, FluxError] = PredictFlux(phys,eddy,flux)
     Flux = trapz(xvec, trapz(zvec(zind:end), v(:,zind:end) .* mask(:,zind:end), 2), 1);
 
     yoR = [0 0.17 0.33 0.5 0.67 0.83 1 1.17];
-    % submission 1
-    %RegressionSlopes = [0.02 0.12 0.16 0.2 0.24 0.26 0.28 0.3];
-    %Uncertainty = [0.0 0.01 0.02 0.03 0.03 0.03 0.03 0.03];
-
-    % submission 2
-    %RegressionSlopes = [0.11  0.1161 0.1628 0.2026 0.2409 0.2600 0.2830 0.3054];
-    %Uncertainty = [0.03 0.0213 0.0298 0.0354 0.0369 0.0338 0.0338 0.0359];
-    % flat shelf: 0.1394 ± 0.0225
-
-    % submission 3
     RegressionSlopes =  [0.09 0.1477 0.2061 0.2530 0.3004 0.3274 0.3577 0.3861];
     Uncertainty = [0.03 0.0264 0.0355 0.0417 0.0434 0.0401 0.0404 0.0422];
 
