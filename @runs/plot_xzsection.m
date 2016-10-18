@@ -112,7 +112,8 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
         mask = ones(size(csvel));
     else
         mask = fillnan(bsxfun(@times, csdye < runs.csflux.x(isobath), ...
-                              runs.csflux.offmask(sx1:sx2,tindex,isobath)),0);
+                              1 ...%runs.csflux.offmask(sx1:sx2,tindex,isobath)
+                              ),0);
     end
 
     [zrho,~] = runs.predict_zpeak(isobath, 'detect');
