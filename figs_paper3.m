@@ -254,8 +254,8 @@ opt.rhocontourplot = 0;
 opt.csdcontourplot = 0;
 opt.dxi = 8; opt.dyi = 5;
 
-ew04.array(1).read_velsurf(find_approx(ew04.array(1).time, 169*86400, 1));
-ew04.array(1).read_csdsurf(find_approx(ew04.array(1).time, 169*86400, 1));
+ew04.array(1).read_velsurf(find_approx(ew04.array(1).time, 169*86400, 1), 1);
+ew04.array(1).read_csdsurf(find_approx(ew04.array(1).time, 169*86400, 1), 1);
 
 clear handles
 figure; maximize;
@@ -270,8 +270,8 @@ for ii=1:2
 
     handles(ii).hbathy{1}.ShowText = 'off';
     handles(ii).hquiv.Color = [1 1 1]*0;
-    handles(ii).hquiv.LineWidth = 1.5;
-    handles(ii).hquiv.AutoScaleFactor = 4.5;
+    handles(ii).hquiv.LineWidth = 1;
+    handles(ii).hquiv.AutoScaleFactor = 3.5;
     handles(ii).htlabel.Position(2) = 0.1;
     handles(ii).hbathy{1}.Color = [1 1 1]*0;
     handles(ii).hbathy{2}.Color = [1 1 1]*0;
@@ -285,6 +285,16 @@ for ii=1:2
         plotyy(run.rgrid.x_rho(1,:)/1000, run.vsurf(:, run.bathy.isb, tind), ...
                run.rgrid.x_rho(1,:)/1000, ...
                (run.csdsurf(:, run.bathy.isb, tind) - run.bathy.xsb)/1000);
+    hplt(ii,1).Color = 'k';
+    hold all;
+
+    dx = 1;
+    uavg = avg1(run.usurf(:, run.bathy.isb, tind));
+    lowerquiv(ii) = ...
+        quiver(run.rgrid.x_rho(1,2:dx:end-1)'/1000, zeros(size(run.rgrid.x_rho(1,2:dx:end-1)')), ...
+               zeros(size(run.rgrid.x_rho(1,2:dx:end-1)')), ...
+               run.vsurf(2:dx:end-1, run.bathy.isb, tind), 0, 'Color', 'k');
+
     hyy(ii,1).XLim = [170 400];
     hyy(ii,2).XLim = [170 400];
 
@@ -313,41 +323,57 @@ hax(2).YLabel.delete;
 hax(2).YTickLabel = {};
 hax(1).Title.String = 'a) Flat shelf | S_{sh} = 0';
 hax(2).Title.String = 'b) Sloping shelf | S_{sh} = 0.05';
-handles(1).hax.Title.FontSize = 26;
-handles(2).hax.Title.FontSize = 26;
+correct_ticks('y', [], {'0'}, hax(1));
 
 handles(1).supax.Position(4) = 0.73;
 handles(1).supax.Title.String = 'Surface cross-shelf dye (km)';
 handles(1).supax.Title.FontSize = 28;
 
+hax(3).YAxis.Color = 'k';
 hax(3).YLabel.String = {'Cross-isobath'; 'surface velocity (m/s)'};
 hax(3).YLabel.Color = hplt(1,1).Color;
 hax(3).XLabel.String = 'X (km)';
 hyy(2,2).YLabel.String = 'Cross-shelf dye - Y_{sb}';
 hyy(2,2).YLabel.Color = hplt(1,2).Color;
-hyy(2,2).XLabel.String = 'X (km)';
+hax(4).XLabel.String = 'X (km)';
 
 axes(hyy(1,1))
-htxt(1) = text(200, 0.04, 'offshore', 'Color', hplt(ii,1).Color);
-htxt(2) = text(200, -0.04, 'onshore', 'Color', hplt(ii,1).Color);
+htxt(1) = text(200, 0.02, 'offshore', 'Color', hplt(ii,1).Color);
+htxt(2) = text(200, -0.02, 'onshore', 'Color', hplt(ii,1).Color);
 
 axes(hyy(2,2));
 htxt(3) = text(320, 150, 'eddy water', 'Color', hplt(ii,2).Color);
-htxt(4) = text(320, -20, 'shelf water', 'Color', hplt(ii,2).Color);
+htxt(4) = text(175, 20, 'shelf water', 'Color', hplt(ii,2).Color);
+
+axes(hyy(1,1)); htxt(5) = text(0.05, 0.9, 'c)', 'Color', 'k', 'units', 'normalized', 'FontSize', 14);
+axes(hyy(2,2)); htxt(6) = text(0.05, 0.9, 'd)', 'Color', 'k', 'units', 'normalized', 'FontSize', 14);
+
+for ii=1:4
+    axes(hax(ii)); beautify([12.5 13 14]);
+    htxt(ii).FontSize = 13;
+end
+for ii=1:2
+    handles(ii).htlabel.FontSize = 13;
+end
+axes(hyy(2,2)); beautify([12.5 13 14]);
+
+for ii=1:2
+    for jj=1:2
+        axes(hyy(ii,jj));
+        pbaspect([2 1 1]);
+
+        hyy(ii,jj).Position(2) = 0.28;
+    end
+end
 
 axes(hax(2))
 hl = liney(37.5-12*1.37);
 hl.Color = [1 1 1]*0;
-hanno = annotation('doublearrow', [0.6 0.6], 0.615 + [0 0.04]);
-hanno.Head1Style = 'cback3';
-hanno.Head2Style = 'cback3';
-hanno.Head1Length = 7;
-hanno.Head2Length = 7;
-hanno.Head1Width = 7;
-hanno.Head2Width = 7;
-htxt = text(185, 30, '1.37L_\beta', 'Color', 'k', 'FontSize', 20);
+hannotxt = text(max(xlim), hl.YData(1), ' 1.37L_\beta', 'FontSize', 13);
 
-export_fig -opengl -r150 -a2 images/paper3/sbsnapshot-flat-sloping.png
+resizeImageForPub('portrait');
+
+export_fig -a1 -c[Inf,0,Inf,0] -r600  images/paper3/sbsnapshot-flat-sloping.png
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% flux summary
