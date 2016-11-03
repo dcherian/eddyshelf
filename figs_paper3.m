@@ -9,7 +9,7 @@ folders = { ...
     'ew-8392'... %, 'ew-8346', ...
     'ew-583411', 'ew-583413', ...
     'ew-583414', 'ew-583415', ...
-    ... %'ew-34';
+    'ew-34';
           };
 sh = runArray(folders);
 % 8361 is bad because it seems to be undergoing a different type of instability. more like
@@ -21,11 +21,24 @@ for ii=1:sh.len
             %    sh.array(ii).ShelfBaroclinicity;
 end
 
+fontSizes = [12.5 13 13];
 %% inflow/outflow vertical profiles
 sh.filter = [1:sh.len];
-handles = sh.PlotFluxVertProfiles;
+handles = sh.PlotFluxVertProfiles(fontSizes);
+hfig = gcf; hfig.Resize = 'off';
+hfig.Position(2) = 50;
+hfig.Position(4) = 800;
+resizeImageForPub('portrait');
+pos = handles.hcbar(1).Position;
+hanno(1) = annotation('line', ...
+                      [1 1]*pos(1), pos(2) + [0 pos(4)], ...
+                      'Color', 'k', 'Units', 'normalized');
+pos = handles.hcbar(2).Position;
+hanno(2) = annotation('line', ...
+                      [1 1]* (pos(1) + pos(3)/(3-1)*(1.5-1)), pos(2) + [0 pos(4)], ...
+                      'Color', 'k', 'Units', 'normalized');
 
-export_fig -r150 images/paper3/sb-vert-profiles.png
+export_fig -a1 -c[Inf,0,Inf,0] -r600 images/paper3/sb-vert-profiles.png
 
 %% fluxes
 sh.filter = [1 2 5:8 10:12];

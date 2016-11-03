@@ -1,8 +1,14 @@
-function [handles] = PlotFluxVertProfiles(runArray)
+function [handles] = PlotFluxVertProfiles(runArray, fontSizes)
+
+    if ~exist('fontSizes', 'var'), fontSizes = []; end
 
     isobath = 1;
 
-    figure; maximize;
+    redmap = brighten(cbrewer('seq', 'Reds', runArray.len), -0.5);
+    bluemap = brighten(cbrewer('seq', 'Blues', runArray.len), -0.6);
+    flatcolor = [0 0 0]; [27,158,119]/255;
+
+    figure; % maximize;
     insertAnnotation('runArray.PlotFluxVertProfiles');
     handles.hax(1) = subplot(121); hold on;
     handles.hax(2) = subplot(122); hold on;
@@ -10,11 +16,13 @@ function [handles] = PlotFluxVertProfiles(runArray)
     phio = runArray.print_params('bathy.hsb./(V0./bathy.S_sh/sqrt(phys.N2))');
     runArray.sort(phio);
     phio = runArray.print_params('bathy.hsb./(V0./bathy.S_sh/sqrt(phys.N2))');
+    set(handles.hax(2), 'ColorOrder', redmap);
 
-    corder_backup = runArray.sorted_colors;
+    % corder_backup = runArray.sorted_colors;
 
     kk = 1;
     axes(handles.hax(1));
+    colormap(handles.hax(1), redmap(1:end-4,:));
     for ii=1:length(runArray.array)
         run = runArray.array(ii);
 
@@ -34,11 +42,12 @@ function [handles] = PlotFluxVertProfiles(runArray)
         legstr1{kk} = num2str(phio(ii), '%.2f');
         handles.hplt1(kk) = plot(profile, zivec./hsb);
         if run.bathy.sl_shelf == 0
-            handles.hplt1(kk).Color = [1 1 1]*0;
+            handles.hplt1(kk).Color = flatcolor;
             hflat(1) = handles.hplt1(kk);
         end
         kk = kk+1;
     end
+
 
     % phii = runArray.print_params('(bathy.hsb./(V0./bathy.S_sl/sqrt(phys.N2)))');
     % chi = runArray.print_params(['(2/sqrt(pi)*exp(-(bathy.hsb/Lz0)^2)) *' ...
@@ -53,11 +62,11 @@ function [handles] = PlotFluxVertProfiles(runArray)
     ssl = runArray.print_params('bathy.S_sl');
     runArray.sort(ssl);
     ssl = runArray.print_params('bathy.S_sl');
+    set(handles.hax(2), 'ColorOrder', bluemap);
 
-    set(handles.hax(2), 'ColorOrder', ...
-                      brighten(cbrewer('seq', 'Blues', runArray.len), -0.6));
     kk = 1;
     axes(handles.hax(2)); hold on;
+    colormap(handles.hax(2), bluemap(1:end-4,:));
     for ii=1:length(runArray.array)
         run = runArray.array(ii);
 
@@ -81,47 +90,75 @@ function [handles] = PlotFluxVertProfiles(runArray)
         legstr2{kk} = num2str(ssl(ii), '%.1f');
         handles.hplt2(kk) = plot(profile, zivec./hsb);
         if run.bathy.sl_shelf == 0
-            handles.hplt2(kk).Color = [1 1 1]*0;
+            handles.hplt2(kk).Color = flatcolor;
             hflat(2) = handles.hplt2(kk);
         end
         kk = kk+1;
     end
 
-    legfontsize = 20;
+    if isempty(fontSizes)
+        legfontsize = 20;
+    else
+        legfontsize = fontSizes(1);
+    end
 
     axes(handles.hax(1));
     set(gca, 'XAxisLocation', 'Top');
     liney(-1);%ylim([-1 0]);
     limx = xlim;
     xlim([0 limx(2)]);
-    xlabel('a) Shelf water outflow (m^2/s)');
+    xlabel({'a) Shelf water outflow'; '(normalized transport)'});
     ylabel('Z / H_{sb}');
     axis square;
-    beautify;
-    handles.hleg(1) = columnlegend(2, legstr1, 'FontSize', legfontsize, 'Location', 'NorthWest');
-    handles.hleg(1).Position(1) = 0.15;
-    handles.hleg(1).Position(2) = 0.23;
-    handles.htxt(1) = text(0.23, -0.08, '\phi_o');
+    handles.hcbar(1) = colorbar('southoutside');
+    %    handles.hcbar(1).Position(2) = 0.1;
+    handles.hcbar(1).Box = 'off';
+    handles.hcbar(1).Label.String = '\phi_o';
+    caxis([min(phio) max(phio)]);
+    beautify(fontSizes);
+    % handles.hleg(1) = columnlegend(2, legstr1, 'FontSize', legfontsize-1, 'Location', 'NorthWest');
+    % handles.hleg(1).Position(1) = 0.15;
+    % handles.hleg(1).Position(2) = 0.23;
+    % legpos = handles.hleg(1).Position;
+    % handles.htxt(1) = text(legpos(1) + legpos(3), ...
+    %                        (legpos(2) + legpos(4))*1.2, ...
+    %                        '\phi_o', 'Units', 'normalized', ...
+    %                        'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom', ...
+    %                        'FontSize', legfontsize+2);
 
     axes(handles.hax(2));
     set(gca, 'XAxisLocation', 'Top');
     liney(-1);
     limx = xlim;
     xlim([0 limx(2)]);
-    xlabel('b) Eddy & slope water inflow (m^2/s)');
-    handles.hax(2).YTickLabels = {};
+    xlabel({'b) Eddy & slope water inflow';  '(normalized transport)'});
+    % handles.hax(2).YTickLabels = {};
     axis square;
-    beautify;
     linkaxes(handles.hax, 'y');
-    handles.hax(2).Position(1) = 0.5;
-    handles.hleg(2) = columnlegend(2, legstr2, 'FontSize', legfontsize);
-    handles.hleg(2).Position(1) = 0.77;
-    handles.hleg(2).Position(2) = 0.065;
-    %handles.htxt(2) = text(0.95, -0.5, '(\phi_i, \chi)');
-    handles.htxt(2) = text(0.95, -0.5, 'S_{sl}');
+    %handles.hax(2).Position(2) = 0.2;
 
-    hflat(1).LineWidth = 4;
-    hflat(2).LineWidth = 4;
+    handles.hcbar(2) = colorbar('southoutside');
+    %    handles.hcbar(2).Position(2) = 0.1;
+    handles.hcbar(2).Label.String = 'S_{sl}';
+    handles.hcbar(2).Box = 'off';
+    caxis([min(ssl) 3]);
+    beautify(fontSizes);
+
+    % handles.hleg(2) = columnlegend(2, legstr2, 'FontSize', legfontsize);
+    % handles.hleg(2).Position(1) = 0.75;
+    % handles.hleg(2).Position(2) = 0.1;
+    % legpos = handles.hleg(2).Position;
+    % handles.htxt(2) = text(legpos(1) + legpos(3)*1.25, ...
+    %                        legpos(2) + legpos(4)*0.9, ...
+    %                        'S_{sl}', 'Units', 'normalized', ...
+    %                        'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom', ...
+    %                        'FontSize', legfontsize+2);
+
+    %    linkprop(handles.hleg, 'FontSize');
+    % linkprop(handles.htxt, 'FontSize');
+
+    hflat(1).LineWidth = 3;
+    hflat(2).LineWidth = 3;
     uistack(hflat(1), 'top');
     uistack(hflat(2), 'top');
 end
