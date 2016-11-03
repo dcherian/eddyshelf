@@ -802,12 +802,12 @@ classdef runArray < handle
                 if axname == 'y'
                     %hplt(ii) = plot(xi/1000, vm);
                     %plot(xi(ind)/1000, vm(ind), 'x', ...
-                    hpltsh(ii) = plot(xi(1:ind)/1000, vm(1:ind), 'LineWidth', 4);
-                    hplted(ii) = plot(xi(ind:end)/1000, vm(ind:end), 'Tag', 'dcline');
+                    hpltsh(ii) = plot(xi(1:ind)/1000, vm(1:ind));
+                    hplted(ii) = plot(xi(ind:end)/1000, vm(ind:end), '--');
                     linkprop([hpltsh(ii) hplted(ii)], 'Color');
                 else
-                    hpltsh(ii) = plot(vm(1:ind), xi(1:ind)/1000, 'LineWidth', 4);
-                    hplted(ii) = plot(vm(ind:end), xi(ind:end)/1000, 'Tag', 'dcline');
+                    hpltsh(ii) = plot(vm(1:ind), xi(1:ind)/1000);
+                    hplted(ii) = plot(vm(ind:end), xi(ind:end)/1000, '--');
                     linkprop([hpltsh(ii) hplted(ii)], 'Color');
                 end
 
@@ -839,15 +839,11 @@ classdef runArray < handle
             handles.hleg = legend(hplted, names, 'Location', 'NorthWest');
             beautify;
 
-            for ii=1:length(hpltsh)
-                hpltsh(ii).LineWidth = 3;
-            end
-
             hl = linex(0);
             if ~strcmpi(varname, 'zeta'), hl(2) = liney(0); end
 
-            handles.htxt(1) = text(0.1,0.2, 'shelf water', 'units', 'normalized');
-            handles.htxt(2) = text(0.6,0.2, 'eddy/slope water', 'units', 'normalized');
+            % handles.htxt(1) = text(0.1,0.2, 'shelf water', 'units', 'normalized');
+            % handles.htxt(2) = text(0.6,0.2, 'eddy/slope water', 'units', 'normalized');
 
             handles.hpltsh = hpltsh;
             handles.hplted = hplted;

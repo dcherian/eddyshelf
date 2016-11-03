@@ -211,8 +211,8 @@ if ~exist('ew04', 'var')
     ew04 = runArray({'ew-04', 'ew-8041'});
 end
 
-ew04.name = {'flat shelf'; 'sloping shelf'};
-figure; maximize;
+ew04.name = {'Flat shelf'; 'Sloping shelf'};
+figure;
 % hax(1) = subplot(121); hold on;
 % ew34.plot_avgProfile('zeta', 1, 'y', 'sb', 1, hax(1));
 % title('Mean SSH at shelfbreak (normalized)');
@@ -221,10 +221,13 @@ figure; maximize;
 cla('reset');
 hax = gca;
 ew04.plot_avgProfile('zeta', 0, 'y', 'sb', 1, hax, 'center');
-title('Mean SSH at shelfbreak (m)');
-pbaspect([1.617 1 1]);
 ylabel('');
-export_fig -r120 images/paper3/sb-ssh-ew04-flat-sloping.png
+title('   Mean shelfbreak SSH (m)');
+beautify([12 12.5 13]);
+pbaspect([4 1 1]);
+resizeImageForPub('portrait');
+
+export_fig -a1 -r600 -c[Inf,0,Inf,0] images/paper3/sb-ssh-ew04-flat-sloping.png
 
 %% compare flat and sloping
 if ~exist('ew04', 'var')
