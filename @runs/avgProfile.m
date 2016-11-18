@@ -93,9 +93,9 @@ function [varmean,maskmean,xivec, varmaskedmean] = ...
     % only average when eddy has penetrated shelf.
     start = find(~isnan(mx) == 1, 1, 'first');
     varmean = nanmean(vari(:,start:stop), 2);
-    varmaskedmean = nanmean(varmaski(:,start:stop), 2);
     if mask
         maskmean = nanmean(maski(:,start:stop), 2) > runs.bathy.xsl;
+        varmaskedmean = nanmean(varmaski(:,start:stop), 2);
     else
         maskmean = ones(size(varmean));
     end
