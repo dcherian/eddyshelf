@@ -1042,6 +1042,12 @@ classdef runArray < handle
                 bathy = run.bathy;
                 eddy = run.eddy;
 
+                try
+                    [start,stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
+                catch ME
+                    disp(ME);
+                end
+
                 eval(['vec = ' tsname ';']);
 
                 if isempty(tname)
