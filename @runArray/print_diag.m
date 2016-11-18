@@ -215,24 +215,25 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         % shelfbreak SSH decay scale
         if strcmpi(name, 'sbssh')
 
+            if isinf(bathy.Lbetash), continue; end
             [start,stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
             t0 = start;
             tend = stop;
 
             [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
 
-            diags(ff) = abs(run.sbssh.X/1000);
+            diags(ff) = 2*abs(run.sbssh.X/1000);
             plotx(ff) = L0/1000;
 
             conf = confint(run.sbssh.fitobj);
-            err(1,ff) = abs(abs(conf(1,2)/1000)-diags(ff));
+            err(1,ff) = abs(abs(2*conf(1,2)/1000)-diags(ff));
 
             parameterize = 1;
             errorbarflag = 1;
             name_points = 1;
 
             labx = 'Eddy radius (km)';
-            laby = 'Shelf-water SSH decay scale at shelfbreak';
+            laby = {'Shelf-water SSH along-shelf'; 'decay scale at shelfbreak'};
         end
 
         %%%%% rhines scale
@@ -1494,12 +1495,12 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                      'VerticalAlignment','Bottom');
             end
             if ff == 1 | isnan(diags(1))
-                if strfind(labx, '$')
+                if ~iscell(labx) & strfind(labx, '$')
                     xlabel(labx, 'interpreter', 'latex');
                 else
                     xlabel(labx);
                 end
-                if strfind(laby, '$')
+                if ~iscell(laby) & strfind(laby, '$')
                     ylabel(laby, 'interpreter', 'latex')
                 else
                     ylabel(laby);
