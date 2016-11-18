@@ -1,3 +1,5 @@
+% Fit tanh to masked avgProfile of SSH at shelfbreak. Save in sbssh.
+% 2*sbssh.X should be an along-shelf length scale of shelf water outflow at the shelfbreak
 function [] = ShelfbreakSSHScale(runs)
 
     [varmean, maskmean,xivec,prof] = runs.avgProfile('zeta', runs.bathy.axis, 'sb', 1);
@@ -8,7 +10,8 @@ function [] = ShelfbreakSSHScale(runs)
         prof = prof./prof(ind)
     end
 
-    [y0,X,x0,y1,conf,fitobj] = tanh_fit(xivec(10:ind), prof(10:ind), 1);
+    prof(ind:end) = prof(ind-1); % flat-line downstream of shelf-eddy water front
+    [y0,X,x0,y1,conf,fitobj] = tanh_fit(xivec(10:end), prof(10:end), 1);
     title(runs.name);
 
     sbssh.X = X;
@@ -21,5 +24,6 @@ function [] = ShelfbreakSSHScale(runs)
 
     save([runs.dir '/sbssh.mat'], 'sbssh');
 
+    disp(['Shelfbreak ΔSSH scale = ' num2str(abs(X/1000), '%.1f') ' km']);
     runs.sbssh = sbssh;
 end
