@@ -19,3 +19,11 @@ tags
 videos/
 runs/
 presentations/
+/*MATLAB*
+/.projectile
+/.ipynb_checkpoints/*
+/.ipynb_checkpoints/
+/images/*
+/data/*
+/params/*
+/backup/*
