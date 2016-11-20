@@ -1,6 +1,8 @@
 % Returns [supply jet width, error on supplpy jet width, eddy penetration width]
 function [supply, errsupp, eddyonshelf] = SupplyJetEddyonShelf(runs)
 
+    xsb = runs.bathy.xsb;
+
     % eddy penetration on shelf
     dz = diff(runs.supply.zmat, 1, 2);
     csdint = sum(dz .* avg1(runs.supply.csdmean,2), 2)./sum(dz,2);
