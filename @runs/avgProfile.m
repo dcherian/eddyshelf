@@ -42,16 +42,6 @@ function [varmean,maskmean,xivec, varmaskedmean] = ...
 
     [start,stop] = runs.flux_tindices(runs.csflux.off.slope(:,1,1));
 
-    % make sure weird splitting doesn't screw things up
-    % especially with ew-04
-    % This fixes some weird pattern where 8041 was showing higher ΔSSH than ew-04 earlier
-    mvx = smooth(runs.eddy.mvx, 40);
-    if any(mvx(start:stop) > 0)
-        stop = find(mvx >= 0, 1, 'first') - 20;
-        warning([runs.name ...
-                 ' | correcting stop because eddy is moving backwards']);
-    end
-
     [var, xax, yax]  = dc_roms_read_data(runs, varname, [], vol);
     % restrict to unique time indices
     [tvec, uind] = unique(runs.eddy.t);

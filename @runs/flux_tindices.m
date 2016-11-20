@@ -17,4 +17,14 @@ function [start, stop] = flux_tindices(runs, flux, whenstart, whenstop)
     % Sep 09, 2015: change from 0.02 because of 3341-2-big
     start = find_approx(abs(itrans), whenstart * max(abs(itrans)), 1);
     stop = find_approx(abs(itrans), whenstop * max(abs(itrans)), 1);
+
+    % make sure weird splitting doesn't screw things up
+    % especially with ew-04
+    % This fixes some weird pattern where 8041 was showing higher ΔSSH than ew-04 earlier
+    mvx = smooth(runs.eddy.mvx, 40);
+    if any(mvx(start:stop) > 0)
+        stop = find(mvx >= 0, 1, 'first') - 20;
+        warning([runs.name ...
+                 ' | correcting stop because eddy is moving backwards']);
+    end
 end
