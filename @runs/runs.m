@@ -20,6 +20,8 @@ properties
     csvelname; asvelname;
     % vorticity budget
     vorbudget;
+    % volume budget
+    volume;
     % grid & bathymetry
     rgrid; bathy
     % float data
@@ -478,6 +480,14 @@ methods
             water = load([dir '/watermass.mat'], 'water');
             runs.water = water.water;
             clear water
+        end
+
+        % load volume budget data
+        if exist([dir '/volume.mat'],'file') && reset ~= 1 & ~reduced
+            disp('Loading volume budget');
+            volume = load([dir '/volume.mat'], 'volume');
+            runs.volume = volume.volume;
+            clear volume
         end
 
         % load vorticity budget data

@@ -74,6 +74,17 @@ function [handles] = VolumeBudget(runs)
 
     eddyeColor = runs.eddyeColormap;
 
+    volume.CrossIsobathSh = runs.csflux.off.slope(:,1,1);
+    volume.AlongIsobathSh = VolAlongIsobathSh;
+    volume.NetAlongIsobath = VolAlongIsobath;
+    volume.NetCrossIsobath = VolCrossIsobath;
+    volume.residual = VolCrossIsobath(indsb,:) + VolAlongIsobath(2,:)...
+        - VolAlongIsobath(1,:);
+    volume.hash = githash([mfilename('fullpath') '.m']);
+    save([runs.dir '/volume.mat'], 'volume');
+
+    runs.volume = volume;
+
     figure; maximize;
     insertAnnotation([runs.name '.VolumeBudget']);
     hold on;
@@ -94,8 +105,7 @@ function [handles] = VolumeBudget(runs)
     handles.lowsponge = plot(tvec, -1*VolAlongIsobath(1,:)', ...
                              'DisplayName', 'Along-shelf: low sponge');
     handles.residual = plot(tvec, ...
-                            VolCrossIsobath(indsb,:) + ...
-                            VolAlongIsobath(2,:) - VolAlongIsobath(1,:), ...
+                            volume.residual, ...
                             'Color', [1 1 1]*0.65, 'DisplayName', 'Budget residual');
     xlabel('Time (days)');
     ylabel('Total volume flux (m^3/s)');
