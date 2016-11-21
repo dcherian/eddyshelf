@@ -14,6 +14,10 @@ function [itfit, tfit, T, BadFitFlag, FitTimeSeries] = FitCenterVelocity(runs, d
 
     [~,imin] = min(cvy);
 
+    if strcmpi(runs.name, 'ew-8384')
+        % weird stuff at the end
+        [~,imin] = min(cvy(1:end-20));
+    end
     % OK default choice.
     % For some special cases (below), I set this to zero to get better results.
     % I think if the constant is ≳ 20% of max amplitude,
