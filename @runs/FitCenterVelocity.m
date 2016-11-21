@@ -8,12 +8,11 @@ function [itfit, tfit, T, BadFitFlag, FitTimeSeries] = FitCenterVelocity(runs, d
     % eddy center (SSH max) velocity
     cvy = sgn* runs.smoothCenterVelocity(5, 'max');
 
-    [~,imin] = min(cvy);
-    imin = imin;
     tvec = runs.eddy.t*86400;
-
     [tvec, uind] = unique(tvec);
     cvy = cvy(uind);
+
+    [~,imin] = min(cvy);
 
     % OK default choice.
     % For some special cases (below), I set this to zero to get better results.
