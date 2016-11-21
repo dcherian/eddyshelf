@@ -206,7 +206,7 @@ pos = hcb.Position;
 hcb.Label.String = 'Cross shelf dye - Y_{sb} (km)';
 
 axes(hax(2))
-htxt(3) = text(0.7, 0.9, '(Figure 1e)', 'Units', 'normalized', ...
+htxt(3) = text(0.7, 0.9, '(Figure 2e)', 'Units', 'normalized', ...
                'Color', 'k', 'FontSize', 16);
 hax(2).Position(2) = 0.51;
 
@@ -214,7 +214,7 @@ hcb.Position(1) = hax(2).Position(1); 0.5 - pos(3)/2;
 hcb.Position(2) = 0.59; 0.5 + pos(4)/2;
 
 supax = suplabel('Along-shelf profile of cross-isobath transport at shelfbreak', 't');
-supax.Position(end) = 0.77;
+supax.Position(end) = 0.79;
 supax.Title.FontSize = 24;
 
 for ii=4:6
