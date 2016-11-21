@@ -722,6 +722,10 @@ methods
             varname = runs.csdname;
         end
 
+        if strcmpi(in, 'ssh')
+            varname = 'zeta';
+        end
+
         if strcmpi(in, 'eddye')
             varname = runs.eddname;
         end
