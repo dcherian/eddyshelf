@@ -225,7 +225,7 @@ function [] = csfluxes(runs, ftype)
     end
 
     % loop over all isobaths
-    for kk=1:length(indices)
+    for kk=1:1 %length(indices)
         disp(['Doing isobath ' num2str(kk) '/', ...
               num2str(length(indices))]);
 
@@ -540,6 +540,24 @@ function [] = csfluxes(runs, ftype)
                 slopemask = (csdye < loc(ll));
             end
 
+            % at shelfbreak, I want to one purely onshore and purely offshore fluxes too.
+            % store this in runs.csflux.sb.off and runs.csflux.sb.on
+            % Remember offmask = onmask = spongemask at shelfbreak
+            if kk == 1
+                % first for shelf water moving offshore
+                runs.csflux.sb.off.shelfxt = ...
+                    squeeze(trapz(zvec, csvel .* slopemask .* (csvel>0), 2));
+                runs.csflux.sb.on.shelfxt = ...
+                    squeeze(trapz(zvec, csvel .* slopemask .* (csvel<0), 2));
+
+                runs.csflux.sb.off.shelf(t0:tinf) = ...
+                    squeeze(nansum( ...
+                        bsxfun(@times, runs.csflux.sb.off.shelfxt .* offmask, dx), 1))';
+                runs.csflux.sb.on.shelf(t0:tinf) = ...
+                    squeeze(nansum( ...
+                        bsxfun(@times, runs.csflux.sb.on.shelfxt .* onmask, dx), 1))';
+            end
+
             % transports - integrate in z - f(x,t)
             disp('Integrating in z...');
             runs.csflux.slopext(:,:,kk,ll) = squeeze(trapz(zvec, slopemask .* csvel,2));
@@ -673,6 +691,20 @@ function [] = csfluxes(runs, ftype)
                 [runs.csflux.on.itrans.slope(:,kk,ll), ...
                  runs.csflux.on.avgflux.slope(kk,ll)] = ...
                     runs.integrate_flux(time, runs.csflux.on.slope(:,kk,ll));
+            end
+
+            if kk == 1
+                runs.csflux.sb.off.nonshelfxt = ...
+                    squeeze(trapz(zvec, csvel .* slopemask .* (csvel>0), 2));
+                runs.csflux.sb.on.nonshelfxt = ...
+                    squeeze(trapz(zvec, csvel .* slopemask .* (csvel<0), 2));
+
+                runs.csflux.sb.off.nonshelf(t0:tinf) = ...
+                    squeeze(nansum( ...
+                        bsxfun(@times, runs.csflux.sb.off.nonshelfxt .* offmask, dx), 1))';
+                runs.csflux.sb.on.nonshelf(t0:tinf) = ...
+                    squeeze(nansum( ...
+                        bsxfun(@times, runs.csflux.sb.on.nonshelfxt .* onmask, dx), 1))';
             end
         end
     end
