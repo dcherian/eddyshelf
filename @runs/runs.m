@@ -480,6 +480,7 @@ methods
             water = load([dir '/watermass.mat'], 'water');
             runs.water = water.water;
             clear water
+            runs.CalcNonShelfWaterCensus;
         end
 
         % load volume budget data

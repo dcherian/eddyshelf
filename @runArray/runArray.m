@@ -779,6 +779,9 @@ classdef runArray < handle
             if ~exist('mask', 'var'), mask = 1; end
             if ~exist('reference', 'var'), reference = 'center'; end
 
+            if isempty(runArray.filter)
+                runArray.filter = [1:runArray.len];
+            end
             if ~exist('hax', 'var') | isempty(hax)
                 figure; hax = gca;
             else
@@ -1059,7 +1062,7 @@ classdef runArray < handle
                 try
                     tind = run.FitCenterVelocity; tind = tind(1);
                     if isfield(run.csflux, 'off')
-                        [~,maxloc] = run.calc_maxflux(2);
+                        [~,maxloc] = run.calc_maxflux(1);
                     end
 
                     handles.hplt(ff) = plot(ndtime, vec(1:run.eddy.tend));
@@ -1069,6 +1072,7 @@ classdef runArray < handle
                         handles.hmaxloc(ff) = plot(ndtime(maxloc), vec(maxloc), 'ko');
                     end
                 catch ME
+                    disp(ME);
                     if ~exist('handles', 'var') | length(handles.hplt) < ff
                         handles.hplt(ff) = plot(vec);
                     end

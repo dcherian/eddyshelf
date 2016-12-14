@@ -221,9 +221,10 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             tend = stop;
 
             [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
+            [supply, errsupp, eddyonshelf] = run.SupplyJetEddyonShelf;
 
             diags(ff) = 2*abs(run.sbssh.X/1000);
-            plotx(ff) = L0/1000;
+            plotx(ff) = supply/1000;
 
             conf = confint(run.sbssh.fitobj);
             err(1,ff) = abs(abs(2*conf(1,2)/1000)-diags(ff));

@@ -152,6 +152,24 @@ for ii=1:sh.len
     plot(sh.array(ii).supply.xscale, sh.array(ii).supply.xscaleZeta, 'x');
 end
 
+%%
+
+for ii=1:sl.len
+    try
+        pe = sl.array(ii).eddy.PE(:,1);
+    catch ME
+        continue;
+    end
+
+    pe = pe./pe(1);
+    pe = pe./max(pe);
+
+    if any(pe > 1)
+        disp([num2str(ii) ' | ' sl.array(ii).name ...
+             ' | ' num2str((max(pe) - 1)*100)]);
+    end
+end
+
 %% csflux
 folders = { ...
     'runew-04', 'runew-05', 'runew-06', ...
