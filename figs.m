@@ -682,3 +682,18 @@ hax(2).YTickLabel = {};
 hax(2).YLabel.String = '';
 
 export_fig images/ew-04-8041-sbssh-hov.png
+
+
+%% avg *unmasked* sbssh at shelfbreak
+ew.plot_avgProfile('zeta', 0, 'y', 'sb', 0);
+
+%% sbssh regression
+sh.print_diag('sbssh');
+
+%% eddy + slope inflow water
+ew = runArray({'ew-04', 'ew-8041', 'ew-34', 'ew-8341'});
+
+ew.plot_ts('run.csflux.on.slope(:,1,1)');
+
+%%
+ew5 = runArray({'ew-8350-2'; 'ew-8352-2'});

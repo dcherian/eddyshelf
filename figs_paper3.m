@@ -2,19 +2,21 @@
 folders = { ...
     'ew-8041', 'ew-8042', ...
     ... %'ew-8150', 'ew-8151', ...
-    'ew-82342', 'ew-82343', ... %'ew-82344' ...
+    ... %'ew-82342', 'ew-82343', ... %'ew-82344' ...
     'ew-8341', ...%'ew-8361', ...
     'ew-8352', 'ew-8352-2', 'ew-8342-2', ...
     'ew-8383', 'ew-8384', 'ew-8385', ...
     'ew-8392'... %, 'ew-8346', ...
-    'ew-583411', 'ew-583413', ...
-    'ew-583414', 'ew-583415', ...
-    'ew-34';
+    ... %'ew-583411', 'ew-583413', ...
+    ... %'ew-583414', 'ew-583415', ...
+    ... %'ew-34';
           };
 sh = runArray(folders);
+
 % 8361 is bad because it seems to be undergoing a different type of instability. more like
 % the really deep eddies. things are weird!
 for ii=1:sh.len
+    % sh.array(ii).ShelfbreakSSHScale;
     %    sh.array(ii).csfluxes;
     %    sh.array(ii).avgStreamerVelSection(1);
             %sh.array(ii).VolumeBudget;
@@ -244,7 +246,7 @@ export_fig -a1 -r600 -c[Inf,0,Inf,0] images/paper3/sb-ssh-ew04-flat-sloping.png
 
 %% compare flat and sloping
 if ~exist('ew04', 'var')
-    ew04 = runArray({'ew-04', 'ew-8041'});
+    ew04 = runArray({'ew-8350-2', 'ew-8352-2'});
 end
 
 opt.drawtrack = 0;
@@ -264,7 +266,7 @@ for ii=1:2
     run = ew04.array(ii);
     tind = find_approx(run.time, 169*86400, 1);
 
-    handles(ii) = run.animate_field('csdye', hax(ii), '169', 1, opt);
+    handles(ii) = run.animate_field('csdye', hax(ii), '200', 1, opt);
     xlim([170 400]);
     ylim([0 120]);
 
