@@ -27,14 +27,14 @@ function [handles] = EddyDiags(runs, hfig)
     %                       'ko', 'MarkerSize', 12);
     % handles.hfit(1) = plot(tvec(itfit), L(itfit)/1000, ...
     %                        'kx', 'MarkerSize', 12);
-    % handles.hlabel(1) = text(0.05,0.1,'a)','Units','normalized');
+    handles.hlabel(1) = text(0.05,0.1,'a)','Units','normalized');
     % %linex(tvec([itsl itfit]));
     % axes(axyy(2)); hold on
     handles.hsl(2) = plot(tvec(itsl), eddy.Lgauss(itsl), 'ko', 'MarkerSize', 12);
     handles.hfit(2) = plot(tvec(itfit), eddy.Lgauss(itfit), 'kx', 'MarkerSize', 12);
 
     %axyy(1).YLabel.String = 'Horizontal Scale, L_0 (km)';
-    axyy(2).YLabel.String = 'Vertical Scale, L_z (m)';
+    axyy(2).YLabel.String = 'Vertical Scale, L^z (m)';
     %axyy(1).YLabel.Color = hplt(1).Color;
     %axyy(2).YLabel.Color = hplt(2).Color;
     %axyy(1).XTickLabel = {};
