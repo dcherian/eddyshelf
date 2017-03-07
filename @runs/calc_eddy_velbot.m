@@ -15,8 +15,8 @@ function [] = calc_eddy_velbot(runs)
                avg1(v(2:end-1,:,:), 2).^2);
 
     %vel = avg1(u(:,2:end-1,:),1);
-    runs.eddy.Vb = squeeze(max(max(vel .* runs.eddy.mask,[], 1), ...
-                               [], 2))';
+    runs.eddy.Vb = squeeze(mean(mean(vel .* runs.eddy.mask, 1), ...
+                               2))';
 
     if debug
         eddbot = dc_roms_read_data(runs.dir, runs.eddname, [], {'z' 1 ...
