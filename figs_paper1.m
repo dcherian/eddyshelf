@@ -423,3 +423,52 @@ rh = runArray({'ew-64361-shallow', 'ew-64361-deep', ...
                'ew-6040', 'ew-6041', 'ew-6042', ...
                'ew-6050', 'ew-6051'})
 rh.print_diag('params table', 'images/paper1/sl-params-table-Rh.org');
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% bottom velocity
+if ~exist('ew','var') | ~strcmpi(ew.name, 'ew-64461-5')
+    ew = runs('../topoeddy/runew-64461-5/');
+end
+
+labels = 'abc';
+clear handles
+
+figure; maximize;
+hax(1) = subplot(2,2,[1 2]);
+plot(ew.eddy.t(85:end-45), ew.eddy.Vb(85:end-45));
+hold on;
+plot(ew.eddy.t(ew.traj.tind), ew.eddy.Vb(ew.traj.tind), ...
+     'kx', 'MarkerSize', 14);
+ylabel({'Mean bottom speed'; 'under eddy (m/s)'})
+xlabel('Time (days)');
+xlim([0 400]);
+hlab = text(0.1, 0.9, 'a)', 'Units', 'normalized', 'FontSize', 20);
+linex([148 297]);
+correct_ticks('x', [], {'150', '300'}, hax(1));
+ylim([0 5e-4]);
+beautify([20 22 24]);
+
+opt.drawarrest = 1;
+opt.limy = [0 250];
+opt.clim = [-1 1]*0.05;
+opt.addzeta =  1;
+
+hax(2) = subplot(2,2,3);
+handles(2) = ew.animate_field('ubot', hax(2), 100, 1, opt);
+correct_ticks('y', [], {'200'}, hax(2));
+handles(2).htlabel.String = ['b) ' handles(2).htlabel.String];
+handles(2).htlabel.FontSize = 20;
+caxis(opt.clim)
+title('u_{bottom} (m/s)');
+beautify([20 22 24]);
+
+hax(3) = subplot(2,2,4);
+handles(3) = ew.animate_field('ubot', hax(3), 200, 1, opt);
+handles(3).htlabel.String = ['c) ' handles(3).htlabel.String];
+handles(2).htlabel.FontSize = 20;
+correct_ticks('y', [], {'200'}, hax(3));
+caxis(opt.clim)
+title('u_{bottom} (m/s)');
+beautify([20 22 24]);
+
+export_fig -r150 -a2 images/paper1/bottom-vel.png
