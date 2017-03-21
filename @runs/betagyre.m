@@ -11,15 +11,6 @@ function [] = betagyre(runs, depth)
         runs.read_zeta;
         titlestr = 'SSH';
     else
-        if depth == 0
-            runs.read_velsurf;
-        else
-            [ugrid.xax, ugrid.yax, ugrid.zax,~,~,~] = ...
-                dc_roms_var_grid(runs.rgrid,'u');
-            [vgrid.xax, vgrid.yax, vgrid.zax,~,~,~] = ...
-                dc_roms_var_grid(runs.rgrid,'v');
-        end
-
         titlestr = '\psi';
     end
     if use_cartesian
@@ -31,44 +22,16 @@ function [] = betagyre(runs, depth)
     tic;
     for tt=1:2:size(runs.eddy.betagyre,3)
         if use_psi
-            if depth == 0
-                u = avg1(runs.usurf(:,2:end-1,tt), 1);
-                v = avg1(runs.vsurf(2:end-1,:,tt), 2);
-
-                iynan = 1;
-            else
-                % get z-slices of (u,v)
-                u = dc_roms_zslice_var( ...
-                    dc_roms_read_data(runs.dir, 'u', tt, ...
-                                      {}, [], runs.rgrid), ...
-                    depth, ugrid);
-                v = dc_roms_zslice_var( ...
-                    dc_roms_read_data(runs.dir, 'v', tt, ...
-                                      {}, [], runs.rgrid), ...
-                    depth, vgrid);
-
-                u = avg1(u(:,2:end-1), 1);
-                v = avg1(v(2:end-1,:), 2);
-                if tt == 1
-                    % exclude nans for psi computation
-                    iynan = find(isnan(v(1,:)) == 1, 1, 'last') + 1
-                end
-            end
-
-            xr = runs.rgrid.x_rho(1, 2:end-1)';
-            yr = runs.rgrid.y_rho(2:end-1, 1)';
-
-            var = nan([size(runs.eddy.betagyre, 1) ...
-                       size(runs.eddy.betagyre, 2)]);
-
-            [~, var(:,iynan:end)] = ...
-                flowfun(xr(:,1), yr(1, iynan:end), ...
-                        u(:,iynan:end), v(:,iynan:end), 'psi');
+            [var, iynan] = runs.streamfunction(tt, depth);
         else
-            var = runs.zeta(2:end-1,2:end-1,tt) ...
-                  - min(min(runs.zeta(2:end-1,2:end-1,tt), [], 1), [], 2);
+            iynan = 1;
+            var = runs.zeta(2:end-1,2:end-1,tt);
         end
 
+        % var = var - nanmin(nanmin(var, [], 1), [], 2);
+
+        xr = runs.rgrid.x_rho(1, 2:end-1)';
+        yr = runs.rgrid.y_rho(2:end-1, 1)';
         ix = find_approx(xr, runs.eddy.mx(tt));
         iy = find_approx(yr(iynan:end), runs.eddy.my(tt));
         xvec = xr - runs.eddy.mx(tt);

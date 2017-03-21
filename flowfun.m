@@ -13,7 +13,7 @@ function  [phi,psi] = flowfun(xv, yv, u,v,flag)
 %     A non-divergent flow can be described by the streamfunction
 %     alone, and the laplacian of the streamfunction is equal to
 %     vorticity (curl) of the velocity field.
-%     The stepsizes dx and dy are assumed to equal unity.
+%     The stepsizes dx and dy are assumed to equal unity for PHI.
 %   [PHI,PSI] = FLOWFUN(U,V), or in a complex form
 %   [PHI,PSI] = FLOWFUN(U+iV)
 %     returns matrices PHI and PSI of the same sizes as U and V,
