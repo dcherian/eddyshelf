@@ -20,7 +20,7 @@ function [] = betagyre(runs, depth)
     end
 
     tic;
-    for tt=1:2:size(runs.eddy.betagyre,3)
+    for tt=1:1:size(runs.eddy.betagyre,3)
         if use_psi
             [var, iynan] = runs.streamfunction(tt, depth);
         else
@@ -64,7 +64,7 @@ function [] = betagyre(runs, depth)
 
             var0int = interp2(xref0', yref0', var0', ...
                               xref, yref, 'spline');
-            BetaGyre = var - var0int * vmax(tt)/vmax(1);
+            BetaGyre = var - var0int * vamp(tt)/vamp(1);
 
             if tt == 1
                 BetaGyre0 = BetaGyre;
@@ -103,16 +103,20 @@ function [] = betagyre(runs, depth)
         clf;
         pcolorcen(xref/1000, yref/1000, BetaGyre);
         center_colorbar; shading interp;
-        L = 80;
+        L = 120;
         xlim([-1 1]*L); ylim([-1 1]*L);
         hold on;
-        contour(xref/1000, yref/1000, ...
-                runs.zeta(2:end-1, 2:end-1, tt), 20, 'k');
+        % contour(xref/1000, yref/1000, ...
+        % runs.zeta(2:end-1, 2:end-1, tt), 20, 'k');
+        contour(xref/1000, yref/1000, var, 20, 'k');
         plot(runs.eddy.mx/1000 - runs.eddy.mx(tt)/1000 - x0/1000, ...
              runs.eddy.my/1000 - runs.eddy.my(tt)/1000 - y0/1000, ...
              'b-');
         axis square;
-        title([titlestr ' | t = ' num2str(runs.eddy.t(tt)) ' days']);
+        betatimescale = 1/(runs.params.phys.beta*runs.params.eddy.dia/2)/86400;
+        title([titlestr ' | t = ' num2str(runs.eddy.t(tt)) ' days' ...
+               ' = ' num2str(runs.eddy.t(tt)/betatimescale, '%.2f') ' 1/(\beta L)']);
+        keyboard;
     end
     toc;
 end
@@ -123,7 +127,7 @@ function [x0, y0, v0x, v0y, exitx, exity] = FindCenter(xvec, yvec, var, ix, iy)
     vyvec = double(var(ix,:));
 
     % limit the region so that the fit works.
-    dxy = 30;
+    dxy = 100;
     rangex = max(1, ix-dxy):min(ix+dxy, length(vxvec));
     rangey = max(1, iy-dxy):min(iy+dxy, length(vyvec));
 
