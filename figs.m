@@ -697,3 +697,23 @@ ew.plot_ts('run.csflux.on.slope(:,1,1)');
 
 %%
 ew5 = runArray({'ew-8350-2'; 'ew-8352-2'});
+
+%%
+
+bvel = runArray({'ew-64461-5', 'ew-64461-8', 'ns-6362-2', 'xy-64461-8-shallow', 'ew-64361'});
+for ii=1:bvel.len
+    bvel.array(ii).calc_eddy_velbot;
+end
+
+bvel.plot_ts('eddy.Vb./eddy.V')
+
+%%
+
+N = sqrt(ew.params.phys.N2);
+beta = ew.params.phys.beta;
+f0 = ew.params.phys.f0;
+H = ew.traj.H;
+K = 1./(ew.params.eddy.dia/2);
+m = 1./(N*H/(pi/2)/f0);
+
+beta/(K^2 + m^2)*100 % cm/s ≈ km/day
