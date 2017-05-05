@@ -237,6 +237,45 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             laby = {'Shelf-water SSH along-shelf'; 'decay scale at shelfbreak'};
         end
 
+        %%%%% std(offshore flux profile)
+
+        if strcmpi(name, 'fluxprofilestd')
+
+            profile = run.FluxVertProfile(1);
+
+            [start,stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
+            t0 = start;
+            tend = stop;
+            [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
+
+            phi = hsb./(V0./bathy.S_sh/N);
+
+            diags(ff) = std(profile);
+            plotx(ff) = phi;
+
+        end
+
+        %%%%% bc(offshore flux profile)
+
+        if strcmpi(name, 'fluxprofilebc')
+
+            profile = run.FluxVertProfile(1);
+
+            [start,stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
+            t0 = start;
+            tend = stop;
+            [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
+
+            phi = hsb./(V0./bathy.S_sh/N);
+
+            [~, imax] = max(profile);
+            [~, imin] = min(profile);
+
+            diags(ff) = abs(profile(imax)-profile(imin))/abs(profile(imax));
+            plotx(ff) = phi;
+
+        end
+
         %%%%% rhines scale
         if strcmpi(name, 'supply') | strcmpi(name, 'eddyonshelf')
 
