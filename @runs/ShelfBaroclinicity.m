@@ -68,7 +68,14 @@ function [] = ShelfBaroclinicity(runs)
     % bcmn = squeeze(nanmedian(nanmedian(bc,1),2));
     % bc = nanmean(bcmn)
 
+    %xx = runs.locate_resistance;
+    %ix = find_approx(runs.rgrid.x_rho(1,:), xx, 1);
+    ix = runs.spng.sx2 - 40;
+
     [shelfbc.shelf, shelfbc.thresh] = baroclinicity(usurf, ubot, nonshelfmask);
+    shelfbc.farfield = ...
+        baroclinicity(usurf(ix,:,:), ubot(ix,:,:), nonshelfmask(ix,:,:));
+
     shelfbc.nonshelf = baroclinicity(usurf, ubot, ~nonshelfmask);
 
     shelfbc.shelfneg = baroclinicity(usurf, ubot, (nonshelfmask | upos));
