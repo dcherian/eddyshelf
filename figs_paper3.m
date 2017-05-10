@@ -507,36 +507,6 @@ opt.limy = [0 150];
 shfric2.filter = [1 2 3 4];
 handles = shfric2.mosaic_field('csdye', [350 370 280 280], opt, [-40 150]);
 
-%% leakage on shelf structure
-if ~exist('ew', 'var') | ~strcmpi(ew.name, 'ew-8341')
-    ew = runs('../topoeddy/runew-8341/');
-end
-opt = [];
-opt.csdfront = 1;
-opt.rhocontours = 1;
-tindex = find_approx(ew.time, 298*86400, 1);
-handles = ew.PlotSingleYZSection('u', tindex, '350e3', [], opt);
-[eddye, ~,yy, zz] = dc_roms_read_data(ew, ew.eddname, tindex, ...
-                                       {'x' '350e3' '350e3'});
-[~, hedd] = contour(yy/1000, zz, eddye, [1 1]*0.7, 'g', 'LineWidth', 2);
-handles.hrhocont.LevelList = linspace(21.77, 22.3, 60);
-title('Along-shelf velocity (m/s)');
-xlim([0 60]);
-ylim([-400 0]);
-hax = gca;
-hax.XTickLabelMode = 'auto';
-hax.XTick = [0:10:60];
-pbaspect([1.618 1 1])
-handles.hcsdcont.Color = ew.shelfSlopeColor;
-hleg = legend([handles.hcsdcont hedd], 'Shelf-water front', 'Eddy water front', ...
-              'Location', 'SouthWest');
-hleg.Position(2) = 0.26;
-handles.htlabel.Position(2) = 0.1;
-hleg.Box = 'off';
-hleg.TextColor = [1 1 1];
-
-export_fig -opengl -r150 -a4 images/paper3/eddy-leakage-on-shelf.png
-
 %% bottom density anomaly
 if ~exist('ew', 'var') | ~strcmpi(ew.name, 'ew-8342-2')
     ew = runs('../topoeddy/runew-8342-2/');
@@ -869,18 +839,148 @@ sh.print_params('bathy.sl_slope * sqrt(phys.N2)/phys.f0')
 sh.print_params('(1-erf(bathy.hsb/Lz0))');
 phii./ (1-chi)
 
-%% ew-82343
-ew = runs('../topoeddy/runew-82343/');
+%% ew-82343 - thesis only
+% ew = runs('../topoeddy/runew-82343/');
 
+% opt = [];
+% opt.addvelquiver = 1;
+
+% handles = ew.animate_field('csdye', [], '414', 1, opt);
+% caxis([-50 350]);
+% ylim([0 150]);
+% xlim([150 580]);
+% title('Cross-shelf dye | \lambda = 0.5');
+% colorbar('off');
+% handles.htlabel.Position(2) = 0.1
+
+% export_fig -r150 -a2 -opengl images/paper3/ew-82343-on-shelf.png
+
+%% ew-8341 - multipanel cross-sections
+
+if ~exist('ew', 'var') | ~strcmpi(ew.name, 'ew-8341')
+    ew = runs('../topoeddy/runew-8341');
+end
+
+tindex = '300'
+tindex = find_approx(ew.time, str2double(tindex)*86400, 1);
+rhocontours = linspace(21.77, 22.3, 60);
+xloc = '350e3'; % ''270e3';
+eddcolor = ew.eddyeColormap();
+eddcolor = eddcolor(end, :);
+
+opt = []; handles = {};
+figure;
+hax(1) = subplot(3,2,[1, 2]); cla;
+handles{1} = ew.animate_field('csdye', hax(1),  tindex, 1, opt);
+handles{1}.htlabel.delete;
+xlabel(''); title('');
+handles{1}.hcb.Label.String = 'Cross-shelf dye (km)';
+hl1 = linex(str2double(xloc)/1e3);
+hax(1).YLim = [0 150];
+hax(1).XTickMode = 'auto';
+
+%=============================================================
+% along-shelfbreak section
 opt = [];
-opt.addvelquiver = 1;
+opt.rhocontours = 1;
+opt.eddy0 = 0;
+hax(3) = subplot(3,2,[3, 4]); cla
+hax(3).Position(2) = 0.44;
+handles{3} = ew.PlotSingleXZSection('v', 1, tindex, opt, hax(3));
+handles{3}.hmask.Color = ew.shelfSlopeColor;
+handles{3}.htext.delete;
+handles{3}.htime.delete;
+handles{3}.hline.delete;
+handles{3}.hcb.Label.String = {'Cross-shelf velocity (m/s)';  'at shelfbreak'};
+title('')
+linkaxes(hax([1 3]), 'x');
 
-handles = ew.animate_field('csdye', [], '414', 1, opt);
-caxis([-50 350]);
-ylim([0 150]);
-xlim([150 580]);
-title('Cross-shelf dye | \lambda = 0.5');
+%=============================================================
+% two cross-shelf cross-sections
+resizeImageForPub('portrait');
+opt = [];
+opt.csdfront = 1;
+opt.rhocontours = 1;
+
+hax(2) = subplot(3,2,5); cla
+% handles = ew.overlay_section('v', 'rho', tindex, {'y' 1 40}, ...
+%                              'x', xloc, 'center_colorbar');
+handles{2} = ew.PlotSingleYZSection('u', tindex, xloc, hax(2), opt);
+xlim([0 ew.bathy.xsb + 10e3]/1e3)
+ylim([-80 0])
+[eddye, ~,yy, zz] = dc_roms_read_data(ew, ew.eddname, tindex, ...
+                                      {'x' xloc xloc});
+[~, handles{2}.hedd] = ...
+    contour(yy/1000, zz, eddye, [1 1]*0.7, 'Color', eddcolor, 'LineWidth', 2);
+handles{2}.hrhocont.LevelList = rhocontours;
+title('');
+hax(2).XTickLabelMode = 'auto';
+hax(2).XTick = [0:20:60];
+% pbaspect([1.618 1 1])
+handles{2}.hcsdcont.Color = ew.shelfSlopeColor;
+handles{2}.hleg = legend([handles{2}.hcsdcont handles{2}.hedd], ...
+                         'Shelf-water front', 'Eddy water front', ...
+                         'Location', 'SouthWest');
+handles{2}.hleg.Box = 'off';
+handles{2}.hleg.TextColor = [1 1 1];
+handles{2}.htlabel.delete;
 colorbar('off');
-handles.htlabel.Position(2) = 0.1
+hax(2).YTickMode = 'auto';
 
-export_fig -r150 -a2 -opengl images/paper3/ew-82343-on-shelf.png
+%=============================================================
+hax(4) = subplot(3,2,6); cla
+handles{4} = ew.PlotSingleYZSection('u', tindex, xloc, hax(4), opt);
+[eddye, ~,yy, zz] = dc_roms_read_data(ew, ew.eddname, tindex, ...
+                                      {'x' xloc xloc});
+[~, handles{4}.hedd] = contour(yy/1000, zz, eddye, [1 1]*0.7, ...
+                               'Color', eddcolor, 'LineWidth', 2);
+handles{4}.hrhocont.LevelList = rhocontours(1:2:end);
+title('');
+xlim([20 60]);
+ylim([-300 0]);
+hax(4).XTickLabelMode = 'auto';
+hax(4).XTick = [0:20:60];
+handles{4}.hcsdcont.Color = ew.shelfSlopeColor;
+handles{4}.hleg = legend([handles{4}.hcsdcont handles{4}.hedd], ...
+                         'Shelf-water front', 'Eddy water front', ...
+                         'Location', 'SouthWest');
+handles{4}.hleg.Box = 'off';
+handles{4}.hleg.TextColor = [1 1 1];
+handles{4}.htlabel.delete;
+hax(4).YLabel.String = '';
+hax(4).YTickMode = 'auto';
+hcb = colorbar;
+hcb.Location='SouthOutside';
+hcb.Label.String = 'Along-shelf velocity (m/s) at x = 300 km';
+
+hcb.Position(2) = 0.08;
+hcb.Position(1) = 0.34;
+
+lab = 'acbd';
+color = 'wwkw';
+if exist('htxt', 'var'), htxt.delete; end
+for ii=1:4
+    axes(hax(ii));
+    set(hax(ii), 'color', 'none');
+    htxt(ii) = text(0.05, 0.32, [lab(ii) ')'], ...
+                    'Color', color(ii), 'FontSize', 13, ...
+                    'Units', 'normalized')
+    beautify([12 13 14]);
+end
+
+hax(2).Position(2) = 0.14;
+hax(4).Position(2) = hax(2).Position(2);
+hax(2).Position(3) = 0.35;
+hax(4).Position(3) = hax(4).Position(3);
+
+handles{2}.hleg.Position(1) = 0.15;
+handles{2}.hleg.Position(2) = 0.145;
+handles{4}.hleg.Position(2) = handles{2}.hleg.Position(2);
+handles{4}.hleg.Position(1) = 0.58;
+
+hax(1).XLim = [100 400];
+hax(1).Position(1) = 0.097;
+hax(3).Position(1) = hax(1).Position(1);
+hax(3).PlotBoxAspectRatio = hax(1).PlotBoxAspectRatio
+
+export_fig -transparent -r150 -a4 images/paper3/multipanel-cross-sections.png
