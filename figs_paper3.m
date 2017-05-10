@@ -139,6 +139,7 @@ thresh = 2;
 
 figure;
 hax(1) = subplot(121);
+set(gca, 'Color', 'none')
 sh.print_diag('shelfbc', thresh, hax(1), 'no_name_points');
 title('Supply jet on shelf');
 ylabel('BC');
@@ -146,9 +147,13 @@ axis square;
 xlim([0 1]);
 ylim([0 1]);
 linex(0.3);
-beautify([26 28 30]+2);
+for ii=1:length(hax(1).Children)
+    hax(1).Children(ii).MarkerSize = 12;
+end
+beautify([12 13 14]);
 
 hax(2) = subplot(122);
+set(gca, 'Color', 'none')
 sh.print_diag('sbreakbc', thresh, hax(2), 'no_name_points');
 title('Outflow at shelfbreak');
 ylabel('BC');
@@ -156,9 +161,16 @@ axis square;
 xlim([0 1]);
 ylim([0 1]);
 linex(0.3);
-beautify([26 28 30]+2);
+for ii=1:length(hax(2).Children)
+    hax(2).Children(ii).MarkerSize = 12;
+end
+beautify([12 13 14]);
 
-export_fig -r150 -a2 images/paper3/shelfbc.png
+set(hax(1), 'TickLength', [1 1]*0.02)
+set(hax(2), 'TickLength', [1 1]*0.02)
+resizeImageForPub('portrait');
+
+export_fig -r150 -a2 -transparent images/paper3/shelfbc.png
 
 %% shelfbc time series
 % phi = sh.print_params('bathy.hsb./(V0./bathy.S_sh/sqrt(phys.N2))');
