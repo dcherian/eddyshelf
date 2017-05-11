@@ -53,6 +53,8 @@ properties
     params
     % fluxes - cross-shore & along-shore; - energy fluxes
     csflux; asflux;
+    % fluxes within a radius of eddy center
+    radius;
     % stats of eddy water on shelf
     onshelf;
     % transport - TO BE DEPRECATED
@@ -489,6 +491,14 @@ methods
             volume = load([dir '/volume.mat'], 'volume');
             runs.volume = volume.volume;
             clear volume
+        end
+
+        % load volume budget data
+        if exist([dir '/radius.mat'],'file') && reset ~= 1 & ~reduced
+            disp('Loading flux diags within radius');
+            data = load([dir '/radius.mat'], 'radius');
+            runs.radius = data.radius;
+            clear data
         end
 
         % load vorticity budget data
