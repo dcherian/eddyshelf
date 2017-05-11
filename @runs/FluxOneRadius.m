@@ -71,7 +71,7 @@ function FluxOneRadius(runs, factor)
     hash = githash([mfilename('fullpath') '.m']);
     save([runs.dir '/radius.mat'], 'radius');
 
-    runs.csflux.radius = radius;
+    runs.radius = radius;
 
     toc(ticstart);
 
