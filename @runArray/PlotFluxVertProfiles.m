@@ -18,7 +18,7 @@ function [handles] = PlotFluxVertProfiles(runArray, fontSizes)
     phio = runArray.print_params('bathy.hsb./(V0./bathy.S_sh/sqrt(phys.N2))');
     set(handles.hax(2), 'ColorOrder', redmap);
 
-    % corder_backup = runArray.sorted_colors;
+    corder_backup = runArray.sorted_colors;
 
     kk = 1;
     axes(handles.hax(1));
@@ -33,7 +33,9 @@ function [handles] = PlotFluxVertProfiles(runArray, fontSizes)
         end
 
         [start, stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
-        offflux = run.csflux.off.slopezt(:,start:stop,1,1);
+        % offflux = run.csflux.off.slopezt(:,start:stop,1,1); % fullsb
+        offflux = squeeze(trapz(run.radius.xvec(:, start), ...
+                                run.radius.off.shelfpos, 1)); % one radius
         zivec = run.csflux.vertbins(:,isobath);
         profile = trapz(run.csflux.time(start:stop)*86400, ...
                         offflux, 2);
@@ -76,8 +78,13 @@ function [handles] = PlotFluxVertProfiles(runArray, fontSizes)
 
         hsb = run.bathy.hsb;
 
-        [start, stop] = run.flux_tindices(run.csflux.on.slope(:,1,1), 0.2, 0.9);
-        onflux = run.csflux.on.slopeztneg(:,start:stop,1,1);
+        %[start, stop] = run.flux_tindices(run.csflux.on.slope(:,1,1), 0.2, 0.9);
+        %onflux = run.csflux.on.slopeztneg(:,start:stop,1,1); % full sb
+
+        [start, stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
+        onflux = squeeze(trapz(run.radius.xvec(:, start), ...
+                               run.radius.on.nonshelfneg, 1)); % one radius
+
         zivec = run.csflux.vertbins(:,isobath);
         profile = trapz(run.csflux.time(start:stop)*86400, ...
                         onflux, 2);
