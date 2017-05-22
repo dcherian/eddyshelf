@@ -1079,7 +1079,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             else
                 %flux_tref = run.recalculateFlux(integrate_zlimit, 1,1);
                 [start,stop] = run.flux_tindices(fluxvec);
-                [flux, errflx] = run.calc_avgflux(fluxvec, 0, 0.05, 0.8);
+                [flux, errflx] = run.calc_avgflux(fluxvec, 0);
 
                 t0 = 1; %start;
                 tend = ceil((start+stop)/2);
@@ -1089,7 +1089,8 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
             if hsb/Lz0 > 0.5  ...
                     | (strcmpi(run.name, 'ew-2041') & (isobath > 3)) ...
-                    | strcmpi(run.name, 'ew-2043')
+                    | strcmpi(run.name, 'ew-2043') ...
+                    | strcmpi(run.name, 'ew-8383')
                 warning('skipping because splitting is probably happening.');
                 continue;
             end
@@ -1103,9 +1104,19 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             zind = find_approx(zvec, -abs(integrate_zlimit));
             vmask = v .* mask;
 
-            fluxscl = trapz(zvec(zind:end), trapz(xvec, vmask(:,zind:end), 1), 2);
+            fluxscl = trapz(zvec(zind:end), ...
+                            trapz(xvec, vmask(:,zind:end), 1), 2);
 
-            debug_fluxes = 1;
+            Lsupp = run.bathy.Lbetash*1.01;
+            alpha = run.bathy.sl_shelf;
+            if alpha == 0
+                % Lsupp = run.bathy.L_shelf;
+                continue;
+            end
+            supplyscl = V0 * Lsupp * (hsb - alpha*Lsupp/2);
+            fluxscl = supplyscl;
+
+            debug_fluxes = 0;
             if debug_fluxes
                 disp(sprintf([name ' = %.2f mSv, fluxscl = %.2f mSv | ' ...
                              'V0 = %.2f m/s, L0 = %.2f km, Lz0 = %.2f m'], ...
