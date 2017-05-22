@@ -3,8 +3,12 @@
 % [start, stop] = flux_tindices(runs, flux, whenstart, whenstop)
 function [start, stop] = flux_tindices(runs, flux, whenstart, whenstop)
 
-    if ~exist('whenstart', 'var'), whenstart = 0.05; end
-    if ~exist('whenstop', 'var'), whenstop = 0.90; end
+    if ~exist('whenstart', 'var') | isempty(whenstart)
+        whenstart = 0.05;
+    end
+    if ~exist('whenstop', 'var') | isempty(whenstop)
+        whenstop = 0.90;
+    end
 
     itrans = cumtrapz(flux);
 

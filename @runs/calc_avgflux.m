@@ -1,9 +1,12 @@
-function [avgflux, err] = calc_avgflux(runs, fluxvec, debug)
+function [avgflux, err] = calc_avgflux(runs, fluxvec, debug, ...
+                                       whenstart, whenstop)
 
     if ~exist('debug', 'var'), debug = 0; end
+    if ~exist('whenstart', 'var'), whenstart = []; end
+    if ~exist('whenstop', 'var'), whenstop = []; end
     use_wunsch = 0;
 
-    [start,stop] = runs.flux_tindices(fluxvec);
+    [start,stop] = runs.flux_tindices(fluxvec, whenstart, whenstop);
     nsmooth = 1;
 
     % flux vector for applicable time

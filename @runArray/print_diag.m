@@ -1079,7 +1079,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             else
                 %flux_tref = run.recalculateFlux(integrate_zlimit, 1,1);
                 [start,stop] = run.flux_tindices(fluxvec);
-                [flux, errflx] = run.calc_avgflux(fluxvec);
+                [flux, errflx] = run.calc_avgflux(fluxvec, 0, 0.05, 0.8);
 
                 t0 = 1; %start;
                 tend = ceil((start+stop)/2);
