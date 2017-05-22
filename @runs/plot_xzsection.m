@@ -108,16 +108,20 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
         w = w(sx1:sx2,:);
     end
 
-    if ~exist('isobath', 'var') | isobath == 1
-        mask = ones(size(csvel));
+    if ~exist('isobath', 'var')
+        mask = fillnan(csdye < loc, 0);
     else
         mask = fillnan(bsxfun(@times, csdye < runs.csflux.x(isobath), ...
                               1 ...%runs.csflux.offmask(sx1:sx2,tindex,isobath)
                               ),0);
     end
 
-    [zrho,~] = runs.predict_zpeak(isobath, 'detect');
-    zrho = abs(zrho);
+    try
+        [zrho,~] = runs.predict_zpeak(isobath, 'detect');
+        zrho = abs(zrho);
+    catch ME
+        zrho = 0;
+    end
 
     if opt.debug_flux
 
@@ -223,6 +227,8 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
         handles.hcb(3).Label.String = 'Vertical velocity (m/s)';
         handles.hline(3) = common(runs, tindex, zrho);
         title('(c) \rho contours');
+        limy = handles.hax(1).YLim;
+        handles.hax(1).YLim = limy;
         linkaxes(handles.hax([1 3 4]), 'xy');
         beautify;
         hrho(2).LevelList = hrho(1).LevelList;
@@ -233,11 +239,11 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
         handles.hax(4) = subplot(m,2,2);
         pcolorcen(xvec/1000, zvec, eddye'); % .* mask
         hold on; shading interp;
-        contour(xvec/1000, zvec, repnan(mask,0), [1 1], 'k', 'LineWidth', 2);
+        contour(xvec/1000, zvec, repnan(mask',0), [1 1], 'k', 'LineWidth', 2);
         colorbar;
         title(['(d) Eddy dye | ' runs.name]);
-        linkaxes(handles.hax, 'xy');
         handles.hline(2) = common(runs, tindex, zrho);
+        %linkaxes(handles.hax, 'xy');
         caxis([0 1]);
         beautify;
     else
@@ -289,7 +295,6 @@ function [handles] = plot_xzsection(runs, loc, day, opt)
         plot(trapz(xmask, videal.*idmask, 1), zmask);
         legend('Actual', 'Ideal', 'Location', 'SouthEast');
         beautify;
-
         linkaxes(ax, 'xy');
     end
 
@@ -306,8 +311,8 @@ function [handle] = common(obj, tindex, zrho)
     xlabel('Along-isobath, X - X_{eddy} (km)'); ylabel('Depth (m)');
     [handle.hl,handle.htxt] = liney(-1 * [obj.eddy.Lgauss(tindex) obj.bathy.hsb abs(zrho)], ...
                                     {'vertical scale'; 'H_{sb}'; 'z_\rho'});
-    handle.htxt{1}.Units = 'data';
-    handle.htxt{2}.Units = 'data';
-    handle.htxt{3}.VerticalAlignment = 'top';
+    handle.htxt(1).Units = 'data';
+    handle.htxt(2).Units = 'data';
+    handle.htxt(3).VerticalAlignment = 'top';
     beautify;
 end

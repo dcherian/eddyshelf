@@ -20,7 +20,18 @@ function [hplt] = overlay_section(runs, varname1, varname2, tindex, volume, axis
     volume{size(volume,1),3} = index;
 
     [v2, xax, yax, zax] = dc_roms_read_data(runs, varname2, tindex, volume);
+    [plotx, ploty] = get_xy(axis, xax, yax, zax);
+    [~,hplt.h_plot2] = contour(plotx, ploty, v2, 20, 'Color', 'k');
 
+    [csd, xax, yax, zax] = dc_roms_read_data(runs, runs.csdname, tindex, volume);
+    [plotx, ploty] = get_xy(axis, xax, yax, zax);
+    [~,hplt.h_plot3] = contour(plotx, ploty, csd, [1 1]*runs.bathy.xsb, ...
+                               'Color', 'k', 'LineWidth', 3);
+
+    hplt.h_title.String = titlestr;
+end
+
+function [plotx, ploty] = get_xy(axis, xax, yax, zax)
     switch axis
       case 'x'
         plotx = yax/1000;
@@ -38,8 +49,4 @@ function [hplt] = overlay_section(runs, varname1, varname2, tindex, volume, axis
         plotx = xax/1000;
         ploty = yax/1000;
     end
-
-    [~,hplt.h_plot2] = contour(plotx, ploty, v2, 20, 'Color', 'k');
-
-    hplt.h_title.String = titlestr;
 end
