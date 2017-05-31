@@ -895,6 +895,16 @@ handles{3}.hcb.Label.String = {'Cross-shelf velocity (m/s)';  'at shelfbreak'};
 title('')
 linkaxes(hax([1 3]), 'x');
 
+axes(hax(3))
+pos = handles{3}.hcb.Position;
+hvel(1) = text(pos(1)+0.37, pos(2)+0.57, 'offshore', ...
+               'FontName', 'Times', 'FontSize', 12, ...
+               'Units', 'normalized');
+hvel(2) = text(pos(1)+0.37, pos(2)-0.43, 'onshore', ...
+               'FontName', 'Times', 'FontSize', 12, ...
+               'Units', 'normalized');
+
+
 %=============================================================
 % two cross-shelf cross-sections
 resizeImageForPub('portrait');
@@ -965,7 +975,7 @@ for ii=1:4
     htxt(ii) = text(0.05, 0.32, [lab(ii) ')'], ...
                     'Color', color(ii), 'FontSize', 13, ...
                     'Units', 'normalized')
-    beautify([12 13 14]);
+    beautify([12 13 14], 'Times');
 end
 
 hax(2).Position(2) = 0.14;
