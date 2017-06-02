@@ -1,10 +1,14 @@
 % mosaic animate_field plots.
 %     [ax] = mosaic_field(runs, varname, timesteps, opt)
 
-function [handles] = mosaic_field(runs, varname, timesteps, opt, hax)
+function [handles] = mosaic_field(runs, varname, timesteps, opt, ...
+                                  hax)
 
     if ~exist('opt', 'var'), opt = []; end
 
+    if ~isfield(opt, 'topdown')
+        opt.topdown = 0;
+    end
     if ~isfield(opt, 'zetaOnFirstPlot')
         opt.zetaOnFirstPlot = 0;
     end
@@ -16,7 +20,11 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt, hax)
     if ~exist('hax', 'var')
         figure; maximize;
         if Nt == 2 | Nt == 3
-            handles.hax = packfig(1, Nt);
+            if opt.topdown
+                handles.hax = packfig(Nt, 1);
+            else
+                handles.hax = packfig(1, Nt);
+            end
         else
             handles.hax = packfig(2, N);
         end
@@ -48,22 +56,30 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt, hax)
             clim = caxis;
         end
 
-        if N ~= 1
-            if ii <= N % take out x tick labels for top row
-                handles.hax(ii).XTickLabel = {};
-                xlabel('');
-            end
-            if  (ii~=1) & (ii~=N+1) % take out y tick labels for first column
-                handles.hax(ii).YTickLabel = {};
-                ylabel('');
+        if ~opt.topdown
+            if N ~= 1
+                if ii <= N % take out x tick labels for top row
+                    handles.hax(ii).XTickLabel = {};
+                    xlabel('');
+                end
+                if  (ii~=1) & (ii~=N+1) % take out y tick labels for first column
+                    handles.hax(ii).YTickLabel = {};
+                    ylabel('');
+                end
+            else
+                if  ii > 1 % take out y tick labels for first column
+                    handles.hax(ii).YTickLabel = {};
+                    ylabel('');
+                end
             end
         else
-            if  ii > 1 % take out y tick labels for first column
-                handles.hax(ii).YTickLabel = {};
-                ylabel('');
+            % top down single column
+            if ii < Nt
+                handles.hax(ii).XTickLabels = {};
+                handles.hax(ii).XLabel.String = '';
             end
         end
-
+        
         if ii ~= Nt
             colorbar('off');
         else
