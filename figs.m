@@ -717,3 +717,74 @@ K = 1./(ew.params.eddy.dia/2);
 m = 1./(N*H/(pi/2)/f0);
 
 beta/(K^2 + m^2)*100 % cm/s ≈ km/day
+
+%%
+
+mm=11;
+sh.array(mm).ShelfBaroclinicity;
+figure;
+plot(sh.array(mm).shelfbc.shelf(:,2)); hold on;
+plot(sh.array(mm).shelfbc.farfield(:,2));
+plot(sh.array(mm).shelfbc.sbreak.shelf(:,2));
+title(sh.array(mm).name)
+
+%% surface dye plots for gordon poster
+timesteps = [1 230];
+
+if ~exist('ew8341', 'var')
+    if exist('sh', 'var')
+        ew8341 = sh.array(5);
+    else
+        ew8341 = runs('../topoeddy/runew-8341/');
+    end
+end
+opt = [];
+opt.rhocontourplot = 0;
+opt.csdcontourplot = 1;
+opt.csdcontours = ew8341.csflux.x([1 4 8]);
+opt.addvelquiver = 0;
+opt.addzeta = 1;
+opt.topdown = 0;
+opt.bathycolor = 'w';
+handles = ew8341.mosaic_field('csdye', timesteps, opt);
+handles.hcb.delete;
+for ii=1:3
+    handles.hfield{ii}.hzeta.LevelList = linspace(0,0.013, 4);
+    handles.hfield{ii}.hzetaneg.LevelList = [-1.6e-3 -1.25e-3 -1.1e-3];
+end
+ylim([0 250]);
+correct_ticks('y', [], {'50', '100'}, handles.hax);
+
+handles.hsuptitle.String = ...
+    ['Surface cross-shelf dye (km) | Initial Ro = 0.1 | Initial eddy ' ...
+     'scales = (25 km, 400m)'];
+
+axes(handles.hax(1));
+hleg = legend([handles.hfield{1}.hcen, ...
+               handles.hfield{1}.htrack, ...
+               ... %handles.hfield{1}.hrho, ...
+               handles.hfield{1}.hzeta], ...
+              {'Eddy center', 'Track of eddy center', ...%'Eddy core',
+               'SSH'}, 'Location', 'NorthWest'); %, 'FontSize', 14);
+hleg.Box = 'off';
+
+resizeImageForPub('portrait');
+hleg.Position(2) = 0.50;
+hleg.Position(1) = 0.13;
+handles.supax.Position(4) = 0.55;
+
+fs = [12 13 14];
+for ii=1:length(handles.hax)
+    axes(handles.hax(ii));
+    handles.hax(ii).Color =  'none';
+    handles.hfield{ii}.htlabel.FontSize = fs(1);
+    handles.hfield{ii}.htlabel.FontName = 'Times';
+    handles.hsuptitle.FontSize = fs(end);
+    handles.hsuptitle.FontName = 'Times';
+    beautify(fs, 'Times')
+end
+handles.hax(2).YTickLabels = {};
+hleg.FontName = 'Times'
+hleg.FontSize = fs(1);
+
+export_fig -transparent -r300 -a2 -opengl images/grs-ew-8341-surface-csdye.png
