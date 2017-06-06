@@ -993,4 +993,6 @@ hax(1).Position(1) = 0.097;
 hax(3).Position(1) = hax(1).Position(1);
 hax(3).PlotBoxAspectRatio = hax(1).PlotBoxAspectRatio
 
+colormap(hax(2), cbrewer('div', 'BrBG', 11));
+colormap(hax(4), cbrewer('div', 'BrBG', 11));
 export_fig -transparent -r150 -a4 images/paper3/multipanel-cross-sections.png
