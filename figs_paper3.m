@@ -224,19 +224,41 @@ hpt.FaceAlpha = 0.2;
 export_fig -r150 -a2 -png images/paper3/flux-diags
 
 %% volume budget
-handles = sh.array(5).VolumeBudget;
-xlim([0 450]);
-handles.hax.XLabel.Position(1) = 400;
+handles = ew8341.VolumeBudget;
+[tstart,tstop] = ew8341.flux_tindices(ew8341.csflux.off.slope(:,1,1));
+xlim([ew8341.time([tstart-120])/86400 450]);
+handles.hax.XLabel.Position(1) = 450;
+t = ew8341.time([tstart; tstop])/86400
+[hlines, htimes] = linex(t, {'t_{start}'; 't_{stop}'});
+handles.hax.XTickMode = 'auto'
+
+for ii=1:2
+    hlines(ii).YData = [-0.3e4 0.95e4];
+    hlines(ii).LineStyle = '--'
+    htimes(ii).Rotation = 0;
+    htimes(ii).Position(2) = 0.8e4;
+    htimes(ii).Position(1) = htimes(ii).Position(1) - 5;
+    htimes(ii).HorizontalAlignment = 'right';
+    handles.htxt(ii).Position(1) = 0.8;
+end
+
+delete(handles.residual);
+delete(handles.lowsponge);
+legend('-dynamiclegend')
 handles.hisponge.DisplayName = 'Along-shelf at eastern boundary';
 handles.hispongesh.DisplayName = 'Along-shelf at eastern boundary: shelf water';
 handles.lowsponge.DisplayName = 'Along-shelf at western boundary';
 title('Volume budget for the shelf');
+resizeImageForPub('portrait')
+pbaspect([1.7 1 1])
+beautify([12 13 14], 'Times')
 
-export_fig -r150 -a2 images/paper3/ew-8341-volume-budget.png
+export_fig -transparent images/paper3/ew-8341-volume-budget.pdf
 
 %% flat and sloping, sbssh
 if ~exist('ew04', 'var')
     ew04 = runArray({'ew-04', 'ew-8041'});
+    ew04 = runArray({'ew-8350-2', 'ew-8352-2'});
 end
 
 ew04.name = {'Flat shelf'; 'Sloping shelf'};

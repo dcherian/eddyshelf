@@ -112,8 +112,8 @@ function [handles] = VolumeBudget(runs)
     xlim([0 max(tvec)]);
     ylim([-1 1] * max(abs(ylim)));
     hax = gca;
-    htxt(1) = text(0.7, 0.05, 'domain gains water', 'Units', 'Normalized');
-    htxt(2) = text(0.7, 0.95, 'domain loses water', 'Units', 'Normalized');
+    htxt(1) = text(0.7, 0.05, 'shelf gains water', 'Units', 'Normalized');
+    htxt(2) = text(0.7, 0.95, 'shelf loses water', 'Units', 'Normalized');
     % htxt(1).Units = 'data';
     % htxt(1).Position(2) = hax.YTick(find(hax.YTick < 0, 1, 'last'))*1.5;
     % htxt(2).Units = 'data';
