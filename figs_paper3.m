@@ -477,41 +477,6 @@ export_fig -r150 -a2 images/paper3/sb-flux-summary.png
 %%
 sh.print_diag('params table', 'images/paper3/sh-params-table.org')
 
-%% ubar scale
-if ~exist('shfric2', 'var')
-    folders = { ...
-        'runew-8341', ...
-        'runew-583413', 'runew-583411', ...
-        'runew-583414', 'runew-583415', ...
-              };
-    shfric2 = runArray(folders);
-end
-
-shfric2.sort('run.params.misc.rdrg');
-shfric2.name = cellstr(num2str(shfric2.print_params('run.params.misc.rdrg')', '%1.0e'));
-shfric2.name{1} = '0';
-
-handles = shfric2.plot_ts('-run.ubarscale.scale/1000', [], ...
-                          'run.ubarscale.time/86400');
-ylabel('Distance from shelfbreak (km)');
-xlabel('Time (days)');
-delete(handles.htind);
-delete(handles.hmaxloc);
-set(gcf, 'Position', [190 128 1126 810]);
-hleg = legend;
-hleg.Location = 'SouthEast';
-ylim([-40 0]);
-htxt = text(0.85, 0.45, 'r_f (m/s)', 'Units', 'normalized');
-title('Cross-isobath extent of along-shelf supply jet');
-xlim([120 320]);
-linex([190 230]);
-correct_ticks('x', [], {'200'});
-resizeImageForPub('portrait');
-pbaspect([2 1 1]);
-beautify([12 13 14], 'Times');
-
-export_fig -painters images/paper3/shfric-ubarscale.pdf
-
 %% friction mosaic
 if ~exist('shfric2', 'var')
     folders = { ...
@@ -535,29 +500,6 @@ opt.scale = 5;
 opt.limy = [0 150];
 shfric2.filter = [1 2 3 4];
 handles = shfric2.mosaic_field('csdye', [350 370 280 280], opt, [-40 150]);
-
-%% bottom density anomaly
-if ~exist('ew', 'var') | ~strcmpi(ew.name, 'ew-8342-2')
-    ew = runs('../topoeddy/runew-8342-2/');
-end
-
-tindex = find_approx(ew.time, 311*86400,1);
-handles = ew.overlay_section('v', 'rho', tindex, {'y' 1 60}, 's', 1);
-handles.h_plot2.LevelList = linspace(21.78, 21.84, 26);
-center_colorbar;
-[csdbot,xx,yy,~] = dc_roms_read_data(ew, ew.csdname, ...
-                                     tindex, {'y' 1 60; 'z' 1 1});
-hold on;
-[~,h2] = contour(xx/1000,yy/1000,csdbot < ew.bathy.xsb, [1 1], ...
-                 'Color', ew.shelfSlopeColor, 'LineWidth', 3);
-xlim([230 400]);
-title({'Cross-isobath velocity (color, m/s), \rho contours (black) and';  ...
-       'shelf-water front (blue contour) at the bottom'});
-xlabel('X (km)');
-ylabel('Y (km)');
-beautify;
-
-export_fig -opengl -r150 -a4 images/paper3/vbot-rhobot.png
 
 %% friction mosaic
 sh.filter = [1 2 5:13];
