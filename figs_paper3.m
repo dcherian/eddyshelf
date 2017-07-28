@@ -518,6 +518,12 @@ if ~exist('shfric2', 'var')
 end
 
 shfric2.sort(shfric2.print_params('run.params.misc.rdrg'));
+rdrg = shfric2.print_params('run.params.misc.rdrg');
+for ii=1:shfric2.len
+    shfric2.name{ii} = num2str(rdrg(ii), '%.0e');
+    shfric2.name{ii}(4) = [];
+end
+shfric2.name{1} = '0';
 shfric2.array(1).read_zeta;
 shfric2.array(1).read_velsurf;
 
@@ -533,18 +539,18 @@ opt.addzeta = 0;
 opt.rhocontourplot = 0;
 opt.csdcontourplot = 0;
 opt.addzeta = 1;
-opt.commands = 'caxis([-1 1]*1e-3)';
+% opt.commands = 'caxis([-1 1]*1e-3)';
 opt.dyi = 8;
-opt.dxi = 8;
-opt.scale = 0;
+opt.dxi = 12;
+opt.scale = 2;
 opt.uref = 5e-4; opt.vref = opt.uref;
 str = 'acbd';
 trackcolor = 'k';
 zetacolor = [68 70 153]/255; [136 204 238]/255;[244 67 54]/255; [1 1 1]*0.6;
 var = 'zeta';
-figure; maximize;
+figure;
 clf; clear handles;
-hax = packfig(2,3);
+hax = packfig(4, 2);
 for ii=1:2
     if ii == 1
         run = shfric2.array(1);
@@ -555,15 +561,15 @@ for ii=1:2
     handles(ii,1) = run.animate_field(var, hax(ii),  '190', 1, opt);
     handles(ii,1).hcb.delete;
     if ii==1
-        title(['SSH (m) | r_f = 0']);
+        title(['r_f = 0']);
     else
-        title(['SSH (m) | r_f = ' num2str(run.params.misc.rdrg, '%1.1e')]);
+        title(['r_f = ' num2str(run.params.misc.rdrg, '%1.1e')]);
     end
     % handles(ii,1).htlabel.Position(2) = 0.14
     handles(ii,1).htlabel.String = [str(ii) ') ' handles(ii,1).htlabel.String];
     handles(ii,1).htrack.Color = trackcolor;
     xlabel('');
-    handles(ii,1).hfield.Visible = 'off';
+    % handles(ii,1).hfield.Visible = 'off';
 
     U = handles(ii,1).hquiv.UData;
     V = handles(ii,1).hquiv.VData;
@@ -575,9 +581,10 @@ for ii=1:2
     handles(ii,1).hquiv.VData(nanmask) = NaN;
 
     uistack(handles(ii,1).hquiv, 'top');
+    beautify([12 13 14], 'Times');
 
-    axes(hax(ii+3)); % = subplot(2,3,ii+3);
-    handles(ii,2) = run.animate_field(var, hax(ii+3),  '230', 1, opt);
+    axes(hax(ii+2)); % = subplot(2,3,ii+3);
+    handles(ii,2) = run.animate_field(var, hax(ii+2),  '230', 1, opt);
     title('');
     handles(ii,2).hcb.delete;
     %handles(ii,2).htlabel.Position(2) = 0.14
@@ -590,7 +597,7 @@ for ii=1:2
     %    nanmask = speed > 0.15*max(speed(:)) | y > 80;
     handles(ii,2).hquiv.UData(nanmask) = NaN;
     handles(ii,2).hquiv.VData(nanmask) = NaN;
-    handles(ii,2).hfield.Visible = 'off';
+    % handles(ii,2).hfield.Visible = 'off';
 
     zpos = [2 4 8 12]*1e-3;
     zneg = [-7 -5 -3 -0.75 -0.5 -0.25 0]*1e-3;
@@ -603,66 +610,72 @@ for ii=1:2
     handles(ii,1).hzetaneg.LevelList = zneg;
     handles(ii,2).hzeta.LevelList = zpos;
     handles(ii,2).hzetaneg.LevelList = zneg;
+
+    uistack(handles(ii,2).hquiv, 'top');
+    beautify([12 13 14], 'Times');
 end
 hax(2).YLabel.String = '';
 hax(2).YTickLabel = {};
-hax(5).YLabel.String = '';
-hax(5).YTickLabel = {};
-
+hax(4).YLabel.String = '';
+hax(4).YTickLabel = {};
 hax(1).XTickLabel = {};
 hax(2).XTickLabel = {};
 
-% hcb = colorbar('northoutside');
-% xlabel('');
-% hcb.Position(1) = 0.3;
-% hcb.Position(2) = 0.46;
-% hcb.Ruler.Exponent = 0;
+resizeImageForPub('portrait');
 
-hax(3) = subplot(233);
-plot(run.csflux.time/86400, run.csflux.off.slope(:,1,1)/1000);
-xlim([0 400]);
-hold on;
-plot(shfric2.array(1).csflux.time/86400, shfric2.array(1).csflux.off.slope(:,1,1)/1000, 'k');
-title({'Offshore flux of shelf water (mSv)'})
-ylim([0 10]);
-hleg = legend('r_f = 3e-3', 'r_f = 0');
-hleg.Location = 'NorthWest';
-linex([190 242]);
-htxt(1) = text(30, 2, 'e)');
-hax(3).Position(1) = 0.64;
-hax(3).Position(2) = 0.61;
-hax(3).Position(3) = 0.3;
-hax(3).Position(4) = 0.23;
-hax(3).Title.Position(2) = 11;
-pbaspect([1.618 1 1]);
-beautify;
+hax(5) = subplot(4, 2, [5 6]);
+handles3 = shfric2.plot_ts('-run.ubarscale.scale/1000', hax(5), ...
+                          'run.ubarscale.time/86400');
+ylabel({'Distance';  'from shelfbreak (km)'});
+xlabel('');
+delete(handles3.htind);
+delete(handles3.hmaxloc);
+hleg = legend;
+hleg.Location = 'SouthEast';
+htxt(1) = text(0.04, 0.9, 'e)', 'Units', 'Normalized');
+ylim([-30 0]);
+title('Cross-isobath extent of along-shelf supply jet');
+linex([190 230]);
+handles3.hplt(1).Color = 'k';
+beautify([12 13 14], 'Times');
 
-hax(6) = subplot(236);
-plot(run.shelfbc.time/86400, run.shelfbc.shelf(:,2));
-hold on;
-plot(shfric2.array(1).shelfbc.time/86400, shfric2.array(1).shelfbc.shelf(:,2), 'k');
-xlim([0 400]);
-title('BC_{0.2}');
+hax(6) = subplot(4, 2, [7 8]);
+hbc = shfric2.plot_ts('run.shelfbc.shelf(:, 2)', hax(6), ...
+                      'run.shelfbc.time/86400');
+hbc.hplt(1).Color = 'k';
+axes(hax(6)); legend('off');
+title('');
+ylabel('BC(t)');
 xlabel('Time (days)');
-linex([190 242]);
-htxt(2) = text(30, 0.2, 'f)');
-hax(6).Position(1) = hax(3).Position(1);
-hax(6).Position(3) = hax(3).Position(3);
-hax(6).Position(4) = hax(3).Position(4);
-hax(6).Title.Position(2) = 0.9;
-pbaspect([1.618 1 1]);
-beautify;
+linex([190 230]);
+htxt(2) = text(0.04, 0.9, 'f)', 'Units', 'Normalized');
+beautify([12 13 14], 'Times');
 
-hax(6).Position(2) = 0.29;
-hax(4).Position(2) = 0.2;
-hax(5).Position(2) = hax(4).Position(2);
+for ii=5:6
+    hax(ii).XTickMode = 'auto';
+    hax(ii).XTickLabelMode = 'auto';
+end
 
-correct_ticks('y', [], {'50'; '100'}, hax([1 4]));
-correct_ticks('x', [], {'200'}, hax([3 6]));
+hax(3).Position(2) = 0.55
+hax(4).Position(2) = hax(3).Position(2);
+hax(5).Position(3) = 0.6
+hax(6).Position(3) = hax(5).Position(3);
+hleg.Position(1) = 0.75;
+hleg.Position(2) = 0.27;
 
-export_fig images/paper3/shfric-ssh-flux-bc.png
+axes(hax(5));
+htxt(3) = text(1.1, 0.35, 'r_f', 'Units', 'normalized', ...
+               'FontName', 'Times', 'FontSize', 12);
 
-%%
+correct_ticks('y', [], {'50'; '100'}, hax([1 3]));
+linkaxes(hax([5,6]), 'x');
+hax(5).XLim = [120 320];
+
+set(gcf, 'Renderer', 'painters');
+
+export_fig -r300 images/paper3/shfric-ssh-scale-bc.png
+
+%% multipanel bottom velocity plot.
 if ~exist('ew', 'var') | ~strcmpi(ew.name, 'ew-8342-2')
     ew = runs('../topoeddy/runew-8342-2/');
 end
@@ -685,7 +698,7 @@ opt.nocolorbar = 0;
 surfvar = 'rho'; clim = [21.75 21.77];
 
 % surface dye + surface velocity
-hax(1) = subplot(221);
+hax(1) = subplot(311);
 ew.animate_field(surfvar, hax(1), time, 1, opt);
 caxis(clim);
 linex(str2double(xloc)/1000, [], 'k');
@@ -694,33 +707,16 @@ htxt(1) = text(0.1, 0.1, 'a)', 'Units', 'Normalized');
 
 % below: surface dye bottom vrlocity
 opt.quiverloc = 'bot';
-hax(3) = subplot(223);
+hax(2) = subplot(312);
 ew.animate_field(surfvar, hax(3), time, 1, opt);
 caxis(clim);
 linex(str2double(xloc)/1000, [], 'k');
 title('Bottom velocity vectors');
 htxt(3) = text(0.1, 0.1, 'b)', 'Units', 'Normalized');
 
-% xz density + v?
-opt = [];
-opt.rhocontours = 1;
-opt.eddy0 = 0;
-hax(2) = subplot(222); cla('reset');
-handlesxz = ew.PlotSingleXZSection('v', 1, time, opt, hax(2));
-for ii=1:2
-    handlesxz.hline{ii}.delete;
-    handlesxz.htext{ii}.delete;
-end
-handlesxz.htime.delete;
-handlesxz.hcb.Label.String = 'Cross-shelf velocity (m/s)';
-linex(str2double(xloc)/1000, [], 'k');
-title('Density contours at shelfbreak');
-hax(2).XLim = hax(1).XLim;
-htxt(2) = text(0.1, 0.1, 'c)', 'Units', 'Normalized');
-
 % yz v
-hax(4) = subplot(224); cla('reset')
-handles = ew.PlotSingleYZSection('v', time, xloc, hax(4));
+hax(3) = subplot(313); cla('reset')
+handles = ew.PlotSingleYZSection('v', time, xloc, hax(3));
 hold on
 contour(handles.hvar.XData, handles.hvar.YData, handles.hvar.ZData, ...
         [1 1]*-1e-4, 'g', 'LineWidth', 2);
@@ -729,12 +725,12 @@ caxis([-1 1]*0.015);
 title('');
 hcb.Label.String = 'Cross-shelf velocity (m/s)';
 xlim([0 70]);
-hax(4).YTickMode = 'auto';
-hax(4).XTickMode = 'auto';
+hax(3).YTickMode = 'auto';
+hax(3).XTickMode = 'auto';
 ylim([-450 0]);
 handles.hcen.delete;
 handles.htlabel.Position(2) = 0.3;
-htxt(4) = text(0.1, 0.1, 'd)', 'Units', 'Normalized', 'Color', 'w');
+htxt(4) = text(0.1, 0.1, 'c)', 'Units', 'Normalized', 'Color', 'w');
 handles.hlz.delete;
 export_fig -r150 images/paper3/eddy-inflow.png
 
