@@ -490,20 +490,27 @@ end
 shfric2.sort('run.params.misc.rdrg');
 shfric2.name = cellstr(num2str(shfric2.print_params('run.params.misc.rdrg')', '%1.0e'));
 shfric2.name{1} = '0';
-shfric2.plot_ts('-run.ubarscale.scale/1000', [], 'run.ubarscale.time/86400');
-title('');
+
+handles = shfric2.plot_ts('-run.ubarscale.scale/1000', [], ...
+                          'run.ubarscale.time/86400');
 ylabel('Distance from shelfbreak (km)');
 xlabel('Time (days)');
+delete(handles.htind);
+delete(handles.hmaxloc);
 set(gcf, 'Position', [190 128 1126 810]);
 hleg = legend;
 hleg.Location = 'SouthEast';
 ylim([-40 0]);
-htxt = text(0.85, 0.35, 'r_f (m/s)', 'Units', 'normalized');
+htxt = text(0.85, 0.45, 'r_f (m/s)', 'Units', 'normalized');
 title('Cross-isobath extent of along-shelf supply jet');
+xlim([120 320]);
 linex([190 230]);
 correct_ticks('x', [], {'200'});
+resizeImageForPub('portrait');
+pbaspect([2 1 1]);
+beautify([12 13 14], 'Times');
 
-export_fig -r150 images/paper3/shfric-ubarscale.png
+export_fig -painters images/paper3/shfric-ubarscale.pdf
 
 %% friction mosaic
 if ~exist('shfric2', 'var')
