@@ -2,21 +2,22 @@
 folders = { ...
     'ew-8041', 'ew-8042', ...
     ... %'ew-8150', 'ew-8151', ...
-    ... %'ew-82342', 'ew-82343', ... %'ew-82344' ...
+    ... % 'ew-82342', 'ew-82343', ... %'ew-82344' ...
     'ew-8341', ...%'ew-8361', ...
     'ew-8352', 'ew-8352-2', 'ew-8342-2', ...
     'ew-8383', 'ew-8384', 'ew-8385', ...
     'ew-8392'... %, 'ew-8346', ...
-    'ew-8380', 'ew-8381', 'ew-8351-2', ...
+    'ew-8380', 'ew-8381', ... %'ew-8351-2', ...
     ... %'ew-583411', 'ew-583413', ...
     ... %'ew-583414', 'ew-583415', ...
-    ... %'ew-34';
+    'ew-34';
           };
 sh = runArray(folders);
 
 % 8361 is bad because it seems to be undergoing a different type of instability. more like
 % the really deep eddies. things are weird!
 for ii=1:sh.len
+    % sh.array(ii).radius = sh.array(ii).csflux.radius;
     % sh.array(ii).ShelfbreakSSHScale;
     %    sh.array(ii).csfluxes;
     %    sh.array(ii).avgStreamerVelSection(1);
@@ -26,6 +27,7 @@ end
 
 fontSizes = [12.5 13 13];
 %% inflow/outflow vertical profiles
+
 sh.filter = [1:sh.len];
 handles = sh.PlotFluxVertProfiles(fontSizes);
 hfig = gcf; hfig.Resize = 'off';
@@ -188,7 +190,7 @@ export_fig -r150 -a2 -transparent images/paper3/shelfbc.png
 %         handles(ii).Color = 'k';
 %     end
 % end
-% sh.reset_colors(corder_backup);
+    % sh.reset_colors(corder_backup);
 
 %% flux time series
 if ~exist('ew8341', 'var')
@@ -250,7 +252,7 @@ handles.hispongesh.DisplayName = 'Along-shelf at eastern boundary: shelf water';
 handles.lowsponge.DisplayName = 'Along-shelf at western boundary';
 title('Volume budget for the shelf');
 resizeImageForPub('portrait')
-pbaspect([1.7 1 1])
+pbaspect([1.6 1 1])
 beautify([12 13 14], 'Times')
 
 export_fig -transparent images/paper3/ew-8341-volume-budget.pdf
@@ -281,7 +283,8 @@ export_fig -a1 -r600 -c[Inf,0,Inf,0] images/paper3/sb-ssh-ew04-flat-sloping.png
 
 %% compare flat and sloping
 if ~exist('ew04', 'var')
-    ew04 = runArray({'ew-8350-2', 'ew-8352-2'});
+    % ew04 = runArray({'ew-8350-2', 'ew-8352-2'});
+    ew04 = runArray({'ew-8380', 'ew-8381'});
 end
 
 opt.drawtrack = 0;
@@ -693,9 +696,9 @@ plot(run.shelfbc.time/86400, run.shelfbc.shelf(:,2));
 hold on;
 plot(shfric2.array(1).shelfbc.time/86400, shfric2.array(1).shelfbc.shelf(:,2), 'k');
 xlim([0 400]);
-title('BC_{0.2}');
+title('BC');
 xlabel('Time (days)');
-linex([190 242]);
+linex([190 230]);
 htxt(2) = text(30, 0.2, 'f)');
 hax(6).Position(1) = hax(3).Position(1);
 hax(6).Position(3) = hax(3).Position(3);
