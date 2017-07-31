@@ -447,32 +447,53 @@ end
 % handles.hax(3).Position(4) = 0.75;
 handles.hax(1).YLim = [0 15];
 
+resizeImageForPub('portrait');
+
 axes(handles.hax(1));
 delete(handles.hleg);
 handles.hleg(1) = legend(handles.hflux(1:2), shfric.name{1:2});
 handles.hleg(2) = legend(handles.henv(3:5), shfric.name{3:5});
 handles.hleg(1).Box = 'off';
 handles.hleg(2).Box = 'off';
-handles.hleg(1).Position(1) = 0.69;
-handles.hleg(1).Position(2) = 0.73;
+handles.hleg(1).Position(1) = 0.63;
+handles.hleg(1).Position(2) = 0.78;
 pos1 = handles.hleg(1).Position;
 handles.hleg(2).Position(1) = handles.hleg(1).Position(1) + pos1(3) + 0.02;
 handles.hleg(2).Position(2) = pos1(2) + pos1(4) - handles.hleg(2).Position(4);
 pos2 = handles.hleg(2).Position;
 
-tblx = [0.69 0.89];
+handles.hax(3).Position(1) = 0.74;
+handles.hfig.Position(4) = 600;
+handles.hax(1).PlotBoxAspectRatio = [2 1 1];
+handles.hax(2).PlotBoxAspectRatio = [2 1 1];
+handles.hax(2).Position(2) = 0.2;
+handles.hax(3).Position(2) = 0.25;
+
+tblx = [0.63 0.98];
+dy = 0.05;
 htable.delete;
-htable(1) = text(1.2, 0.71, 'S_{sh}   r', 'Units', 'normalized', 'FontSize', 18);
-htable(2) = text(1.4, 0.71, 'S_{sh}     r', 'Units', 'normalized', 'FontSize', 18);
-htable(3) = annotation('line', tblx, [1 1]*0.84, 'LineWidth', 1);
-htable(4) = annotation('line', tblx, [1 1]*0.79, 'LineWidth', 1);
-htable(5) = annotation('line', tblx, [1 1]*0.70, 'LineWidth', 1);
+htable(1) = text(1.16, 0.885+dy, 'S_{sh}   r_f', 'Units', 'normalized', ...
+                 'FontSize', 12, 'FontName', 'Times');
+htable(2) = text(1.53, 0.885+dy, 'S_{sh}     r_f', 'Units', 'normalized', ...
+                 'FontName', 'Times', 'FontSize', 12);
+htable(3) = annotation('line', tblx, [1 1]*0.84+dy, 'LineWidth', 0.5);
+htable(4) = annotation('line', tblx, [1 1]*0.79+dy, 'LineWidth', 0.5);
+htable(5) = annotation('line', tblx, [1 1]*0.70+dy, 'LineWidth', 0.5);
 linkprop(htable, 'Color');
 htable(1).Color = handles.hax(1).XAxis.Color;
 linkprop(handles.hleg, 'TextColor');
 handles.hleg(1).TextColor = htable(1).Color;
 
-export_fig -r150 -a2 images/paper3/sb-flux-summary.png
+handles.hax(3).XLabel.Position(2) = 0.14;
+handles.hax(3).XAxis.Exponent = 0;
+
+labels = findobj(handles.legobj, 'type', 'text');
+for ii=1:length(labels)
+    labels(ii).FontName = 'Times';
+end
+
+set(gcf, 'renderer', 'painters');
+export_fig images/paper3/sb-flux-summary.pdf
 
 %%
 sh.print_diag('params table', 'images/paper3/sh-params-table.org')
