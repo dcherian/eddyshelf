@@ -100,41 +100,39 @@ for ii=4:6
 end
 ylim([0 250]);
 correct_ticks('y', [], {'50', '100'}, handles.hax([1 4]));
+for ii=1:6
+    axes(handles.hax(ii));
+    beautify([], 'Times')
+end
 
 handles.supax.Position(4) = 0.7;
 handles.hsuptitle.String = ...
-    'Surface cross-shelf dye (km) | Initial Ro = 0.1 | Initial eddy scales = (25 km, 400m)';
+    ['Surface cross-shelf dye (km) | Initial Ro = 0.1 | Initial eddy ' ...
+     'scales = (25 km, 400m)'];
+handles.hsuptitle.FontName = 'Times';
 
 axes(handles.hax(1));
 [hleg,icons] = legend([handles.hfield{1}.hcen, ...
                     handles.hfield{1}.htrack, ...
-                    ... %handles.hfield{1}.hrho, ...
                     handles.hfield{1}.hzeta], ...
-                      {'Eddy center', 'Track of eddy center', ...%'Eddy core',
-                    'SSH'}, 'Location', 'NorthWest'); %, 'FontSize', 14);
+                      {'Eddy center', 'Track of eddy center', ...
+                    'SSH'}, 'Location', 'NorthWest', 'FontName', 'Times');
 hleg.Box = 'off';
-hleg.Position(2) = hleg.Position(2) - 0.03;
+hleg.Position(2) = 0.65;
+hleg.FontName = 'Times'
 icons(end).Children.Children(1).LineWidth = 1;
 icons(end).Children.Children(2).LineWidth = 1;
 icons(end).Children.Children(3).LineWidth = 1;
+labels = findobj(icons, 'type', 'text');
+for ii=1:length(labels)
+    labels(ii).FontName = 'Times';
+    labels(ii).FontSize = 16;
+end
 
 axes(handles.hax(5))
 hline = linex(350, [], 'k');
-% annofs = 14;
-% hanno(1) = annotation('textarrow', [0.54 0.57], [1 1]*0.733, ...
-%                       'String', 'wake cyclone','LineWidth', 1, 'FontSize', annofs, ...
-%                       'HeadStyle', 'none');
-% hanno(2) = annotation('textarrow', [0.33 0.31], [0.262 0.28], ...
-%                       'String', 'leakage','LineWidth', 1, 'FontSize', annofs, 'Color', 'w', ...
-%                       'HeadStyle', 'none');
-% hanno(3) = annotation('textarrow', [1 1]*0.28, [0.36 0.33], ...
-%                       'String', {'secondary'; 'cyclone'},'LineWidth', 1, 'FontSize', annofs, ...
-%                       'HeadStyle', 'none', 'HorizontalAlignment', 'center');
-% hanno(4) = annotation('textarrow', [0.56 0.6], [0.262 0.28], ...
-%                       'String', 'anticyclonic eddies', 'LineWidth', 1, ...
-%                       'FontSize', annofs, 'Color', 'w', 'HeadStyle', 'none');
 
-export_fig -r150 -a2 -opengl images/paper3/ew-8341-surface-csdye.png
+export_fig -r300 -a2 -opengl images/paper3/ew-8341-surface-csdye.png
 
 %% shelf baroclinicity
 thresh = 2;
