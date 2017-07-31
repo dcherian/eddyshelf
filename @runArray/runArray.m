@@ -1073,8 +1073,12 @@ classdef runArray < handle
                     end
                 catch ME
                     disp(ME);
-                    if ~exist('handles', 'var') | length(handles.hplt) < ff
-                        handles.hplt(ff) = plot(vec);
+                    try
+                        handles.hplt(ff) = plot(ndtime, vec);
+                    catch ME
+                        if ~exist('handles', 'var') | length(handles.hplt) < ff
+                            handles.hplt(ff) = plot(vec);
+                        end
                     end
                 end
             end

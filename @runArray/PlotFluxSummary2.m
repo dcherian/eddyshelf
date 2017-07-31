@@ -47,25 +47,30 @@ function [handles] = PlotFluxSummary2(runArray, isobath, source, factor)
                   handles.hprofile(ff) handles.henv(ff)], 'Color');
     end
 
-    fs = [20 22 24];
+    fs = [12 13 14];
 
     axes(handles.hax(1))
-    handles.htxt(1) = text(0.05,0.85, 'a) Flux (mSv)', ...
+    handles.htxt(1) = text(0.05,0.85, 'a)', ...
                            'Units', 'Normalized');
     ylim([0 max(ylim)]);
     handles.hax(1).XTickLabel = {};
-    [handles.hleg, handles.legobj] = columnlegend(2, names, 'FontSize', fs(1));
+    handles.hax(1).YLabel.String = 'Flux (mSv)';
+    [handles.hleg, handles.legobj] = columnlegend(2, names, ...
+                                                  'FontSize', fs(1), ...
+                                                  'FontName', 'Times');
     handles.hleg.Position(1) = 0.62;
-    beautify(fs);
+    beautify(fs, 'Times');
 
     axes(handles.hax(2))
     handles.htxt(2) = text(0.05,0.15, {'b) Distance from shelfbreak of'; ...
-                        'most onshore water parcel (km)'}, ...
+                        'most onshore water parcel '; ...
+                        'crossing the shelfbreak (km)'}, ...
                            'Units', 'Normalized');
     %handles.hax(2).XTickLabel = {};
     handles.hax(2).XAxisLocation = 'top';
     handles.hax(2).XTickLabel{1} = 't = 0 day';
-    beautify(fs);
+    handles.hax(2).YLabel.String = 'C_{min} - Y_{sb}';
+    beautify(fs, 'Times');
     %[handles.hl, handles.hltxt] = liney(0,'shelfbreak');
     %LowerLines;
 
@@ -74,7 +79,7 @@ function [handles] = PlotFluxSummary2(runArray, isobath, source, factor)
     xlabel('c) \int Flux dx dt (m^2)');
     handles.hax(3).XAxisLocation = 'top';
     LowerLines;
-    beautify(fs);
+    beautify(fs, 'Times');
     xlim([0 max(xlim)]);
 
     linkaxes(handles.hax(1:2), 'x');
