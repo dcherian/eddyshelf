@@ -533,6 +533,7 @@ shfric2.array(end).read_velsurf;
 opt.limy = [0 150];
 opt.limx = [200 480];
 opt.quivercolor = [217 33 32]/255;
+opt.drawtrack = 1;
 %[136 34 85]/255; [0 150 136]/255; shfric2.array(1).shelfSlopeColor('dark'); %[1 0 0];
 opt.addvelquiver = 1;
 opt.addzeta = 0;
