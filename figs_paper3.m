@@ -102,35 +102,44 @@ ylim([0 250]);
 correct_ticks('y', [], {'50', '100'}, handles.hax([1 4]));
 for ii=1:6
     axes(handles.hax(ii));
-    beautify([], 'Times')
+    beautify([12 13 14], 'Times')
+    handles.hfield{ii}.hcen.MarkerSize = 8;
+    handles.hfield{ii}.hbathy{1}.ShowText = 'off';
 end
 
-handles.supax.Position(4) = 0.7;
+hfig = gcf;
+hfig.Position(4) = 450;
+resizeImageForPub('portrait')
+moveSubplotsCloserInY(2, 3, handles.hax, -1/8-1/16)
+
+handles.supax.Position(4) = 0.71;
 handles.hsuptitle.String = ...
     ['Surface cross-shelf dye (km) | Initial Ro = 0.1 | Initial eddy ' ...
      'scales = (25 km, 400m)'];
 handles.hsuptitle.FontName = 'Times';
+handles.hsuptitle.FontSize = 12;
 
-axes(handles.hax(1));
-[hleg,icons] = legend([handles.hfield{1}.hcen, ...
-                    handles.hfield{1}.htrack, ...
-                    handles.hfield{1}.hzeta], ...
-                      {'Eddy center', 'Track of eddy center', ...
-                    'SSH'}, 'Location', 'NorthWest', 'FontName', 'Times');
-hleg.Box = 'off';
-hleg.Position(2) = 0.65;
-hleg.FontName = 'Times'
-icons(end).Children.Children(1).LineWidth = 1;
-icons(end).Children.Children(2).LineWidth = 1;
-icons(end).Children.Children(3).LineWidth = 1;
-labels = findobj(icons, 'type', 'text');
-for ii=1:length(labels)
-    labels(ii).FontName = 'Times';
-    labels(ii).FontSize = 16;
-end
+% hleg.delete;
+% axes(handles.hax(1));
+% [hleg,icons] = legend([handles.hfield{1}.hcen, ...
+%                     handles.hfield{1}.htrack, ...
+%                     handles.hfield{1}.hzeta], ...
+%                       {'Eddy center', 'Track of eddy center', ...
+%                     'SSH'}, 'Location', 'NorthWest', 'FontName', 'Times');
+% hleg.Box = 'off';
+% hleg.Position(2) = 0.65;
+% hleg.FontName = 'Times'
+% icons(end).Children.Children(1).LineWidth = 1;
+% icons(end).Children.Children(2).LineWidth = 1;
+% icons(end).Children.Children(3).LineWidth = 1;
+% labels = findobj(icons, 'type', 'text');
+% for ii=1:length(labels)
+%     labels(ii).FontName = 'Times';
+%     labels(ii).FontSize = 8;
+% end
 
-axes(handles.hax(5))
-hline = linex(350, [], 'k');
+% axes(handles.hax(5))
+% hline = linex(350, [], 'k');
 
 export_fig -r300 -a2 -opengl images/paper3/ew-8341-surface-csdye.png
 
