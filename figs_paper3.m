@@ -56,12 +56,14 @@ pbaspect([1.618 1 1]);
 export_fig images/paper3/sh-avgflux.png
 
 %% eddy water on shelf scale
-figure; maximize;
+figure;
 hax(1) = subplot(121);
 hax(2) = subplot(122);
 
-sh.print_diag('supply', [], hax(1), 'no_name_points');
-sh.print_diag('eddyonshelf', [], hax(2), 'no_name_points');
+[diags, plotx, err, norm, color, rmse, P, Perr, h1] = ...
+    sh.print_diag('supply', [], hax(1), 'no_name_points, small_points');
+[diags, plotx, err, norm, color, rmse, P, Perr, h2] = ...
+    sh.print_diag('eddyonshelf', [], hax(2), 'no_name_points, small_points');
 
 hax(1).Title.String = '(a)';
 hax(2).Title.String = '(b)';
@@ -69,7 +71,14 @@ hax(2).Title.String = '(b)';
 hax(1).XLim(1) = 0;
 hax(2).YLim(1) = 0;
 
-export_fig -r150 images/paper3/parameterizations.png
+resizeImageForPub('portrait')
+axes(hax(1)); beautify(fontSizes, 'times')
+axes(hax(2)); beautify(fontSizes, 'times')
+
+h1.htext.FontSize = 11;
+h2.htext.FontSize = 11;
+
+export_fig -c[Inf,0,Inf,0] images/paper3/parameterizations.pdf
 
 %% surface dye panels
 timesteps = [1 100 150 200 300 350];
@@ -159,7 +168,7 @@ linex(0.3);
 for ii=1:length(hax(1).Children)
     hax(1).Children(ii).MarkerSize = 12;
 end
-beautify([12 13 14]);
+beautify(fontSizes, 'Times');
 
 hax(2) = subplot(122);
 set(gca, 'Color', 'none')
@@ -173,13 +182,13 @@ linex(0.3);
 for ii=1:length(hax(2).Children)
     hax(2).Children(ii).MarkerSize = 12;
 end
-beautify([12 13 14]);
+beautify(fontSizes, 'Times');
 
 set(hax(1), 'TickLength', [1 1]*0.02)
 set(hax(2), 'TickLength', [1 1]*0.02)
 resizeImageForPub('portrait');
 
-export_fig -r150 -a2 -transparent images/paper3/shelfbc.png
+export_fig -c[Inf,0,Inf,0] images/paper3/shelfbc.pdf
 
 %% shelfbc time series
 % phi = sh.print_params('bathy.hsb./(V0./bathy.S_sh/sqrt(phys.N2))');

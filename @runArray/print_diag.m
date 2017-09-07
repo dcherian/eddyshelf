@@ -1,6 +1,6 @@
 % [diags, plotx, err, norm, color, rmse, P, Perr] = ...
 %        print_diag(runArray, name, args, hax, commands)
-% commands: 'no_name_points'; 'no_sloping_shelf';
+% commands: 'no_name_points'; 'no_sloping_shelf'; 'small_points'
 
 function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         print_diag(runArray, name, args, hax, commands)
@@ -339,16 +339,16 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 %     exceptions = ff;
                 % end
 
-                errorbarflag = 1;
+                errorbarflag = 0;
                 %diags(ff) = max(smooth(env,10))/1000;
                 %diags(ff) = abs(ind-imin); % in km
-                laby = 'Width of shelf water supply jet (km)';
+                laby = {'Width of shelf water';  'supply jet (km)'};
 
                 plotx(ff) = Lbetash/1000;
                 labx = 'Rhines scale, L_\beta (km)';
             else % eddy water on shelf
                 diags(ff) = eddyonshelf;
-                laby = 'Penetration of eddy water on shelf (km)';
+                laby = {'Penetration of';  'eddy water on shelf (km)'};
                 plotx(ff) = Ldef/1000; %plotx(ff) / sqrt(1-Ro);
                 labx = 'Shelf Rossby radius (km)';
             end
@@ -1485,6 +1485,9 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
             if marker == '.'
                 markersize = 28;
+                if strfind(commands, 'small_points')
+                    markersize = 14;
+                end
             else
                 markersize = 18;
             end
