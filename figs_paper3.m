@@ -679,7 +679,7 @@ if ~exist('ew', 'var') | ~strcmpi(ew.name, 'ew-8342-2')
     ew = runs('../topoeddy/runew-8342-2/');
 end
 
-figure; maximize;
+figure;
 
 clf('reset');
 time = '311';
@@ -688,7 +688,6 @@ opt = [];
 opt.drawtrack = 0;
 opt.rhocontourplot = 0;
 opt.addvelquiver = 1;
-opt.quiverloc = 'surf';
 opt.limx = [180 400];
 opt.limy = [0 150];
 opt.nocolorbar = 0;
@@ -697,21 +696,32 @@ opt.nocolorbar = 0;
 surfvar = 'rho'; clim = [21.75 21.77];
 
 % surface dye + surface velocity
+opt.dxi = 7; opt.dyi = opt.dxi
 hax(1) = subplot(311);
-ew.animate_field(surfvar, hax(1), time, 1, opt);
+opt.quiverloc = 'surf';
+h1 = ew.animate_field(surfvar, hax(1), time, 1, opt);
+h1.hcb.Position(1) = 0.76;
+h1.hcb.Position(2) = 0.55;
+h1.hcb.Label.String = 'Surface \rho -1000 kg/m^3';
+h1.htlabel.delete;
 caxis(clim);
-linex(str2double(xloc)/1000, [], 'k');
-title('Surface  velocity vectors');
-htxt(1) = text(0.1, 0.1, 'a)', 'Units', 'Normalized');
+htxt(1) = text(0.05, 0.1, 'a) Surface velocity vectors', ...
+               'Units', 'Normalized', 'Color', 'w', ...
+               'FontSize', 12);
+beautify([12, 13, 14], 'Times')
 
-% below: surface dye bottom vrlocity
+% below: surface dye bottom velocity
 opt.quiverloc = 'bot';
+opt.dxi = 5; opt.dyi = opt.dxi;
 hax(2) = subplot(312);
-ew.animate_field(surfvar, hax(3), time, 1, opt);
+h2 = ew.animate_field(surfvar, hax(2), time, 1, opt);
+h2.htlabel.delete;
 caxis(clim);
-linex(str2double(xloc)/1000, [], 'k');
-title('Bottom velocity vectors');
-htxt(3) = text(0.1, 0.1, 'b)', 'Units', 'Normalized');
+htxt(2) = text(0.05, 0.1, 'b) Bottom velocity vectors', ...
+               'Units', 'Normalized', 'Color', 'w', ...
+               'FontSize', 12);
+beautify([12, 13, 14], 'Times')
+colorbar('off')
 
 % yz v
 hax(3) = subplot(313); cla('reset')
@@ -722,16 +732,53 @@ contour(handles.hvar.XData, handles.hvar.YData, handles.hvar.ZData, ...
 hcb = center_colorbar;
 caxis([-1 1]*0.015);
 title('');
-hcb.Label.String = 'Cross-shelf velocity (m/s)';
 xlim([0 70]);
 hax(3).YTickMode = 'auto';
 hax(3).XTickMode = 'auto';
 ylim([-450 0]);
 handles.hcen.delete;
 handles.htlabel.Position(2) = 0.3;
-htxt(4) = text(0.1, 0.1, 'c)', 'Units', 'Normalized', 'Color', 'w');
+htxt(3) = text(0.05, 0.1, 'c) Cross-shelf velocity (m/s)', ...
+               'Units', 'Normalized', 'Color', 'w', ...
+               'FontSize', 12);
 handles.hlz.delete;
-export_fig -r150 images/paper3/eddy-inflow.png
+beautify([12, 13, 14], 'Times')
+
+pbaspect([110 75 1])
+linkaxes(hax(1:2), 'xy')
+resizeImageForPub('portrait');
+
+hax(1).Position([1,3]) = hax(2).Position([1,3]);
+hax(1).XLabel.String = 'X (km)';
+hax(1).XTickLabels = []
+hax(1).XLabel.String = '';
+hax(1).YTick = hax(2).YTick;
+hax(1).YTickLabels = hax(2).YTickLabels;
+
+hax(3).Position(2) = 0.13;
+hcb.Position(2) = 0.13;
+
+hcb.Position(1) = h1.hcb.Position(1);
+hcb.Position(3) = h1.hcb.Position(3);
+
+for ii=1:2
+    axes(hax(ii))
+    linex(str2double(xloc)/1000, [], 'k');
+    hax(ii).Title.String = '';
+end
+
+for hh=[h1, h2]
+    hh.htlabel.Color = 'w'
+end
+% hack. Don't why this is needed. (╯°□°）╯︵ ┻━┻
+hax(1).Position = [0.3014 0.64    0.4319    0.2203];
+hax(3).Position(1) = 0.18;
+
+cmap = brighten(cbrewer('seq', 'Reds', 30), 0.4);
+colormap(hax(1), cmap)
+colormap(hax(2), cmap);
+
+export_fig -r200 images/paper3/eddy-inflow.png
 
 %% cross-shelfbreak hovmoeller
 if ~exist('ew', 'var') | ~strcmpi(ew.name, 'ew-8342-2')
