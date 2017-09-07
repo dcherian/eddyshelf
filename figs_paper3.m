@@ -740,28 +740,31 @@ end
 
 ew.hovmoeller('vbar', 'y', 'sb', 1);
 title('Depth averaged cross-isobath velocity at shelfbreak');
-[start,stop] = ew.flux_tindices(ew.csflux.off.slope(:,1,1));
-liney(ew.eddy.t([start stop]));
+% [start,stop] = ew.flux_tindices(ew.csflux.off.slope(:,1,1));
+% liney(ew.eddy.t([start stop]));
 hax = gca;
 hax.YTickLabel{find_approx(hax.YTick, 240)} = 't_{start}';
 hax.YTickLabel{find_approx(hax.YTick, 491)} = 't_{stop}';
 correct_ticks('y', [], {'500'});
 xlim([50 500]);
 
+resizeImageForPub('portrait');
+beautify([12, 13, 14], 'Times')
 pbaspect([1.618 1 1]);
 
-hax.Position(3) = 0.5;
-htxt(1) = text(1.15, 0.95, 'Offshore', 'Units', 'normalized', ...
-               'Rotation', -90);
-htxt(2) = text(1.15, 0.3, 'Onshore', 'Units', 'normalized', ...
-               'Rotation', -90);
+% hax.Position(3) = 0.5;
+htxt(1) = text(1.17, 0.95, 'Offshore', 'Units', 'normalized', ...
+               'Rotation', -90, 'FontSize', 12);
+htxt(2) = text(1.17, 0.3, 'Onshore', 'Units', 'normalized', ...
+               'Rotation', -90, 'FontSize', 12);
 hcb = findobj('type', 'colorbar');
 hcb.Label.String = '(m/s)';
 hcb.Label.Rotation = 0;
-hcb.Label.Position(1) = 3.8;
+hcb.Label.FontSize = 12;
+hcb.Label.Position(1) = 2.5;
 hcb.Label.VerticalAlignment = 'middle';
 
-export_fig -r150 images/paper3/ew-8342-2-vbar-hov.png
+export_fig -r200 images/paper3/ew-8342-2-vbar-hov.png
 
 %% buoyancy arrest
 c6 = 24;
