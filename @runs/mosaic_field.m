@@ -93,7 +93,7 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt, ...
         moveColorbarOut2x2(handles.hcb);
 
         if runs.bathy.axis == 'y'
-            moveSubplotsCloserInY(2, N, handles.hax);
+            % moveSubplotsCloserInY(2, N, handles.hax);
         end
     end
 
