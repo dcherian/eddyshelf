@@ -122,7 +122,7 @@ function [handles] = PlotFluxVertProfiles(runArray, fontSizes)
     handles.hcbar(1).Box = 'off';
     handles.hcbar(1).Label.String = '\phi_o';
     caxis([min(phio) max(phio)]);
-    beautify(fontSizes);
+    beautify(fontSizes, 'Times');
     % handles.hleg(1) = columnlegend(2, legstr1, 'FontSize', legfontsize-1, 'Location', 'NorthWest');
     % handles.hleg(1).Position(1) = 0.15;
     % handles.hleg(1).Position(2) = 0.23;
@@ -149,7 +149,7 @@ function [handles] = PlotFluxVertProfiles(runArray, fontSizes)
     handles.hcbar(2).Label.String = 'S_{sl}';
     handles.hcbar(2).Box = 'off';
     caxis([min(ssl) 3]);
-    beautify(fontSizes);
+    beautify(fontSizes, 'Times');
 
     % handles.hleg(2) = columnlegend(2, legstr2, 'FontSize', legfontsize);
     % handles.hleg(2).Position(1) = 0.75;

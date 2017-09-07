@@ -43,7 +43,7 @@ hanno(2) = annotation('line', ...
                       [1 1]* (pos(1) + pos(3)/(3-1)*(1.5-1)), pos(2) + [0 pos(4)], ...
                       'Color', 'k', 'Units', 'normalized');
 
-export_fig -a1 -c[Inf,0,Inf,0] -r600 images/paper3/sb-vert-profiles.png
+export_fig -c[Inf,0,Inf,0] images/paper3/sb-vert-profiles.pdf
 
 %% fluxes
 sh.filter = [1 2 5:8 10:12];
