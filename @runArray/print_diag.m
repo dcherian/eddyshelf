@@ -1070,13 +1070,15 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 fluxvec = run.csflux.off.slope(:, isobath, source);
             end
 
-            [maxflux, maxloc, errflx] = run.calc_maxflux(fluxvec,isobath);
             if strfind(name, 'max')
                 flux = maxflux;
 
                 t0 = 1;
                 tend = maxloc;
+
+                [maxflux, maxloc, errflx] = run.calc_maxflux(fluxvec,isobath);
             else
+                maxloc = [];
                 %flux_tref = run.recalculateFlux(integrate_zlimit, 1,1);
                 [start,stop] = run.flux_tindices(fluxvec);
                 [flux, errflx] = run.calc_avgflux(fluxvec, 0);

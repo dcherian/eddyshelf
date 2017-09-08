@@ -7,21 +7,29 @@ function [v, mask, rho, xvec, zvec] = ...
 
     phys = runs.params.phys;
 
-    if ~exist('maxloc', 'var') || isempty(maxloc)
-        [~,maxloc] = runs.calc_maxflux(isobath);
-    end
-
     if ~exist('V0', 'var') || isempty(V0)
+        if ~exist('maxloc', 'var') || isempty(maxloc)
+            [~,maxloc] = runs.calc_maxflux(isobath);
+        end
+
         %V0 = runs.eddy.rhovor.Vke(maxloc);
         vel = smooth(hypot(runs.eddy.fitx.V0, runs.eddy.fity.V0), 20) / 2.3 / sqrt(2);
         V0 = vel(maxloc);
     end
 
     if ~exist('L0', 'var') || isempty(L0)
+        if ~exist('maxloc', 'var') || isempty(maxloc)
+            [~,maxloc] = runs.calc_maxflux(isobath);
+        end
+
         L0 = median(runs.eddy.rhovor.dia(1:maxloc))/2;
     end
 
     if ~exist('Lz0', 'var') || isempty(Lz0)
+        if ~exist('maxloc', 'var') || isempty(maxloc)
+            [~,maxloc] = runs.calc_maxflux(isobath);
+        end
+
         Lz0 = runs.eddy.Lgauss(maxloc);
     end
 
