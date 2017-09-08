@@ -266,10 +266,12 @@ export_fig -a1 -r600 -c[Inf,0,Inf,0] images/paper3/sb-ssh-ew04-flat-sloping.png
 
 %% compare flat and sloping
 if ~exist('ew04', 'var')
-    % ew04 = runArray({'ew-8350-2', 'ew-8352-2'});
-    ew04 = runArray({'ew-8380', 'ew-8381'});
+    % ew04 = runArray({'ew-04', 'ew-8041'});
+    ew04 = runArray({'ew-8350-2', 'ew-8352-2'});
+    % ew04 = runArray({'ew-8380', 'ew-8381'});
 end
 
+time = 220;
 opt.drawtrack = 0;
 opt.drawcen = 0;
 opt.addvelquiver = 1;
@@ -277,17 +279,19 @@ opt.rhocontourplot = 0;
 opt.csdcontourplot = 0;
 opt.dxi = 8; opt.dyi = 5;
 
-ew04.array(1).read_velsurf(find_approx(ew04.array(1).time, 169*86400, 1), 1);
-ew04.array(1).read_csdsurf(find_approx(ew04.array(1).time, 169*86400, 1), 1);
+ew04.array(1).read_velsurf(find_approx(ew04.array(1).time, time*86400, 1), 1);
+ew04.array(1).read_csdsurf(find_approx(ew04.array(1).time, time*86400, 1), 1);
+
+ew04.array(2).read_velsurf(find_approx(ew04.array(2).time, time*86400, 1), 1);
+ew04.array(2).read_csdsurf(find_approx(ew04.array(2).time, time*86400, 1), 1);
 
 clear handles
 figure; maximize;
 hax = packfig(2,2);
 for ii=1:2
     run = ew04.array(ii);
-    tind = find_approx(run.time, 169*86400, 1);
 
-    handles(ii) = run.animate_field('csdye', hax(ii), '200', 1, opt);
+    handles(ii) = run.animate_field('csdye', hax(ii), num2str(time), 1, opt);
     xlim([170 400]);
     ylim([0 120]);
 
@@ -318,8 +322,8 @@ for ii=1:2
                zeros(size(run.rgrid.x_rho(1,2:dx:end-1)')), ...
                run.vsurf(2:dx:end-1, run.bathy.isb, tind), 0, 'Color', 'k');
 
-    hyy(ii,1).XLim = [170 400];
-    hyy(ii,2).XLim = [170 400];
+    hyy(ii,1).XLim = [240 400];
+    hyy(ii,2).XLim = [240 400];
 
     hyy(ii,1).Box = 'off';
     hyy(ii,2).Box = 'off';
@@ -350,7 +354,8 @@ correct_ticks('y', [], {'0'}, hax(1));
 
 handles(1).supax.Position(4) = 0.73;
 handles(1).supax.Title.String = 'Surface cross-shelf dye (km)';
-handles(1).supax.Title.FontSize = 28;
+handles(1).supax.Title.FontSize = 13;
+handles(1).supax.Title.FontName = 'Times';
 
 hax(3).YAxis.Color = 'k';
 hax(3).YLabel.String = {'Cross-isobath'; 'surface velocity (m/s)'};
@@ -360,41 +365,42 @@ hyy(2,2).YLabel.String = 'Cross-shelf dye - Y_{sb}';
 hyy(2,2).YLabel.Color = hplt(1,2).Color;
 hax(4).XLabel.String = 'X (km)';
 
+resizeImageForPub('portrait');
+
 axes(hyy(1,1))
-htxt(1) = text(200, 0.02, 'offshore', 'Color', hplt(ii,1).Color);
-htxt(2) = text(200, -0.02, 'onshore', 'Color', hplt(ii,1).Color);
+htxt(1) = text(250, 0.02, 'offshore', 'Color', hplt(ii,1).Color);
+htxt(2) = text(360, -0.0225, 'onshore', 'Color', hplt(ii,1).Color);
 
 axes(hyy(2,2));
-htxt(3) = text(320, 150, 'eddy water', 'Color', hplt(ii,2).Color);
-htxt(4) = text(175, 20, 'shelf water', 'Color', hplt(ii,2).Color);
+htxt(3) = text(340, 150, 'eddy water', 'Color', hplt(ii,2).Color);
+htxt(4) = text(250, 20, 'shelf water', 'Color', hplt(ii,2).Color);
 
-axes(hyy(1,1)); htxt(5) = text(0.05, 0.9, 'c)', 'Color', 'k', 'units', 'normalized', 'FontSize', 14);
-axes(hyy(2,2)); htxt(6) = text(0.05, 0.9, 'd)', 'Color', 'k', 'units', 'normalized', 'FontSize', 14);
+axes(hyy(1,1)); htxt(5) = text(0.05, 0.9, 'c)', 'Color', 'k', 'units', 'normalized', 'FontSize', 11);
+axes(hyy(2,2)); htxt(6) = text(0.05, 0.9, 'd)', 'Color', 'k', 'units', 'normalized', 'FontSize', 11);
 
 for ii=1:4
-    axes(hax(ii)); beautify([12.5 13 14]);
-    htxt(ii).FontSize = 13;
+    axes(hax(ii)); beautify([12.5 13 14], 'Times');
+    htxt(ii).FontSize = 12;
 end
 for ii=1:2
     handles(ii).htlabel.FontSize = 13;
 end
-axes(hyy(2,2)); beautify([12.5 13 14]);
+axes(hyy(2,2)); beautify([12.5 12.5 13], 'Times');
 
 for ii=1:2
     for jj=1:2
         axes(hyy(ii,jj));
         pbaspect([2 1 1]);
 
-        hyy(ii,jj).Position(2) = 0.28;
+        hyy(ii,jj).Position(2) = 0.35;
     end
 end
 
 axes(hax(2))
 hl = liney(37.5-12*1.37);
 hl.Color = [1 1 1]*0;
-hannotxt = text(max(xlim), hl.YData(1), ' 1.37L_\beta', 'FontSize', 13);
-
-resizeImageForPub('portrait');
+hannotxt = text(max(xlim), hl.YData(1), ' 1.37L_\beta', 'FontSize', ...
+                11, 'FontName', 'Times');
 
 export_fig -a1 -c[Inf,0,Inf,0] -r600  images/paper3/sbsnapshot-flat-sloping.png
 
