@@ -715,8 +715,7 @@ opt.dxi = 7; opt.dyi = opt.dxi
 hax(1) = subplot(311);
 opt.quiverloc = 'surf';
 h1 = ew.animate_field(surfvar, hax(1), time, 1, opt);
-h1.hcb.Position(1) = 0.76;
-h1.hcb.Position(2) = 0.55;
+h1.hcb.Location = 'SouthOutside';
 h1.hcb.Label.String = 'Surface \rho -1000 kg/m^3';
 h1.htlabel.delete;
 caxis(clim);
@@ -745,6 +744,7 @@ hold on
 contour(handles.hvar.XData, handles.hvar.YData, handles.hvar.ZData, ...
         [1 1]*-1e-4, 'g', 'LineWidth', 2);
 hcb = center_colorbar;
+hcb.Location = 'southoutside';
 caxis([-1 1]*0.015);
 title('');
 xlim([0 70]);
@@ -759,19 +759,20 @@ htxt(3) = text(0.05, 0.1, 'c) Cross-shelf velocity (m/s)', ...
 handles.hlz.delete;
 beautify([12, 13, 14], 'Times')
 
-pbaspect([110 75 1])
 linkaxes(hax(1:2), 'xy')
-resizeImageForPub('portrait');
+resizeImageForPub('onecolumn');
 
-hax(1).Position([1,3]) = hax(2).Position([1,3]);
-hax(1).XLabel.String = 'X (km)';
+hax(1).Position = [0.170    0.7101    0.7661    0.2149];
+hax(2).Position = [0.165    0.4096    0.7750    0.2157];
+hax(3).Position = [0.165    0.1687    0.7750    0.1909];
+h1.hcb.Position(1:3) = [0.35, 0.68, 0.4];
+
 hax(1).XTickLabels = []
 hax(1).XLabel.String = '';
 hax(1).YTick = hax(2).YTick;
 hax(1).YTickLabels = hax(2).YTickLabels;
 
 hax(3).Position(2) = 0.13;
-hcb.Position(2) = 0.13;
 
 hcb.Position(1) = h1.hcb.Position(1);
 hcb.Position(3) = h1.hcb.Position(3);
@@ -785,15 +786,16 @@ end
 for hh=[h1, h2]
     hh.htlabel.Color = 'w'
 end
-% hack. Don't why this is needed. (╯°□°）╯︵ ┻━┻
-hax(1).Position = [0.3014 0.64    0.4319    0.2203];
-hax(3).Position(1) = 0.18;
 
 cmap = brighten(cbrewer('seq', 'Reds', 30), 0.4);
 colormap(hax(1), cmap)
 colormap(hax(2), cmap);
 
-export_fig -r200 images/paper3/eddy-inflow.png
+% hack. Don't why this is needed. (╯°□°）╯︵ ┻━┻
+% hax(1).Position = [0.3014 0.64    0.4319    0.2203];
+% hax(3).Position(1) = 0.18;
+
+export_fig -r600 images/paper3/eddy-inflow.png
 
 %% cross-shelfbreak hovmoeller
 if ~exist('ew', 'var') | ~strcmpi(ew.name, 'ew-8342-2')
