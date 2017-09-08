@@ -823,26 +823,26 @@ function [out] = detect_eddy(maskin, zeta, opt, grd)
                 disp(['eddy center > 10 dx from last time ' ...
                       'instant.']);
 
-                clf;
-                pcolorcen(zeta');
-                clim = caxis;
-                hold on;
-                contour(maskreg', 1, 'k', 'LineWidth', 2);
-                caxis(clim);
-                plot(grd.cxn1/dx, grd.cyn1/dy, '*');
-                plot(out.cx/dx, out.cy/dy, 'k*');
-                legend('zeta','current contour', 'earlier center', ['present ' ...
-                                    'center']);
-                answer = input([' enter 0 to skip this region, 1 to ' ...
-                                'accept (' ...
-                                num2str(regions.NumObjects ...
-                                        - mm) ' regions left): ']);
-                drawnow;
-                if ~answer
-                    disp('region skipped');
-                    flag_found == 0;
-                    continue;
-                end
+                % clf;
+                % pcolorcen(zeta');
+                % clim = caxis;
+                % hold on;
+                % contour(maskreg', 1, 'k', 'LineWidth', 2);
+                % caxis(clim);
+                % plot(grd.cxn1/dx, grd.cyn1/dy, '*');
+                % plot(out.cx/dx, out.cy/dy, 'k*');
+                % legend('zeta','current contour', 'earlier center', ['present ' ...
+                %                     'center']);
+                % answer = input([' enter 0 to skip this region, 1 to ' ...
+                %                 'accept (' ...
+                %                 num2str(regions.NumObjects ...
+                %                         - mm) ' regions left): ']);
+                % drawnow;
+                % if ~answer
+                %     disp('region skipped');
+                %     flag_found == 0;
+                %     continue;
+                % end
             end
         end
 
