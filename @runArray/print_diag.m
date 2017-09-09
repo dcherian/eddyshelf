@@ -303,9 +303,6 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             phi = hsb./(V0./bathy.S_sh/N);
             chi = (2/sqrt(pi)*exp(-(hsb/Lz0)^2) * V0/Lz0)/(bathy.S_sl*N);
             lambda = hsb/Lz0;
-            if lambda >= 0.35
-                continue;
-            end
 
             [supply, errsupp, eddyonshelf] = run.SupplyJetEddyonShelf;
 
@@ -334,6 +331,11 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
             if strcmpi(name, 'supply')
                 if strcmpi(run.name, 'ew-8381'), continue; end
+
+                if lambda >= 0.35
+                    disp(['skipping ' run.name])
+                    continue;
+                end
 
                 diags(ff) = supply;
                 err(1,ff) = errsupp;
