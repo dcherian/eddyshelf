@@ -19,14 +19,42 @@ function [supply, errsupp, eddyonshelf] = SupplyJetEddyonShelf(runs)
     %ind = find(eddcumvol >= 0.15, 1, 'first');
     eddyonshelf = (xsb - runs.supply.ymat(ind, 1))/1000;
 
-    % shelf water envelope
-    env = xsb/1000 - runs.csflux.off.slopewater.envelope(:,1)/1000;
-    tvec = runs.csflux.time(~isnan(env))/86400;
+
+    %% shelf water envelope
+
+    [~,stop] = runs.flux_tindices(runs.csflux.off.slope(:,1,1), ...
+                                  0.01);
+    start = 1;
+
+    if strcmpi(runs.name, 'ew-8392')
+        % biased by decrease near the end
+        % stop = stop - 30;
+    elseif strcmpi(runs.name, 'ew-8384') ...
+            | strcmpi(runs.name, 'ew-8385') ...
+            | strcmpi(runs.name, 'ew-8381') ...
+            | strcmpi(runs.name, 'ew-8341')
+        stop = length(runs.csflux.time);
+    end
+
+    env = xsb/1000 - runs.csflux.off.slopewater.envelope(start:stop,1)/1000;
+    time = runs.csflux.time(start:stop)/86400;
+    tvec = time(~isnan(env))/86400;
     env = env(~isnan(env));
     menv = mean(env);
 
     [y0,T,t0,y1,conf,fitobj] = tanh_fit(tvec, env, 0);
+    title(runs.name)
     supply = y0 + y1;
+
+    % env time series is weird.
+    % I think the fits are underestimating
+    if strcmpi(runs.name, 'ew-8341') ...
+            | strcmpi(runs.name, 'ew-8351-2')
+        supply = supply + 3;
+    end
+    if strcmpi(runs.name, 'ew-8041')
+         supply = supply + 2;
+    end
     errsupp = hypot(conf(1,1)-y0, conf(1,4)-y1);
 
     % use transport binned by on-shelf origin

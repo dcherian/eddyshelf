@@ -291,17 +291,23 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
             Ro = mean(Ro(t0:tend));
             [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
-            V0 = eddy.V(1);
 
             betash = fsb/hsb * bathy.sl_shelf;
 
-            Lbetash = sqrt(V0/(betash-beta));
+            Lbetash = sqrt(V0/(betash));
             Lctw = V0/bathy.sl_shelf/N;
             Ldef = N*hsb/fsb;
+
+            % disp(Lbetash/0.1*V0/86400)
 
             phi = hsb./(V0./bathy.S_sh/N);
             chi = (2/sqrt(pi)*exp(-(hsb/Lz0)^2) * V0/Lz0)/(bathy.S_sl*N);
             lambda = hsb/Lz0;
+            if lambda >= 0.35
+                continue;
+            end
+
+            [supply, errsupp, eddyonshelf] = run.SupplyJetEddyonShelf;
 
             % if strcmpi(run.name, 'ew-8392') | strcmpi(run.name, 'ew-8151')
             %     i0 = 10;
@@ -317,8 +323,6 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             % linex([imin ind]);
             % title(run.name)
 
-            [supply, errsupp, eddyonshelf] = run.SupplyJetEddyonShelf;
-
             % if strfind(run.name, '8234');
             %     supply = supply - eddyonshelf;
             % end
@@ -329,15 +333,14 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             % vfactor = sqrt(trapz(zvec, vel)./hsb/vel(1));
 
             if strcmpi(name, 'supply')
-                if lambda >= 0.35
-                    continue;
-                end
+                if strcmpi(run.name, 'ew-8381'), continue; end
+
                 diags(ff) = supply;
                 err(1,ff) = errsupp;
 
-                % if strcmpi(run.name, 'ew-8342-2')
-                %     exceptions = ff;
-                % end
+                if strcmpi(run.name, 'ew-8342-2')
+                     exceptions = ff;
+                end
 
                 errorbarflag = 0;
                 %diags(ff) = max(smooth(env,10))/1000;
