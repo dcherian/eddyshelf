@@ -787,4 +787,4 @@ handles.hax(2).YTickLabels = {};
 hleg.FontName = 'Times'
 hleg.FontSize = fs(1);
 
-export_fig -transparent -r300 -a2 -opengl images/grs-ew-8341-surface-csdye.png
+export_fig -transparent -r400 -a2 -opengl images/grs-ew-8341-surface-csdye.png

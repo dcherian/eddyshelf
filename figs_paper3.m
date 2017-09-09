@@ -14,18 +14,21 @@ folders = { ...
           };
 sh = runArray(folders);
 
-% 8361 is bad because it seems to be undergoing a different type of instability. more like
+% 8361 is bad because it seems to be undergoing a different
+% type of instability. more like
 % the really deep eddies. things are weird!
+
 for ii=1:sh.len
     % sh.array(ii).radius = sh.array(ii).csflux.radius;
     % sh.array(ii).ShelfbreakSSHScale;
     %    sh.array(ii).csfluxes;
     %    sh.array(ii).avgStreamerVelSection(1);
-            %sh.array(ii).VolumeBudget;
-            %    sh.array(ii).ShelfBaroclinicity;
+    %sh.array(ii).VolumeBudget;
+    %    sh.array(ii).ShelfBaroclinicity;
 end
 
 fontSizes = [12.5 13 13];
+
 %% inflow/outflow vertical profiles
 
 sh.filter = [1:sh.len];
@@ -53,9 +56,11 @@ title('');
 handles.htext.FontSize = 22
 handles.hiso.delete;
 pbaspect([1.618 1 1]);
+
 export_fig images/paper3/sh-avgflux.png
 
 %% eddy water on shelf scale
+
 figure;
 hax(1) = subplot(121);
 hax(2) = subplot(122);

@@ -1040,8 +1040,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         end
 
         if strcmpi(name, 'max flux') | strcmpi(name, 'avg flux')
-            default_factor = 1; % integrate to 2xHsb
-
+            default_factor = 1; % integrate to 1xHsb
             if isempty(args)
                 isobath = 1;
                 factor = default_factor;
