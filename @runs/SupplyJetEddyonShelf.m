@@ -1,10 +1,26 @@
 % Returns [supply jet width, error on supplpy jet width, eddy penetration width]
 function [supply, errsupp, eddyonshelf] = SupplyJetEddyonShelf(runs)
 
+    debug = 0;
     xsb = runs.bathy.xsb;
 
-    % eddy penetration on shelf
+    %% eddy penetration on shelf
     dz = diff(runs.supply.zmat, 1, 2);
+
+    if debug
+        figure;
+        contourf(runs.supply.ymat/1000, runs.supply.zmat, ...
+                 runs.supply.csdmean/1000, 40, 'EdgeColor', 'none');
+        shading flat;
+        hold on;
+        contour(runs.supply.ymat/1000, runs.supply.zmat, ...
+                runs.supply.csdmean/1000, ...
+                [1 1]*runs.bathy.xsb/1000, 'k', 'LineWidth', 2);
+        contour(runs.supply.ymat/1000, runs.supply.zmat, ...
+                runs.supply.eddmean, ...
+                [1 1]*0.2, 'g', 'LineWidth', 2);
+    end
+
     csdint = sum(dz .* avg1(runs.supply.csdmean,2), 2)./sum(dz,2);
     eddint = sum(dz .* avg1(runs.supply.eddmean,2), 2)./sum(dz,2);
     eddcumvol = cumtrapz(runs.supply.ymat(:,1), ...
@@ -12,13 +28,25 @@ function [supply, errsupp, eddyonshelf] = SupplyJetEddyonShelf(runs)
     eddcumvol = eddcumvol./max(eddcumvol);
 
     % different ways of finding dye front
-    %ind = find(runs.supply.csdmean(:,end) >= (runs.bathy.xsb), 1, 'first');
+    if debug
+        N = 120;
+        [yi, zi] = meshgrid(runs.supply.ymat(:, 1), ...
+                            linspace(double(min(runs.supply.zmat(:))), 0, N));
+
+        F = scatteredInterpolant(runs.supply.ymat(:), ...
+                                 double(runs.supply.zmat(:)), ...
+                                 runs.supply.csdmean(:), 'linear', 'none');
+        csdi = F(yi, zi);
+        ind = find(csdi(ceil(1/2*N),:) <= (runs.bathy.xsb), 1, 'last');
+        liney(zi(ceil(1/2*N), 1));
+        linex(runs.supply.ymat(ind, 1)/1000);
+    end
+
     ind = find(csdint >= (runs.bathy.xsb), 1, 'first');
     %ind = find(runs.supply.eddmean(:,end) >= 0.7, 1, 'first');
     %ind = find(eddint >= 0.3, 1, 'first');
     %ind = find(eddcumvol >= 0.15, 1, 'first');
     eddyonshelf = (xsb - runs.supply.ymat(ind, 1))/1000;
-
 
     %% shelf water envelope
 
