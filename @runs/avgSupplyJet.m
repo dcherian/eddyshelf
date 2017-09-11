@@ -12,7 +12,17 @@ function [] = avgSupplyJet(runs, debug)
     N = runs.rgrid.N;
     isb = runs.bathy.isb;
 
-    xloc = runs.eddy.mx(start) + 1 * runs.params.eddy.dia;
+    if strcmpi(runs.name, 'ew-8383')
+        % too close to eddy!
+        % can't use for all runs becaseu this can get too close to
+        % sponge, and diagnostic is contaminated by imperfect
+        % open boundaries.
+        xloc = (runs.eddy.mx(start) + 1 * runs.params.eddy.dia ...
+                + runs.rgrid.x_rho(1,runs.spng.sx2))/2;
+    else
+        xloc = runs.eddy.mx(start) + 1 * runs.params.eddy.dia;
+    end
+
     xind = find_approx(runs.rgrid.x_rho(1,:), xloc, 1);
     assert(xind < runs.spng.sx2, 'Error: Location within sponge!');
     yvec = runs.rgrid.y_rho(2:isb, 1);
@@ -138,6 +148,7 @@ function [] = avgSupplyJet(runs, debug)
     supply.csdmean = csdmean;
     supply.eddmean = eddmean;
 
+    supply.xloc = xloc;
     supply.hash = githash([mfilename('fullpath') '.m']);
     supply.tindices = tindices;
     supply.ymat = ymat;
