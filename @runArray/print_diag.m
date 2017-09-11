@@ -122,6 +122,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         N = sqrt(run.params.phys.N2);
         ash = run.bathy.sl_shelf;
         diagstr = [];
+        Lsh = run.bathy.L_shelf;
 
         %%%%% dummy
         if strcmpi(name, 'dummy')
@@ -1039,6 +1040,73 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                                                         isobath, isobath),0), 2);
         end
 
+        %%%%%%%%%%%%%% flux variation with shelf slope
+        if strcmpi(name, 'flux slope')
+            isobath = args(1);
+            zvec = run.csflux.vertbins(:, isobath);
+            fluxvec = squeeze(trapz(trapz(zvec, ...
+                                          run.radius.off.shelf, ...
+                                          2), 1))*1e3;
+
+            [start,stop] = run.flux_tindices(fluxvec);
+            [flux, errflx] = run.calc_avgflux(fluxvec, 0);
+
+            t0 = 1; %start;
+            tend = ceil((start+stop)/2);
+
+            alpha = run.bathy.sl_shelf;
+
+            [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
+
+            Lbeta = run.bathy.Lbetash;
+            Ldef = run.rrshelf;
+            Lsupp = Lbeta*1.22;
+
+            % [vmax,imax] = max(vmask(:, end));
+            % Vsupp = V0; %fluxscl/hsb/L0;
+            % supplyscl = Vsupp * Lsupp * (hsb - alpha*Lsupp/2);
+            % eddyscl = V0 * L0 * Lz0;
+            % nullscl = V0 * L0 * (hsb);
+
+            if hsb/Lz0 > 0.35  ...
+                    | (strcmpi(run.name, 'ew-2041') & (isobath > 3)) ...
+                    | strcmpi(run.name, 'ew-2043') ...
+                    | strcmpi(run.name, 'ew-8383')
+                warning('skipping because splitting is probably happening.');
+                continue;
+            end
+
+            if alpha == 0
+                slfac = 1;
+            else
+                % no Ldef corrections;
+                % assume shelf water hasn't been replaced yet
+                % how much shelf volume can the eddy affect?
+                H1 = (hsb - alpha*Lsupp);
+                H2 = (hsb);
+                slfac = ((Lsupp) * (H1+H2)/2) ...
+                        / (min([L0, Lsh])  * hsb);
+            end
+
+            if ff == 1
+                norm_flux = flux;
+            end
+            diags(ff) = flux/norm_flux;
+            plotx(ff) = slfac;
+            err(1,ff) = errflx/norm_flux;
+
+            save_diags = 0; errorbarflag = 1;
+            mark_outliers = 0; name_points = 1;
+            parameterize = 0; logscale = 0;
+            force_0intercept = 0;
+            line_45 = 0;
+            laby = ['(Avg flux; sloping shelf) / (Avg flux; flat shelf)'];
+            labx = ['Slope factor, σ'];
+            titlestr = [titlestr ' | ND isobath = ' ...
+                        num2str(run.csflux.ndloc(:,isobath))];
+        end
+
+        %%%%%%%%%%%%%%%%% max / avgflux
         if strcmpi(name, 'max flux') | strcmpi(name, 'avg flux')
             default_factor = 1; % integrate to 1xHsb
             if isempty(args)
@@ -1066,6 +1134,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 end
             end
 
+            alpha = run.bathy.sl_shelf;
             if ~isfield(run.csflux, 'off') ...
                     | (isobath > size(run.csflux.vertbins, 2))
                 disp(['Skipping ' run.name]);
@@ -1116,24 +1185,14 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             [v,mask] = run.makeStreamerSection(isobath, maxloc, V0, L0, Lz0);
             zind = find_approx(zvec, -abs(integrate_zlimit));
             vmask = v .* mask;
-
             fluxscl = trapz(zvec(zind:end), ...
                             trapz(xvec, vmask(:,zind:end), 1), 2);
 
-            Lsupp = run.bathy.Lbetash*1.01;
-            alpha = run.bathy.sl_shelf;
-            if alpha == 0
-                % Lsupp = run.bathy.L_shelf;
-                continue;
-            end
-            supplyscl = V0 * Lsupp * (hsb - alpha*Lsupp/2);
-            fluxscl = supplyscl;
-
             debug_fluxes = 0;
             if debug_fluxes
-                disp(sprintf([name ' = %.2f mSv, fluxscl = %.2f mSv | ' ...
-                             'V0 = %.2f m/s, L0 = %.2f km, Lz0 = %.2f m'], ...
-                             flux/1000, fluxscl/1000, V0, L0/1000, Lz0));
+                disp(sprintf([name ' = %.2f mSv, suppscl = %.2f mSv | ' ...
+                              'V0 = %.2f m/s, L0 = %.2f km, Lz0 = %.2f m'], ...
+                             flux/1000, supplyscl/1000, V0, L0/1000, Lz0));
             end
 
             norm(ff) = 1000; eddyscl;
@@ -1510,7 +1569,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                     err(2,ff) = err(1,ff);
                 end
                 errorbar(plotx(ff), diags(ff), abs(err(1,ff)), abs(err(2,ff)), ...
-                         'x', 'LineWidth', 2, 'Color', clr, ...
+                         'x', 'LineWidth', 1, 'Color', clr, ...
                          'Marker', marker, 'MarkerSize', markersize);
             else
                 plot(plotx(ff), diags(ff), 'Marker', marker, 'Color', clr, ...

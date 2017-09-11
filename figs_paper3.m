@@ -10,7 +10,8 @@ folders = { ...
     'ew-8380', 'ew-8381', 'ew-8351-2', ...
     ... %'ew-583411', 'ew-583413', ...
     ... %'ew-583414', 'ew-583415', ...
-    'ew-34';
+    'ew-34', ...
+    'ew-8350-2'; ...
           };
 sh = runArray(folders);
 
@@ -49,15 +50,25 @@ hanno(2) = annotation('line', ...
 export_fig -c[Inf,0,Inf,0] images/paper3/sb-vert-profiles.pdf
 
 %% fluxes
-sh.filter = [1 2 5:8 10:12];
-[diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
-    sh.print_diag('avg flux', 1, [], 'no_name_points');
-title('');
-handles.htext.FontSize = 22
-handles.hiso.delete;
-pbaspect([1.618 1 1]);
 
-export_fig images/paper3/sh-avgflux.png
+cmds = 'no_name_points; small_points;';
+
+figure; hax = gca;
+sh.filter = [13 14 10 11]; % ew-838x
+sh.print_diag('flux slope', 1, hax, cmds);
+sh.filter = [17 15 7]; % ew-835x-2
+sh.print_diag('flux slope', 1, hax, cmds);
+sh.filter = [16 5]; % ew-834x
+sh.print_diag('flux slope', 1, hax, cmds);
+title('');
+xlim([0 1])
+ylim([0 1.3])
+line45;
+
+resizeImageForPub('portrait');
+beautify(fontSizes, 'Times')
+
+export_fig -c[Inf,0,Inf,0] images/paper3/sh-avgflux-slope.pdf
 
 %% eddy water on shelf scale
 
