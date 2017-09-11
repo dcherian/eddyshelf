@@ -1558,7 +1558,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         limx = xlim;
         limy = ylim;
 
-        xvec = linspace(0.5*nanmin(plotx(:)), 1*nanmax(plotx), 100);
+        xvec = linspace(0.5*nanmin(plotx(:)), 1.1*nanmax(plotx), 100);
 
         err = max(abs(err), [], 1);
         % if strcmpi(name, 'bottom torque')

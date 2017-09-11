@@ -80,6 +80,9 @@ resizeImageForPub('portrait')
 axes(hax(1)); beautify(fontSizes, 'times')
 axes(hax(2)); beautify(fontSizes, 'times')
 
+hax(1).XLim(end) = 35;
+hax(1).YLim(end) = 45;
+hax(2).XLim(end) = 25;
 h1.htext.FontSize = 11;
 h2.htext.FontSize = 11;
 
