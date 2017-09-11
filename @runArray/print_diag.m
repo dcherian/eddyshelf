@@ -1059,8 +1059,15 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                     continue;
                 end
             end
+            if strfind(commands, 'only_sloping_shelf') & (isobath == 1)
+                if run.bathy.sl_shelf == 0
+                    disp(['Skipping ' run.name ': flat shelf.']);
+                    continue;
+                end
+            end
 
-            if ~isfield(run.csflux, 'off') | (isobath > size(run.csflux.vertbins, 2))
+            if ~isfield(run.csflux, 'off') ...
+                    | (isobath > size(run.csflux.vertbins, 2))
                 disp(['Skipping ' run.name]);
                 continue;
             end
@@ -1093,7 +1100,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
             [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
 
-            if hsb/Lz0 > 0.5  ...
+            if hsb/Lz0 > 0.35  ...
                     | (strcmpi(run.name, 'ew-2041') & (isobath > 3)) ...
                     | strcmpi(run.name, 'ew-2043') ...
                     | strcmpi(run.name, 'ew-8383')
