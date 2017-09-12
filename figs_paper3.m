@@ -90,17 +90,17 @@ hax(1).Title.String = '(a)';
 hax(2).Title.String = '(b)';
 
 hax(1).XLim(1) = 0;
- hax(2).YLim(1) = 0;
+hax(2).YLim(1) = 0;
 
- resizeImageForPub('portrait')
- axes(hax(1)); beautify(fontSizes, 'times')
- axes(hax(2)); beautify(fontSizes, 'times')
+resizeImageForPub('portrait')
+axes(hax(1)); beautify(fontSizes, 'times')
+axes(hax(2)); beautify(fontSizes, 'times')
 
- hax(1).XLim(end) = 35;
- hax(1).YLim(end) = 45;
- hax(2).XLim(end) = 25;
- h1.htext.FontSize = 11;
- h2.htext.FontSize = 11;
+hax(1).XLim(end) = 35;
+hax(1).YLim(end) = 45;
+hax(2).XLim(end) = 25;
+h1.htext.FontSize = 11;
+h2.htext.FontSize = 11;
 
 export_fig -c[Inf,0,Inf,0] images/paper3/parameterizations.pdf
 
