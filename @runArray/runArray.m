@@ -256,6 +256,10 @@ classdef runArray < handle
 
                 if ~isempty(temp)
                     if ischar(temp)
+                        if ~iscell(out)
+                            clear out
+                            out{ii-1} = '';
+                        end
                         out{ii} = temp;
                     else
                         out(ii) = temp;
