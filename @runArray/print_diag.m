@@ -1049,7 +1049,16 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                                           2), 1))*1e3;
 
             [start,stop] = run.flux_tindices(fluxvec);
-            [flux, errflx] = run.calc_avgflux(fluxvec, 0);
+
+            % radius.off.shelf is calculated for [t_start, t_stop] anyway
+            whenstart = 0; whenstop = 1;
+            if strcmpi(run.name, 'ew-04') | ...
+                    strcmpi(run.name, 'ew-34')
+                % these have drops near the end because they're so long
+                whenstop = 0.70;
+            end
+            [flux, errflx] = run.calc_avgflux(fluxvec, 0, ...
+                                              whenstart, whenstop);
 
             t0 = 1; %start;
             tend = ceil((start+stop)/2);
@@ -1068,31 +1077,34 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             % eddyscl = V0 * L0 * Lz0;
             % nullscl = V0 * L0 * (hsb);
 
-            if hsb/Lz0 > 0.35  ...
-                    | (strcmpi(run.name, 'ew-2041') & (isobath > 3)) ...
-                    | strcmpi(run.name, 'ew-2043') ...
-                    | strcmpi(run.name, 'ew-8383')
-                warning('skipping because splitting is probably happening.');
-                continue;
-            end
-
             if alpha == 0
                 slfac = 1;
             else
-                % no Ldef corrections;
-                % assume shelf water hasn't been replaced yet
-                % how much shelf volume can the eddy affect?
-                H1 = (hsb - alpha*Lsupp);
-                H2 = (hsb);
-                slfac = ((Lsupp) * (H1+H2)/2) ...
-                        / (min([L0, Lsh])  * hsb);
+                % 1. no Ldef corrections;
+                %    assume shelf water hasn't been replaced yet
+                %    how much shelf volume can the eddy affect?
+                %
+                % 2. sometimes I change Lsh when slope becomes steep!
+                %    denominator of slfac should have shelf width
+                %    that was used in flat-bottom run
+
+                slfac = (V0 * Lsupp * hsb ...
+                         * ( (1-alpha*Lsupp/hsb) * (1-exp(-(Lsh/Lsupp))) ...
+                             - alpha*Lsh/hsb * exp(-Lsh/Lsupp))) ...
+                        / ( norm_v * norm_L * norm_hsb ...
+                            * (1 - exp(-(norm_Lsh/norm_L))) );
             end
 
             if ff == 1
                 norm_flux = flux;
+                norm_v = V0;
+                norm_L = L0;
+                norm_hsb = hsb;
+                norm_Lsh = Lsh;
             end
+
             diags(ff) = flux/norm_flux;
-            plotx(ff) = slfac;
+            plotx(ff) = slfac*0.8 + 0.2;
             err(1,ff) = errflx/norm_flux;
 
             save_diags = 0; errorbarflag = 1;
@@ -1101,7 +1113,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             force_0intercept = 0;
             line_45 = 0;
             laby = ['(Avg flux; sloping shelf) / (Avg flux; flat shelf)'];
-            labx = ['Slope factor, σ'];
+            labx = ['Slope factor, 0.8 \sigma + 0.2'];
             titlestr = [titlestr ' | ND isobath = ' ...
                         num2str(run.csflux.ndloc(:,isobath))];
         end
