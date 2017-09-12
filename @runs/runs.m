@@ -666,6 +666,12 @@ methods
                                       runs.bathy.betash);
         end
 
+        % save some memory
+        runs.asflux = [];
+        runs.csflux.on = [];
+        runs.csflux.off.eddyzt = [];
+        runs.csflux.off.slopezt = [];
+
         toc(ticstart);
     end
 
