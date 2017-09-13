@@ -1042,60 +1042,17 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
         %%%%%%%%%%%%%% flux variation with shelf slope
         if strcmpi(name, 'flux slope')
-            isobath = args(1);
-            zvec = run.csflux.vertbins(:, isobath);
-            fluxvec = squeeze(trapz(trapz(zvec, ...
-                                          run.radius.off.shelf, ...
-                                          2), 1))*1e3;
 
-            [start,stop] = run.flux_tindices(fluxvec);
-
-            % radius.off.shelf is calculated for [t_start, t_stop] anyway
-            whenstart = 0; whenstop = 1;
-            if strcmpi(run.name, 'ew-04') | ...
-                    strcmpi(run.name, 'ew-34')
-                % these have drops near the end because they're so long
-                whenstop = 0.70;
-            end
-            [flux, errflx] = run.calc_avgflux(fluxvec, 0, ...
-                                              whenstart, whenstop);
-
-            t0 = 1; %start;
-            tend = ceil((start+stop)/2);
-
-            alpha = run.bathy.sl_shelf;
-
-            [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
-
-            Lbeta = run.bathy.Lbetash;
-            Ldef = run.rrshelf;
-            Lsupp = Lbeta*1.22;
-
-            % [vmax,imax] = max(vmask(:, end));
-            % Vsupp = V0; %fluxscl/hsb/L0;
-            % supplyscl = Vsupp * Lsupp * (hsb - alpha*Lsupp/2);
-            % eddyscl = V0 * L0 * Lz0;
-            % nullscl = V0 * L0 * (hsb);
-
-            if alpha == 0
-                slfac = 1;
+            if ff == 1
+                [sigma, flux, errflx, V0, L0] = ...
+                    run.SlopeFactor();
             else
-                % 1. no Ldef corrections;
-                %    assume shelf water hasn't been replaced yet
-                %    how much shelf volume can the eddy affect?
-                %
-                % 2. sometimes I change Lsh when slope becomes steep!
-                %    denominator of slfac should have shelf width
-                %    that was used in flat-bottom run
-
-                slfac = (V0 * Lsupp * hsb ...
-                         * ( (1-alpha*Lsupp/hsb) * (1-exp(-(Lsh/Lsupp))) ...
-                             - alpha*Lsh/hsb * exp(-Lsh/Lsupp))) ...
-                        / ( norm_v * norm_L * norm_hsb ...
-                            * (1 - exp(-(norm_Lsh/norm_L))) );
+                [sigma, flux, errflx, V0, L0] = ...
+                    run.SlopeFactor(norm_v, norm_L, norm_hsb, norm_Lsh);
             end
 
             if ff == 1
+                sigma = 1;
                 norm_flux = flux;
                 norm_v = V0;
                 norm_L = L0;
@@ -1103,7 +1060,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 norm_Lsh = Lsh;
                 % add jitter at (x,y)=(1,1)
                 if length(args) == 5
-                    slfac = slfac + args(end);
+                    sigma = sigma + args(end);
                 end
             end
 
@@ -1111,7 +1068,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 clr = args(2:4);
             end
             diags(ff) = flux/norm_flux;
-            plotx(ff) = slfac*0.8 + 0.2;
+            plotx(ff) = sigma*0.7 + 0.3;
             err(1,ff) = errflx/norm_flux;
 
             save_diags = 0; errorbarflag = 1;
@@ -1120,9 +1077,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             force_0intercept = 0;
             line_45 = 0;
             laby = ['(Avg flux; sloping shelf) / (Avg flux; flat shelf)'];
-            labx = ['Slope factor, 0.8 \sigma + 0.2'];
-            titlestr = [titlestr ' | ND isobath = ' ...
-                        num2str(run.csflux.ndloc(:,isobath))];
+            labx = ['Slope factor, 0.7 \sigma + 0.3'];
         end
 
         %%%%%%%%%%%%%%%%% max / avgflux

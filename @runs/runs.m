@@ -692,6 +692,49 @@ methods
         end
     end
 
+    function [sigma, flux, errflx, V0, L0] = ...
+            SlopeFactor(runs, norm_v, norm_L, norm_hsb, norm_Lsh)
+
+        fluxvec = runs.csflux.off.slope(:,1,1);
+
+        if strcmpi(runs.name, 'ew-8040')
+            whenstop = 0.90;
+        else
+            whenstop = 0.85;
+        end
+        [flux, errflx] = runs.calc_avgflux(fluxvec, 0, 0.05, whenstop);
+        [start,stop] = runs.flux_tindices(fluxvec);
+        t0 = 1;
+        tend = ceil((start+stop)/2);
+        [V0, L0, Lz0] = runs.EddyScalesForFlux(t0, tend);
+
+        hsb = runs.bathy.hsb;
+        alpha = runs.bathy.sl_shelf;
+        Lsh = runs.bathy.L_shelf;
+        Lsupp = runs.bathy.Lbetash*1.22;
+
+        if ~exist('norm_v', 'var'), norm_v = V0; end
+        if ~exist('norm_L', 'var'), norm_L = L0; end
+        if ~exist('norm_hsb', 'var'), norm_hsb = hsb; end
+        if ~exist('norm_Lsh', 'var'), norm_Lsh = Lsh; end
+
+        % 1. no Ldef corrections;
+        %    assume shelf water hasn't been replaced yet
+        %    how much shelf volume can the eddy affect?
+        %
+        % 2. sometimes I change Lsh when slope becomes steep!
+        %    denominator of slfac should have shelf width
+        %    that was used in flat-bottom run
+
+        Qsl = (V0 * Lsupp * hsb ...
+               * ( (1-alpha*Lsupp/hsb) * (1-exp(-(Lsh/Lsupp))) ...
+                   - alpha*Lsh/hsb * exp(-Lsh/Lsupp)));
+
+        sigma = Qsl ...
+                / ( norm_v * norm_L * norm_hsb ...
+                    * (1 - exp(-(norm_Lsh/norm_L))) );
+    end
+
     function [] = FluxIntegralTimeScale(runs, isobath, factor)
         if ~exist('factor', 'var')
             factor = 2;

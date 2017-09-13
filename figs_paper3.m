@@ -67,7 +67,7 @@ jitter = linspace(-0.04, 0.04, 4);
 colors ={[1 1 1]*0.65;... %[51, 102, 170]/255;
          [17, 170, 153]/255;
          [238, 51, 51]/255;
-         [0 0 0];}
+         [0 0 0]};
 for ff=[3 2 4 1]
     sh.filter = indices{ff};
     sh.print_diag('flux slope', [1, colors{ff}, jitter(ff)],hax, cmds);
