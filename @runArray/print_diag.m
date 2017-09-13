@@ -1101,8 +1101,15 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 norm_L = L0;
                 norm_hsb = hsb;
                 norm_Lsh = Lsh;
+                % add jitter at (x,y)=(1,1)
+                if length(args) == 5
+                    slfac = slfac + args(end);
+                end
             end
 
+            if length(args) > 1
+                clr = args(2:4);
+            end
             diags(ff) = flux/norm_flux;
             plotx(ff) = slfac*0.8 + 0.2;
             err(1,ff) = errflx/norm_flux;
