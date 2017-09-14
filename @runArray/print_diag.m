@@ -1118,8 +1118,10 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
             source = isobath;
             if ~isinf(factor)
-                integrate_zlimit = factor*hsb; % calculate flux above this depth
-                fluxvec = run.recalculateFlux(integrate_zlimit, isobath, source);
+                % calculate flux above this depth
+                integrate_zlimit = factor*hsb;
+                fluxvec = run.recalculateFlux(integrate_zlimit, ...
+                                              isobath, source);
             else
                 integrate_zlimit = run.csflux.h(isobath);
                 fluxvec = run.csflux.off.slope(:, isobath, source);
@@ -1134,51 +1136,62 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 [maxflux, maxloc, errflx] = run.calc_maxflux(fluxvec,isobath);
             else
                 maxloc = [];
-                %flux_tref = run.recalculateFlux(integrate_zlimit, 1,1);
+
                 [start,stop] = run.flux_tindices(fluxvec);
                 [flux, errflx] = run.calc_avgflux(fluxvec, 0);
 
-                t0 = 1; %start;
-                tend = ceil((start+stop)/2);
+                t0 = start;
+                tend = stop; ceil((start+stop)/2);
             end
 
             [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
 
-            if hsb/Lz0 > 0.35  ...
+            if hsb/Lz0 > 0.3  ...
                     | (strcmpi(run.name, 'ew-2041') & (isobath > 3)) ...
-                    | strcmpi(run.name, 'ew-2043') ...
-                    | strcmpi(run.name, 'ew-8383')
+                    | strcmpi(run.name, 'ew-2043')
                 warning('skipping because splitting is probably happening.');
                 continue;
             end
 
-            eddyscl = V0 * L0 * Lz0;
+            if strcmpi(run.name, 'ew-8040') ...
+                    | strcmpi(run.name, 'ew-8392')
+                % not long enough :( + splitting
+                continue;
+            end
+            if strcmpi(run.name, 'ew-8042')
+                exceptions = [exceptions ff];
+            end
 
             zvec = run.csflux.vertbins(:, isobath);
             xvec = run.rgrid.x_rho(1,2:end-1);
 
-            [v,mask] = run.makeStreamerSection(isobath, maxloc, V0, L0, Lz0);
+            [v,mask] = run.makeStreamerSection(isobath, maxloc, V0, L0, 1e9);
             zind = find_approx(zvec, -abs(integrate_zlimit));
             vmask = v .* mask;
             fluxscl = trapz(zvec(zind:end), ...
                             trapz(xvec, vmask(:,zind:end), 1), 2);
 
-            debug_fluxes = 0;
+            debug_fluxes = 1;
             if debug_fluxes
-                disp(sprintf([name ' = %.2f mSv, suppscl = %.2f mSv | ' ...
+                disp(sprintf(['\n ' name ' = %.2f mSv, fluxscl = %.2f mSv | ' ...
                               'V0 = %.2f m/s, L0 = %.2f km, Lz0 = %.2f m'], ...
-                             flux/1000, supplyscl/1000, V0, L0/1000, Lz0));
+                             flux/1000, fluxscl/1000, V0, L0/1000, hsb/Lz0));
             end
 
-            norm(ff) = 1000; eddyscl;
-            plotnorm = 1000;
+            % account for eddy spilling on to the shelf?
+            y00 = run.rrshelf*pi*1.33/L0; sqrt(1 - (hsb/Lz0)^2);
+            fluxscl = fluxscl * y00 * exp(-y00^2) ...
+                      * (1 - exp(-(Lsh/L0)));
+            plotnorm = V0 * L0 * hsb;
 
+            % ptName = [ptName ' | ' num2str(y00 * exp(-y00^2), '%.2f')];
+            sigma = run.SlopeFactor;
             diags(ff) = flux/plotnorm;
-            plotx(ff) = double(fluxscl)/plotnorm;
+            plotx(ff) = (0.7*sigma+0.3) * double(fluxscl)/plotnorm;
             err(1,ff) = errflx/plotnorm;
 
-            diagstr = [num2str(flux/1000,'%.2f') '±' ...
-                       num2str(errflx/1000,'%.2f') ' mSv'];
+            % diagstr = [num2str(flux/1000,'%.2f') '±' ...
+            %            num2str(errflx/1000,'%.2f') ' mSv'];
 
             if err(1,ff) ~= 0
                 errorbarflag = 1;
