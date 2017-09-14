@@ -32,6 +32,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
     plotx = diags;
     err = repmat(diags, [2 1]);
     norm = ones(size(diags));
+    exceptions = [];
     P = nan([2 1]); % slope and intercept
     Perr = nan([2 1]); % error bounds on slope and intercept
     save_diags = 0;
@@ -1607,7 +1608,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         %     plotx(isnan(err)) = NaN;
         % end
 
-        if exist('exceptions', 'var')
+        if exist('exceptions', 'var') & ~isempty(exceptions)
             diags(exceptions) = NaN;
             plotx(exceptions) = NaN;
             err(exceptions) = NaN;
