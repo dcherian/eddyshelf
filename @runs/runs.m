@@ -713,6 +713,8 @@ methods
         Lsh = runs.bathy.L_shelf;
         Lsupp = runs.bathy.Lbetash*1.22;
 
+        if alpha == 0, sigma = 1; return; end
+
         if ~exist('norm_v', 'var'), norm_v = V0; end
         if ~exist('norm_L', 'var'), norm_L = L0; end
         if ~exist('norm_hsb', 'var'), norm_hsb = hsb; end
