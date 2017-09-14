@@ -670,7 +670,7 @@ methods
         runs.asflux = [];
         runs.csflux.on = [];
         runs.csflux.off.eddyzt = [];
-        runs.csflux.off.slopezt = [];
+        runs.csflux.off.slopezt = runs.csflux.off.slopezt(:,:,1,1);
 
         toc(ticstart);
     end
