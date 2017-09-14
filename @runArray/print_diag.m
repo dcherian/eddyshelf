@@ -1179,7 +1179,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             end
 
             % account for eddy spilling on to the shelf?
-            y00 = run.rrshelf*pi*1.33/L0; sqrt(1 - (hsb/Lz0)^2);
+            y00 = 1/sqrt(2) + run.rrshelf*pi*1.33/L0; sqrt(1 - (hsb/Lz0)^2);
             fluxscl = V0*L0*hsb * y00 * exp(-y00^2) ...
                       * (1 - exp(-(Lsh/L0)));
             plotnorm = V0 * L0 * hsb;
