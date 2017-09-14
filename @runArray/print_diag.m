@@ -1060,13 +1060,13 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 norm_hsb = hsb;
                 norm_Lsh = Lsh;
                 % add jitter at (x,y)=(1,1)
-                if length(args) == 5
+                if length(args) == 3
                     sigma = sigma + args(end);
                 end
             end
 
             if length(args) > 1
-                clr = args(2:4);
+                marker = args(2);
             end
             diags(ff) = flux/norm_flux;
             plotx(ff) = sigma*0.7 + 0.3;
@@ -1077,8 +1077,8 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             parameterize = 0; logscale = 0;
             force_0intercept = 0;
             line_45 = 0;
-            laby = ['(Avg flux; sloping shelf) / (Avg flux; flat shelf)'];
-            labx = ['Slope factor, 0.7 \sigma + 0.3'];
+            laby = ['$$ \widetilde{Q_\alpha} / \widetilde{Q_f} $$'];
+            labx = ['$$ 0.7 \sigma + 0.3 $$'];
         end
 
         %%%%%%%%%%%%%%%%% max / avgflux
@@ -1546,10 +1546,10 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             if marker == '.'
                 markersize = 28;
                 if strfind(commands, 'small_points')
-                    markersize = 14;
+                    markersize = 18;
                 end
             else
-                markersize = 18;
+                markersize = 8;
             end
 
             if errorbarflag

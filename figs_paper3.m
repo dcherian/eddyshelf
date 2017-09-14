@@ -58,19 +58,20 @@ export_fig -c[Inf,0,Inf,0] images/paper3/sb-vert-profiles.pdf
 
 cmds = 'no_name_points; small_points;';
 
-figure; hax(1) = subplot(121);
+figure; hax(1) = gca;
 indices{1} = [14:17]; % ew-838x
 indices{2} = [9:11]; % ew-835x-2
 indices{3} = [7 8]; % ew-834x
 indices{4} = [1 2 3]; % ew-804x
 jitter = linspace(-0.04, 0.04, 4);
-colors ={[1 1 1]*0.65;... %[51, 102, 170]/255;
-         [17, 170, 153]/255;
-         [238, 51, 51]/255;
-         [0 0 0]};
+% colors ={[1 1 1]*0.65;... %[51, 102, 170]/255;
+%          [51, 102, 170]/255;
+%          [238, 51, 51]/255;
+%          [0 0 0]};
+markers = ['o', '.', '^', 'x']
 for ff=[3 2 4 1]
     sh.filter = indices{ff};
-    sh.print_diag('flux slope', [1, colors{ff}, jitter(ff)], hax(1), cmds);
+    sh.print_diag('flux slope', [1, markers(ff), jitter(ff)], hax(1), cmds);
     disp(' ')
 end
 title('');
@@ -80,14 +81,15 @@ line45;
 axis square;
 beautify(fontSizes, 'Times')
 
-hax(2) = subplot(122);
-warning off;
-sh.filter = [];
-sh.print_diag('avg flux', [], hax(2), cmds);
-title('')
-beautify(fontSizes, 'Times')
-pbaspect([1 1 1])
-resizeImageForPub('portrait');
+resizeImageForPub('onecolumn');
+
+% hax(2) = subplot(122);
+% warning off;
+% sh.filter = [];
+% sh.print_diag('avg flux', [], hax(2), cmds);
+% title('')
+% beautify(fontSizes, 'Times')
+% pbaspect([1 1 1])
 
 export_fig -c[Inf,0,Inf,0] images/paper3/sh-avgflux-slope.pdf
 
