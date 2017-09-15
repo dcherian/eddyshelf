@@ -33,9 +33,14 @@ function [handles] = PlotFluxVertProfiles(runArray, fontSizes)
         end
 
         [start, stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
-        % offflux = run.csflux.off.slopezt(:,start:stop,1,1); % fullsb
-        offflux = squeeze(trapz(run.radius.xvec(:, start), ...
-                                run.radius.off.shelfpos, 1)); % one radius
+        % offflux = run.csflux.off.slopezt(:,start:stop,1,1); %
+        % fullsb
+        try
+            offflux = squeeze(trapz(run.radius.xvec(:, start), ...
+                                    run.radius.off.shelf, 1)); % one radius
+        catch ME
+            continue;
+        end
         zivec = run.csflux.vertbins(:,isobath);
         profile = trapz(run.csflux.time(start:stop)*86400, ...
                         offflux, 2);
@@ -76,14 +81,23 @@ function [handles] = PlotFluxVertProfiles(runArray, fontSizes)
             continue;
         end
 
+        if run.bathy.sl_shelf == 0 & ~strcmpi(run.name, 'ew-34')
+            continue;
+        end
+
         hsb = run.bathy.hsb;
 
         %[start, stop] = run.flux_tindices(run.csflux.on.slope(:,1,1), 0.2, 0.9);
         %onflux = run.csflux.on.slopeztneg(:,start:stop,1,1); % full sb
 
         [start, stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
-        onflux = squeeze(trapz(run.radius.xvec(:, start), ...
-                               run.radius.on.nonshelfneg, 1)); % one radius
+        try
+            onflux = squeeze(trapz(run.radius.xvec(:, start), ...
+                                   run.radius.on.nonshelfneg, 1));
+            % one radius
+        catch ME
+            continue;
+        end
 
         zivec = run.csflux.vertbins(:,isobath);
         profile = trapz(run.csflux.time(start:stop)*86400, ...
