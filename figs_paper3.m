@@ -127,7 +127,7 @@ timesteps = [1 100 150 200 300 350];
 
 if ~exist('ew8341', 'var')
     if exist('sh', 'var')
-        ew8341 = sh.array(5);
+        ew8341 = sh.array(8);
     else
         ew8341 = runs('../topoeddy/runew-8341/');
     end
@@ -139,6 +139,7 @@ opt.csdcontours = ew8341.csflux.x([1 4 8]);
 opt.addvelquiver = 0;
 opt.addzeta = 1;
 opt.bathycolor = 'w';
+opt.topdown = 1;
 handles = ew8341.mosaic_field('csdye', timesteps, opt);
 handles.hcb.delete;
 for ii=1:3
@@ -150,10 +151,10 @@ for ii=4:6
     handles.hfield{ii}.hzetaneg.delete;
 end
 ylim([0 250]);
-correct_ticks('y', [], {'50', '100'}, handles.hax([1 4]));
+correct_ticks('y', [], {'50', '100'}, handles.hax([1 3 5]));
 for ii=1:6
     axes(handles.hax(ii));
-    beautify([12 13 14], 'Times')
+    beautify(fontSizes, 'Times')
     handles.hfield{ii}.hcen.MarkerSize = 8;
     handles.hfield{ii}.hbathy{1}.ShowText = 'off';
 end
@@ -161,33 +162,33 @@ end
 hfig = gcf;
 hfig.Position(4) = 450;
 resizeImageForPub('portrait')
-moveSubplotsCloserInY(2, 3, handles.hax, -1/8-1/16)
+moveSubplotsCloserInX(3, 2, handles.hax, 1/5)
 
-handles.supax.Position(4) = 0.71;
-handles.hsuptitle.String = ...
-    ['Surface cross-shelf dye (km) | Initial Ro = 0.1 | Initial eddy ' ...
-     'scales = (25 km, 400m)'];
+handles.supax.Position(1) = 0.055;
+handles.supax.Position(4) = 0.89;
+handles.hsuptitle.String = ['Surface cross-shelf dye (km)'];
 handles.hsuptitle.FontName = 'Times';
-handles.hsuptitle.FontSize = 12;
+handles.hsuptitle.FontSize = 13;
 
 % hleg.delete;
-% axes(handles.hax(1));
-% [hleg,icons] = legend([handles.hfield{1}.hcen, ...
-%                     handles.hfield{1}.htrack, ...
-%                     handles.hfield{1}.hzeta], ...
-%                       {'Eddy center', 'Track of eddy center', ...
-%                     'SSH'}, 'Location', 'NorthWest', 'FontName', 'Times');
-% hleg.Box = 'off';
-% hleg.Position(2) = 0.65;
-% hleg.FontName = 'Times'
-% icons(end).Children.Children(1).LineWidth = 1;
-% icons(end).Children.Children(2).LineWidth = 1;
-% icons(end).Children.Children(3).LineWidth = 1;
-% labels = findobj(icons, 'type', 'text');
-% for ii=1:length(labels)
-%     labels(ii).FontName = 'Times';
-%     labels(ii).FontSize = 8;
-% end
+axes(handles.hax(1));
+[hleg,icons] = legend([handles.hfield{1}.hcen, ...
+                    handles.hfield{1}.htrack, ...
+                    handles.hfield{1}.hzeta], ...
+                      {'Eddy center', 'Track of eddy center', ...
+                    'SSH'}, 'Location', 'NorthWest', 'FontName', 'Times');
+hleg.Box = 'off';
+hleg.Position(1) = 0.18;
+hleg.Position(2) = 0.76;
+hleg.FontName = 'Times'
+icons(end).Children.Children(1).LineWidth = 1;
+icons(end).Children.Children(2).LineWidth = 1;
+icons(end).Children.Children(3).LineWidth = 1;
+labels = findobj(icons, 'type', 'text');
+for ii=1:length(labels)
+    labels(ii).FontName = 'Times';
+    labels(ii).FontSize = 8;
+end
 
 % axes(handles.hax(5))
 % hline = linex(350, [], 'k');

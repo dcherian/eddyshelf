@@ -7,7 +7,7 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt, ...
     if ~exist('opt', 'var'), opt = []; end
 
     if ~isfield(opt, 'topdown')
-        opt.topdown = 0;
+        opt.topdown = 1;
     end
     if ~isfield(opt, 'zetaOnFirstPlot')
         opt.zetaOnFirstPlot = 0;
@@ -26,7 +26,11 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt, ...
                 handles.hax = packfig(1, Nt);
             end
         else
-            handles.hax = packfig(2, N);
+            if opt.topdown
+                handles.hax = packfig(N, 2);
+            else
+                handles.hax = packfig(2, N);
+            end
         end
     else
         handles.hax = hax;
@@ -74,9 +78,17 @@ function [handles] = mosaic_field(runs, varname, timesteps, opt, ...
             end
         else
             % top down single column
-            if ii < Nt
+            if ((ii < Nt-1) && Nt > 3) || (Nt <= 3 && ii < Nt)
                 handles.hax(ii).XTickLabels = {};
                 handles.hax(ii).XLabel.String = '';
+            end
+
+            % two column
+            if Nt > 3
+                if mod(ii,2) == 0
+                    handles.hax(ii).YTickLabels = {};
+                    handles.hax(ii).YLabel.String = '';
+                end
             end
         end
         
