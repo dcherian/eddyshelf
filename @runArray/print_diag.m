@@ -149,6 +149,10 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
                 args(1) = 1;
             end
 
+            if isempty(run.shelfbc)
+                continue;
+            end
+
             % for local plots
             %figure; hold all
             %cb = runArray.sorted_colors;
@@ -1546,7 +1550,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             if marker == '.'
                 markersize = 28;
                 if strfind(commands, 'small_points')
-                    markersize = 18;
+                    markersize = 12;
                 end
             else
                 markersize = 8;

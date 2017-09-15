@@ -1,6 +1,7 @@
-function [handles] = PlotFluxVertProfiles(runArray, fontSizes)
+function [handles] = PlotFluxVertProfiles(runArray, fontSizes, hax)
 
     if ~exist('fontSizes', 'var'), fontSizes = []; end
+    if ~exist('hax', 'var'), hax = []; end
 
     isobath = 1;
 
@@ -8,10 +9,15 @@ function [handles] = PlotFluxVertProfiles(runArray, fontSizes)
     bluemap = brighten(cbrewer('seq', 'Blues', runArray.len), -0.6);
     flatcolor = [0 0 0]; [27,158,119]/255;
 
-    figure; % maximize;
+    if isempty(hax)
+        figure; % maximize;
+        handles.hax(1) = subplot(121); hold on;
+        handles.hax(2) = subplot(122); hold on;
+    else
+        handles.hax = hax;
+    end
+
     insertAnnotation('runArray.PlotFluxVertProfiles');
-    handles.hax(1) = subplot(121); hold on;
-    handles.hax(2) = subplot(122); hold on;
 
     phio = runArray.print_params('bathy.hsb./(V0./bathy.S_sh/sqrt(phys.N2))');
     runArray.sort(phio);
@@ -32,12 +38,16 @@ function [handles] = PlotFluxVertProfiles(runArray, fontSizes)
             continue;
         end
 
+        if run.bathy.sl_shelf == 0 & ~strcmpi(run.name, 'ew-34')
+            continue;
+        end
+
         [start, stop] = run.flux_tindices(run.csflux.off.slope(:,1,1));
         % offflux = run.csflux.off.slopezt(:,start:stop,1,1); %
         % fullsb
         try
             offflux = squeeze(trapz(run.radius.xvec(:, start), ...
-                                    run.radius.off.shelf, 1)); % one radius
+                                    run.radius.off.shelfpos, 1)); % one radius
         catch ME
             continue;
         end
@@ -48,13 +58,12 @@ function [handles] = PlotFluxVertProfiles(runArray, fontSizes)
 
         legstr1{kk} = num2str(phio(ii), '%.2f');
         handles.hplt1(kk) = plot(profile, zivec./hsb);
-        if run.bathy.sl_shelf == 0
+        if run.bathy.sl_shelf == 0 & strcmpi(run.name, 'ew-34')
             handles.hplt1(kk).Color = flatcolor;
             hflat(1) = handles.hplt1(kk);
         end
         kk = kk+1;
     end
-
 
     % phii = runArray.print_params('(bathy.hsb./(V0./bathy.S_sl/sqrt(phys.N2)))');
     % chi = runArray.print_params(['(2/sqrt(pi)*exp(-(bathy.hsb/Lz0)^2)) *' ...
@@ -125,7 +134,7 @@ function [handles] = PlotFluxVertProfiles(runArray, fontSizes)
 
     axes(handles.hax(1));
     set(gca, 'XAxisLocation', 'Top');
-    liney(-1);%ylim([-1 0]);
+    %liney(-1);%ylim([-1 0]);
     limx = xlim;
     xlim([0 limx(2)]);
     xlabel({'a) Shelf water outflow'; '(normalized transport)'});
@@ -149,7 +158,7 @@ function [handles] = PlotFluxVertProfiles(runArray, fontSizes)
 
     axes(handles.hax(2));
     set(gca, 'XAxisLocation', 'Top');
-    liney(-1);
+    % liney(-1);
     limx = xlim;
     xlim([0 limx(2)]);
     xlabel({'b) Eddy & slope water inflow';  '(normalized transport)'});
@@ -178,8 +187,10 @@ function [handles] = PlotFluxVertProfiles(runArray, fontSizes)
     %    linkprop(handles.hleg, 'FontSize');
     % linkprop(handles.htxt, 'FontSize');
 
-    hflat(1).LineWidth = 3;
-    hflat(2).LineWidth = 3;
+    hflat(1).LineWidth = 2;
+    hflat(2).LineWidth = 2;
     uistack(hflat(1), 'top');
     uistack(hflat(2), 'top');
+
+    handles.hflat = hflat;
 end

@@ -35,10 +35,16 @@ for ii=14:15
     %    sh.array(ii).ShelfBaroclinicity;
 end
 
-%% inflow/outflow vertical profiles
+%% inflow/outflow vertical profiles + baroclinicity
+
+figure; maximize;
+hax(1) = subplot(221); hold on;
+hax(2) = subplot(222); hold on;
+hax(3) = subplot(223);
+hax(4) = subplot(224);
 
 sh.filter = [1:sh.len];
-handles = sh.PlotFluxVertProfiles(fontSizes);
+handles = sh.PlotFluxVertProfiles(fontSizes, hax(1:2));
 hfig = gcf; hfig.Resize = 'off';
 hfig.Position(2) = 50;
 hfig.Position(4) = 800;
@@ -49,10 +55,45 @@ hanno(1) = annotation('line', ...
                       'Color', 'k', 'Units', 'normalized');
 pos = handles.hcbar(2).Position;
 hanno(2) = annotation('line', ...
-                      [1 1]* (pos(1) + pos(3)/(3-1)*(1.5-1)), pos(2) + [0 pos(4)], ...
+                      [1 1]* (pos(1) + pos(3)/(3-1)*(1.5-1)), ...
+                      pos(2) + [0 pos(4)], ...
                       'Color', 'k', 'Units', 'normalized');
 
-export_fig -c[Inf,0,Inf,0] images/paper3/sb-vert-profiles.pdf
+cmds = 'no_name_points; small_points;';
+sh.print_diag('shelfbc', thresh, hax(3), cmds);
+title('c) Supply jet on shelf');
+ylabel('BC');
+axis square;
+xlim([0 1]);
+ylim([0 1]);
+linex(0.3);
+for ii=1:length(hax(1).Children)
+    hax(1).Children(ii).MarkerSize = 12;
+end
+beautify(fontSizes, 'Times');
+
+sh.print_diag('sbreakbc', thresh, hax(4), cmds);
+title('d) Outflow at shelfbreak');
+ylabel('BC');
+axis square;
+xlim([0 1]);
+ylim([0 1]);
+linex(0.3);
+for ii=1:length(hax(2).Children)
+    hax(2).Children(ii).MarkerSize = 12;
+end
+beautify(fontSizes, 'Times');
+resizeImageForPub('portrait');
+set(hax(3), 'TickLength', [1 1]*0.02)
+set(hax(4), 'TickLength', [1 1]*0.02)
+
+handles.hflat(1).LineWidth = 2;
+handles.hflat(2).LineWidth = 2;
+
+hax(3).Position(2) = 0.23;
+hax(4).Position(2) = 0.23;
+
+export_fig -c[Inf,0,Inf,0] images/paper3/sb-vert-profiles-shelfbc.pdf
 
 %% fluxes
 
@@ -194,44 +235,6 @@ end
 % hline = linex(350, [], 'k');
 
 export_fig -r300 -a2 -opengl images/paper3/ew-8341-surface-csdye.png
-
-%% shelf baroclinicity
-thresh = 2;
-
-figure;
-hax(1) = subplot(121);
-set(gca, 'Color', 'none')
-sh.print_diag('shelfbc', thresh, hax(1), 'no_name_points');
-title('Supply jet on shelf');
-ylabel('BC');
-axis square;
-xlim([0 1]);
-ylim([0 1]);
-linex(0.3);
-for ii=1:length(hax(1).Children)
-    hax(1).Children(ii).MarkerSize = 12;
-end
-beautify(fontSizes, 'Times');
-
-hax(2) = subplot(122);
-set(gca, 'Color', 'none')
-sh.print_diag('sbreakbc', thresh, hax(2), 'no_name_points');
-title('Outflow at shelfbreak');
-ylabel('BC');
-axis square;
-xlim([0 1]);
-ylim([0 1]);
-linex(0.3);
-for ii=1:length(hax(2).Children)
-    hax(2).Children(ii).MarkerSize = 12;
-end
-beautify(fontSizes, 'Times');
-
-set(hax(1), 'TickLength', [1 1]*0.02)
-set(hax(2), 'TickLength', [1 1]*0.02)
-resizeImageForPub('portrait');
-
-export_fig -c[Inf,0,Inf,0] images/paper3/shelfbc.pdf
 
 %% shelfbc time series
 % phi = sh.print_params('bathy.hsb./(V0./bathy.S_sh/sqrt(phys.N2))');
