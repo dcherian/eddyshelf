@@ -286,30 +286,6 @@ beautify([12 13 14], 'Times')
 
 export_fig -transparent images/paper3/ew-8341-volume-budget.pdf
 
-%% flat and sloping, sbssh
-if ~exist('ew04', 'var')
-    ew04 = runArray({'ew-04', 'ew-8041'});
-    ew04 = runArray({'ew-8350-2', 'ew-8352-2'});
-end
-
-ew04.name = {'Flat shelf'; 'Sloping shelf'};
-figure;
-% hax(1) = subplot(121); hold on;
-% ew34.plot_avgProfile('zeta', 1, 'y', 'sb', 1, hax(1));
-% title('Mean SSH at shelfbreak (normalized)');
-% pbaspect([1.617 1 1]);
-% hax(2) = subplot(122); hold on;
-cla('reset');
-hax = gca;
-ew04.plot_avgProfile('zeta', 0, 'y', 'sb', 1, hax, 'center');
-ylabel('');
-title('   Mean shelfbreak SSH (m)');
-beautify([12 12.5 13]);
-pbaspect([4 1 1]);
-resizeImageForPub('portrait');
-
-export_fig -a1 -r600 -c[Inf,0,Inf,0] images/paper3/sb-ssh-ew04-flat-sloping.png
-
 %% compare flat and sloping
 if ~exist('ew04', 'var')
     % ew04 = runArray({'ew-04', 'ew-8041'});
@@ -443,9 +419,9 @@ for ii=1:2
 end
 
 axes(hax(2))
-hl = liney(37.5-12*1.37);
+hl = liney(37.5-12*1.22);
 hl.Color = [1 1 1]*0;
-hannotxt = text(max(xlim), hl.YData(1), ' 1.37L_\beta', 'FontSize', ...
+hannotxt = text(max(xlim), hl.YData(1), ' 1.22L_\beta', 'FontSize', ...
                 11, 'FontName', 'Times');
 
 export_fig -a1 -c[Inf,0,Inf,0] -r600  images/paper3/sbsnapshot-flat-sloping.png
@@ -838,8 +814,8 @@ colormap(hax(1), cmap)
 colormap(hax(2), cmap);
 
 % hack. Don't why this is needed. (╯°□°）╯︵ ┻━┻
-% hax(1).Position = [0.3014 0.64    0.4319    0.2203];
 % hax(3).Position(1) = 0.18;
+% hax(1).Position = [0.3014 0.64    0.4319    0.2203];
 
 export_fig -r600 images/paper3/eddy-inflow.png
 
@@ -919,22 +895,6 @@ phii = sh.print_params('(V0./bathy.S_sl/sqrt(phys.N2))/bathy.hsb');
 sh.print_params('bathy.sl_slope * sqrt(phys.N2)/phys.f0')
 sh.print_params('(1-erf(bathy.hsb/Lz0))');
 phii./ (1-chi)
-
-%% ew-82343 - thesis only
-% ew = runs('../topoeddy/runew-82343/');
-
-% opt = [];
-% opt.addvelquiver = 1;
-
-% handles = ew.animate_field('csdye', [], '414', 1, opt);
-% caxis([-50 350]);
-% ylim([0 150]);
-% xlim([150 580]);
-% title('Cross-shelf dye | \lambda = 0.5');
-% colorbar('off');
-% handles.htlabel.Position(2) = 0.1
-
-% export_fig -r150 -a2 -opengl images/paper3/ew-82343-on-shelf.png
 
 %% ew-8341 - multipanel cross-sections
 

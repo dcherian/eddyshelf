@@ -360,3 +360,19 @@ for ii=1:image.len
     image.name{ii} = [num2str(sh(ii)/1000, '%.0f') ' km shelf'];
 end
 image.sort(sh);
+
+%% ew-82343 - thesis only
+ew = runs('../topoeddy/runew-82343/');
+
+opt = [];
+opt.addvelquiver = 1;
+
+handles = ew.animate_field('csdye', [], '414', 1, opt);
+caxis([-50 350]);
+ylim([0 150]);
+xlim([150 580]);
+title('Cross-shelf dye | \lambda = 0.5');
+colorbar('off');
+handles.htlabel.Position(2) = 0.1
+
+export_fig -r150 -a2 -opengl images/paper3/ew-82343-on-shelf.png
