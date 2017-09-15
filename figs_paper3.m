@@ -854,23 +854,25 @@ hax.YTickLabel{find_approx(hax.YTick, 491)} = 't_{stop}';
 correct_ticks('y', [], {'500'});
 xlim([50 500]);
 
-resizeImageForPub('portrait');
-beautify([12, 13, 14], 'Times')
-pbaspect([1.618 1 1]);
-
 % hax.Position(3) = 0.5;
 htxt(1) = text(1.17, 0.95, 'Offshore', 'Units', 'normalized', ...
                'Rotation', -90, 'FontSize', 12);
 htxt(2) = text(1.17, 0.3, 'Onshore', 'Units', 'normalized', ...
                'Rotation', -90, 'FontSize', 12);
+
+beautify(fontSizes, 'Times')
+resizeImageForPub('portrait');
+pbaspect([2 1 1]);
+
 hcb = findobj('type', 'colorbar');
 hcb.Label.String = '(m/s)';
 hcb.Label.Rotation = 0;
 hcb.Label.FontSize = 12;
 hcb.Label.Position(1) = 2.5;
 hcb.Label.VerticalAlignment = 'middle';
+hcb.Position(3) = 0.03;
 
-export_fig -r200 images/paper3/ew-8342-2-vbar-hov.png
+export_fig -r300 images/paper3/ew-8342-2-vbar-hov.png
 
 %% buoyancy arrest
 c6 = 24;
