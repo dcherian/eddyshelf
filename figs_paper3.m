@@ -509,9 +509,6 @@ end
 set(gcf, 'renderer', 'painters');
 export_fig images/paper3/sb-flux-summary.pdf
 
-%%
-sh.print_diag('params table', 'images/paper3/sh-params-table.org')
-
 %% friction mosaic
 if ~exist('shfric2', 'var')
     folders = { ...
@@ -1042,3 +1039,6 @@ colormap(hax(4), cbrewer('div', 'BrBG', 11));
 
 set(gcf, 'renderer', 'painters')
 export_fig -a2 -r300 images/paper3/multipanel-cross-sections.png
+
+%%
+sh.print_diag('params table', 'images/paper3/sh-params-table.org')

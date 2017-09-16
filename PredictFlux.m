@@ -1,9 +1,12 @@
-function [Flux, FluxError] = PredictFlux(phys,eddy,flux)
+function [Flux, FluxError] = PredictFlux(phys, eddy,flux)
 % Predict flux based on provided parameters
 
     if ~exist('phys', 'var') | isempty(phys)
         % physical properties
         phys.f0 = 2*(2*pi/86400)*sind(38); % Coriolis parameter (1/s)
+        phys.alpha = 1e-3; % shelf slope (MAB = 1e-3)
+        phys.Lsh = 100e3; % shelf width
+        phys.hsb = 100; % shelfbreak depth
     end
 
     if ~exist('eddy', 'var') | isempty(eddy)
@@ -26,22 +29,32 @@ function [Flux, FluxError] = PredictFlux(phys,eddy,flux)
         flux.IsobathDepth = 100; % (m)
     end
 
+    betash = phys.f0 / phys.hsb * phys.alpha;
+    Ls = 1.22 * sqrt(eddy.V0/betash);
+
+    sigma = ((1 - phys.alpha * Ls/phys.hsb) * (1-exp(-phys.Lsh/Ls)) ...
+             - phys.alpha * phys.Lsh/phys.hsb * exp(-phys.Lsh/Ls)) ...
+            / (1 - exp(-phys.Lsh/eddy.L0));
+
     plot_mask = 0; % plot mask?
 
-    [v,mask,xvec, zvec] = makeEddyStreamerSection(phys, eddy, flux, plot_mask);
+    [v,mask,xvec, zvec] = makeEddyStreamerSection(phys, eddy, ...
+                                                  flux, plot_mask);
 
     zind = find_approx(zvec, -1 * abs(flux.IntegrationDepth));
-    Flux = trapz(xvec, trapz(zvec(zind:end), v(:,zind:end) .* mask(:,zind:end), 2), 1);
+    Flux = trapz(xvec, trapz(zvec(zind:end), v(:,zind:end) .* ...
+                             mask(:,zind:end), 2), 1);
 
     yoR = [0 0.17 0.33 0.5 0.67 0.83 1 1.17];
-    RegressionSlopes =  [0.09 0.1477 0.2061 0.2530 0.3004 0.3274 0.3577 0.3861];
+    % 0.19 for flat shelf + Slope factor correction
+    RegressionSlopes =  [0.19 0.1477 0.2061 0.2530 0.3004 0.3274 0.3577 0.3861];
     Uncertainty = [0.03 0.0264 0.0355 0.0417 0.0434 0.0401 0.0404 0.0422];
 
     Slope = interp1(yoR, RegressionSlopes, flux.IsobathLocation./eddy.L0);
     Error = interp1(yoR, Uncertainty, flux.IsobathLocation./eddy.L0);
 
-    Flux = Flux * Slope;
-    FluxError = Flux * Error;
+    Flux = Flux * Slope * (0.7 * sigma + 0.3);
+    FluxError = Flux * Error * (0.7 * sigma + 0.3);
 
     fprintf('Flux is %0.2f ± %0.2f Sv\n', Flux/1e6, FluxError/1e6);
 end
