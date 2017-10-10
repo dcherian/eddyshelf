@@ -931,7 +931,6 @@ handles{3}.hmask.Color = ew.shelfSlopeColor;
 handles{3}.htext.delete;
 handles{3}.htime.delete;
 handles{3}.hline.delete;
-handles{3}.hcb.Position(1) = handles{1}.hcb.Position(1);
 handles{3}.hcb.Label.String = {'Cross-shelf velocity (m/s)';  'at shelfbreak'};
 title('')
 linkaxes(hax([1 3]), 'x');
@@ -954,12 +953,12 @@ opt.csdfront = 1;
 opt.rhocontours = 1;
 
 hax(2) = subplot(3,2,5); cla
-% handles = ew.overlay_section('v', 'rho', tindex, {'y' 1 40}, ...
-%                              'x', xloc, 'center_colorbar');
-handles{2} = ew.PlotSingleYZSection('u', tindex, xloc, hax(2), opt);
-xlim([0 ew.bathy.xsb + 10e3]/1e3)
-ylim([-80 0])
-[eddye, ~,yy, zz] = dc_roms_read_data(ew, ew.eddname, tindex, ...
+ % handles = ew.overlay_section('v', 'rho', tindex, {'y' 1 40}, ...
+ %                              'x', xloc, 'center_colorbar');
+ handles{2} = ew.PlotSingleYZSection('u', tindex, xloc, hax(2), opt);
+ xlim([0 ew.bathy.xsb + 10e3]/1e3)
+ ylim([-80 0])
+ [eddye, ~,yy, zz] = dc_roms_read_data(ew, ew.eddname, tindex, ...
                                       {'x' xloc xloc});
 [~, handles{2}.hedd] = ...
     contour(yy/1000, zz, eddye, [1 1]*0.7, 'Color', eddcolor, 'LineWidth', 2);
@@ -1036,6 +1035,14 @@ hax(3).PlotBoxAspectRatio = hax(1).PlotBoxAspectRatio
 
 colormap(hax(2), cbrewer('div', 'BrBG', 11));
 colormap(hax(4), cbrewer('div', 'BrBG', 11));
+
+hax(3).Position(1) = 0.125;
+handles{3}.hcb.Position(1) = handles{1}.hcb.Position(1);
+
+limc = [-1,1]*0.006;
+hax(3).CLim = limc;
+handles{3}.hcb.Limits = limc;
+handles{3}.hcb.Ticks = handles{3}.hcb.Ticks(2:end-1);
 
 set(gcf, 'renderer', 'painters')
 export_fig -a2 -r300 images/paper3/multipanel-cross-sections.png
