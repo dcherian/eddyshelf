@@ -656,11 +656,11 @@ hax(2).XTickLabel = {};
 
 resizeImageForPub('portrait');
 
-hax(5) = subplot(4, 2, [5 6]);
+hax(5) = subplot(4, 2, [5 6]); cla('reset')
 handles3 = shfric2.plot_ts('-run.ubarscale.scale/1000', hax(5), ...
                            'run.ubarscale.time/86400');
 ylabel({'Distance';  'from shelfbreak (km)'});
-xlabel('');
+xlabel('Time (days)');
 delete(handles3.htind);
 delete(handles3.hmaxloc);
 hleg = legend;
@@ -668,14 +668,19 @@ hleg.Location = 'SouthEast';
 htxt(1) = text(0.04, 0.9, 'e)', 'Units', 'Normalized');
 ylim([-30 0]);
 title('Cross-isobath extent of along-shelf supply jet');
-linex([190 230]);
 handles3.hplt(1).Color = 'k';
+handles3.hplt(1).LineStyle = '-.';
+linex([190 230]);
+co = get(gca, 'ColorOrder');
+handles3.hplt(end).Color = co(end, :);
 beautify([12 13 14], 'Times');
 
 hax(6) = subplot(4, 2, [7 8]);
 hbc = shfric2.plot_ts('run.shelfbc.shelf(:, 2)', hax(6), ...
                       'run.shelfbc.time/86400');
 hbc.hplt(1).Color = 'k';
+hbc.hplt(1).LineStyle = '-.';
+hbc.hplt(end).Color = co(end, :);
 axes(hax(6)); legend('off');
 title('');
 ylabel('BC(t)');
