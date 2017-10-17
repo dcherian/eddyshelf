@@ -669,7 +669,7 @@ htxt(1) = text(0.04, 0.9, 'e)', 'Units', 'Normalized');
 ylim([-30 0]);
 title('Cross-isobath extent of along-shelf supply jet');
 handles3.hplt(1).Color = 'k';
-handles3.hplt(1).LineStyle = '-.';
+handles3.hplt(1).LineStyle = '--';
 linex([190 230]);
 co = get(gca, 'ColorOrder');
 handles3.hplt(end).Color = co(end, :);
@@ -679,7 +679,7 @@ hax(6) = subplot(4, 2, [7 8]);
 hbc = shfric2.plot_ts('run.shelfbc.shelf(:, 2)', hax(6), ...
                       'run.shelfbc.time/86400');
 hbc.hplt(1).Color = 'k';
-hbc.hplt(1).LineStyle = '-.';
+hbc.hplt(1).LineStyle = '--';
 hbc.hplt(end).Color = co(end, :);
 axes(hax(6)); legend('off');
 title('');
