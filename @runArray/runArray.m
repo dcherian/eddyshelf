@@ -1031,6 +1031,7 @@ classdef runArray < handle
 
             if ~exist('ax', 'var') | isempty(ax)
                 hf = figure; hold all;
+                ax = gca();
             else
                 axes(ax); hold all;
             end
@@ -1069,6 +1070,7 @@ classdef runArray < handle
                         [~,maxloc] = run.calc_maxflux(1);
                     end
 
+                    ax.ColorOrderIndex = ff-1;
                     handles.hplt(ff) = plot(ndtime, vec(1:run.eddy.tend));
                     handles.htind(ff) = plot(ndtime(tind), vec(tind), 'kx', ...
                                              'MarkerSize', 16, ...
