@@ -2185,6 +2185,8 @@ methods
     function [] = CalcUbarCrossIsobathScale(runs)
         runs.read_velbar;
 
+        ticstart = tic;
+
         ix = runs.spng.sx2-40;
         isb = runs.bathy.isb;
 
@@ -2205,7 +2207,8 @@ methods
 
             [minval,minind] = min(prof);
             i0 = find(prof(1:minind) > 0, 1, 'last');
-            ind = i0-1 + find(prof(i0:minind) > 0.33*minval, 1, 'last');
+            if isempty(i0), i0 = 1, end
+            ind = i0-1 + find(prof(i0:minind) > 0.30*minval, 1, 'last');
             %ind = find_approx(prof(1:minind), 0.33*minval, 1);
 
             try
@@ -2226,6 +2229,8 @@ methods
         runs.ubarscale = ubarscale;
 
         save([runs.dir '/ubarscale.mat'], 'ubarscale');
+
+        toc(ticstart)
     end
 
     % this is incomplete
