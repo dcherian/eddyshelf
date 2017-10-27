@@ -1071,9 +1071,13 @@ classdef runArray < handle
 
                     handles.hplt(ff) = plot(ndtime, vec(1:run.eddy.tend));
                     handles.htind(ff) = plot(ndtime(tind), vec(tind), 'kx', ...
-                                             'MarkerSize', 16);
+                                             'MarkerSize', 16, ...
+                                             'HandleVisibility', 'off');
                     if exist('maxloc', 'var')
-                        handles.hmaxloc(ff) = plot(ndtime(maxloc), vec(maxloc), 'ko');
+                        handles.hmaxloc(ff) = plot(ndtime(maxloc), ...
+                                                   vec(maxloc), ...
+                                                   'ko', ...
+                                                   'HandleVisibility', 'off');
                     end
                 catch ME
                     disp(ME);
@@ -1084,6 +1088,10 @@ classdef runArray < handle
                             handles.hplt(ff) = plot(vec);
                         end
                     end
+                end
+                try
+                    handles.hplt(ff).DisplayName = names{ff};
+                catch ME
                 end
             end
 

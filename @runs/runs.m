@@ -5,7 +5,7 @@ properties
         fpos_file;
     % data
     zeta; temp; usurf; vsurf; vorsurf; csdsurf; ubot; vbot; eddsurf; ...
-        rhosurf; edcsdyesurf; pvsurf; zdyesurf;
+        rhosurf; edcsdyesurf; pvsurf; zdyesurf; vorbot;
     rbacksurf; % background density at surface
     sgntamp; % sign(runs.eddy.tamp) = -1 if cyclone; 1 otherwise
     % dimensional and non-dimensional time
@@ -2500,6 +2500,26 @@ methods
         end
     end
 
+    % calculate bottom vorticity field
+    function [] = calc_vorbot(runs)
+        if isempty(runs.ubot) || isempty(runs.vbot)
+            runs.read_velbot;
+        end
+
+        if isempty(runs.vorbot)
+            vx =  bsxfun(@rdivide,diff(runs.vbot,1,1), ...
+                         diff(runs.rgrid.x_v',1,1));
+
+            uy = bsxfun(@rdivide,diff(runs.ubot,1,2), ...
+                        diff(runs.rgrid.y_u',1,2));
+
+            runs.vorbot = vx - uy;
+
+            runs.rgrid.xvor = avg1(avg1(runs.rgrid.xr,1),2);
+            runs.rgrid.yvor = avg1(avg1(runs.rgrid.yr,1),2);
+        end
+    end
+    
     % check time vectors
     function [] = check_time(runs)
         figure; hold all;
