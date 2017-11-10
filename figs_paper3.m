@@ -314,6 +314,7 @@ for ii=1:2
     run = ew04.array(ii);
 
     handles(ii) = run.animate_field('csdye', hax(ii), num2str(time), 1, opt);
+    tind = find_approx(run.time, time*86400);
     xlim([170 400]);
     ylim([0 120]);
 
@@ -417,6 +418,9 @@ for ii=1:2
         hyy(ii,jj).Position(2) = 0.35;
     end
 end
+
+lowerquiv(1).ShowArrowHead = 'off';
+lowerquiv(2).ShowArrowHead = 'off';
 
 axes(hax(2))
 hl = liney(37.5-12*1.22);
