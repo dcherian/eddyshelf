@@ -3,10 +3,11 @@ function [handles] = PlotFluxVertProfiles(runArray, fontSizes, hax)
     if ~exist('fontSizes', 'var'), fontSizes = []; end
     if ~exist('hax', 'var'), hax = []; end
 
+    highlight = ['ew-8392'; 'ew-8381']; hili = [];
     isobath = 1;
 
-    redmap = brighten(cbrewer('seq', 'Reds', runArray.len), -0.5);
-    bluemap = brighten(cbrewer('seq', 'Blues', runArray.len), -0.6);
+    redmap = brighten(cbrewer('seq', 'Greys', runArray.len), -0.5);
+    bluemap = brighten(cbrewer('seq', 'Greys', runArray.len), -0.5);
     flatcolor = [0 0 0]; [27,158,119]/255;
 
     if isempty(hax)
@@ -22,7 +23,7 @@ function [handles] = PlotFluxVertProfiles(runArray, fontSizes, hax)
     phio = runArray.print_params('bathy.hsb./(V0./bathy.S_sh/sqrt(phys.N2))');
     runArray.sort(phio);
     phio = runArray.print_params('bathy.hsb./(V0./bathy.S_sh/sqrt(phys.N2))');
-    set(handles.hax(2), 'ColorOrder', redmap);
+    set(handles.hax(1), 'ColorOrder', redmap);
 
     corder_backup = runArray.sorted_colors;
 
@@ -62,6 +63,11 @@ function [handles] = PlotFluxVertProfiles(runArray, fontSizes, hax)
             handles.hplt1(kk).Color = flatcolor;
             hflat(1) = handles.hplt1(kk);
         end
+        if strcmpi(run.name, highlight(1,:)) ...
+                | strcmpi(run.name,  highlight(2,:))
+            hili = [hili, handles.hplt1(kk)];
+        end
+
         kk = kk+1;
     end
 
@@ -187,10 +193,16 @@ function [handles] = PlotFluxVertProfiles(runArray, fontSizes, hax)
     %    linkprop(handles.hleg, 'FontSize');
     % linkprop(handles.htxt, 'FontSize');
 
+    handles.hflat = hflat;
+    for hh = 1:length(hili)
+        hili(hh).LineWidth = 2;
+        hili(hh).Color = [1 0 0];
+        uistack(hili(hh), 'top');
+    end
+
     hflat(1).LineWidth = 2;
     hflat(2).LineWidth = 2;
     uistack(hflat(1), 'top');
     uistack(hflat(2), 'top');
 
-    handles.hflat = hflat;
 end

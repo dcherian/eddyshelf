@@ -43,21 +43,13 @@ hax(2) = subplot(222); hold on;
 hax(3) = subplot(223);
 hax(4) = subplot(224);
 
+thresh = 2;
+
 sh.filter = [1:sh.len];
 handles = sh.PlotFluxVertProfiles(fontSizes, hax(1:2));
 hfig = gcf; hfig.Resize = 'off';
 hfig.Position(2) = 50;
 hfig.Position(4) = 800;
-resizeImageForPub('portrait');
-pos = handles.hcbar(1).Position;
-hanno(1) = annotation('line', ...
-                      [1 1]*pos(1), pos(2) + [0 pos(4)], ...
-                      'Color', 'k', 'Units', 'normalized');
-pos = handles.hcbar(2).Position;
-hanno(2) = annotation('line', ...
-                      [1 1]* (pos(1) + pos(3)/(3-1)*(1.5-1)), ...
-                      pos(2) + [0 pos(4)], ...
-                      'Color', 'k', 'Units', 'normalized');
 
 cmds = 'no_name_points; small_points;';
 sh.print_diag('shelfbc', thresh, hax(3), cmds);
@@ -83,9 +75,23 @@ for ii=1:length(hax(2).Children)
     hax(2).Children(ii).MarkerSize = 12;
 end
 beautify(fontSizes, 'Times');
-resizeImageForPub('portrait');
 set(hax(3), 'TickLength', [1 1]*0.02)
 set(hax(4), 'TickLength', [1 1]*0.02)
+
+resizeImageForPub('portrait');
+pos = handles.hcbar(1).Position;
+hanno(1) = annotation('line', ...
+                      [1 1]*pos(1), pos(2) + [0 pos(4)], ...
+                      'Color', 'k', 'LineWidth', 2, 'Units', 'normalized');
+hanno(2) = annotation('line', ...
+                      [1 1]* (pos(1) + pos(3)*(0.22)), ...
+                      pos(2) + [0 pos(4)], ...
+                      'Color', 'r', 'LineWidth', 2, 'Units', 'normalized');
+pos = handles.hcbar(2).Position;
+hanno(3) = annotation('line', ...
+                      [1 1]* (pos(1) + pos(3)/(3-1)*(1.5-1)), ...
+                      pos(2) + [0 pos(4)], ...
+                      'Color', 'k', 'LineWidth', 2, 'Units', 'normalized');
 
 handles.hflat(1).LineWidth = 2;
 handles.hflat(2).LineWidth = 2;

@@ -166,9 +166,16 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             phi = hsb./(V0./bathy.S_sh/N);
 
             [clr, ptName, marker] = colorize(run, ptName);
+
             if run.params.misc.rdrg == 0
                 clr = [0 0 0];
             end
+
+            if strcmpi(run.name, 'ew-8381') | strcmpi(run.name, 'ew-8392')
+                marker = 'x';
+                clr = 'r';
+            end
+
             diags(ff) = nanmedian(run.shelfbc.shelf(:,args(1)));
             % x-axis variable for plots
             plotx(ff) = phi;
@@ -286,7 +293,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         if strcmpi(name, 'supply') | strcmpi(name, 'eddyonshelf')
 
             if isempty(run.supply), continue; end
-            if run.params.misc.rdrg ~= 0, continue; end
+            % if run.params.misc.rdrg ~= 0, continue; end
 
             sortedflag = 0;
 
