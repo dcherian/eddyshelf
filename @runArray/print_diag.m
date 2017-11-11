@@ -122,6 +122,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
         beta_t = f0 * alpha./Lz(1);
         N = sqrt(run.params.phys.N2);
         ash = run.bathy.sl_shelf;
+        betash = f0 * run.bathy.sl_shelf./run.bathy.hsb;
         diagstr = [];
         Lsh = run.bathy.L_shelf;
 
@@ -898,7 +899,6 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             [V0, L0, Lz0] = run.EddyScalesForFlux(t0, tend);
 
             Ldefsh = N * hsb / fsb;
-            betash = f0 * run.bathy.sl_shelf./run.bathy.hsb;
             Lbetash = sqrt(V(1)/(betash-beta));
 
             phi = hsb./(V0./bathy.S_sh/N);
@@ -1176,7 +1176,15 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             zvec = run.csflux.vertbins(:, isobath);
             xvec = run.rgrid.x_rho(1,2:end-1);
 
-            [v,mask] = run.makeStreamerSection(isobath, maxloc, V0, L0, 1e9);
+            Lbetash = sqrt(V0/betash);
+
+            if ash == 0
+                Lparam = L0;
+            else
+                Lparam = 1.22*Lbetash;
+            end
+            [v,mask] = run.makeStreamerSection(isobath, maxloc, ...
+                                               V0, Lparam, 1e9);
             zind = find_approx(zvec, -abs(integrate_zlimit));
             vmask = v .* mask;
             fluxscl = trapz(zvec(zind:end), ...
@@ -1190,15 +1198,22 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
             end
 
             % account for eddy spilling on to the shelf?
-            y00 = 1/sqrt(2) + run.rrshelf*pi*1.33/L0; sqrt(1 - (hsb/Lz0)^2);
-            fluxscl = V0*L0*hsb * y00 * exp(-y00^2) ...
-                      * (1 - exp(-(Lsh/L0)));
-            plotnorm = V0 * L0 * hsb;
+            % y00 = 1/sqrt(2) + run.rrshelf*pi*1.33/L0; sqrt(1 - (hsb/Lz0)^2);
+            % fluxscl = V0*L0*hsb * (1 - exp(-(Lsh/L0)));
 
-            % ptName = [ptName ' | ' num2str(y00 * exp(-y00^2), '%.2f')];
-            sigma = run.SlopeFactor;
+            % ptName = [ptName ' | ' num2str(y00 * exp(-y00^2),
+            % '%.2f')];
+            plotnorm = 1;V0*L0*hsb;
+
+            if ash == 0, continue; end
+
+            % Lsupp = 1.22*Lbetash;
+            % fluxscl = (V0 * Lsupp * hsb ...
+            %            * ( (1-alpha*Lsupp/hsb) * (1-exp(-(Lsh/Lsupp))) ...
+            %            - alpha*Lsh/hsb * exp(-Lsh/Lsupp)));
+
             diags(ff) = flux/plotnorm;
-            plotx(ff) = (0.7*sigma+0.3) * double(fluxscl)/plotnorm;
+            plotx(ff) = (double(fluxscl))/plotnorm;
             err(1,ff) = errflx/plotnorm;
 
             % diagstr = [num2str(flux/1000,'%.2f') '±' ...
