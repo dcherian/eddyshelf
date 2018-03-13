@@ -24,10 +24,20 @@ function [start, stop] = flux_tindices(runs, flux, whenstart, whenstop)
 
     % make sure weird splitting doesn't screw things up
     % especially with ew-04
-    % This fixes some weird pattern where 8041 was showing higher ΔSSH than ew-04 earlier
-    mvx = smooth(runs.eddy.mvx, 40);
+    % This fixes some weird pattern where 8041 was showing higher
+    % ΔSSH than ew-04 earlier
+    if runs.bathy.axis == 'y'
+        mvx = smooth(runs.eddy.mvx, 40);
+    else
+        mvx = smooth(runs.eddy.mvy, 40);
+    end
+
     if any(mvx(start:stop) > 0)
-        stop = find(mvx >= 0, 1, 'first') - 20;
+        if all(runs.name == 'ns-8352-2')
+            stop = find(mvx(start:stop) <= 0, 1, 'first') + start - 1;
+        else
+            stop = find(mvx >= 0, 1, 'first') - 20;
+        end
         warning([runs.name ...
                  ' | correcting stop because eddy is moving backwards']);
     end

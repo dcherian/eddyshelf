@@ -5,7 +5,13 @@ function [] = avgSupplyJet(runs, debug)
 
     if ~exist('debug', 'var'), debug = 0; end
 
-    assert(runs.bathy.axis == 'y', 'Error: EW isobaths only!');
+    if runs.bathy.axis == 'y'
+        mcen = runs.eddy.mx;
+        sgn = 1;
+    else
+        mcen = runs.eddy.my;
+        sgn = -1;
+    end
 
     [start,stop] = runs.flux_tindices(runs.csflux.off.slope(:, 1, 1), 0.3);
     tindices = [start stop];
@@ -17,27 +23,47 @@ function [] = avgSupplyJet(runs, debug)
         % can't use for all runs becaseu this can get too close to
         % sponge, and diagnostic is contaminated by imperfect
         % open boundaries.
-        xloc = (runs.eddy.mx(start) + 1 * runs.params.eddy.dia ...
+        xloc = (mcen(start) + 1 * runs.params.eddy.dia ...
                 + runs.rgrid.x_rho(1,runs.spng.sx2))/2;
     else
-        xloc = runs.eddy.mx(start) + 1 * runs.params.eddy.dia;
+        xloc = mcen(start) + sgn * runs.params.eddy.dia;
     end
 
-    xind = find_approx(runs.rgrid.x_rho(1,:), xloc, 1);
-    assert(xind < runs.spng.sx2, 'Error: Location within sponge!');
-    yvec = runs.rgrid.y_rho(2:isb, 1);
-    zmat = runs.rgrid.z_r(:,2:isb,xind)';
-    ymat = repmat(yvec, [1 N]);
+    if runs.bathy.axis == 'y'
+        xind = find_approx(runs.rgrid.x_rho(1,:), xloc, 1);
+        assert(xind < runs.spng.sx2, 'Error: Location within sponge!');
+        yvec = runs.rgrid.y_rho(2:isb, 1);
+        zmat = runs.rgrid.z_r(:,2:isb,xind)';
+        ymat = repmat(yvec, [1 N]);
 
-    % ignore wall ghost point
-    volr = {'x' xind xind;
-            'y' 2 isb};
+        % ignore wall ghost point
+        volr = {'x' xind xind;
+                'y' 2 isb};
 
-    volv = {'x' xind-1 xind;
-            'y' 2 isb};
+        volv = {'x' xind-1 xind;
+                'y' 2 isb};
 
-    % vars are (y,z,t)
-    asvel = squeeze(avg1(dc_roms_read_data(runs, runs.asvelname, tindices, volv),1));
+        asaxind = 1;
+    else
+        xind = find_approx(runs.rgrid.y_rho(:, 1), xloc, 1);
+        assert(xind > runs.spng.sy1, 'Error: Location within sponge!');
+        yvec = runs.rgrid.x_rho(1, 2:isb);
+        zmat = squeeze(runs.rgrid.z_r(:,xind,2:isb))';
+        ymat = repmat(yvec', [1 N]);
+
+        % ignore wall ghost point
+        volr = {'y' xind xind;
+                'x' 2 isb};
+
+        volv = {'y' xind-1 xind;
+                'x' 2 isb};
+
+        asaxind = 2;
+    end
+
+    % vars are (x/y,z,t)
+    asvel = squeeze(avg1(dc_roms_read_data(runs, runs.asvelname, ...
+                                           tindices, volv), asaxind));
     csdye = dc_roms_read_data(runs, runs.csdname, tindices, volr);
     eddye = dc_roms_read_data(runs, runs.eddname, tindices, volr);
     zeta = dc_roms_read_data(runs, 'zeta', tindices, volr);

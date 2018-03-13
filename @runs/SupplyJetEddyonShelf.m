@@ -50,9 +50,13 @@ function [supply, errsupp, eddyonshelf] = SupplyJetEddyonShelf(runs)
 
     %% shelf water envelope
 
-    [~,stop] = runs.flux_tindices(runs.csflux.off.slope(:,1,1), ...
-                                  0.01);
-    start = 1;
+    if runs.bathy.axis == 'y'
+        [~,stop] = runs.flux_tindices(runs.csflux.off.slope(:,1,1), 0.01);
+        start = 1;
+    else
+        [~,stop] = runs.flux_tindices(runs.csflux.off.slope(:,1,1), 0.3);
+        start = 1;
+    end
 
     if strcmpi(runs.name, 'ew-8392')
         % biased by decrease near the end
@@ -70,8 +74,8 @@ function [supply, errsupp, eddyonshelf] = SupplyJetEddyonShelf(runs)
     env = env(~isnan(env));
     menv = mean(env);
 
-    [y0,T,t0,y1,conf,fitobj] = tanh_fit(tvec, env, 0);
-    title(runs.name)
+    [y0,T,t0,y1,conf,fitobj] = tanh_fit(tvec, env, debug);
+    if debug, title(runs.name); end
     supply = y0 + y1;
 
     % env time series is weird.
