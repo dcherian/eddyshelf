@@ -2,27 +2,28 @@
 % Modified from Arango's d_initial.m
 
 %% Parameters
-
-% names cannot start with number
-[~,machine] = system('hostname');
-if strfind(machine,'scylla')
-    FOLDER    = '/scylla-a/home/dcherian/ROMS/runs/eddyshelf/topoeddy/run-2/';
-    prefix    = 'tes';
-    addpath(genpath('/scylla-a/home/dcherian/tools/'));
-end
-if strfind(machine,'poison')
-    FOLDER    = '/home/poison/deepak/ROMS/runs/eddyshelf/';
-    prefix    = 'tes';
-end
-if strfind(machine,'kadal')
-    FOLDER = '/media/data/Work/eddyshelf/runs/';
-    prefix    = 'tek';
-end
-if strfind(machine,'login')
-    FOLDER = '/mit/dcherian/ROMS/runs/eddyshelf/topoeddy/run-2/';
-    prefix    = 'tea';
-    addpath(genpath('/mit/dcherian/tools/'));
-end
+FOLDER = '../';
+prefix = 'tes';
+% % names cannot start with number
+% [~,machine] = system('hostname');
+% if strfind(machine,'scylla')
+%     FOLDER    = '/scylla-a/home/dcherian/ROMS/runs/eddyshelf/topoeddy/run-2/';
+%     prefix    = 'tes';
+%     addpath(genpath('/scylla-a/home/dcherian/tools/'));
+% end
+% if strfind(machine,'poison')
+%     FOLDER    = '/home/poison/deepak/ROMS/runs/eddyshelf/';
+%     prefix    = 'tes';
+% end
+% if strfind(machine,'kadal')
+%     FOLDER = '/media/data/Work/eddyshelf/runs/';
+%     prefix    = 'tek';
+% end
+% if strfind(machine,'login')
+%     FOLDER = '/mit/dcherian/ROMS/runs/eddyshelf/topoeddy/run-2/';
+%     prefix    = 'tea';
+%     addpath(genpath('/mit/dcherian/tools/'));
+% end
 
 fprintf('\n Writing to %s. ', [FOLDER '/' prefix '_*.nc']);
 input('Are you sure?');
