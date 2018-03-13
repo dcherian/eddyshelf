@@ -396,13 +396,16 @@ hax(4).XLabel.String = 'X (km)';
 
 resizeImageForPub('portrait');
 
+linkaxes([hax([1, 3]), hyy(1,2)], 'x')
+linkaxes([hax([2, 4]), hyy(2,2)], 'x')
+
 axes(hyy(1,1))
-htxt(1) = text(250, 0.02, 'offshore', 'Color', hplt(ii,1).Color);
+htxt(1) = text(200, 0.02, 'offshore', 'Color', hplt(ii,1).Color);
 htxt(2) = text(360, -0.0225, 'onshore', 'Color', hplt(ii,1).Color);
 
 axes(hyy(2,2));
-htxt(3) = text(340, 150, 'eddy water', 'Color', hplt(ii,2).Color);
-htxt(4) = text(250, 20, 'shelf water', 'Color', hplt(ii,2).Color);
+htxt(3) = text(270, 150, 'eddy water', 'Color', hplt(ii,2).Color);
+htxt(4) = text(180, 20, 'shelf water', 'Color', hplt(ii,2).Color);
 
 axes(hyy(1,1)); htxt(5) = text(0.05, 0.9, 'c)', 'Color', 'k', 'units', 'normalized', 'FontSize', 11);
 axes(hyy(2,2)); htxt(6) = text(0.05, 0.9, 'd)', 'Color', 'k', 'units', 'normalized', 'FontSize', 11);
@@ -601,7 +604,7 @@ for ii=1:2
         run = shfric2.array(end);
     end
     axes(hax(ii)); %hax(ii) = subplot(2,3,ii);
-    handles(ii,1) = run.animate_field(var, hax(ii),  '190', 1, opt);
+    handles(ii,1) = run.animate_field(var, hax(ii),  '170', 1, opt);
     handles(ii,1).hcb.delete;
     if ii==1
         title(['r_f = 0']);
@@ -627,7 +630,7 @@ for ii=1:2
     beautify([12 13 14], 'Times');
 
     axes(hax(ii+2)); % = subplot(2,3,ii+3);
-    handles(ii,2) = run.animate_field(var, hax(ii+2),  '230', 1, opt);
+    handles(ii,2) = run.animate_field(var, hax(ii+2),  '187', 1, opt);
     title('');
     handles(ii,2).hcb.delete;
     %handles(ii,2).htlabel.Position(2) = 0.14
@@ -1061,6 +1064,22 @@ handles{3}.hcb.Ticks = handles{3}.hcb.Ticks(2:end-1);
 
 set(gcf, 'renderer', 'painters')
 export_fig -a2 -r300 images/paper3/multipanel-cross-sections.png
+
+%% compare rζ_b and fαv_b
+ew = runs('../topoeddy/runew-8341/')
+ew.calc_vorbot;
+
+opt = [];
+opt.limy = [0 40];
+opt.limx = [200 450];
+
+xv = ew.rgrid.xvor;
+yv = ew.rgrid.yvor;
+vorv = ew.vorbot ./ avg1(ew.vbot, 1);
+
+contourf(xv/1000, yv/1000, vorv(:,:, 200));
+ylim(opt.limy); xlim(opt.limx)
+caxis([0.001 1]*1e-1)
 
 %%
 sh.print_diag('params table', 'images/paper3/sh-params-table.org')
