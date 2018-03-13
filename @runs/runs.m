@@ -5,7 +5,7 @@ properties
         fpos_file;
     % data
     zeta; temp; usurf; vsurf; vorsurf; csdsurf; ubot; vbot; eddsurf; ...
-        rhosurf; edcsdyesurf; pvsurf; zdyesurf; vorbot;
+        rhosurf; edcsdyesurf; pvsurf; zdyesurf; vorbot; csdbot;
     rbacksurf; % background density at surface
     sgntamp; % sign(runs.eddy.tamp) = -1 if cyclone; 1 otherwise
     % dimensional and non-dimensional time
@@ -1879,6 +1879,38 @@ methods
         catch ME
             runs.csdsurf = [];
             runs.read_csdsurf(t0, ntimes);
+        end
+    end
+
+    function [] = read_csdbot(runs, t0, ntimes)
+        if ~exist('t0', 'var'), t0 = 1; end
+        if ~exist('ntimes', 'var'), ntimes = Inf; end
+
+        % read zeta
+        if ntimes == 1
+            tind = [1 1]*t0;
+        else
+            tind = [1 length(runs.time)];
+        end
+
+        try
+            if isempty(runs.csdbot) | (t0 > size(runs.csdbot,3)) | ...
+                    any(isnan(fillnan(runs.csdbot(:,:,tind(1):tind(2)),0)))
+                if ~runs.givenFile
+                    runs.csdbot(:,:,tind(1):tind(2)) = ...
+                        dc_roms_read_data(runs.dir, runs.csdname, [tind], ...
+                                          {'z' 1 1}, [], runs.rgrid, ...
+                                          'his');
+                else
+                    runs.csdbot = ...
+                        single(squeeze(ncread(runs.out_file,runs.csdname, ...
+                                              [1 1 1 1], ...
+                                              [Inf Inf 1 Inf])));
+                end
+            end
+        catch ME
+            runs.csdbot = [];
+            runs.read_csdbot(t0, ntimes);
         end
     end
 
