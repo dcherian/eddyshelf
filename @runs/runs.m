@@ -704,6 +704,7 @@ methods
         end
         [flux, errflx] = runs.calc_avgflux(fluxvec, 0, 0.05, whenstop);
         [start,stop] = runs.flux_tindices(fluxvec);
+
         t0 = 1;
         tend = ceil((start+stop)/2);
         [V0, L0, Lz0] = runs.EddyScalesForFlux(t0, tend);
@@ -732,9 +733,10 @@ methods
                * ( (1-alpha*Lsupp/hsb) * (1-exp(-(Lsh/Lsupp))) ...
                    - alpha*Lsh/hsb * exp(-Lsh/Lsupp)));
 
-        sigma = Qsl ...
-                / ( norm_v * norm_L * norm_hsb ...
-                    * (1 - exp(-(norm_Lsh/norm_L))) );
+        Qflat = ( norm_v * norm_L * norm_hsb ...
+                  * (1 - exp(-(norm_Lsh/norm_L))) );
+
+        sigma = Qsl / Qflat;
     end
 
     function [] = FluxIntegralTimeScale(runs, isobath, factor)
@@ -2183,11 +2185,12 @@ methods
 
     % ubar cross-isobath scale
     function [] = CalcUbarCrossIsobathScale(runs)
-        runs.read_velbar;
 
         ticstart = tic;
+        % runs.read_velbar;
 
-        ix = runs.spng.sx2-40;
+        ix0 = runs.spng.sx2-60;
+        ix1 = runs.spng.sx2-40;
         isb = runs.bathy.isb;
 
         [start,stop] = runs.flux_tindices(runs.csflux.off.slope(:,1,1));
@@ -2203,11 +2206,11 @@ methods
         yvec = runs.rgrid.y_rho(:,1);
 
         for tt=start:stop
-            prof = runs.ubar(ix,1:isb+10,tt);
+            prof = mean(runs.ubar(ix0:ix1,1:isb+10,tt), 1);
 
             [minval,minind] = min(prof);
             i0 = find(prof(1:minind) > 0, 1, 'last');
-            if isempty(i0), i0 = 1, end
+            if isempty(i0), i0 = 1; end
             ind = i0-1 + find(prof(i0:minind) > 0.30*minval, 1, 'last');
             %ind = find_approx(prof(1:minind), 0.33*minval, 1);
 
@@ -2223,7 +2226,8 @@ methods
 
         hash = githash([mfilename('fullpath') '.m']);
         ubarscale.hash = hash;
-        ubarscale.ix = ix;
+        ubarscale.ix0 = ix0;
+        ubarscale.ix1 = ix1;
         ubarscale.profiles = profiles;
 
         runs.ubarscale = ubarscale;

@@ -1203,7 +1203,7 @@ function [diags, plotx, err, norm, color, rmse, P, Perr, handles] = ...
 
             % ptName = [ptName ' | ' num2str(y00 * exp(-y00^2),
             % '%.2f')];
-            plotnorm = 1;V0*L0*hsb;
+            plotnorm = 1; V0*L0*hsb;
 
             if ash == 0, continue; end
 

@@ -215,12 +215,22 @@ function [handles] = animate_field(runs, name, hax, t0, ntimes, opt)
         addcsdye = 0;
     end
 
-    if strcmpi(name, 'vor') | strcmpi(name, 'rv')
+    if strcmpi(name, 'vorsurf')
         if isempty(runs.vorsurf)
             runs.calc_vorsurf;
         end
         varname = 'vorsurf';
-        titlestr = 'Vorticity/f_0';
+        titlestr = 'Surface Vorticity/f_0';
+        addcsdye = 0;
+        factor = runs.params.phys.f0;
+    end
+
+    if strcmpi(name, 'vorbot')
+        if isempty(runs.vorbot)
+            runs.calc_vorbot;
+        end
+        varname = 'vorbot';
+        titlestr = 'Bottom Vorticity/f_0';
         addcsdye = 0;
         factor = runs.params.phys.f0;
     end
