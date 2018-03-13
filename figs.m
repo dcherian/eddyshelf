@@ -811,3 +811,25 @@ pbaspect([4 1 1]);
 resizeImageForPub('portrait');
 
 export_fig -a1 -r600 -c[Inf,0,Inf,0] images/paper3/sb-ssh-ew04-flat-sloping.png
+
+%% frictional stuff
+
+shfric2.plot_ts('-run.ubarscale.scale', [], ['run.ubarscale.time/86400'])
+
+% for ii=1:shfric2.len
+%     shfric2.array(ii).read_velbar;
+% end
+
+shfric2.plot_ts('squeeze(run.ubar(415, 30, :))', [], 'run.time/86400');
+linex([190, 230])
+
+shfric2.plot_ts('run.bathy.xsb - run.csflux.off.slopewater.envelope(:,1,1)')
+%% quadratic scaling
+
+r = [0 5e-5 1e-4 5e-4 3e-3]
+f0 = 5e-5
+alpha = 8e-4
+
+rfa = r/f0/alpha/2;
+Lbeta = 12e3;
+(rfa + sqrt(rfa.^2 + Lbeta^2 ))/1e3
