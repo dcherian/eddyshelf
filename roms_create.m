@@ -140,9 +140,9 @@ S.salt = zeros([Lr Mr S.N]);
 
 %  If Land/Sea masking arrays are not found, initialize them to unity.
 
-if (~isfield(S, 'mask_rho')),  S.mask_rho = ones([Lr Mr]);  end,
-if (~isfield(S, 'mask_u'  )),  S.mask_u   = ones([Lu Mu]);  end,
-if (~isfield(S, 'mask_v'  )),  S.mask_v   = ones([Lv Mv]);  end,
+if (~isfield(S, 'mask_rho')),  S.mask_rho = logical(ones([Lr Mr]));  end,
+if (~isfield(S, 'mask_u'  )),  S.mask_u   = logical(ones([Lu Mu]));  end,
+if (~isfield(S, 'mask_v'  )),  S.mask_v   = logical(ones([Lv Mv]));  end,
 
 % salt
 S.salt = phys.S0*ones(size(S.salt));
@@ -308,7 +308,7 @@ else
 
         % run smoother
         for i=1:bathy.n_passes
-            hvec = smooth(hvec,bathy.n_points);
+            hvec = smoothdata(hvec, 'movmean', bathy.n_points);
         end
         if bathy_plot
             fbathy = figure;
@@ -383,10 +383,10 @@ end
 if any(S.h(:) < 0), error('h < 0!'); end
 
 % Land - Sea Mask
-S.mask_u = ones(size(S.x_u));
-S.mask_v = ones(size(S.x_v));
-S.mask_rho = ones(size(S.x_rho));
-S.mask_psi = ones(size(S.x_psi));
+S.mask_u = logical(ones(size(S.x_u)));
+S.mask_v = logical(ones(size(S.x_v)));
+S.mask_rho = logical(ones(size(S.x_rho)));
+S.mask_psi = logical(ones(size(S.x_psi)));
 
 % duplicate in lat, lon fields
 S.lat_rho = S.y_rho;
